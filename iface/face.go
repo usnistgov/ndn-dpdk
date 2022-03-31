@@ -41,7 +41,7 @@ type Face interface {
 	Counters() Counters
 
 	// ExCounters returns extended counters.
-	ExCounters() interface{}
+	ExCounters() any
 
 	// TxAlign returns TX packet alignment requirement.
 	TxAlign() ndni.PacketTxAlign
@@ -143,7 +143,7 @@ type NewParams struct {
 
 	// ExCounters callback returns extended counters.
 	// This is optional.
-	ExCounters func() interface{}
+	ExCounters func() any
 }
 
 // InitResult contains results of NewParams.Init callback.
@@ -248,7 +248,7 @@ type face struct {
 	locatorCallback    func() Locator
 	stopCallback       func() error
 	closeCallback      func() error
-	exCountersCallback func() interface{}
+	exCountersCallback func() any
 }
 
 func (f *face) ptr() *C.Face {
@@ -315,7 +315,7 @@ func (f *face) clear() Face {
 	return nil
 }
 
-func (f *face) ExCounters() interface{} {
+func (f *face) ExCounters() any {
 	if f.exCountersCallback != nil {
 		return f.exCountersCallback()
 	}

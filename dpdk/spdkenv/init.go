@@ -54,7 +54,7 @@ func InitEnv() error {
 // InitMainThread creates a main thread, and launches on the current goroutine.
 // This must be invoked on the MainLCore.
 // This function never returns; either the main thread (*Thread) or an error is sent to `ret`.
-func InitMainThread(ret chan<- interface{}) {
+func InitMainThread(ret chan<- any) {
 	if lc := eal.CurrentLCore(); lc != eal.MainLCore {
 		logger.Panic("lcore is not main", lc.ZapField("lc"), eal.MainLCore.ZapField("main"))
 	}

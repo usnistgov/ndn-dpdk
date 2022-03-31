@@ -35,7 +35,7 @@ func init() {
 						}
 					}
 				}
-			`, map[string]interface{}{
+			`, map[string]any{
 				"withFib": withFib,
 			}, "strategies")
 		},
@@ -82,7 +82,7 @@ func init() {
 						name
 					}
 				}
-			`, map[string]interface{}{
+			`, map[string]any{
 				"name": name,
 				"elf":  base64.StdEncoding.EncodeToString(elf),
 			}, "loadStrategy")

@@ -34,7 +34,7 @@ func init() {
 						}
 					}
 				}
-			`, map[string]interface{}{
+			`, map[string]any{
 			"filename": filename,
 		}, "createPdumpWriter", &result); e != nil {
 			return e
@@ -56,7 +56,7 @@ func init() {
 					dir
 				}
 			}
-		`, map[string]interface{}{
+		`, map[string]any{
 			"writer":     writer,
 			"face":       face,
 			"dir":        dir,
@@ -82,7 +82,7 @@ func init() {
 					grab
 				}
 			}
-		`, map[string]interface{}{
+		`, map[string]any{
 			"writer": writer,
 			"port":   port,
 			"grab":   grab,

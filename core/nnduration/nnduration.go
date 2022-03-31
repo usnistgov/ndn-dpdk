@@ -15,7 +15,7 @@ func parse(input string, unit time.Duration) (value uint64, e error) {
 	return strconv.ParseUint(input, 10, 64)
 }
 
-func parseJSON(ptr interface{}, p []byte, unit time.Duration) error {
+func parseJSON(ptr any, p []byte, unit time.Duration) error {
 	value, e := parse(string(bytes.Trim(p, `"`)), unit)
 	reflect.ValueOf(ptr).Elem().SetUint(value)
 	return e

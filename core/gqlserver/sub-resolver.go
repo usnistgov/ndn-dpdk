@@ -14,8 +14,8 @@ import (
 //
 // f is a callback function that sends its results into a channel.
 // It should not close the channel - the channel will be closed by the caller when f returns.
-func PublishChan(f func(updates chan<- interface{})) (interface{}, error) {
-	updates := make(chan interface{})
+func PublishChan(f func(updates chan<- any)) (any, error) {
+	updates := make(chan any)
 	go func() {
 		defer close(updates)
 		f(updates)
@@ -44,11 +44,11 @@ var (
 //
 // read is a callback function that returns a single result.
 // enders are channels that indicate the subscription should be canceled, when a value is received or the channel is closed.
-func PublishInterval(p graphql.ResolveParams, read graphql.FieldResolveFn, enders ...interface{}) (results interface{}, e error) {
+func PublishInterval(p graphql.ResolveParams, read graphql.FieldResolveFn, enders ...any) (results any, e error) {
 	interval := p.Args["interval"].(nnduration.Nanoseconds).Duration()
 
 	diff := false
-	var prev interface{}
+	var prev any
 	if diffB, ok := p.Args["diff"].(bool); ok && diffB {
 		diff = true
 		if prev, e = read(p); e != nil {
@@ -56,7 +56,7 @@ func PublishInterval(p graphql.ResolveParams, read graphql.FieldResolveFn, ender
 		}
 	}
 
-	return PublishChan(func(updates chan<- interface{}) {
+	return PublishChan(func(updates chan<- any) {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
@@ -108,9 +108,9 @@ func init() {
 		Description: "time.Ticker subscription for testing subscription implementations.",
 		Type:        NonNullInt,
 		Args:        subArgInterval,
-		Subscribe: func(p graphql.ResolveParams) (interface{}, error) {
+		Subscribe: func(p graphql.ResolveParams) (any, error) {
 			n := 0
-			return PublishInterval(p, func(p graphql.ResolveParams) (interface{}, error) {
+			return PublishInterval(p, func(p graphql.ResolveParams) (any, error) {
 				n++
 				return n, nil
 			})
@@ -141,7 +141,7 @@ type CountersConfig struct {
 	// p.Source is unspecified.
 	// p.Args contains arguments declared in both Args and FindArgs.
 	// enders: see PublishInterval.
-	Find func(p graphql.ResolveParams) (source interface{}, enders []interface{}, e error)
+	Find func(p graphql.ResolveParams) (source any, enders []any, e error)
 
 	// Type declares GraphQL return type.
 	Type graphql.Output
@@ -153,7 +153,7 @@ type CountersConfig struct {
 	Read graphql.FieldResolveFn
 }
 
-func (cfg CountersConfig) subscribe(p graphql.ResolveParams) (interface{}, error) {
+func (cfg CountersConfig) subscribe(p graphql.ResolveParams) (any, error) {
 	source, enders, e := cfg.Find(p)
 	if e != nil {
 		return nil, e

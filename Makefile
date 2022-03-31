@@ -1,3 +1,4 @@
+export GOAMD64 := v3
 export CGO_CFLAGS_ALLOW := '.*'
 ifeq ($(origin CC),default)
 	CC = gcc

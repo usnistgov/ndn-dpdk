@@ -47,13 +47,13 @@ func initRPC() error {
 }
 
 // RPC calls a method on SPDK RPC server.
-func RPC(method string, args interface{}, reply interface{}) (e error) {
+func RPC(method string, args any, reply any) (e error) {
 	e = rpcClient.Call(method, args, reply)
 
 	if ce := logger.Check(zap.DebugLevel, "RPC"); ce != nil {
 		errField := zap.Skip()
 		if e != nil {
-			var errV interface{}
+			var errV any
 			if json.Unmarshal([]byte(e.Error()), &errV) == nil {
 				errField = zap.Any("error", errV)
 			} else {

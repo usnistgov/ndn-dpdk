@@ -23,7 +23,7 @@ var (
 
 func init() {
 	GqlEthDevNodeType = gqlserver.NewNodeType((*EthDev)(nil))
-	GqlEthDevNodeType.Retrieve = func(id string) (interface{}, error) {
+	GqlEthDevNodeType.Retrieve = func(id string) (any, error) {
 		nid, e := strconv.Atoi(id)
 		if e != nil {
 			return nil, e
@@ -37,7 +37,7 @@ func init() {
 			"nid": &graphql.Field{
 				Type:        gqlserver.NonNullInt,
 				Description: "DPDK port identifier.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					port := p.Source.(EthDev)
 					return port.ID(), nil
 				},
@@ -45,7 +45,7 @@ func init() {
 			"name": &graphql.Field{
 				Type:        gqlserver.NonNullString,
 				Description: "Port name.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					port := p.Source.(EthDev)
 					return port.Name(), nil
 				},
@@ -54,7 +54,7 @@ func init() {
 			"devInfo": &graphql.Field{
 				Type:        gqlserver.JSON,
 				Description: "DPDK device information.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					port := p.Source.(EthDev)
 					return port.DevInfo(), nil
 				},
@@ -62,7 +62,7 @@ func init() {
 			"macAddr": &graphql.Field{
 				Type:        gqlserver.NonNullString,
 				Description: "MAC address.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					port := p.Source.(EthDev)
 					return port.HardwareAddr(), nil
 				},
@@ -70,7 +70,7 @@ func init() {
 			"mtu": &graphql.Field{
 				Type:        gqlserver.NonNullInt,
 				Description: "Maximum Transmission Unit (MTU).",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					port := p.Source.(EthDev)
 					return port.MTU(), nil
 				},
@@ -78,7 +78,7 @@ func init() {
 			"isDown": &graphql.Field{
 				Type:        gqlserver.NonNullBoolean,
 				Description: "Whether the port is down.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					port := p.Source.(EthDev)
 					return port.IsDown(), nil
 				},
@@ -86,7 +86,7 @@ func init() {
 			"stats": &graphql.Field{
 				Type:        gqlserver.JSON,
 				Description: "Hardware statistics.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					port := p.Source.(EthDev)
 					return port.Stats(), nil
 				},
@@ -94,7 +94,7 @@ func init() {
 			"flowDump": &graphql.Field{
 				Description: "Internal rte_flow representation.",
 				Type:        gqlserver.NonNullString,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					port := p.Source.(ethDev)
 					var res C.int
 					dump, e := cptr.CaptureFileDump(func(fp unsafe.Pointer) {
@@ -114,7 +114,7 @@ func init() {
 		Name:        "ethDevs",
 		Description: "List of Ethernet devices.",
 		Type:        gqlserver.NewNonNullList(GqlEthDevType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return List(), nil
 		},
 	})
@@ -128,7 +128,7 @@ func init() {
 			},
 		},
 		Type: graphql.NewNonNull(GqlEthDevType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			var port EthDev
 			if e := gqlserver.RetrieveNodeOfType(GqlEthDevNodeType, p.Args["id"], &port); e != nil {
 				return nil, e

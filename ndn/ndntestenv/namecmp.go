@@ -13,7 +13,7 @@ type getNamer interface {
 	Name() ndn.Name
 }
 
-func getName(obj interface{}) ndn.Name {
+func getName(obj any) ndn.Name {
 	switch v := obj.(type) {
 	case string:
 		return ndn.ParseName(v)
@@ -32,13 +32,13 @@ func getName(obj interface{}) ndn.Name {
 
 // NameEqual asserts that actual name equals expected name.
 // Name arguments can be string, Name, object with Name() method, or object with Name field.
-func NameEqual(a *assert.Assertions, expected interface{}, actual interface{}, msgAndArgs ...interface{}) bool {
+func NameEqual(a *assert.Assertions, expected any, actual any, msgAndArgs ...any) bool {
 	return a.Equal(getName(expected).String(), getName(actual).String(), msgAndArgs...)
 }
 
 // NameIsPrefix asserts that name starts with prefix.
 // Name arguments can be string, Name, object with Name() method, or object with Name field.
-func NameIsPrefix(a *assert.Assertions, prefix interface{}, name interface{}, msgAndArgs ...interface{}) bool {
+func NameIsPrefix(a *assert.Assertions, prefix any, name any, msgAndArgs ...any) bool {
 	prefixN := getName(prefix)
 	nameN := getName(name)
 	if prefixN.IsPrefixOf(nameN) {

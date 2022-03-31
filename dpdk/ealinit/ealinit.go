@@ -43,7 +43,7 @@ func Init(args []string) error {
 		updateLogLevels()
 		initLogStream()
 
-		ret := make(chan interface{})
+		ret := make(chan any)
 		go func() {
 			runtime.LockOSThread()
 			if e := initEal(args); e != nil {

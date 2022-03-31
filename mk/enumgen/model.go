@@ -126,7 +126,7 @@ func (pc *pkgConsts) collectEnum(enum *enumDecl, decl *ast.GenDecl, rename func(
 	}
 }
 
-func (pc *pkgConsts) nodeToString(node interface{}) string {
+func (pc *pkgConsts) nodeToString(node any) string {
 	var buf bytes.Buffer
 	format.Node(&buf, pc.fset, node)
 	return strings.ReplaceAll(buf.String(), "\n\t", " ")

@@ -19,7 +19,7 @@ func TestAlloc(t *testing.T) {
 	assert.EqualValues(max, aMax)
 
 	slots := map[uint64]bool{}
-	expectAlloc := func(msgAndArgs ...interface{}) uint64 {
+	expectAlloc := func(msgAndArgs ...any) uint64 {
 		slot, e := a.Alloc()
 		if assert.NoError(e, msgAndArgs...) {
 			assert.LessOrEqual(min, slot, msgAndArgs...)

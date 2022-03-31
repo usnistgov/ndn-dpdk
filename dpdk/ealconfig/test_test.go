@@ -14,7 +14,7 @@ func init() {
 
 var makeAR = testenv.MakeAR
 
-func commaSetEquals(a *assert.Assertions, expected string, actual string, msgAndArgs ...interface{}) bool {
+func commaSetEquals(a *assert.Assertions, expected string, actual string, msgAndArgs ...any) bool {
 	expectedSet := strings.Split(expected, ",")
 	actualSet := strings.Split(actual, ",")
 	return a.ElementsMatch(expectedSet, actualSet, msgAndArgs...)

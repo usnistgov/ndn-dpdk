@@ -25,7 +25,7 @@ func init() {
 			"name": &graphql.Field{
 				Description: "Mempool name.",
 				Type:        gqlserver.NonNullString,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					pool := p.Source.(PoolInfo)
 					return pool.String(), nil
 				},
@@ -33,7 +33,7 @@ func init() {
 			"used": &graphql.Field{
 				Description: "Entries in use.",
 				Type:        gqlserver.NonNullInt,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					pool := p.Source.(PoolInfo)
 					return pool.CountInUse(), nil
 				},
@@ -48,7 +48,7 @@ func init() {
 			"tid": &graphql.Field{
 				Description: "Template ID.",
 				Type:        gqlserver.NonNullString,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					tpl := p.Source.(Template)
 					return tpl.ID(), nil
 				},
@@ -56,7 +56,7 @@ func init() {
 			"config": &graphql.Field{
 				Description: "Mempool configuration.",
 				Type:        graphql.NewNonNull(GqlConfigType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					tpl := p.Source.(Template)
 					return tpl.Config(), nil
 				},
@@ -64,7 +64,7 @@ func init() {
 			"pools": &graphql.Field{
 				Description: "List of created mempools.",
 				Type:        gqlserver.NewNonNullList(GqlPoolType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					tpl := p.Source.(Template)
 					return tpl.Pools(), nil
 				},
@@ -76,7 +76,7 @@ func init() {
 		Name:        "pktmbufPoolTemplates",
 		Description: "Packet buffer pool templates.",
 		Type:        gqlserver.NewNonNullList(GqlTemplateType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			var list []Template
 			for _, tpl := range templates {
 				list = append(list, tpl)

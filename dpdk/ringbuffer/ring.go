@@ -118,14 +118,14 @@ func (r *Ring) CountInUse() int {
 
 // Enqueue enqueues several objects on a ring.
 // objs should be a slice of C void* pointers.
-func (r *Ring) Enqueue(objs interface{}) (nEnqueued int) {
+func (r *Ring) Enqueue(objs any) (nEnqueued int) {
 	ptr, count := cptr.ParseCptrArray(objs)
 	return int(C.rte_ring_enqueue_burst(r.ptr(), (*unsafe.Pointer)(ptr), C.uint(count), nil))
 }
 
 // Dequeue dequeues several objects from a ring.
 // objs should be a slice of C void* pointers.
-func (r *Ring) Dequeue(objs interface{}) (nDequeued int) {
+func (r *Ring) Dequeue(objs any) (nDequeued int) {
 	ptr, count := cptr.ParseCptrArray(objs)
 	return int(C.rte_ring_dequeue_burst(r.ptr(), (*unsafe.Pointer)(ptr), C.uint(count), nil))
 }

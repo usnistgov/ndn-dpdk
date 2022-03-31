@@ -17,7 +17,7 @@ import (
 // JoinDevArgs converts device argument key-value pairs to a string.
 // nil values are skipped.
 // As a special case, if the map has a "" key, its value would override all other arguments.
-func JoinDevArgs(m map[string]interface{}) string {
+func JoinDevArgs(m map[string]any) string {
 	var b strings.Builder
 	if s, ok := m[""]; ok {
 		fmt.Fprint(&b, s)
@@ -35,7 +35,7 @@ func JoinDevArgs(m map[string]interface{}) string {
 }
 
 // ProbePCI requests to probe a PCI device.
-func ProbePCI(addr pciaddr.PCIAddress, args map[string]interface{}) error {
+func ProbePCI(addr pciaddr.PCIAddress, args map[string]any) error {
 	arg := JoinDevArgs(args)
 	devargs := addr.String()
 	if arg != "" {
@@ -91,7 +91,7 @@ func (vdev *VDev) Close() error {
 }
 
 // NewVDev creates a virtual device.
-func NewVDev(name string, args map[string]interface{}, socket NumaSocket) (vdev *VDev, e error) {
+func NewVDev(name string, args map[string]any, socket NumaSocket) (vdev *VDev, e error) {
 	nameC := C.CString(name)
 	defer C.free(unsafe.Pointer(nameC))
 	arg := JoinDevArgs(args)

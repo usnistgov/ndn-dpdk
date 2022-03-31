@@ -65,7 +65,7 @@ func init() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			vars := map[string]interface{}{
+			vars := map[string]any{
 				"name":     name,
 				"nexthops": nexthops.Value(),
 			}
@@ -73,7 +73,7 @@ func init() {
 				vars["strategy"] = strategy
 			}
 			if params != "" {
-				var paramsJ map[string]interface{}
+				var paramsJ map[string]any
 				if e := json.Unmarshal([]byte(params), &paramsJ); e != nil {
 					return fmt.Errorf("params: %w", e)
 				}

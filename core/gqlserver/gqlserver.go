@@ -44,7 +44,7 @@ func AddQuery(f *graphql.Field) {
 // AddMutation adds a top-level mutation field.
 func AddMutation(f *graphql.Field) {
 	name, resolve := f.Name, f.Resolve
-	f.Resolve = func(p graphql.ResolveParams) (interface{}, error) {
+	f.Resolve = func(p graphql.ResolveParams) (any, error) {
 		defer func() {
 			if e := recover(); e != nil {
 				logger.Error("panic in GraphQL mutation resolver",
@@ -63,7 +63,7 @@ func AddMutation(f *graphql.Field) {
 // AddSubscription adds a top-level subscription field.
 func AddSubscription(f *graphql.Field) {
 	if f.Resolve == nil {
-		f.Resolve = func(p graphql.ResolveParams) (interface{}, error) {
+		f.Resolve = func(p graphql.ResolveParams) (any, error) {
 			return p.Info.RootValue, nil
 		}
 	}
@@ -80,7 +80,7 @@ func init() {
 	AddQuery(&graphql.Field{
 		Name: "version",
 		Type: graphql.NewNonNull(versionType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return version.Get(), nil
 		},
 	})

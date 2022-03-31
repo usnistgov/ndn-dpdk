@@ -37,11 +37,11 @@ func init() {
 	})
 
 	GqlEntryNodeType = gqlserver.NewNodeType(Entry{})
-	GqlEntryNodeType.GetID = func(source interface{}) string {
+	GqlEntryNodeType.GetID = func(source any) string {
 		entry := source.(Entry)
 		return entry.Name.String()
 	}
-	GqlEntryNodeType.Retrieve = func(id string) (interface{}, error) {
+	GqlEntryNodeType.Retrieve = func(id string) (any, error) {
 		if GqlFib == nil {
 			return nil, errNoGqlFib
 		}
@@ -52,7 +52,7 @@ func init() {
 		}
 		return *entry, nil
 	}
-	GqlEntryNodeType.Delete = func(source interface{}) error {
+	GqlEntryNodeType.Delete = func(source any) error {
 		if GqlFib == nil {
 			return errNoGqlFib
 		}
@@ -66,7 +66,7 @@ func init() {
 			"name": &graphql.Field{
 				Description: "Entry name.",
 				Type:        graphql.NewNonNull(ndni.GqlNameType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					entry := p.Source.(Entry)
 					return entry.Name, nil
 				},
@@ -74,7 +74,7 @@ func init() {
 			"nexthops": &graphql.Field{
 				Description: "FIB nexthops. null indicates a deleted face.",
 				Type:        gqlserver.NewNonNullList(iface.GqlFaceType, true),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					entry := p.Source.(Entry)
 					var list []iface.Face
 					for _, nh := range entry.Nexthops {
@@ -86,7 +86,7 @@ func init() {
 			"strategy": &graphql.Field{
 				Description: "Forwarding strategy. null indicates a deleted strategy.",
 				Type:        strategycode.GqlStrategyType,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					entry := p.Source.(Entry)
 					return strategycode.Get(entry.Strategy), nil
 				},
@@ -94,7 +94,7 @@ func init() {
 			"counters": &graphql.Field{
 				Description: "Entry counters.",
 				Type:        graphql.NewNonNull(GqlEntryCountersType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					entry := p.Source.(Entry)
 					return entry.Counters(), nil
 				},
@@ -113,7 +113,7 @@ func init() {
 				Type:        ndni.GqlNameType,
 			},
 		},
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlFib == nil {
 				return nil, errNoGqlFib
 			}
@@ -133,7 +133,7 @@ func init() {
 	iface.GqlFaceType.AddFieldConfig("fibEntries", &graphql.Field{
 		Description: "FIB entries having this face as nexthop.",
 		Type:        graphql.NewList(graphql.NewNonNull(GqlEntryType)),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlFib == nil {
 				return nil, nil
 			}
@@ -153,7 +153,7 @@ func init() {
 	strategycode.GqlStrategyType.AddFieldConfig("fibEntries", &graphql.Field{
 		Description: "FIB entries using this strategy.",
 		Type:        graphql.NewList(graphql.NewNonNull(GqlEntryType)),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlFib == nil {
 				return nil, nil
 			}
@@ -192,14 +192,14 @@ func init() {
 			},
 		},
 		Type: graphql.NewNonNull(GqlEntryType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlFib == nil {
 				return nil, errNoGqlFib
 			}
 
 			var entry fibdef.Entry
 			entry.Name = p.Args["name"].(ndn.Name)
-			for i, nh := range p.Args["nexthops"].([]interface{}) {
+			for i, nh := range p.Args["nexthops"].([]any) {
 				var face iface.Face
 				if e := gqlserver.RetrieveNodeOfType(iface.GqlFaceNodeType, nh, &face); e != nil {
 					return nil, fmt.Errorf("nexthops[%d] not found: %w", i, e)
@@ -215,7 +215,7 @@ func init() {
 			}
 			entry.Strategy = sc.ID()
 
-			if params, ok := p.Args["params"].(map[string]interface{}); ok {
+			if params, ok := p.Args["params"].(map[string]any); ok {
 				entry.Params = params
 			}
 

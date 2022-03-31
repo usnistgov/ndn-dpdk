@@ -6,7 +6,7 @@ import (
 )
 
 // AsByteSlice converts *[n]C.uint8_t or *[n]C.char or []C.uint8_t or []C.char to []byte.
-func AsByteSlice(value interface{}) (b []byte) {
+func AsByteSlice(value any) (b []byte) {
 	val := reflect.ValueOf(value)
 	switch val.Kind() {
 	case reflect.Slice:

@@ -122,7 +122,7 @@ func (entry *Entry) assignReal(u *fibdef.RealUpdate, sgGlobals []unsafe.Pointer)
 	*entry.ptrStrategy() = (*C.StrategyCode)(sc.Ptr())
 
 	if sgInit := sc.InitFunc(); sgInit != nil {
-		var params interface{}
+		var params any
 		jsonhelper.Roundtrip(u.Params, &params)
 		paramsHdl := cgo.NewHandle(params)
 		defer paramsHdl.Delete()
@@ -151,15 +151,15 @@ func (entry *Entry) assignVirt(u *fibdef.VirtUpdate, real *Entry) {
 	*entry.ptrReal() = real.ptr()
 }
 
-func jsonExtract(obj interface{}, path []string, index int) (value int64, ok bool) {
+func jsonExtract(obj any, path []string, index int) (value int64, ok bool) {
 	switch field := obj.(type) {
 	case nil:
 		return 0, false
-	case map[string]interface{}:
+	case map[string]any:
 		if len(path) > 0 {
 			return jsonExtract(field[path[0]], path[1:], index)
 		}
-	case []interface{}:
+	case []any:
 		switch {
 		case len(path) > 0:
 			return 0, false

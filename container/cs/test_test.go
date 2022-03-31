@@ -152,7 +152,7 @@ func (f *Fixture) Insert(interest *ndni.Packet, data *ndni.Packet) (isReplacing 
 }
 
 // InsertBulk inserts multiple CS entries following a template.
-func (f *Fixture) InsertBulk(minIndex, maxIndex int, dataNameFmt, interestNameFmt string, makeInterestArgs ...interface{}) (nInserted int) {
+func (f *Fixture) InsertBulk(minIndex, maxIndex int, dataNameFmt, interestNameFmt string, makeInterestArgs ...any) (nInserted int) {
 	for i := minIndex; i <= maxIndex; i++ {
 		interest := makeInterest(fmt.Sprintf(interestNameFmt, i), makeInterestArgs...)
 		data := makeData(fmt.Sprintf(dataNameFmt, i), time.Second)
@@ -177,7 +177,7 @@ func (f *Fixture) Find(interest *ndni.Packet) *cs.Entry {
 }
 
 // FindBulk finds multiple CS entries following a template.
-func (f *Fixture) FindBulk(minIndex, maxIndex int, interestNameFmt string, makeInterestArgs ...interface{}) (nFound int) {
+func (f *Fixture) FindBulk(minIndex, maxIndex int, interestNameFmt string, makeInterestArgs ...any) (nFound int) {
 	for i := minIndex; i <= maxIndex; i++ {
 		interest := makeInterest(fmt.Sprintf(interestNameFmt, i), makeInterestArgs...)
 		csEntry := f.Find(interest)

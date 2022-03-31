@@ -68,7 +68,7 @@ func (stop StopClose) AfterWait() {
 }
 
 // NewStopClose constructs a StopClose.
-func NewStopClose(ch interface{}) (stop StopClose) {
+func NewStopClose(ch any) (stop StopClose) {
 	v := reflect.ValueOf(ch)
 	if v.Type().ChanDir()&reflect.SendDir == 0 {
 		panic("StopClose requires chan<-")

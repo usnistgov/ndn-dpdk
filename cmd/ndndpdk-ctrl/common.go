@@ -32,7 +32,7 @@ func runDeleteCommand(c *cli.Context, id string) error {
 		mutation delete($id: ID!) {
 			delete(id: $id)
 		}
-	`, map[string]interface{}{
+	`, map[string]any{
 		"id": id,
 	}, "delete")
 }
@@ -102,7 +102,7 @@ type stdinJSONCommand struct {
 	SchemaName string
 	ParamNoun  string
 	Flags      []cli.Flag
-	Action     func(c *cli.Context, arg map[string]interface{}) error
+	Action     func(c *cli.Context, arg map[string]any) error
 }
 
 func defineStdinJSONCommand(opts stdinJSONCommand) {
@@ -123,7 +123,7 @@ func defineStdinJSONCommand(opts stdinJSONCommand) {
 			},
 		}, opts.Flags...),
 		Action: func(c *cli.Context) error {
-			arg := map[string]interface{}{}
+			arg := map[string]any{}
 			loader, stdin := gojsonschema.NewReaderLoader(os.Stdin)
 			decoder := json.NewDecoder(stdin)
 
@@ -156,7 +156,7 @@ func defineStdinJSONCommand(opts stdinJSONCommand) {
 
 type request struct {
 	Query string
-	Vars  map[string]interface{}
+	Vars  map[string]any
 	Key   string
 }
 
@@ -168,15 +168,15 @@ func (r request) isSubscription() bool {
 	return false
 }
 
-func (r request) Execute(ctx context.Context, ptr interface{}) error {
+func (r request) Execute(ctx context.Context, ptr any) error {
 	if r.isSubscription() {
 		return r.subscribe(ctx)
 	}
 	return r.do(ctx, ptr)
 }
 
-func (r request) do(ctx context.Context, ptr interface{}) error {
-	var value interface{}
+func (r request) do(ctx context.Context, ptr any) error {
+	var value any
 	if e := client.Do(ctx, r.Query, r.Vars, r.Key, &value); e != nil {
 		return e
 	}
@@ -198,7 +198,7 @@ func (r request) do(ctx context.Context, ptr interface{}) error {
 }
 
 func (r request) subscribe(ctx context.Context) error {
-	updates := make(chan interface{})
+	updates := make(chan any)
 	go func() {
 		for update := range updates {
 			j, _ := json.Marshal(update)
@@ -242,7 +242,7 @@ func (r request) Print() error {
 	return nil
 }
 
-func clientDoPrint(ctx context.Context, query string, vars map[string]interface{}, key string, ptr ...interface{}) error {
+func clientDoPrint(ctx context.Context, query string, vars map[string]any, key string, ptr ...any) error {
 	r := request{
 		Query: query,
 		Vars:  vars,

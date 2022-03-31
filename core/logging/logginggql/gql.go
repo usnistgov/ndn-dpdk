@@ -21,7 +21,7 @@ func init() {
 			"package": &graphql.Field{
 				Description: "Package name.",
 				Type:        gqlserver.NonNullString,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					pl := p.Source.(logging.PkgLevel)
 					return pl.Package(), nil
 				},
@@ -29,7 +29,7 @@ func init() {
 			"level": &graphql.Field{
 				Description: "Log level.",
 				Type:        gqlserver.NonNullString,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					pl := p.Source.(logging.PkgLevel)
 					return string(pl.Level()), nil
 				},
@@ -41,7 +41,7 @@ func init() {
 		Name:        "loggers",
 		Description: "Log levels.",
 		Type:        gqlserver.NewNonNullList(GqlLoggerType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return logging.ListLevels(), nil
 		},
 	})
@@ -60,7 +60,7 @@ func init() {
 			},
 		},
 		Type: graphql.NewNonNull(GqlLoggerType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			pkg := p.Args["package"].(string)
 			lvl := p.Args["level"].(string)
 			pl := logging.FindLevel(pkg)

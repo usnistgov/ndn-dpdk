@@ -31,9 +31,9 @@ var (
 )
 
 func init() {
-	retrieve := func(id iface.ID) interface{} { return Get(id) }
+	retrieve := func(id iface.ID) any { return Get(id) }
 	GqlTrafficGenNodeType = tggql.NewNodeType("Tg", (*TrafficGen)(nil), &retrieve)
-	GqlTrafficGenNodeType.Delete = func(source interface{}) error {
+	GqlTrafficGenNodeType.Delete = func(source any) error {
 		return source.(*TrafficGen).Close()
 	}
 	GqlTrafficGenType = graphql.NewObject(GqlTrafficGenNodeType.Annotate(graphql.ObjectConfig{
@@ -42,7 +42,7 @@ func init() {
 			"producer": &graphql.Field{
 				Description: "Producer module.",
 				Type:        tgproducer.GqlProducerType,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					gen := p.Source.(*TrafficGen)
 					return gen.Producer(), nil
 				},
@@ -50,7 +50,7 @@ func init() {
 			"fileServer": &graphql.Field{
 				Description: "File server module.",
 				Type:        fileserver.GqlServerType,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					gen := p.Source.(*TrafficGen)
 					return gen.FileServer(), nil
 				},
@@ -58,7 +58,7 @@ func init() {
 			"consumer": &graphql.Field{
 				Description: "Consumer module.",
 				Type:        tgconsumer.GqlConsumerType,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					gen := p.Source.(*TrafficGen)
 					return gen.Consumer(), nil
 				},
@@ -66,7 +66,7 @@ func init() {
 			"fetcher": &graphql.Field{
 				Description: "Fetcher module.",
 				Type:        fetch.GqlFetcherType,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					gen := p.Source.(*TrafficGen)
 					return gen.Fetcher(), nil
 				},
@@ -77,7 +77,7 @@ func init() {
 	iface.GqlFaceType.AddFieldConfig("trafficgen", &graphql.Field{
 		Description: "Traffic generator operating on this face.",
 		Type:        GqlTrafficGenType,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			face := p.Source.(iface.Face)
 			return Get(face.ID()), nil
 		},
@@ -94,7 +94,7 @@ func init() {
 			reflect.TypeOf(fetch.FetcherConfig{}):  fetch.GqlConfigInput,
 		}),
 		Type: graphql.NewNonNull(GqlTrafficGenType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if !GqlCreateEnabled {
 				return nil, errGqlDisabled
 			}
@@ -137,16 +137,16 @@ func init() {
 				Type:        gqlserver.NonNullID,
 			},
 		},
-		Find: func(p graphql.ResolveParams) (root interface{}, enders []interface{}, e error) {
+		Find: func(p graphql.ResolveParams) (root any, enders []any, e error) {
 			id := p.Args["id"].(string)
 			var gen *TrafficGen
 			if e := gqlserver.RetrieveNodeOfType(GqlTrafficGenNodeType, id, &gen); e != nil {
 				return nil, nil, e
 			}
-			return gen, []interface{}{gen.exit}, nil
+			return gen, []any{gen.exit}, nil
 		},
 		Type: GqlCountersType,
-		Read: func(p graphql.ResolveParams) (interface{}, error) {
+		Read: func(p graphql.ResolveParams) (any, error) {
 			return p.Source.(*TrafficGen).Counters(), nil
 		},
 	})

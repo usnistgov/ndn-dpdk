@@ -13,7 +13,7 @@ func init() {
 	ethdev.GqlEthDevType.AddFieldConfig("rxImpl", &graphql.Field{
 		Description: "Active ethface RX implementation.",
 		Type:        graphql.String,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			port := Find(p.Source.(ethdev.EthDev))
 			if port == nil {
 				return nil, nil
@@ -24,7 +24,7 @@ func init() {
 	ethdev.GqlEthDevType.AddFieldConfig("faces", &graphql.Field{
 		Description: "Faces on Ethernet device.",
 		Type:        graphql.NewList(graphql.NewNonNull(iface.GqlFaceType)),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			port := Find(p.Source.(ethdev.EthDev))
 			if port == nil {
 				return nil, nil
@@ -36,7 +36,7 @@ func init() {
 	iface.GqlFaceType.AddFieldConfig("ethDev", &graphql.Field{
 		Description: "Ethernet device containing this face.",
 		Type:        ethdev.GqlEthDevType,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			face, ok := p.Source.(*Face)
 			if !ok {
 				return nil, nil
@@ -50,7 +50,7 @@ func init() {
 		Description: "Create an Ethernet port.",
 		Args:        gqlserver.BindArguments(Config{}, ethnetif.GqlConfigFieldTypes),
 		Type:        ethdev.GqlEthDevType,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			var cfg Config
 			if e := jsonhelper.Roundtrip(p.Args, &cfg); e != nil {
 				return nil, e
@@ -64,7 +64,7 @@ func init() {
 		},
 	})
 
-	ethdev.GqlEthDevNodeType.Delete = func(source interface{}) error {
+	ethdev.GqlEthDevNodeType.Delete = func(source any) error {
 		dev := source.(ethdev.EthDev)
 		port := Find(dev)
 		if port == nil {

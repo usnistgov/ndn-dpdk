@@ -21,7 +21,7 @@ type Nack struct {
 //  - uint8 or int: set Reason
 //  - Interest or *Interest: set Interest, copy PitToken and CongMark
 //  - LpL3: copy PitToken and CongMark
-func MakeNack(args ...interface{}) (nack Nack) {
+func MakeNack(args ...any) (nack Nack) {
 	packet := Packet{Nack: &nack}
 	nack.packet = &packet
 	nack.Reason = an.NackUnspecified

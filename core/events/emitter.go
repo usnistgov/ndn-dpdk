@@ -20,23 +20,23 @@ func NewEmitter() *Emitter {
 
 // On registers a callback when an event occurs.
 // Returns a function that cancels the callback registration.
-func (emitter *Emitter) On(event, listener interface{}) (cancel func()) {
+func (emitter *Emitter) On(event, listener any) (cancel func()) {
 	hdl := emitter.emitter.On(event, listener)
 	return emitter.makeCancel(event, hdl)
 }
 
 // Once registers a one-time callback when an event occurs.
 // Returns a function that cancels the callback registration.
-func (emitter *Emitter) Once(event, listener interface{}) (cancel func()) {
+func (emitter *Emitter) Once(event, listener any) (cancel func()) {
 	hdl := emitter.emitter.Once(event, listener)
 	return emitter.makeCancel(event, hdl)
 }
 
 // Emit triggers an event.
-func (emitter *Emitter) Emit(event interface{}, arguments ...interface{}) {
+func (emitter *Emitter) Emit(event any, arguments ...any) {
 	emitter.emitter.EmitSync(event, arguments...)
 }
 
-func (emitter *Emitter) makeCancel(event interface{}, hdl emission.ListenerHandle) func() {
+func (emitter *Emitter) makeCancel(event any, hdl emission.ListenerHandle) func() {
 	return func() { emitter.emitter.RemoveListener(event, hdl) }
 }

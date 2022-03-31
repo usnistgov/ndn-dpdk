@@ -42,7 +42,7 @@ func init() {
 						counters @include(if: $withCounters) {`+gqlFaceCounters+`}
 					}
 				}
-			`, map[string]interface{}{
+			`, map[string]any{
 				"withCounters": withCounters,
 			}, "faces")
 		},
@@ -80,7 +80,7 @@ func init() {
 						}
 					}
 				}
-			`, map[string]interface{}{
+			`, map[string]any{
 				"id":           id,
 				"withCounters": withCounters,
 			}, "face")
@@ -95,8 +95,8 @@ func init() {
 		Usage:      "Create a face",
 		SchemaName: "locator",
 		ParamNoun:  "locator",
-		Action: func(c *cli.Context, arg map[string]interface{}) error {
-			return clientDoPrint(c.Context, gqlCreateFace, map[string]interface{}{
+		Action: func(c *cli.Context, arg map[string]any) error {
+			return clientDoPrint(c.Context, gqlCreateFace, map[string]any{
 				"locator": arg,
 			}, "createFace")
 		},
@@ -163,7 +163,7 @@ func init() {
 	makeAction := func(scheme string) cli.ActionFunc {
 		return func(c *cli.Context) error {
 			loc.Scheme = scheme
-			return clientDoPrint(c.Context, gqlCreateFace, map[string]interface{}{
+			return clientDoPrint(c.Context, gqlCreateFace, map[string]any{
 				"locator": loc,
 			}, "createFace")
 		}

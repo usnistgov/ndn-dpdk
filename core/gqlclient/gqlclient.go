@@ -15,7 +15,7 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-func parseResultData(j json.RawMessage, key string, ptr interface{}) error {
+func parseResultData(j json.RawMessage, key string, ptr any) error {
 	if key == "" {
 		return json.Unmarshal([]byte(j), ptr)
 	}
@@ -58,7 +58,7 @@ func (c *Client) Close() error {
 //  vars: query variables.
 //  key: if non-empty, unmarshal result.data[key] instead of result.data.
 //  res: pointer to result struct.
-func (c *Client) Do(ctx context.Context, query string, vars map[string]interface{}, key string, res interface{}) error {
+func (c *Client) Do(ctx context.Context, query string, vars map[string]any, key string, res any) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -84,7 +84,7 @@ func (c *Client) Delete(ctx context.Context, id string) (deleted bool, e error) 
 		mutation delete($id: ID!) {
 			delete(id: $id)
 		}
-	`, map[string]interface{}{
+	`, map[string]any{
 		"id": id,
 	}, "delete", &deleted)
 	return deleted, e
@@ -96,7 +96,7 @@ func (c *Client) Delete(ctx context.Context, id string) (deleted bool, e error) 
 //  vars: query variables.
 //  key: if non-empty, unmarshal result.data[key] instead of result.data.
 //  res: channel for sending updates.
-func (c *Client) Subscribe(ctx context.Context, query string, vars map[string]interface{}, key string, res interface{}) error {
+func (c *Client) Subscribe(ctx context.Context, query string, vars map[string]any, key string, res any) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
 

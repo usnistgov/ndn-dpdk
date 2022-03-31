@@ -12,7 +12,7 @@ import (
 
 // GqlRetrieveByFaceID returns *FileServer associated with a face.
 // It is assigned during package tg initialization.
-var GqlRetrieveByFaceID func(id iface.ID) interface{}
+var GqlRetrieveByFaceID func(id iface.ID) any
 
 // GraphQL types.
 var (

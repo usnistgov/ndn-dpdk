@@ -92,7 +92,7 @@ func (f *Fixture) SetFibEntry(name string, strategy string, nexthops ...iface.ID
 }
 
 // SetFibEntryParams inserts or replaces a FIB entry with SgInit params.
-func (f *Fixture) SetFibEntryParams(name string, strategy string, params map[string]interface{}, nexthops ...iface.ID) {
+func (f *Fixture) SetFibEntryParams(name string, strategy string, params map[string]any, nexthops ...iface.ID) {
 	sc := strategycode.Find(strategy)
 	if sc == nil {
 		var e error

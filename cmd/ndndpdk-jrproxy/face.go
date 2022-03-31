@@ -59,7 +59,7 @@ func (Face) Get(args FaceIdArg, reply *FaceInfo) error {
 				}
 			}
 		}
-	`, map[string]interface{}{
+	`, map[string]any{
 		"id": gID,
 	}, "node", reply)
 	if e != nil {
@@ -73,7 +73,7 @@ func (Face) Get(args FaceIdArg, reply *FaceInfo) error {
 	return nil
 }
 
-func (Face) Create(args interface{}, reply *FaceBasicInfo) error {
+func (Face) Create(args any, reply *FaceBasicInfo) error {
 	e := client.Do(context.TODO(), `
 		mutation createFace($locator: JSON!) {
 			createFace(locator: $locator) {
@@ -82,7 +82,7 @@ func (Face) Create(args interface{}, reply *FaceBasicInfo) error {
 				Locator: locator
 			}
 		}
-	`, map[string]interface{}{
+	`, map[string]any{
 		"locator": args,
 	}, "createFace", reply)
 	if e != nil {
@@ -108,7 +108,7 @@ func (Face) Destroy(args FaceIdArg, reply *struct{}) error {
 		mutation delete($id: ID!) {
 			delete(id: $id)
 		}
-	`, map[string]interface{}{
+	`, map[string]any{
 		"id": gID,
 	}, "", nil)
 	if e != nil {

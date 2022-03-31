@@ -28,10 +28,10 @@ const (
 
 // Config selects a network interface and creates an EthDev.
 type Config struct {
-	Driver  DriverKind             `json:"driver" gqldesc:"EthDev driver kind."`
-	Netif   string                 `json:"netif,omitempty" gqldesc:"Network interface name (XDP, AF_PACKET, bifurcated PCI devices)."`
-	PCIAddr *pciaddr.PCIAddress    `json:"pciAddr,omitempty" gqldesc:"PCI address (PCI devices)."`
-	DevArgs map[string]interface{} `json:"devargs,omitempty" gqldesc:"DPDK device arguments."`
+	Driver  DriverKind          `json:"driver" gqldesc:"EthDev driver kind."`
+	Netif   string              `json:"netif,omitempty" gqldesc:"Network interface name (XDP, AF_PACKET, bifurcated PCI devices)."`
+	PCIAddr *pciaddr.PCIAddress `json:"pciAddr,omitempty" gqldesc:"PCI address (PCI devices)."`
+	DevArgs map[string]any      `json:"devargs,omitempty" gqldesc:"DPDK device arguments."`
 
 	SkipBringUp bool   `json:"skipBringUp,omitempty" gqldesc:"Don't attempt to bring up the interface."`
 	SkipEthtool bool   `json:"skipEthtool,omitempty" gqldesc:"Don't perform ethtool updates for XDP."`
@@ -100,7 +100,7 @@ func createXDP(cfg Config) (ethdev.EthDev, error) {
 		return nil, e
 	}
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"iface":       n.Name,
 		"start_queue": 0,
 		"queue_count": 1,
@@ -140,7 +140,7 @@ func createAfPacket(cfg Config) (ethdev.EthDev, error) {
 		return nil, e
 	}
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"iface":  n.Name,
 		"qpairs": 1,
 	}

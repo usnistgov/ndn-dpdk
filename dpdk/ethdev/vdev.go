@@ -7,7 +7,7 @@ import (
 
 // NewVDev creates a virtual Ethernet device.
 // The VDev will be destroyed when the EthDev is stopped and detached.
-func NewVDev(name string, args map[string]interface{}, socket eal.NumaSocket) (EthDev, error) {
+func NewVDev(name string, args map[string]any, socket eal.NumaSocket) (EthDev, error) {
 	vdev, e := eal.NewVDev(name, args, socket)
 	if e != nil {
 		return nil, e

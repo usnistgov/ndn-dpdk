@@ -35,7 +35,7 @@ func TestClient(t *testing.T) {
 		subscription tick($interval: NNNanoseconds!) {
 			tick(interval: $interval)
 		}
-	`, map[string]interface{}{
+	`, map[string]any{
 		"interval": "200ms",
 	}, "tick", ticks)
 	assert.NoError(e)

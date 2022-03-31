@@ -296,7 +296,7 @@ func FromPCI(addr pciaddr.PCIAddress) EthDev {
 }
 
 // ProbePCI requests to probe a PCI Ethernet adapter.
-func ProbePCI(addr pciaddr.PCIAddress, args map[string]interface{}) (EthDev, error) {
+func ProbePCI(addr pciaddr.PCIAddress, args map[string]any) (EthDev, error) {
 	if e := eal.ProbePCI(addr, args); e != nil {
 		return nil, e
 	}

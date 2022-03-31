@@ -30,7 +30,7 @@ func xorID(value []byte) []byte {
 	return value
 }
 
-func makeID(prefix string, suffix interface{}) (id string) {
+func makeID(prefix string, suffix any) (id string) {
 	var buffer bytes.Buffer
 	fmt.Fprintf(&buffer, "%s:%v", prefix, suffix)
 	return idEncoding.EncodeToString(xorID(buffer.Bytes()))
@@ -59,13 +59,13 @@ type NodeType struct {
 	object *graphql.Object
 
 	// GetID extracts unprefixed ID from the source object.
-	GetID func(source interface{}) string
+	GetID func(source any) string
 
 	// Retrieve fetches an object from unprefixed ID.
-	Retrieve func(id string) (interface{}, error)
+	Retrieve func(id string) (any, error)
 
 	// Delete deletes the source object.
-	Delete func(source interface{}) error
+	Delete func(source any) error
 }
 
 // Annotate updates ObjectConfig with Node interface and "id" field.
@@ -87,13 +87,13 @@ func (nt *NodeType) Annotate(oc graphql.ObjectConfig) graphql.ObjectConfig {
 
 	var resolve graphql.FieldResolveFn
 	if nt.GetID != nil {
-		resolve = func(p graphql.ResolveParams) (interface{}, error) {
+		resolve = func(p graphql.ResolveParams) (any, error) {
 			return makeID(nt.prefix, nt.GetID(p.Source)), nil
 		}
 	} else if nidField := fields["nid"]; nidField != nil {
 		switch nidField.Type {
 		case NonNullID, NonNullInt, NonNullString:
-			resolve = func(p graphql.ResolveParams) (interface{}, error) {
+			resolve = func(p graphql.ResolveParams) (any, error) {
 				nid, e := nidField.Resolve(p)
 				if e != nil {
 					return nil, e
@@ -127,12 +127,12 @@ func (nt *NodeType) Register(object *graphql.Object) {
 }
 
 // NewNodeType creates a NodeType.
-func NewNodeType(value interface{}) *NodeType {
+func NewNodeType(value any) *NodeType {
 	return NewNodeTypeNamed("", value)
 }
 
 // NewNodeTypeNamed creates a NodeType with specified name.
-func NewNodeTypeNamed(name string, value interface{}) (nt *NodeType) {
+func NewNodeTypeNamed(name string, value any) (nt *NodeType) {
 	typ := reflect.TypeOf(value)
 	if typ.Kind() == reflect.Ptr {
 		if elem := typ.Elem(); elem.Kind() == reflect.Interface {
@@ -169,7 +169,7 @@ var nodeInterface = graphql.NewInterface(graphql.InterfaceConfig{
 })
 
 // RetrieveNode locates Node by full ID.
-func RetrieveNode(id interface{}) (*NodeType, interface{}, error) {
+func RetrieveNode(id any) (*NodeType, any, error) {
 	prefix, suffix, ok := parseID(id.(string))
 	if !ok {
 		return nil, nil, errNotFound
@@ -191,7 +191,7 @@ func RetrieveNode(id interface{}) (*NodeType, interface{}, error) {
 }
 
 // RetrieveNodeOfType locates Node by full ID, ensures it has correct type, and assigns it to *ptr.
-func RetrieveNodeOfType(expectedNodeType *NodeType, id, ptr interface{}) error {
+func RetrieveNodeOfType(expectedNodeType *NodeType, id, ptr any) error {
 	nt, node, e := RetrieveNode(id)
 	if e != nil {
 		return e
@@ -217,7 +217,7 @@ func init() {
 			},
 		},
 		Type: nodeInterface,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			_, obj, e := RetrieveNode(p.Args["id"])
 			return obj, e
 		},
@@ -232,7 +232,7 @@ func init() {
 			},
 		},
 		Type: NonNullBoolean,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			nt, obj, e := RetrieveNode(p.Args["id"])
 			if e != nil || obj == nil {
 				return false, e

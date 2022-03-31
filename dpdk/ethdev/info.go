@@ -84,7 +84,7 @@ func (info DevInfo) HasTxChecksumOffload() bool {
 
 // MarshalJSON implements json.Marshaler interface.
 func (info DevInfo) MarshalJSON() ([]byte, error) {
-	var m map[string]interface{}
+	var m map[string]any
 	if e := jsonhelper.Roundtrip(info.DevInfoC, &m); e != nil {
 		return nil, e
 	}

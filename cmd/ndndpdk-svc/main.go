@@ -63,7 +63,7 @@ func init() {
 			},
 		},
 		Type: gqlserver.NonNullBoolean,
-		Resolve: func(p graphql.ResolveParams) (result interface{}, e error) {
+		Resolve: func(p graphql.ResolveParams) (result any, e error) {
 			if len(p.Args) != 1 {
 				return nil, errors.New("exactly one activate argument should be specified")
 			}
@@ -113,7 +113,7 @@ func init() {
 			},
 		},
 		Type: gqlserver.NonNullBoolean,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			restart, ok := p.Args["restart"].(bool)
 			if !ok {
 				restart = false

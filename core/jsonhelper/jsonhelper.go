@@ -14,7 +14,7 @@ var DisallowUnknownFields Option = func(d *json.Decoder) { d.DisallowUnknownFiel
 
 // Roundtrip marshals the input to JSON then unmarshals it into ptr.
 // This is useful for converting between structures.
-func Roundtrip(input, ptr interface{}, options ...Option) error {
+func Roundtrip(input, ptr any, options ...Option) error {
 	j, e := json.Marshal(input)
 	if e != nil {
 		return e

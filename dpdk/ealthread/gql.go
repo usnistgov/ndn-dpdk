@@ -17,7 +17,7 @@ var (
 
 func init() {
 	GqlWorkerNodeType = gqlserver.NewNodeType(eal.LCore{})
-	GqlWorkerNodeType.Retrieve = func(id string) (interface{}, error) {
+	GqlWorkerNodeType.Retrieve = func(id string) (any, error) {
 		nid, e := strconv.Atoi(id)
 		if e != nil {
 			return nil, e
@@ -36,7 +36,7 @@ func init() {
 			"nid": &graphql.Field{
 				Description: "Numeric LCore ID.",
 				Type:        gqlserver.NonNullInt,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					lc := p.Source.(eal.LCore)
 					return lc.ID(), nil
 				},
@@ -44,7 +44,7 @@ func init() {
 			"isBusy": &graphql.Field{
 				Description: "Whether the LCore is running.",
 				Type:        gqlserver.NonNullBoolean,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					lc := p.Source.(eal.LCore)
 					return lc.IsBusy(), nil
 				},
@@ -52,7 +52,7 @@ func init() {
 			"role": &graphql.Field{
 				Description: "Assigned role.",
 				Type:        graphql.String,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					lc := p.Source.(eal.LCore)
 					return gqlserver.Optional(allocated[lc.ID()]), nil
 				},
@@ -76,7 +76,7 @@ func init() {
 				Type:        graphql.Int,
 			},
 		},
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			pred := []eal.LCorePredicate{}
 			if role, ok := p.Args["role"].(string); ok {
 				pred = append(pred, lcAllocatedTo(role))
@@ -103,7 +103,7 @@ func init() {
 				Type:        gqlserver.NonNullID,
 			},
 		},
-		Find: func(p graphql.ResolveParams) (root interface{}, enders []interface{}, e error) {
+		Find: func(p graphql.ResolveParams) (root any, enders []any, e error) {
 			id := p.Args["id"].(string)
 			var lc eal.LCore
 			if e := gqlserver.RetrieveNodeOfType(GqlWorkerNodeType, id, &lc); e != nil {
@@ -112,7 +112,7 @@ func init() {
 			return lc, nil, nil
 		},
 		Type: GqlLoadStatType,
-		Read: func(p graphql.ResolveParams) (interface{}, error) {
+		Read: func(p graphql.ResolveParams) (any, error) {
 			lc := p.Source.(eal.LCore)
 			thObj, ok := activeThread.Load(lc)
 			if !ok {
@@ -134,7 +134,7 @@ func GqlWithWorker(get func(p graphql.ResolveParams) Thread) *graphql.Field {
 		Type:        GqlWorkerType,
 		Name:        "worker",
 		Description: "Worker lcore.",
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			var thread Thread
 			if get == nil {
 				thread = p.Source.(Thread)

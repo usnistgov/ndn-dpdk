@@ -30,7 +30,7 @@ type packet struct {
 	npkt *C.Packet
 }
 
-func makePacket(args ...interface{}) (p *packet) {
+func makePacket(args ...any) (p *packet) {
 	p = toPacket(mbuftestenv.MakePacket(args...).Ptr())
 	*C.Packet_GetLpL3Hdr(p.npkt) = C.LpL3{}
 	return p

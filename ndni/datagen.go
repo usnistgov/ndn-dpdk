@@ -37,7 +37,7 @@ func (gen *DataGen) ptr() *C.DataGen {
 // Arguments should be acceptable to ndn.MakeData.
 // Name is used as name suffix.
 // Panics on error.
-func (gen *DataGen) Init(m *pktmbuf.Packet, args ...interface{}) {
+func (gen *DataGen) Init(m *pktmbuf.Packet, args ...any) {
 	data := ndn.MakeData(args...)
 	wire, e := tlv.EncodeValueOnly(data)
 	if e != nil {

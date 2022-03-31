@@ -27,7 +27,7 @@ func BytesFromHex(input string) []byte {
 
 // BytesEqual asserts that actual bytes equals expected bytes.
 // It considers nil slice and zero-length slice to be the same.
-func BytesEqual(a *assert.Assertions, expected, actual []byte, msgAndArgs ...interface{}) bool {
+func BytesEqual(a *assert.Assertions, expected, actual []byte, msgAndArgs ...any) bool {
 	if len(expected) == 0 && len(actual) == 0 {
 		return true
 	}

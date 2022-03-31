@@ -14,11 +14,11 @@ import (
 type Singleton struct {
 	sync.Mutex
 	id    int
-	value interface{}
+	value any
 }
 
 // Get returns the object.
-func (s *Singleton) Get() interface{} {
+func (s *Singleton) Get() any {
 	s.Lock()
 	defer s.Unlock()
 	return s.value
@@ -27,7 +27,7 @@ func (s *Singleton) Get() interface{} {
 // SetNodeType assigns callback functions on NodeType.
 // The source object must implement io.Closer interface.
 func (s *Singleton) SetNodeType(nt *gqlserver.NodeType) {
-	nt.GetID = func(source interface{}) string {
+	nt.GetID = func(source any) string {
 		s.Lock()
 		defer s.Unlock()
 		if source == s.value {
@@ -35,7 +35,7 @@ func (s *Singleton) SetNodeType(nt *gqlserver.NodeType) {
 		}
 		return ""
 	}
-	nt.Retrieve = func(id string) (interface{}, error) {
+	nt.Retrieve = func(id string) (any, error) {
 		s.Lock()
 		defer s.Unlock()
 		if id == strconv.Itoa(s.id) {
@@ -43,7 +43,7 @@ func (s *Singleton) SetNodeType(nt *gqlserver.NodeType) {
 		}
 		return nil, nil
 	}
-	nt.Delete = func(source interface{}) error {
+	nt.Delete = func(source any) error {
 		closer := source.(io.Closer)
 		if e := closer.Close(); e != nil {
 			return e
@@ -61,7 +61,7 @@ func (s *Singleton) SetNodeType(nt *gqlserver.NodeType) {
 
 // CreateWith wraps a create object mutation resolver with singleton lock.
 func (s *Singleton) CreateWith(fn graphql.FieldResolveFn) graphql.FieldResolveFn {
-	return func(p graphql.ResolveParams) (interface{}, error) {
+	return func(p graphql.ResolveParams) (any, error) {
 		s.Lock()
 		defer s.Unlock()
 		if s.value != nil {
@@ -79,11 +79,11 @@ func (s *Singleton) CreateWith(fn graphql.FieldResolveFn) graphql.FieldResolveFn
 
 // QueryList provides an object list query resolver.
 // The return type is [T!]!.
-func (s *Singleton) QueryList(p graphql.ResolveParams) (interface{}, error) {
+func (s *Singleton) QueryList(p graphql.ResolveParams) (any, error) {
 	s.Lock()
 	defer s.Unlock()
 	if s.value == nil {
-		return []interface{}{}, nil
+		return []any{}, nil
 	}
-	return []interface{}{s.value}, nil
+	return []any{s.value}, nil
 }

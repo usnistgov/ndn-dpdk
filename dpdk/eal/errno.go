@@ -21,7 +21,7 @@ func (e Errno) Error() string {
 
 // MakeErrno creates Errno from non-zero number or returns nil for zero.
 // errno must be a signed integer.
-func MakeErrno(errno interface{}) error {
+func MakeErrno(errno any) error {
 	v := reflect.ValueOf(errno).Int()
 	switch {
 	case v == 0:

@@ -276,7 +276,7 @@ func TestWeighted(t *testing.T) {
 	face1, face2, face3, face4 := intface.MustNew(), intface.MustNew(), intface.MustNew(), intface.MustNew()
 	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
 	w1, w2, w3 := 6.0, 3.0, 1.0
-	fixture.SetFibEntryParams("/P", "weighted", map[string]interface{}{"weights": []float64{w1, w2, w3}},
+	fixture.SetFibEntryParams("/P", "weighted", map[string]any{"weights": []float64{w1, w2, w3}},
 		face1.ID, face2.ID, face3.ID)
 
 	for i := 0; i < 200; i++ {

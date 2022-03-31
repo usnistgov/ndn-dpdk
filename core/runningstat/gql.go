@@ -51,7 +51,7 @@ func init() {
 var _ graphql.FieldResolver = Snapshot{}
 
 // Resolve implements graphql.FieldResolver interface.
-func (s Snapshot) Resolve(p graphql.ResolveParams) (interface{}, error) {
+func (s Snapshot) Resolve(p graphql.ResolveParams) (any, error) {
 	val := reflect.ValueOf(s)
 	typ := val.Type()
 	for i, nMethods := 0, val.NumMethod(); i < nMethods; i++ {

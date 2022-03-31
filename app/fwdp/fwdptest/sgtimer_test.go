@@ -15,7 +15,7 @@ func TestSgTimer(t *testing.T) {
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect2 := intface.Collect(face2)
-	fixture.SetFibEntryParams("/A", "delay", map[string]interface{}{"delay": 200}, face2.ID)
+	fixture.SetFibEntryParams("/A", "delay", map[string]any{"delay": 200}, face2.ID)
 
 	// The strategy sets a 200ms timer, and then sends the Interest.
 	// InterestLifetime is shorter than 200ms, so that strategy timer would not be triggered.
@@ -43,7 +43,7 @@ func TestSgTimer(t *testing.T) {
 	assert.Equal(1, collect2.Count())
 
 	// Changing delay to 500ms.
-	fixture.SetFibEntryParams("/A", "delay", map[string]interface{}{"delay": 500}, face2.ID)
+	fixture.SetFibEntryParams("/A", "delay", map[string]any{"delay": 500}, face2.ID)
 	face1.A.Tx() <- ndn.MakeInterest("/A/2", 1000*time.Millisecond)
 	time.Sleep(200 * time.Millisecond)
 	assert.Equal(1, collect2.Count())

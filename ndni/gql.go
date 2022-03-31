@@ -21,7 +21,7 @@ func init() {
 	GqlNameType = graphql.NewScalar(graphql.ScalarConfig{
 		Name:        "Name",
 		Description: "The `Name` scalar type represents an NDN name.",
-		Serialize: func(value interface{}) interface{} {
+		Serialize: func(value any) any {
 			switch v := value.(type) {
 			case ndn.Name:
 				return v.String()
@@ -30,7 +30,7 @@ func init() {
 			}
 			return nil
 		},
-		ParseValue: func(value interface{}) interface{} {
+		ParseValue: func(value any) any {
 			switch v := value.(type) {
 			case string:
 				return ndn.ParseName(v)
@@ -39,7 +39,7 @@ func init() {
 			}
 			return nil
 		},
-		ParseLiteral: func(value ast.Value) interface{} {
+		ParseLiteral: func(value ast.Value) any {
 			switch v := value.(type) {
 			case *ast.StringValue:
 				return ndn.ParseName(v.Value)

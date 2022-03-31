@@ -121,7 +121,7 @@ func (s Snapshot) Scale(ratio float64) (o Snapshot) {
 
 // MarshalJSON implements json.Marshaler interface.
 func (s Snapshot) MarshalJSON() ([]byte, error) {
-	m := map[string]interface{}{}
+	m := map[string]any{}
 	m["count"] = s.Count()
 	m["len"] = s.Len()
 	m["m1"] = s.v.M1

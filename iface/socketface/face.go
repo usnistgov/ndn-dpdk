@@ -112,7 +112,7 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 			close(face.transport.Tx())
 			return nil
 		},
-		ExCounters: func() interface{} {
+		ExCounters: func() any {
 			return face.transport.Counters()
 		},
 	})

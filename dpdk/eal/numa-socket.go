@@ -119,7 +119,7 @@ type WithNumaSocket interface {
 //  T: type that satisfies WithNumaSocket interface
 //  s: source []T
 // Returns map[eal.NumaSocket][]T
-func ClassifyByNumaSocket(s interface{}, r RewriteAnyNumaSocket) interface{} {
+func ClassifyByNumaSocket(s any, r RewriteAnyNumaSocket) any {
 	sV := reflect.ValueOf(s)
 	sT := sV.Type()
 	mV := reflect.MakeMap(reflect.MapOf(reflect.TypeOf(NumaSocket{}), sT))
@@ -146,7 +146,7 @@ var GqlWithNumaSocket = &graphql.Field{
 	Type:        graphql.Int,
 	Name:        "numaSocket",
 	Description: "NUMA socket.",
-	Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+	Resolve: func(p graphql.ResolveParams) (any, error) {
 		socket := p.Source.(WithNumaSocket).NumaSocket()
 		return gqlserver.Optional(socket.ID(), !socket.IsAny()), nil
 	},

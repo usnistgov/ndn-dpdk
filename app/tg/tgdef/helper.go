@@ -8,7 +8,7 @@ import (
 )
 
 // GatherWorkers helps implementing Module.Workers.
-func GatherWorkers(list interface{}) (workers []ealthread.ThreadWithRole) {
+func GatherWorkers(list any) (workers []ealthread.ThreadWithRole) {
 	val := reflect.ValueOf(list)
 	if val.Kind() != reflect.Slice {
 		panic("list is not a slice")

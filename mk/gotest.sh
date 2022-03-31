@@ -1,6 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 source mk/cflags.sh
+export GOAMD64=v3
 TESTCOUNT=${TESTCOUNT:-1}
 
 SUDO='sudo -E'

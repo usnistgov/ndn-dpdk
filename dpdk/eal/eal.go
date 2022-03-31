@@ -80,7 +80,7 @@ func PostMain(fn cptr.Function) {
 // CallMain runs a function on the main thread and waits for its completion.
 // f must be a function with zero parameters and zero or one return values.
 // Returns f's return value, or nil if f does not have a return value.
-func CallMain(f interface{}) interface{} {
+func CallMain(f any) any {
 	if CurrentLCore() == MainLCore {
 		return cptr.Call(func(fn cptr.Function) { cptr.Func0.Invoke(fn) }, f)
 	}

@@ -33,7 +33,7 @@ type FunctionType []string
 
 // C wraps a C function as Function.
 // f must be a C function consistent with ft.
-func (ft FunctionType) C(f unsafe.Pointer, arg interface{}) Function {
+func (ft FunctionType) C(f unsafe.Pointer, arg any) Function {
 	val := reflect.ValueOf(arg)
 	var ctx uintptr
 	switch val.Kind() {
@@ -126,8 +126,8 @@ type Function interface {
 // post is a function that asynchronously invokes fn (this must be asynchronous).
 // f must be a function with zero parameters and zero or one return values.
 // Returns f's return value, or nil if f does not have a return value.
-func Call(post func(fn Function), f interface{}) interface{} {
-	done := make(chan interface{})
+func Call(post func(fn Function), f any) any {
+	done := make(chan any)
 	post(Func0.Void(func() {
 		res := reflect.ValueOf(f).Call(nil)
 		if len(res) > 0 {

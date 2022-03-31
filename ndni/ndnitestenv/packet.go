@@ -25,7 +25,7 @@ var MakePacketHeadroom mbuftestenv.Headroom = pktmbuf.DefaultHeadroom + ndni.LpH
 // MakePacket creates a packet.
 // input: packet bytes as []byte or HEX.
 // modifiers: optional PacketModifiers.
-func MakePacket(input interface{}, modifiers ...PacketModifier) *ndni.Packet {
+func MakePacket(input any, modifiers ...PacketModifier) *ndni.Packet {
 	var b []byte
 	switch inp := input.(type) {
 	case []byte:
@@ -53,7 +53,7 @@ func MakePacket(input interface{}, modifiers ...PacketModifier) *ndni.Packet {
 // MakeInterest creates an Interest packet.
 // input: packet bytes as []byte or HEX, or name URI.
 // args: arguments to ndn.MakeInterest (valid if input is name URI), or PacketModifiers.
-func MakeInterest(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
+func MakeInterest(input any, args ...any) (pkt *ndni.Packet) {
 	modifiers, mArgs := filterPacketModifers(args)
 	if s, ok := input.(string); ok && strings.HasPrefix(s, "/") {
 		interest := ndn.MakeInterest(append(mArgs, s)...)
@@ -70,7 +70,7 @@ func MakeInterest(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
 // input: packet bytes as []byte or HEX, or name URI.
 // args: arguments to ndn.MakeData (valid if input is name URI), or PacketModifiers.
 // Panics if packet constructed from bytes is not Data.
-func MakeData(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
+func MakeData(input any, args ...any) (pkt *ndni.Packet) {
 	modifiers, mArgs := filterPacketModifers(args)
 	if s, ok := input.(string); ok && strings.HasPrefix(s, "/") {
 		data := ndn.MakeData(append(mArgs, s)...)
@@ -86,7 +86,7 @@ func MakeData(input interface{}, args ...interface{}) (pkt *ndni.Packet) {
 // MakeNack turns an Interest to a Nack.
 // args: arguments to ndn.MakeNack, or PacketModifiers.
 // Note that the Interest must be passed as ndn.Interest instance, not bytes or name.
-func MakeNack(args ...interface{}) (pkt *ndni.Packet) {
+func MakeNack(args ...any) (pkt *ndni.Packet) {
 	modifiers, mArgs := filterPacketModifers(args)
 	nack := ndn.MakeNack(mArgs...)
 	wire, e := tlv.EncodeFrom(nack.ToPacket())
@@ -101,7 +101,7 @@ type PacketModifier interface {
 	modify(pkt *ndni.Packet)
 }
 
-func filterPacketModifers(args []interface{}) (modifiers []PacketModifier, others []interface{}) {
+func filterPacketModifers(args []any) (modifiers []PacketModifier, others []any) {
 	for _, arg := range args {
 		switch a := arg.(type) {
 		case PacketModifier:

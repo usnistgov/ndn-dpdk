@@ -61,7 +61,7 @@ func (Fib) Insert(args FibInsertArg, reply *struct{}) error {
 				name
 			}
 		}
-	`, map[string]interface{}{
+	`, map[string]any{
 		"name":     args.Name,
 		"nexthops": gNexthops,
 	}, "insertFibEntry", &item)
@@ -85,7 +85,7 @@ func (Fib) Erase(args FibNameArg, reply *struct{}) error {
 		mutation delete($id: ID!) {
 			delete(id: $id)
 		}
-	`, map[string]interface{}{
+	`, map[string]any{
 		"id": gID,
 	}, "", nil)
 	if e != nil {
@@ -120,7 +120,7 @@ func (Fib) Find(args FibNameArg, reply *FibLookupReply) error {
 				}
 			}
 		}
-	`, map[string]interface{}{
+	`, map[string]any{
 		"id": gID,
 	}, "node", &res)
 	if e != nil {

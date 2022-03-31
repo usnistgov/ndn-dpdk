@@ -19,7 +19,7 @@ func init() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			vars := map[string]interface{}{}
+			vars := map[string]any{}
 			if name != "" {
 				vars["name"] = name
 			}
@@ -68,7 +68,7 @@ func init() {
 						hits
 					}
 				}
-			`, map[string]interface{}{
+			`, map[string]any{
 				"name":  name,
 				"value": value,
 			}, "updateNdt")

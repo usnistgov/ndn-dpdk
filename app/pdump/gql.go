@@ -67,7 +67,7 @@ func init() {
 			"filename": &graphql.Field{
 				Description: "Destination filename.",
 				Type:        gqlserver.NonNullString,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					w := p.Source.(*Writer)
 					return w.filename, nil
 				},
@@ -91,7 +91,7 @@ func init() {
 			},
 		},
 		Type: graphql.NewNonNull(GqlWriterType),
-		Resolve: gqlWriter.CreateWith(func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: gqlWriter.CreateWith(func(p graphql.ResolveParams) (any, error) {
 			if !GqlLCore.Valid() || GqlLCore.IsBusy() {
 				return nil, fmt.Errorf("no LCore for %s role; check activation parameters and ensure there's no other writer running", Role)
 			}
@@ -120,11 +120,11 @@ func init() {
 	})
 
 	GqlFaceSourceNodeType = gqlserver.NewNodeType((*FaceSource)(nil))
-	GqlFaceSourceNodeType.GetID = func(source interface{}) string {
+	GqlFaceSourceNodeType.GetID = func(source any) string {
 		s := source.(*FaceSource)
 		return s.key.String()
 	}
-	GqlFaceSourceNodeType.Retrieve = func(id string) (interface{}, error) {
+	GqlFaceSourceNodeType.Retrieve = func(id string) (any, error) {
 		fd, e := parseFaceDir(id)
 		if e != nil {
 			return nil, e
@@ -134,7 +134,7 @@ func init() {
 		defer sourcesMutex.Unlock()
 		return faceSources[fd], nil
 	}
-	GqlFaceSourceNodeType.Delete = func(source interface{}) error {
+	GqlFaceSourceNodeType.Delete = func(source any) error {
 		fs := source.(*FaceSource)
 		return fs.Close()
 	}
@@ -146,7 +146,7 @@ func init() {
 			"writer": &graphql.Field{
 				Description: "Destination writer.",
 				Type:        graphql.NewNonNull(GqlWriterType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					s := p.Source.(*FaceSource)
 					return s.Writer, nil
 				},
@@ -154,7 +154,7 @@ func init() {
 			"face": &graphql.Field{
 				Description: "Source face.",
 				Type:        graphql.NewNonNull(iface.GqlFaceType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					s := p.Source.(*FaceSource)
 					return s.Face, nil
 				},
@@ -162,7 +162,7 @@ func init() {
 			"dir": &graphql.Field{
 				Description: "Traffic direction.",
 				Type:        graphql.NewNonNull(GqlDirectionEnum),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					s := p.Source.(*FaceSource)
 					return s.Dir, nil
 				},
@@ -170,7 +170,7 @@ func init() {
 			"names": &graphql.Field{
 				Description: "Name filter.",
 				Type:        gqlserver.NewNonNullList(GqlNameFilterEntryType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					s := p.Source.(*FaceSource)
 					return s.Names, nil
 				},
@@ -201,7 +201,7 @@ func init() {
 			},
 		},
 		Type: graphql.NewNonNull(GqlFaceSourceType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			cfg := FaceConfig{}
 			gqlserver.RetrieveNodeOfType(GqlWriterNodeType, p.Args["writer"], &cfg.Writer)
 			gqlserver.RetrieveNodeOfType(iface.GqlFaceNodeType, p.Args["face"], &cfg.Face)
@@ -212,11 +212,11 @@ func init() {
 	})
 
 	GqlEthPortSourceNodeType = gqlserver.NewNodeType((*EthPortSource)(nil))
-	GqlEthPortSourceNodeType.GetID = func(source interface{}) string {
+	GqlEthPortSourceNodeType.GetID = func(source any) string {
 		s := source.(*EthPortSource)
 		return strconv.Itoa(s.Port.EthDev().ID())
 	}
-	GqlEthPortSourceNodeType.Retrieve = func(id string) (interface{}, error) {
+	GqlEthPortSourceNodeType.Retrieve = func(id string) (any, error) {
 		ethDevObj, _ := ethdev.GqlEthDevNodeType.Retrieve(id)
 		ethDev, _ := ethDevObj.(ethdev.EthDev)
 		port := ethport.Find(ethDev)
@@ -228,7 +228,7 @@ func init() {
 		defer sourcesMutex.Unlock()
 		return ethPortSources[port], nil
 	}
-	GqlEthPortSourceNodeType.Delete = func(source interface{}) error {
+	GqlEthPortSourceNodeType.Delete = func(source any) error {
 		s := source.(*EthPortSource)
 		return s.Close()
 	}
@@ -240,7 +240,7 @@ func init() {
 			"writer": &graphql.Field{
 				Description: "Destination writer.",
 				Type:        graphql.NewNonNull(GqlWriterType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					s := p.Source.(*EthPortSource)
 					return s.Writer, nil
 				},
@@ -248,7 +248,7 @@ func init() {
 			"port": &graphql.Field{
 				Description: "Ethernet device.",
 				Type:        graphql.NewNonNull(ethdev.GqlEthDevType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					s := p.Source.(*EthPortSource)
 					return s.Port.EthDev(), nil
 				},
@@ -256,7 +256,7 @@ func init() {
 			"grab": &graphql.Field{
 				Description: "Grab opportunity.",
 				Type:        graphql.NewNonNull(GqlEthGrabEnum),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					s := p.Source.(*EthPortSource)
 					return s.Grab, nil
 				},
@@ -283,7 +283,7 @@ func init() {
 			},
 		},
 		Type: graphql.NewNonNull(GqlEthPortSourceType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			cfg := EthPortConfig{}
 			gqlserver.RetrieveNodeOfType(GqlWriterNodeType, p.Args["writer"], &cfg.Writer)
 			var ethDev ethdev.EthDev
@@ -312,8 +312,8 @@ func init() {
 	GqlWriterType.AddFieldConfig("sources", &graphql.Field{
 		Description: "Packet dump sources.",
 		Type:        gqlserver.NewNonNullList(GqlSourceType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			sources := []interface{}{}
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			sources := []any{}
 
 			sourcesMutex.Lock()
 			defer sourcesMutex.Unlock()

@@ -15,14 +15,14 @@ var (
 
 func init() {
 	GqlStrategyNodeType = gqlserver.NewNodeType((*Strategy)(nil))
-	GqlStrategyNodeType.Retrieve = func(id string) (interface{}, error) {
+	GqlStrategyNodeType.Retrieve = func(id string) (any, error) {
 		nid, e := strconv.Atoi(id)
 		if e != nil {
 			return nil, e
 		}
 		return Get(nid), nil
 	}
-	GqlStrategyNodeType.Delete = func(source interface{}) error {
+	GqlStrategyNodeType.Delete = func(source any) error {
 		strategy := source.(*Strategy)
 		strategy.Unref()
 		return nil
@@ -34,7 +34,7 @@ func init() {
 			"nid": &graphql.Field{
 				Description: "Numeric strategy code identifier.",
 				Type:        gqlserver.NonNullInt,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					strategy := p.Source.(*Strategy)
 					return int(strategy.ID()), nil
 				},
@@ -42,7 +42,7 @@ func init() {
 			"name": &graphql.Field{
 				Description: "Short name.",
 				Type:        gqlserver.NonNullString,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					strategy := p.Source.(*Strategy)
 					return strategy.Name(), nil
 				},
@@ -55,7 +55,7 @@ func init() {
 		Name:        "strategies",
 		Description: "List of strategies.",
 		Type:        gqlserver.NewNonNullList(GqlStrategyType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return List(), nil
 		},
 	})
@@ -74,7 +74,7 @@ func init() {
 			},
 		},
 		Type: graphql.NewNonNull(GqlStrategyType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			name := p.Args["name"].(string)
 			elf := p.Args["elf"].([]byte)
 			return Load(name, elf)

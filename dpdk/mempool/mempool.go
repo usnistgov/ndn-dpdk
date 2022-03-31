@@ -88,7 +88,7 @@ func (mp *Mempool) CountInUse() int {
 
 // Alloc allocates several objects.
 // objs should be a slice of C void* pointers.
-func (mp *Mempool) Alloc(objs interface{}) error {
+func (mp *Mempool) Alloc(objs any) error {
 	ptr, count := cptr.ParseCptrArray(objs)
 	if count == 0 {
 		return nil
@@ -102,7 +102,7 @@ func (mp *Mempool) Alloc(objs interface{}) error {
 
 // Free releases several objects.
 // objs should be a slice of C void* pointers.
-func (mp *Mempool) Free(objs interface{}) {
+func (mp *Mempool) Free(objs any) {
 	ptr, count := cptr.ParseCptrArray(objs)
 	if count == 0 {
 		return

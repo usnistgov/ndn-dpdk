@@ -57,7 +57,7 @@ func (f *face) Advertise(name ndn.Name) error {
 				id
 			}
 		}
-	`, map[string]interface{}{
+	`, map[string]any{
 		"name":     name.String(),
 		"nexthops": []string{f.ID()},
 	}, "insertFibEntry", &fibEntryJ)

@@ -33,7 +33,7 @@ func init() {
 			"filename": &graphql.Field{
 				Description: "Destination filename.",
 				Type:        gqlserver.NonNullString,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					w := p.Source.(*Writer)
 					return w.filename, nil
 				},
@@ -57,7 +57,7 @@ func init() {
 			},
 		},
 		Type: graphql.NewNonNull(GqlWriterType),
-		Resolve: gqlWriter.CreateWith(func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: gqlWriter.CreateWith(func(p graphql.ResolveParams) (any, error) {
 			if !GqlLCore.Valid() || GqlLCore.IsBusy() {
 				return nil, fmt.Errorf("no LCore for %s role; check activation parameters and ensure there's no other writer running", Role)
 			}

@@ -13,7 +13,7 @@ func init() {
 		Usage:      "Start a traffic generator",
 		SchemaName: "gen",
 		ParamNoun:  "traffic patterns",
-		Action: func(c *cli.Context, arg map[string]interface{}) error {
+		Action: func(c *cli.Context, arg map[string]any) error {
 			return clientDoPrint(c.Context, `
 				mutation startTrafficGen(
 					$face: JSON!
@@ -96,7 +96,7 @@ func init() {
 						}
 					}
 				}
-			`, map[string]interface{}{
+			`, map[string]any{
 				"id":       id,
 				"interval": interval.Nanoseconds(),
 			}, "tgCounters")

@@ -78,7 +78,7 @@ func parseLocator(j string) ethport.Locator {
 }
 
 var serializeBufferPool = sync.Pool{
-	New: func() interface{} { return gopacket.NewSerializeBuffer() },
+	New: func() any { return gopacket.NewSerializeBuffer() },
 }
 
 func packetFromLayers(hdrs ...gopacket.SerializableLayer) []byte {

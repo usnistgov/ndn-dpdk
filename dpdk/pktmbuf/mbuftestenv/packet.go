@@ -17,7 +17,7 @@ type Headroom int
 // []byte or hexadecimal string becomes a segment.
 // []string is flattened.
 // Caller is responsible for releasing the packet.
-func MakePacket(args ...interface{}) (pkt *pktmbuf.Packet) {
+func MakePacket(args ...any) (pkt *pktmbuf.Packet) {
 	var mp *pktmbuf.Pool
 	var segments [][]byte
 	var headroom *Headroom

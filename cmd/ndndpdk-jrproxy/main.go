@@ -51,11 +51,7 @@ func main() {
 			for {
 				conn, e := listener.Accept()
 				if e != nil {
-					if ne, ok := e.(net.Error); ok && ne.Temporary() {
-						continue
-					} else {
-						return e
-					}
+					return e
 				}
 				go jsonrpc2.ServeConn(conn)
 			}

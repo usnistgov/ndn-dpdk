@@ -43,7 +43,7 @@ func NewNonNullList(ofType graphql.Type, optionalNullable ...bool) graphql.Type 
 
 // NewStringEnum constructs an enum type.
 // The underlying type of value must be string.
-func NewStringEnum(name, desc string, values ...interface{}) *graphql.Enum {
+func NewStringEnum(name, desc string, values ...any) *graphql.Enum {
 	vm := graphql.EnumValueConfigMap{}
 	for _, value := range values {
 		val := reflect.ValueOf(value)
@@ -59,7 +59,7 @@ func NewStringEnum(name, desc string, values ...interface{}) *graphql.Enum {
 // Optional turns invalid value to nil.
 //  Optional(value) considers the value invalid if it is zero.
 //  Optional(value, valid) considers the value invalid if valid is false.
-func Optional(value interface{}, optionalValid ...bool) interface{} {
+func Optional(value any, optionalValid ...bool) any {
 	ok := true
 	switch len(optionalValid) {
 	case 0:
@@ -77,13 +77,13 @@ func Optional(value interface{}, optionalValid ...bool) interface{} {
 }
 
 // MethodResolver creates a FieldResolveFn that invokes the named method with p.Source receiver and no arguments.
-func MethodResolver(value interface{}, methodName string) graphql.FieldResolveFn {
+func MethodResolver(value any, methodName string) graphql.FieldResolveFn {
 	typ := reflect.TypeOf(value)
 	method, ok := typ.MethodByName(methodName)
 	if !ok || !method.IsExported() || method.Type.NumIn() != 1 || method.Type.NumOut() != 1 {
 		panic("cannot create MethodResolver")
 	}
-	return func(p graphql.ResolveParams) (interface{}, error) {
+	return func(p graphql.ResolveParams) (any, error) {
 		val := reflect.ValueOf(p.Source)
 		result := method.Func.Call([]reflect.Value{val})
 		return result[0].Interface(), nil

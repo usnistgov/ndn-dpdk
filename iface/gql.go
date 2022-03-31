@@ -40,14 +40,14 @@ func init() {
 	})
 
 	GqlFaceNodeType = gqlserver.NewNodeType((*Face)(nil))
-	GqlFaceNodeType.Retrieve = func(id string) (interface{}, error) {
+	GqlFaceNodeType.Retrieve = func(id string) (any, error) {
 		nid, e := strconv.Atoi(id)
 		if e != nil {
 			return nil, e
 		}
 		return Get(ID(nid)), nil
 	}
-	GqlFaceNodeType.Delete = func(source interface{}) error {
+	GqlFaceNodeType.Delete = func(source any) error {
 		face := source.(Face)
 		return face.Close()
 	}
@@ -58,7 +58,7 @@ func init() {
 			"nid": &graphql.Field{
 				Type:        gqlserver.NonNullInt,
 				Description: "Numeric face identifier.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					face := p.Source.(Face)
 					return int(face.ID()), nil
 				},
@@ -66,7 +66,7 @@ func init() {
 			"locator": &graphql.Field{
 				Type:        gqlserver.NonNullJSON,
 				Description: "Endpoint addresses.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					face := p.Source.(Face)
 					locw := LocatorWrapper{
 						Locator: face.Locator(),
@@ -78,7 +78,7 @@ func init() {
 			"txLoop": &graphql.Field{
 				Type:        ealthread.GqlWorkerType,
 				Description: "TxLoop serving this face.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					face := p.Source.(Face)
 					txl := mapFaceTxl[face.ID()]
 					if txl == nil {
@@ -96,7 +96,7 @@ func init() {
 		Name:        "faces",
 		Description: "List of faces.",
 		Type:        gqlserver.NewNonNullList(GqlFaceType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return List(), nil
 		},
 	})
@@ -111,7 +111,7 @@ func init() {
 			},
 		},
 		Type: graphql.NewNonNull(GqlFaceType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if !GqlCreateFaceAllowed {
 				return nil, errGqlCreateFaceDisallowed
 			}
@@ -150,7 +150,7 @@ func init() {
 				Type:        gqlserver.NonNullID,
 			},
 		},
-		Find: func(p graphql.ResolveParams) (root interface{}, enders []interface{}, e error) {
+		Find: func(p graphql.ResolveParams) (root any, enders []any, e error) {
 			id := p.Args["id"].(string)
 			var face Face
 			if e := gqlserver.RetrieveNodeOfType(GqlFaceNodeType, id, &face); e != nil {
@@ -159,7 +159,7 @@ func init() {
 			return face, nil, nil
 		},
 		Type: GqlCountersType,
-		Read: func(p graphql.ResolveParams) (interface{}, error) {
+		Read: func(p graphql.ResolveParams) (any, error) {
 			face := p.Source.(Face)
 			return face.Counters(), nil
 		},

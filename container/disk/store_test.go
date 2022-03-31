@@ -52,7 +52,7 @@ func (f *StoreFixture) MakeStore(nBlocksPerSlot int) {
 	require.NoError(e)
 }
 
-func (f *StoreFixture) PutData(slotID uint64, dataName string, dataArgs ...interface{}) bdev.StoredPacket {
+func (f *StoreFixture) PutData(slotID uint64, dataName string, dataArgs ...any) bdev.StoredPacket {
 	_, require := makeAR(f.t)
 	data := makeData(dataName, dataArgs...)
 	sp, e := f.Store.PutData(slotID, data)
@@ -60,7 +60,7 @@ func (f *StoreFixture) PutData(slotID uint64, dataName string, dataArgs ...inter
 	return sp
 }
 
-func (f *StoreFixture) GetData(slotID uint64, sp bdev.StoredPacket, interestName string, interestArgs ...interface{}) (data *ndni.Packet) {
+func (f *StoreFixture) GetData(slotID uint64, sp bdev.StoredPacket, interestName string, interestArgs ...any) (data *ndni.Packet) {
 	interest := makeInterest(interestName, interestArgs...)
 	defer interest.Close()
 	dataBuf := packetPool.MustAlloc(1)[0]

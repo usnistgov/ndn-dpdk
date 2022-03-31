@@ -33,7 +33,7 @@ func (tpl *InterestTemplate) ptr() *C.InterestTemplate {
 // Arguments should be acceptable to ndn.MakeInterest.
 // Name is used as name prefix.
 // Panics on error.
-func (tpl *InterestTemplate) Init(args ...interface{}) {
+func (tpl *InterestTemplate) Init(args ...any) {
 	interest := ndn.MakeInterest(args...)
 	wire, e := tlv.EncodeValueOnly(interest)
 	if e != nil {
@@ -73,7 +73,7 @@ type InterestTemplateConfig struct {
 
 // Apply initializes InterestTemplate.
 func (cfg InterestTemplateConfig) Apply(tpl *InterestTemplate) {
-	a := []interface{}{cfg.Prefix}
+	a := []any{cfg.Prefix}
 	if cfg.CanBePrefix {
 		a = append(a, ndn.CanBePrefixFlag)
 	}

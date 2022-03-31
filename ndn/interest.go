@@ -46,7 +46,7 @@ var (
 //  - HopLimit: set HopLimit
 //  - []byte: set AppParameters
 //  - LpL3: copy PitToken and CongMark
-func MakeInterest(args ...interface{}) (interest Interest) {
+func MakeInterest(args ...any) (interest Interest) {
 	packet := Packet{Interest: &interest}
 	interest.packet = &packet
 	for _, arg := range args {

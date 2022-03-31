@@ -11,9 +11,9 @@ import (
 
 // EntryBody contains logical FIB entry contents except name.
 type EntryBody struct {
-	Nexthops []iface.ID             `json:"nexthops"`
-	Strategy int                    `json:"strategy"`
-	Params   map[string]interface{} `json:"params"`
+	Nexthops []iface.ID     `json:"nexthops"`
+	Strategy int            `json:"strategy"`
+	Params   map[string]any `json:"params"`
 }
 
 // HasNextHop determines whether a nexthop face exists.

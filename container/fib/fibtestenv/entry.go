@@ -21,7 +21,7 @@ func DummyStrategy() *strategycode.Strategy {
 // MakeEntry builds a fibdef.Entry.
 //  name: ndn.Name or string
 //  sc: int or *strategycode.Strategy or nil
-func MakeEntry(name, sc interface{}, nexthops ...iface.ID) (entry fibdef.Entry) {
+func MakeEntry(name, sc any, nexthops ...iface.ID) (entry fibdef.Entry) {
 	switch n := name.(type) {
 	case ndn.Name:
 		entry.Name = n

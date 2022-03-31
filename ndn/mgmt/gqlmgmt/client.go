@@ -16,7 +16,7 @@ type Client struct {
 var _ mgmt.Client = (*Client)(nil)
 
 // CreateFace requests to create a face via GraphQL.
-func (c *Client) CreateFace(ctx context.Context, locator interface{}) (id string, e error) {
+func (c *Client) CreateFace(ctx context.Context, locator any) (id string, e error) {
 	var faceJ struct {
 		ID string `json:"id"`
 	}
@@ -26,7 +26,7 @@ func (c *Client) CreateFace(ctx context.Context, locator interface{}) (id string
 				id
 			}
 		}
-	`, map[string]interface{}{
+	`, map[string]any{
 		"locator": locator,
 	}, "createFace", &faceJ)
 	return faceJ.ID, e

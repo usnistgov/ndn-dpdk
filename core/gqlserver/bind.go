@@ -12,7 +12,7 @@ import (
 // fieldIndexResolver provides a graphql.FieldResolveFn that extracts a nested field corresponding to index.
 type fieldIndexResolver []int
 
-func (index fieldIndexResolver) Resolve(p graphql.ResolveParams) (interface{}, error) {
+func (index fieldIndexResolver) Resolve(p graphql.ResolveParams) (any, error) {
 	v := reflect.ValueOf(p.Source)
 	// unlike v.FieldByIndex, this logic does not panic upon nil pointer
 	for _, i := range index {
@@ -76,7 +76,7 @@ func (m FieldTypes) resolveType(typ reflect.Type) graphql.Type {
 	return nil
 }
 
-func (m FieldTypes) bindFields(value interface{}, saveField func(p fieldInfo)) {
+func (m FieldTypes) bindFields(value any, saveField func(p fieldInfo)) {
 	typ := reflect.TypeOf(value)
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
@@ -126,14 +126,14 @@ func (m FieldTypes) bindFields(value interface{}, saveField func(p fieldInfo)) {
 type fieldInfo struct {
 	Name        string
 	Description string
-	Default     interface{}
+	Default     any
 
 	Type    graphql.Type
 	Resolve graphql.FieldResolveFn
 }
 
 // BindFields creates graphql.Field from a struct.
-func BindFields(value interface{}, m FieldTypes) graphql.Fields {
+func BindFields(value any, m FieldTypes) graphql.Fields {
 	fields := graphql.Fields{}
 	m.bindFields(value, func(p fieldInfo) {
 		fields[p.Name] = &graphql.Field{
@@ -146,7 +146,7 @@ func BindFields(value interface{}, m FieldTypes) graphql.Fields {
 }
 
 // BindInputFields creates graphql.InputObjectConfigFieldMap from a struct.
-func BindInputFields(value interface{}, m FieldTypes) graphql.InputObjectConfigFieldMap {
+func BindInputFields(value any, m FieldTypes) graphql.InputObjectConfigFieldMap {
 	fields := graphql.InputObjectConfigFieldMap{}
 	m.bindFields(value, func(p fieldInfo) {
 		fields[p.Name] = &graphql.InputObjectFieldConfig{
@@ -159,7 +159,7 @@ func BindInputFields(value interface{}, m FieldTypes) graphql.InputObjectConfigF
 }
 
 // BindArguments creates graphql.FieldConfigArgument from a struct.
-func BindArguments(value interface{}, m FieldTypes) graphql.FieldConfigArgument {
+func BindArguments(value any, m FieldTypes) graphql.FieldConfigArgument {
 	fields := graphql.FieldConfigArgument{}
 	m.bindFields(value, func(p fieldInfo) {
 		fields[p.Name] = &graphql.ArgumentConfig{

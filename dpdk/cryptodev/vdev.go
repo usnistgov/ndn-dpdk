@@ -26,7 +26,7 @@ func (cfg *VDevConfig) applyDefaults() {
 // CreateVDev creates a virtual crypto device.
 func CreateVDev(cfg VDevConfig) (cd *CryptoDev, e error) {
 	cfg.applyDefaults()
-	args := map[string]interface{}{
+	args := map[string]any{
 		"max_nb_queue_pairs": cfg.NQueuePairs,
 	}
 	if !cfg.Socket.IsAny() {

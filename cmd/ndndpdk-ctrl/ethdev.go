@@ -49,7 +49,7 @@ func init() {
 						}
 					}
 				}
-			`, map[string]interface{}{
+			`, map[string]any{
 				"withDevInfo": withDevInfo,
 				"withStats":   withStats,
 				"withFaces":   withFaces,
@@ -89,7 +89,7 @@ func init() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			vars := map[string]interface{}{
+			vars := map[string]any{
 				"driver": "AF_PACKET",
 			}
 			switch {
@@ -156,7 +156,7 @@ func init() {
 						name
 					}
 				}
-			`, map[string]interface{}{
+			`, map[string]any{
 				"id": id,
 			}, "resetEthStats")
 		},

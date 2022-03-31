@@ -34,7 +34,7 @@ func init() {
 		Name:        "ndtConfig",
 		Description: "NDT configuration.",
 		Type:        graphql.NewNonNull(GqlConfigType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlNdt == nil {
 				return nil, errNoGqlNdt
 			}
@@ -58,7 +58,7 @@ func init() {
 				Type:        ndni.GqlNameType,
 			},
 		},
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlNdt == nil {
 				return nil, errNoGqlNdt
 			}
@@ -90,7 +90,7 @@ func init() {
 			},
 		},
 		Type: graphql.NewNonNull(GqlEntryType),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlNdt == nil {
 				return nil, errNoGqlNdt
 			}

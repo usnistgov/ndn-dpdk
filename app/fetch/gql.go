@@ -16,7 +16,7 @@ import (
 
 // GqlRetrieveByFaceID returns *Fetcher associated with a face.
 // It is assigned during package tg initialization.
-var GqlRetrieveByFaceID func(id iface.ID) interface{}
+var GqlRetrieveByFaceID func(id iface.ID) any
 
 // GraphQL types.
 var (
@@ -67,7 +67,7 @@ func init() {
 			},
 		},
 		Type: gqlserver.NonNullJSON,
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+		Resolve: func(p graphql.ResolveParams) (any, error) {
 			var fetcher *Fetcher
 			if e := gqlserver.RetrieveNodeOfType(GqlFetcherNodeType, p.Args["fetcher"], &fetcher); e != nil {
 				return nil, e
@@ -77,7 +77,7 @@ func init() {
 			if e := jsonhelper.Roundtrip(p.Args["templates"], &templates, jsonhelper.DisallowUnknownFields); e != nil {
 				return nil, e
 			}
-			finalSegNums, _ := p.Args["finalSegNum"].([]interface{})
+			finalSegNums, _ := p.Args["finalSegNum"].([]any)
 
 			fetcher.Reset()
 			var logics []*Logic

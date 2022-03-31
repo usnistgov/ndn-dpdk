@@ -11,7 +11,7 @@ import (
 const sizeofPtr = unsafe.Sizeof(unsafe.Pointer(nil))
 
 // ParseCptrArray converts any slice of pointer-sized items to C void*[] type.
-func ParseCptrArray(arr interface{}) (ptr unsafe.Pointer, count int) {
+func ParseCptrArray(arr any) (ptr unsafe.Pointer, count int) {
 	v := reflect.ValueOf(arr)
 	if v.Kind() != reflect.Slice {
 		panic(v.Type().String() + " is not a slice")

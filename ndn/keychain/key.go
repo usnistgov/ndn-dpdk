@@ -35,7 +35,7 @@ func (signer namedSigner) Sign(packet ndn.Signable) error {
 
 type privateKey struct {
 	namedSigner
-	key interface{} // *rsa.PrivateKey or *ecdsa.PrivateKey
+	key any // *rsa.PrivateKey or *ecdsa.PrivateKey
 }
 
 func (pvt privateKey) Name() ndn.Name {
@@ -48,7 +48,7 @@ func (pvt privateKey) WithKeyLocator(klName ndn.Name) ndn.Signer {
 	return &signer
 }
 
-func newPrivateKey(sigType uint32, keyName ndn.Name, key interface{}, llSign ndn.LLSign) (PrivateKey, error) {
+func newPrivateKey(sigType uint32, keyName ndn.Name, key any, llSign ndn.LLSign) (PrivateKey, error) {
 	if !IsKeyName(keyName) {
 		return nil, ErrKeyName
 	}
@@ -76,7 +76,7 @@ type PublicKey interface {
 type publicKey struct {
 	sigType  uint32
 	keyName  ndn.Name
-	key      interface{} // *rsa.PublicKey or *ecdsa.PublicKey
+	key      any // *rsa.PublicKey or *ecdsa.PublicKey
 	llVerify ndn.LLVerify
 }
 
@@ -100,7 +100,7 @@ func (pub publicKey) SPKI() (spki []byte, e error) {
 	return x509.MarshalPKIXPublicKey(pub.key)
 }
 
-func newPublicKey(sigType uint32, keyName ndn.Name, key interface{}, llVerify ndn.LLVerify) (PublicKey, error) {
+func newPublicKey(sigType uint32, keyName ndn.Name, key any, llVerify ndn.LLVerify) (PublicKey, error) {
 	if !IsKeyName(keyName) {
 		return nil, ErrKeyName
 	}

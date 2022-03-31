@@ -23,7 +23,7 @@ import (
 )
 
 // CaptureJSON invokes a function that writes to *C.struct_spdk_json_write_ctx, and unmarshals what's been written.
-func CaptureJSON(f func(w unsafe.Pointer), ptr interface{}) (e error) {
+func CaptureJSON(f func(w unsafe.Pointer), ptr any) (e error) {
 	var buf bytes.Buffer
 	ctx := cgo.NewHandle(&buf)
 	defer ctx.Delete()

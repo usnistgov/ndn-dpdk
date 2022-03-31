@@ -15,7 +15,7 @@ func (f Flag) Empty() bool {
 }
 
 // Get implements flag.Getter.
-func (f *Flag) Get() interface{} {
+func (f *Flag) Get() any {
 	return f.HardwareAddr
 }
 

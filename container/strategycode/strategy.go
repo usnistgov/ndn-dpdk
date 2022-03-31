@@ -64,7 +64,7 @@ func (sc *Strategy) Name() string {
 }
 
 // ValidateParams validates JSON parameters.
-func (sc *Strategy) ValidateParams(params map[string]interface{}) error {
+func (sc *Strategy) ValidateParams(params map[string]any) error {
 	if sc.schema == nil {
 		if len(params) != 0 {
 			return errors.New("strategy does not accept parameters")

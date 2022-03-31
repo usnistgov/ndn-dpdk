@@ -91,7 +91,7 @@ func (bdi *Info) HasIOType(ioType IOType) bool {
 }
 
 // DriverInfo returns driver-specific information.
-func (bdi *Info) DriverInfo() (value interface{}) {
+func (bdi *Info) DriverInfo() (value any) {
 	var res C.int
 	e := spdkenv.CaptureJSON(spdkenv.JSONObject(func(w unsafe.Pointer) {
 		res = C.spdk_bdev_dump_info_json(bdi.ptr(), (*C.struct_spdk_json_write_ctx)(w))

@@ -38,7 +38,7 @@ const (
 type Field struct {
 	typ     fieldType
 	integer uint64
-	object  interface{}
+	object  any
 }
 
 // Encode appends to the byte slice.

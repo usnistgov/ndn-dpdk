@@ -96,6 +96,6 @@ func (directoryEntry) ModTime() time.Time {
 	return time.Time{}
 }
 
-func (directoryEntry) Sys() interface{} {
+func (directoryEntry) Sys() any {
 	return nil
 }

@@ -1,6 +1,6 @@
 module github.com/usnistgov/ndn-dpdk
 
-go 1.17
+go 1.18
 
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f

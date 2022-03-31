@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.17.8
+          go-version: 1.x
       - uses: actions/setup-node@v2
         with:
           node-version: 17
@@ -65,7 +65,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20220317
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20220331
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: '22.03'
@@ -128,7 +128,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.17.8
+          go-version: 1.x
       - name: install TinyGo
         run: |
           wget https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo_${TINYGO_VERSION}_amd64.deb
@@ -153,3 +153,4 @@ jobs:
       - name: build with TinyGo
         run: |
           tinygo build -o /dev/null -target=wasm ./ndn/ndntestenv/tiny
+        continue-on-error: true  # https://github.com/tinygo-org/tinygo/issues/2718
