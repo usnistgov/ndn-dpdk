@@ -120,9 +120,8 @@ FwFwd_InterestHitCsDisk(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
 
   N_LOGD("^ cs-entry-disk=%p disk-slot=%" PRIu64 " helper=disk data-npkt=%p", csEntry,
          csEntry->diskSlot, dataBuf);
-  char* room = rte_pktmbuf_append(dataBuf, csEntry->dataLen);
-  NDNDPDK_ASSERT(room != NULL);
-  DiskStore_GetData(fwd->cs->diskStore, csEntry->diskSlot, ctx->npkt, dataBuf);
+  DiskStore_GetData(fwd->cs->diskStore, csEntry->diskSlot, ctx->npkt, dataBuf,
+                    &csEntry->diskStored);
   NULLize(ctx->npkt);
 }
 

@@ -52,19 +52,19 @@ func (f *StoreFixture) MakeStore(nBlocksPerSlot int) {
 	require.NoError(e)
 }
 
-func (f *StoreFixture) PutData(slotID uint64, dataName string, dataArgs ...interface{}) (dataLen int) {
+func (f *StoreFixture) PutData(slotID uint64, dataName string, dataArgs ...interface{}) bdev.StoredPacket {
+	_, require := makeAR(f.t)
 	data := makeData(dataName, dataArgs...)
-	dataLen = data.Mbuf().Len()
-	f.Store.PutData(slotID, data)
-	return dataLen
+	sp, e := f.Store.PutData(slotID, data)
+	require.NoError(e)
+	return sp
 }
 
-func (f *StoreFixture) GetData(slotID uint64, dataLen int, interestName string, interestArgs ...interface{}) (data *ndni.Packet) {
+func (f *StoreFixture) GetData(slotID uint64, sp bdev.StoredPacket, interestName string, interestArgs ...interface{}) (data *ndni.Packet) {
 	interest := makeInterest(interestName, interestArgs...)
 	defer interest.Close()
 	dataBuf := packetPool.MustAlloc(1)[0]
-	dataBuf.Append(make([]byte, dataLen))
-	return f.Store.GetData(slotID, interest, dataBuf)
+	return f.Store.GetData(slotID, interest, dataBuf, sp)
 }
 
 func NewStoreFixture(t testing.TB) (f *StoreFixture) {
@@ -95,16 +95,15 @@ func TestStore(t *testing.T) {
 
 	assert.Zero(packetPool.CountInUse())
 
-	dataLens := map[uint64]int{
-		2: 1024,
-	}
+	dataSps := map[uint64]bdev.StoredPacket{}
 	for _, n := range []uint64{1, 31, 32} {
-		dataLens[n] = f.PutData(n, fmt.Sprintf("/A/%d", n), time.Duration(n)*time.Millisecond)
+		dataSps[n] = f.PutData(n, fmt.Sprintf("/A/%d", n), time.Duration(n)*time.Millisecond)
 	}
+	dataSps[2] = dataSps[31]
 	time.Sleep(100 * time.Millisecond) // give time for asynchronous PutData operation
 
 	for _, n := range []uint64{1, 31} {
-		data := f.GetData(n, dataLens[n], fmt.Sprintf("/A/%d", n))
+		data := f.GetData(n, dataSps[n], fmt.Sprintf("/A/%d", n))
 		if assert.NotNil(data, n) {
 			assert.Equal(time.Duration(n)*time.Millisecond, data.ToNPacket().Data.Freshness, n)
 			data.Close()
@@ -112,7 +111,7 @@ func TestStore(t *testing.T) {
 	}
 
 	for _, n := range []uint64{2, 32} {
-		data := f.GetData(n, dataLens[n], fmt.Sprintf("/A/%d", n))
+		data := f.GetData(n, dataSps[n], fmt.Sprintf("/A/%d", n))
 		assert.Nil(data, n)
 	}
 
@@ -140,21 +139,21 @@ func TestStoreQueue(t *testing.T) {
 	}))
 	f.MakeStore(8)
 
-	dataLen1a := f.PutData(1, "/A/1", make([]byte, 1777))
+	sp1a := f.PutData(1, "/A/1", make([]byte, 1777))
 	var wg sync.WaitGroup
 	for k := 0; k < 2; k++ {
 		wg.Add(8)
 		for i := 0; i < 4; i++ {
 			go func(k, i int) {
 				defer wg.Done()
-				data := f.GetData(1, dataLen1a, "/A/1")
+				data := f.GetData(1, sp1a, "/A/1")
 				if assert.NotNil(data, "%d %d", k, i) {
 					data.Close()
 				}
 			}(k, i)
 			go func(k, i int) {
 				defer wg.Done()
-				data := f.GetData(7, 1024, "/A/1")
+				data := f.GetData(7, sp1a, "/A/1")
 				assert.Nil(data, "%d %d", k, i)
 			}(k, i)
 		}

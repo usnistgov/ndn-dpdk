@@ -18,14 +18,19 @@ CsDisk_Insert(Cs* cs, CsEntry* entry)
     return;
   }
 
-  uint16_t dataLen = Packet_ToMbuf(entry->data)->pkt_len;
-  N_LOGD("Insert entry=%p data=%p data-len=%" PRIu16 " slot=%" PRIu64, entry, entry->data, dataLen,
-         slot);
   NDNDPDK_ASSERT(entry->kind == CsEntryMemory);
-  DiskStore_PutData(cs->diskStore, slot, entry->data);
+  bool ok = DiskStore_PutPrepare(cs->diskStore, entry->data, &entry->diskStored);
+  if (unlikely(!ok)) {
+    N_LOGW("Insert error entry=%p data=%p" N_LOG_ERROR("prepare"), entry, entry->data);
+    CsEntry_Clear(entry);
+    return;
+  }
+
+  N_LOGD("Insert entry=%p data=%p slot=%" PRIu64 " sp-pktLen=%" PRIu16 " sp-saveTotal=%" PRIu16,
+         entry, entry->data, slot, entry->diskStored.pktLen, entry->diskStored.saveTotal);
+  DiskStore_PutData(cs->diskStore, slot, entry->data, &entry->diskStored);
   entry->kind = CsEntryDisk;
   entry->diskSlot = slot;
-  entry->dataLen = dataLen;
   ++cs->nDiskInsert;
 }
 

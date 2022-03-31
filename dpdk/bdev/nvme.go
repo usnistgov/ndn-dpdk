@@ -1,10 +1,5 @@
 package bdev
 
-/*
-#include "../../csrc/core/common.h"
-#include <spdk/nvme.h>
-*/
-import "C"
 import (
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"

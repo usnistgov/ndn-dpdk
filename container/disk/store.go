@@ -8,6 +8,7 @@ extern int go_getDataCallback(Packet* npkt, uintptr_t ctx);
 */
 import "C"
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"unsafe"
@@ -69,13 +70,21 @@ func (store *Store) SlotRange() (min, max uint64) {
 }
 
 // PutData asynchronously stores a Data packet.
-func (store *Store) PutData(slotID uint64, data *ndni.Packet) {
-	C.DiskStore_PutData(store.c, C.uint64_t(slotID), (*C.Packet)(data.Ptr()))
+func (store *Store) PutData(slotID uint64, data *ndni.Packet) (sp bdev.StoredPacket, e error) {
+	spC := (*C.BdevStoredPacket)(eal.Zmalloc("BdevStoredPacket", C.sizeof_BdevStoredPacket, eal.NumaSocket{}))
+	defer eal.Free(spC)
+	npkt := (*C.Packet)(data.Ptr())
+	if ok := C.DiskStore_PutPrepare(store.c, npkt, spC); !ok {
+		return sp, errors.New("prepare failed")
+	}
+	C.DiskStore_PutData(store.c, C.uint64_t(slotID), npkt, spC)
+	sp = *bdev.StoredPacketFromPtr(unsafe.Pointer(spC))
+	return sp, nil
 }
 
 // GetData retrieves a Data packet from specified slot and waits for completion.
 // This can be used only if the Store was created with StoreGetDataGo.
-func (store *Store) GetData(slotID uint64, interest *ndni.Packet, dataBuf *pktmbuf.Packet) (data *ndni.Packet) {
+func (store *Store) GetData(slotID uint64, interest *ndni.Packet, dataBuf *pktmbuf.Packet, sp bdev.StoredPacket) (data *ndni.Packet) {
 	if !store.getDataGo {
 		logger.Panic("Store is not created with StoreGetDataGo, cannot GetData")
 	}
@@ -89,7 +98,8 @@ func (store *Store) GetData(slotID uint64, interest *ndni.Packet, dataBuf *pktmb
 		logger.Panic("ongoing GetData on the same mbuf")
 	}
 
-	C.DiskStore_GetData(store.c, C.uint64_t(slotID), interestC, (*C.struct_rte_mbuf)(dataBuf.Ptr()))
+	C.DiskStore_GetData(store.c, C.uint64_t(slotID), interestC,
+		(*C.struct_rte_mbuf)(dataBuf.Ptr()), (*C.BdevStoredPacket)(sp.Ptr()))
 	<-reply
 
 	if retSlot := uint64(pinterest.diskSlot); retSlot != slotID {

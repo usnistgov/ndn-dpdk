@@ -33,12 +33,12 @@ require (
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
 	github.com/urfave/cli/v2 v2.4.0
-	github.com/vishvananda/netlink v1.1.1-0.20220117225832-796d4ea903f3
+	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8
+	golang.org/x/sys v0.0.0-20220330033206-e17cdc41300f
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )
 

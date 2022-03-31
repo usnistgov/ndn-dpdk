@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
@@ -42,7 +41,7 @@ func MakePacket(args ...interface{}) (pkt *pktmbuf.Packet) {
 	}
 
 	if mp == nil {
-		mp = pktmbuf.Direct.Get(eal.NumaSocket{})
+		mp = DirectMempool()
 	}
 	if len(segments) == 0 {
 		segments = append(segments, []byte{})

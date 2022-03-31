@@ -46,8 +46,13 @@ PutData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t sl
 {
   ++store->nPutDataBegin;
   N_LOGD("PutData begin slot=%" PRIu64 " npkt=%p", slotID, npkt);
+  BdevStoredPacket sp;
+  Bdev_WritePrepare(&store->bdev, req->pkt, &sp);
   uint64_t blockOffset = slotID * store->nBlocksPerSlot;
-  Bdev_WritePacket(&store->bdev, store->ch, req->pkt, blockOffset, PutData_End, &req->breq);
+  req->breq.pkt = req->pkt;
+  req->breq.sp = &sp;
+  req->breq.cb = PutData_End;
+  Bdev_WritePacket(&store->bdev, store->ch, blockOffset, &req->breq);
 }
 
 __attribute__((nonnull)) static inline void
@@ -74,8 +79,10 @@ GetData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t sl
   N_LOGD("GetData begin slot=%" PRIu64 " npkt=%p", slotID, npkt);
   uint64_t blockOffset = slotID * store->nBlocksPerSlot;
   PInterest* interest = Packet_GetInterestHdr(npkt);
-  Bdev_ReadPacket(&store->bdev, store->ch, Packet_ToMbuf(interest->diskData), blockOffset,
-                  GetData_End, &req->breq);
+  req->breq.pkt = Packet_ToMbuf(interest->diskData);
+  req->breq.sp = RTE_PTR_ADD(rte_mbuf_to_priv(req->breq.pkt), sizeof(DiskStoreSlimRequest));
+  req->breq.cb = GetData_End;
+  Bdev_ReadPacket(&store->bdev, store->ch, blockOffset, &req->breq);
 }
 
 __attribute__((nonnull)) static void
@@ -101,15 +108,16 @@ DiskStore_ProcessQueue(DiskStore* store, DiskStoreRequest* head, struct rte_mbuf
 
     PInterest* interest = Packet_GetInterestHdr(head->npkt);
     struct rte_mbuf* dataBuf = Packet_ToMbuf(interest->diskData);
-    if (unlikely(dataBuf->pkt_len != dataPkt->pkt_len)) {
-      // requester made a mistake and asked for wrong packet length
-      GetData_Finish(store, head->npkt, EBADMSG);
+    dataBuf->data_off = 0;
+    char* room = rte_pktmbuf_append(dataBuf, dataPkt->pkt_len);
+    if (unlikely(room == NULL)) {
+      // requester made a mistake and provided insufficient room
+      GetData_Finish(store, head->npkt, ENOBUFS);
       continue;
     }
 
     // copy the packet payload from current request
-    rte_memcpy(rte_pktmbuf_mtod(dataBuf, void*), rte_pktmbuf_mtod(dataPkt, void*),
-               dataPkt->pkt_len);
+    rte_memcpy(room, rte_pktmbuf_mtod(dataPkt, void*), dataPkt->pkt_len);
     Mbuf_SetTimestamp(dataBuf, Mbuf_GetTimestamp(dataPkt));
     bool ok = Packet_Parse(interest->diskData);
     NDNDPDK_ASSERT(ok);
@@ -254,11 +262,11 @@ DiskStore_Post(DiskStore* store, uint64_t slotID, Packet* npkt, DiskStoreSlimReq
 }
 
 void
-DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt)
+DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt, BdevStoredPacket* sp)
 {
   NDNDPDK_ASSERT(slotID > 0);
 
-  uint32_t blockCount = Bdev_ComputeBlockCount(&store->bdev, Packet_ToMbuf(npkt));
+  uint32_t blockCount = Bdev_ComputeBlockCount(&store->bdev, sp);
   if (unlikely(blockCount > store->nBlocksPerSlot)) {
     N_LOGW("PutData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("packet-too-long"), slotID, npkt);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));
@@ -271,14 +279,16 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt)
 }
 
 void
-DiskStore_GetData(DiskStore* store, uint64_t slotID, Packet* npkt, struct rte_mbuf* dataBuf)
+DiskStore_GetData(DiskStore* store, uint64_t slotID, Packet* npkt, struct rte_mbuf* dataBuf,
+                  BdevStoredPacket* sp)
 {
   NDNDPDK_ASSERT(slotID > 0);
   PInterest* interest = Packet_GetInterestHdr(npkt);
   interest->diskSlot = slotID;
   interest->diskData = Packet_FromMbuf(dataBuf);
 
-  static_assert(sizeof(DiskStoreSlimRequest) <= sizeof(PacketPriv), "");
+  static_assert(sizeof(DiskStoreSlimRequest) + sizeof(BdevStoredPacket) <= sizeof(PacketPriv), "");
   DiskStoreSlimRequest* sr = rte_mbuf_to_priv(dataBuf);
+  BdevStoredPacket_Copy(RTE_PTR_ADD(sr, sizeof(*sr)), sp);
   DiskStore_Post(store, slotID, npkt, sr);
 }

@@ -3,6 +3,7 @@
 
 /** @file */
 
+#include "../dpdk/bdev.h"
 #include "../ndni/packet.h"
 #include "cs-struct.h"
 
@@ -46,12 +47,6 @@ struct CsEntry
    */
   TscTime freshUntil;
 
-  /**
-   * @brief Data packet length.
-   * @pre kind == CsEntryDisk
-   */
-  uint16_t dataLen;
-
   CsEntryKind kind;
 
   /**
@@ -73,6 +68,12 @@ struct CsEntry
    * @pre kind != CsEntryIndirect
    */
   CsEntry* indirect[CsMaxIndirects];
+
+  /**
+   * @brief Disk packet length and alignment descriptor.
+   * @pre kind == CsEntryDisk
+   */
+  BdevStoredPacket diskStored;
 };
 static_assert(CsMaxIndirects < UINT8_MAX, "");
 

@@ -2,6 +2,7 @@ package bdev_test
 
 import (
 	"bytes"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"go4.org/must"
 )
 
@@ -25,18 +27,55 @@ func checkSize(t testing.TB, device bdev.Device) {
 	assert.Equal(int64(blockCount), bdi.CountBlocks())
 }
 
-func doRW(t testing.TB, bd *bdev.Bdev) {
+type bdevRWTest struct {
+	headroom    mbuftestenv.Headroom
+	blockOffset int64
+
+	payload []byte
+	sp      bdev.StoredPacket
+}
+
+func (rwt *bdevRWTest) Write(t testing.TB, bd *bdev.Bdev) {
 	assert, _ := makeAR(t)
 
-	pkt1 := makePacket(bytes.Repeat([]byte{0xB0}, 500), bytes.Repeat([]byte{0xB1}, 400), bytes.Repeat([]byte{0xB2}, 134))
-	defer pkt1.Close()
-	assert.NoError(bd.WritePacket(100, *pkt1))
-
-	pkt2 := makePacket(bytes.Repeat([]byte{0xC0}, 124), bytes.Repeat([]byte{0xC1}, 400), bytes.Repeat([]byte{0xC2}, 510))
-	defer pkt2.Close()
-	if assert.NoError(bd.ReadPacket(100, *pkt2)) {
-		assert.Equal(pkt1.Bytes(), pkt2.Bytes())
+	segs := [][]byte{make([]byte, 500), make([]byte, 400), make([]byte, 134)}
+	for _, seg := range segs {
+		rand.Read(seg)
 	}
+	rwt.payload = bytes.Join(segs, nil)
+
+	pkt := makePacket(rwt.headroom, segs[0], segs[1], segs[2])
+	defer pkt.Close()
+
+	var e error
+	rwt.sp, e = bd.WritePacket(rwt.blockOffset, pkt)
+	assert.NoError(e)
+}
+
+func (rwt *bdevRWTest) Read(t testing.TB, bd *bdev.Bdev) {
+	assert, _ := makeAR(t)
+
+	pkt := mbuftestenv.DirectMempool().MustAlloc(1)[0]
+	defer pkt.Close()
+
+	if assert.NoError(bd.ReadPacket(rwt.blockOffset, pkt, rwt.sp)) {
+		assert.Equal(rwt.payload, pkt.Bytes())
+	}
+}
+
+func makeRW2(device bdev.Device) (rwt0, rwt1 bdevRWTest) {
+	rwt0.headroom = 0
+	rwt1.headroom = 1
+
+	nBlocks := device.DevInfo().CountBlocks()
+	for rwt0.blockOffset == rwt1.blockOffset {
+		rwt0.blockOffset, rwt0.blockOffset = rand.Int63n(nBlocks), rand.Int63n(nBlocks)
+	}
+	return
+}
+
+func doUnmap(t testing.TB, bd *bdev.Bdev) {
+	assert, _ := makeAR(t)
 
 	if bd.DevInfo().HasIOType(bdev.IOUnmap) {
 		assert.NoError(bd.UnmapBlocks(0, 4))
@@ -64,7 +103,8 @@ func TestMalloc(t *testing.T) {
 	defer must.Close(device)
 
 	checkSize(t, device)
-	testBdev(t, device, bdev.ReadWrite, doRW)
+	rwt0, rwt1 := makeRW2(device)
+	testBdev(t, device, bdev.ReadWrite, rwt0.Write, rwt1.Write, rwt0.Read, rwt1.Read, doUnmap)
 }
 
 func TestDelayError(t *testing.T) {
@@ -88,12 +128,13 @@ func TestDelayError(t *testing.T) {
 	defer must.Close(errInj)
 
 	checkSize(t, errInj)
-	testBdev(t, errInj, bdev.ReadWrite, doRW,
+	rwt0, rwt1 := makeRW2(errInj)
+	testBdev(t, errInj, bdev.ReadWrite, rwt0.Write, rwt1.Write, rwt0.Read, rwt1.Read, doUnmap,
 		func(t testing.TB, bd *bdev.Bdev) {
 			assert.NoError(errInj.Inject(bdev.IORead, 2))
-			pkt3 := makePacket(make([]byte, blockSize), make([]byte, blockSize))
-			defer pkt3.Close()
-			e = bd.ReadPacket(100, *pkt3)
+			pkt := mbuftestenv.DirectMempool().MustAlloc(1)[0]
+			defer pkt.Close()
+			e = bd.ReadPacket(rwt0.blockOffset, pkt, rwt0.sp)
 			assert.Error(e)
 		},
 	)
@@ -114,7 +155,8 @@ func TestFile(t *testing.T) {
 		require.NoError(e)
 		assert.Equal(filename, device.Filename())
 		checkSize(t, device)
-		testBdev(t, device, bdev.ReadWrite, doRW)
+		rwt0, rwt1 := makeRW2(device)
+		testBdev(t, device, bdev.ReadWrite, rwt0.Write, rwt1.Write, rwt0.Read, rwt1.Read, doUnmap)
 		must.Close(device)
 	}
 }
@@ -139,7 +181,8 @@ func TestNvme(t *testing.T) {
 	assert.True(bdi.HasIOType(bdev.IONvmeIO))
 
 	if os.Getenv("BDEVTEST_NVME_WRITE") == "1" {
-		testBdev(t, bdi, bdev.ReadWrite, doRW)
+		rwt0, rwt1 := makeRW2(bdi)
+		testBdev(t, bdi, bdev.ReadWrite, rwt0.Write, rwt1.Write, rwt0.Read, rwt1.Read, doUnmap)
 	} else {
 		t.Log("NVMe write test disabled; rerun test suite with BDEVTEST_NVME_WRITE=1 environ to enable (will destroy data).")
 		testBdev(t, bdi, bdev.ReadOnly)

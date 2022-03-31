@@ -63,21 +63,33 @@ struct DiskStore
 };
 
 /**
+ * @brief Prepare to store a Data packet.
+ * @return whether success.
+ */
+__attribute__((nonnull)) static inline bool
+DiskStore_PutPrepare(DiskStore* store, Packet* npkt, BdevStoredPacket* sp)
+{
+  return Bdev_WritePrepare(&store->bdev, Packet_ToMbuf(npkt), sp);
+}
+
+/**
  * @brief Store a Data packet.
  * @param slotID disk slot number; slot 0 cannot be used.
  * @param npkt a Data packet. DiskStore takes ownership.
+ * @param sp output of a successful @c DiskStore_PrepareData .
  *
  * This function may be invoked on any thread, including non-SPDK thread.
  */
 __attribute__((nonnull)) void
-DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt);
+DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt, BdevStoredPacket* sp);
 
 /**
  * @brief Retrieve a Data packet.
  * @param slotID disk slot number.
  * @param npkt an Interest packet. DiskStore takes ownership until callback.
- * @param dataBuf direct mbuf for Data packet. DiskStore takes ownership until callback.
- * @pre @c dataBuf->pkt_len equals stored Data packet length.
+ * @param dataBuf a uniquely owned, unsegmented, direct mbuf for Data packet.
+ *                DiskStore takes ownership until callback.
+ * @param sp same @c BdevStoredPacket used during PutData, will be copied.
  *
  * This function asynchronously reads from a specified slot of the underlying disk, and parses
  * the content as a Data packet.
@@ -88,6 +100,7 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt);
  * This function may be invoked on any thread, including non-SPDK thread.
  */
 __attribute__((nonnull)) void
-DiskStore_GetData(DiskStore* store, uint64_t slotID, Packet* npkt, struct rte_mbuf* dataBuf);
+DiskStore_GetData(DiskStore* store, uint64_t slotID, Packet* npkt, struct rte_mbuf* dataBuf,
+                  BdevStoredPacket* sp);
 
 #endif // NDNDPDK_DISK_STORE_H

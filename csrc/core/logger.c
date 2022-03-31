@@ -34,10 +34,20 @@ static const uint32_t spdk2dpdkLogLevels[] = {
 };
 
 void
-Logger_Spdk(int level, __rte_unused const char* restrict file, __rte_unused const int line,
-            __rte_unused const char* restrict func, const char* restrict format, va_list args)
+Logger_Spdk(int level, const char* restrict file, const int line, const char* restrict func,
+            const char* restrict format, va_list args)
 {
-  rte_vlog(spdk2dpdkLogLevels[level], RTE_LOGTYPE_SPDK, format, args);
+  uint32_t lvl = spdk2dpdkLogLevels[level];
+  if (!rte_log_can_log(RTE_LOGTYPE_SPDK, lvl)) {
+    return;
+  }
+
+  char buf[4096];
+  int len = RTE_MIN((int)sizeof(buf) - 1, vsnprintf(buf, sizeof(buf), format, args));
+  if (likely(len > 0 && buf[len - 1] == '\n')) {
+    buf[len - 1] = '\0';
+  }
+  rte_log(lvl, RTE_LOGTYPE_SPDK, "%s @%s:%d\n", buf, file, line);
 }
 
 void

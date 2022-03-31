@@ -9,6 +9,7 @@ typedef struct go_BdevRequest
 {
 	uintptr_t handle;
 	BdevRequest breq;
+	BdevStoredPacket sp;
 } go_BdevRequest;
 
 extern void go_bdevEvent(enum spdk_bdev_event_type type, struct spdk_bdev* bdev, uintptr_t ctx);
@@ -29,6 +30,7 @@ import (
 	"fmt"
 	"math/bits"
 	"runtime/cgo"
+	"strings"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -48,6 +50,19 @@ const (
 	ReadOnly  Mode = false
 	ReadWrite Mode = true
 )
+
+// StoredPacket describes length and alignment of a stored packet.
+type StoredPacket C.BdevStoredPacket
+
+// Ptr returns *C.BdevStoredPacket pointer.
+func (sp *StoredPacket) Ptr() unsafe.Pointer {
+	return unsafe.Pointer(sp)
+}
+
+// StoredPacketFromPtr converts *C.BdevStoredPacket pointer to StoredPacket.
+func StoredPacketFromPtr(ptr unsafe.Pointer) *StoredPacket {
+	return (*StoredPacket)(ptr)
+}
 
 // Bdev represents an open block device descriptor.
 type Bdev struct {
@@ -74,7 +89,7 @@ func (bd *Bdev) CopyToC(ptr unsafe.Pointer) {
 	*(*C.Bdev)(ptr) = bd.c
 }
 
-func (bd *Bdev) do(f func(breq *C.BdevRequest)) error {
+func (bd *Bdev) do(pkt *pktmbuf.Packet, f func(breq *C.BdevRequest)) error {
 	done := make(chan int)
 	ctx := cgo.NewHandle(done)
 	defer ctx.Delete()
@@ -87,6 +102,9 @@ func (bd *Bdev) do(f func(breq *C.BdevRequest)) error {
 		if bd.ch == nil {
 			bd.ch = C.spdk_bdev_get_io_channel(bd.c.desc)
 		}
+		req.breq.pkt = (*C.struct_rte_mbuf)(pkt.Ptr())
+		req.breq.sp = &req.sp
+		req.breq.cb = C.BdevRequestCb(C.go_bdevComplete)
 		f(&req.breq)
 	}))
 	return eal.MakeErrno(<-done)
@@ -94,7 +112,7 @@ func (bd *Bdev) do(f func(breq *C.BdevRequest)) error {
 
 // UnmapBlocks notifies the device that the data in the blocks are no longer needed.
 func (bd *Bdev) UnmapBlocks(blockOffset, blockCount int64) error {
-	return bd.do(func(breq *C.BdevRequest) {
+	return bd.do(nil, func(breq *C.BdevRequest) {
 		res := C.c_spdk_bdev_unmap_blocks(bd.c.desc, bd.ch, C.uint64_t(blockOffset), C.uint64_t(blockCount), breq)
 		if res != 0 {
 			go_bdevComplete(breq, res)
@@ -103,19 +121,24 @@ func (bd *Bdev) UnmapBlocks(blockOffset, blockCount int64) error {
 }
 
 // ReadPacket reads blocks via scatter gather list.
-func (bd *Bdev) ReadPacket(blockOffset int64, pkt pktmbuf.Packet) error {
-	return bd.do(func(breq *C.BdevRequest) {
-		C.Bdev_ReadPacket(&bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.Ptr()), C.uint64_t(blockOffset),
-			C.BdevRequestCb(C.go_bdevComplete), breq)
+func (bd *Bdev) ReadPacket(blockOffset int64, pkt *pktmbuf.Packet, sp StoredPacket) error {
+	return bd.do(pkt, func(breq *C.BdevRequest) {
+		*(*StoredPacket)(breq.sp) = sp
+		C.Bdev_ReadPacket(&bd.c, bd.ch, C.uint64_t(blockOffset), breq)
 	})
 }
 
 // WritePacket writes blocks via scatter gather list.
-func (bd *Bdev) WritePacket(blockOffset int64, pkt pktmbuf.Packet) error {
-	return bd.do(func(breq *C.BdevRequest) {
-		C.Bdev_WritePacket(&bd.c, bd.ch, (*C.struct_rte_mbuf)(pkt.Ptr()), C.uint64_t(blockOffset),
-			C.BdevRequestCb(C.go_bdevComplete), breq)
+func (bd *Bdev) WritePacket(blockOffset int64, pkt *pktmbuf.Packet) (sp StoredPacket, e error) {
+	e = bd.do(pkt, func(breq *C.BdevRequest) {
+		if ok := C.Bdev_WritePrepare(&bd.c, breq.pkt, breq.sp); !ok {
+			go_bdevComplete(breq, C.EMSGSIZE)
+			return
+		}
+		C.Bdev_WritePacket(&bd.c, bd.ch, C.uint64_t(blockOffset), breq)
+		sp = *(*StoredPacket)(breq.sp)
 	})
+	return
 }
 
 // Open opens a block device.
@@ -145,6 +168,12 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 	bd.c.blockSizeMinus1 = C.uint32_t(blockSize - 1)
 	bd.c.blockSizeLog2 = C.uint32_t(bits.Len64(uint64(blockSize)) - 1)
 	bd.c.bufAlign = C.uint32_t(bdi.BufAlign())
+	if strings.HasPrefix(bdi.Name(), "nvme") {
+		bd.c.dwordAlign = true
+		if bd.c.bufAlign <= 1 {
+			bd.c.bufAlign = 4
+		}
+	}
 	logger.Info("device opened",
 		zap.Uintptr("desc", uintptr(unsafe.Pointer(bd.c.desc))),
 		zap.Inline(bdi),
