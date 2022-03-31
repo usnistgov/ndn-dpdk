@@ -8,7 +8,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
-	"github.com/usnistgov/ndn-dpdk/mk/version"
+	"github.com/usnistgov/ndn-dpdk/core/version"
 )
 
 var (
@@ -18,7 +18,7 @@ var (
 )
 
 var app = &cli.App{
-	Version:              version.Get().String(),
+	Version:              version.V.String(),
 	Usage:                "Control NDN-DPDK service.",
 	EnableBashCompletion: true,
 	Flags: []cli.Flag{

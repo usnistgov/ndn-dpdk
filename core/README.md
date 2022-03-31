@@ -27,3 +27,4 @@ Go shared code:
 * subtract: compute struct numerical difference.
 * testenv: unit testing environment.
 * urcu: userspace RCU.
+* version: version information.

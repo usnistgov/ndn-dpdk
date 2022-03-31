@@ -19,9 +19,9 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
+	"github.com/usnistgov/ndn-dpdk/core/version"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
-	"github.com/usnistgov/ndn-dpdk/mk/version"
 	"go.uber.org/zap"
 	"golang.org/x/sys/unix"
 )
@@ -132,7 +132,7 @@ func init() {
 }
 
 var app = &cli.App{
-	Version: version.Get().String(),
+	Version: version.V.String(),
 	Usage:   "Provide NDN-DPDK service.",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -168,7 +168,7 @@ func main() {
 	var uname unix.Utsname
 	unix.Uname(&uname)
 	logger.Info("NDN-DPDK service starting",
-		zap.Any("version", version.Get()),
+		zap.Any("version", version.V),
 		zap.Int("uid", os.Getuid()),
 		zap.ByteString("linux", bytes.TrimRight(uname.Release[:], string([]byte{0}))),
 		zap.String("dpdk", eal.Version),

@@ -12,7 +12,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
-	"github.com/usnistgov/ndn-dpdk/mk/version"
+	"github.com/usnistgov/ndn-dpdk/core/version"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
@@ -64,7 +64,7 @@ func onInterrupt(cancel func()) {
 }
 
 var app = &cli.App{
-	Version:              version.Get().String(),
+	Version:              version.V.String(),
 	Usage:                "NDNgo library demo.",
 	EnableBashCompletion: true,
 	Flags: []cli.Flag{

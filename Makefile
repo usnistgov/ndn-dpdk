@@ -67,7 +67,7 @@ build/bpf.done: build/build.ninja bpf/**/*.c csrc/strategyapi/* csrc/fib/enum.h 
 cmds: build/share/bash_autocomplete build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-jrproxy build/bin/ndndpdk-svc
 
 build/bin/%: cmd/%/* godeps
-	GOBIN=$$(realpath build/bin) go install "-ldflags=$$(mk/version/ldflags.sh)" ./cmd/$*
+	GOBIN=$$(realpath build/bin) go install ./cmd/$*
 
 build/share/bash_autocomplete: go.mod
 	mkdir -p $(@D)

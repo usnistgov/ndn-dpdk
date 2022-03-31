@@ -13,7 +13,7 @@ import (
 	"github.com/graphql-go/graphql"
 	"github.com/sirupsen/logrus"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
-	"github.com/usnistgov/ndn-dpdk/mk/version"
+	"github.com/usnistgov/ndn-dpdk/core/version"
 	"go.uber.org/zap"
 )
 
@@ -81,7 +81,7 @@ func init() {
 		Name: "version",
 		Type: graphql.NewNonNull(versionType),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			return version.Get(), nil
+			return version.V, nil
 		},
 	})
 }
