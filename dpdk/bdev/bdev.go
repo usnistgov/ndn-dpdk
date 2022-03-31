@@ -89,6 +89,13 @@ func (bd *Bdev) CopyToC(ptr unsafe.Pointer) {
 	*(*C.Bdev)(ptr) = bd.c
 }
 
+func (bd *Bdev) enableDwordAlign() {
+	bd.c.dwordAlign = true
+	if bd.c.bufAlign < 4 {
+		bd.c.bufAlign = 4
+	}
+}
+
 func (bd *Bdev) do(pkt *pktmbuf.Packet, f func(breq *C.BdevRequest)) error {
 	done := make(chan int)
 	ctx := cgo.NewHandle(done)
@@ -169,16 +176,20 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 	bd.c.blockSizeLog2 = C.uint32_t(bits.Len64(uint64(blockSize)) - 1)
 	bd.c.bufAlign = C.uint32_t(bdi.BufAlign())
 	if strings.HasPrefix(bdi.Name(), "nvme") {
-		bd.c.dwordAlign = true
-		if bd.c.bufAlign <= 1 {
-			bd.c.bufAlign = 4
-		}
+		bd.enableDwordAlign()
 	}
 	logger.Info("device opened",
 		zap.Uintptr("desc", uintptr(unsafe.Pointer(bd.c.desc))),
+		zap.Bool("dword-align", bool(bd.c.dwordAlign)),
 		zap.Inline(bdi),
 	)
 	return bd, nil
+}
+
+// ForceDwordAlign forcefully enables DwordAlign mode.
+// This is mainly useful for unit testing.
+func ForceDwordAlign(bd *Bdev) {
+	bd.enableDwordAlign()
 }
 
 //export go_bdevEvent

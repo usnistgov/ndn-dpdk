@@ -15,7 +15,7 @@ type Headroom int
 // *pktmbuf.Pool specifies where to allocate memory from; the default is the Direct pool.
 // Headroom sets headroom in each segment.
 // []byte or hexadecimal string becomes a segment.
-// []string is flattened.
+// [][]byte or []string is flattened.
 // Caller is responsible for releasing the packet.
 func MakePacket(args ...any) (pkt *pktmbuf.Packet) {
 	var mp *pktmbuf.Pool
@@ -27,6 +27,8 @@ func MakePacket(args ...any) (pkt *pktmbuf.Packet) {
 			segments = append(segments, a)
 		case string:
 			segments = append(segments, testenv.BytesFromHex(a))
+		case [][]byte:
+			segments = append(segments, a...)
 		case []string:
 			for _, hexString := range a {
 				segments = append(segments, testenv.BytesFromHex(hexString))

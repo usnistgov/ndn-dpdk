@@ -32,7 +32,7 @@ DiskStoreSlimRequest_FromPacket(Packet* npkt)
 }
 
 __attribute__((nonnull)) static inline void
-PutData_Finish(__rte_unused DiskStore* store, Packet* npkt, int res)
+PutData_Finish(DiskStore* store, Packet* npkt, int res)
 {
   ++store->nPutDataFinish[(int)(res == 0)];
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
@@ -53,6 +53,7 @@ PutData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t sl
   req->breq.sp = &sp;
   req->breq.cb = PutData_End;
   Bdev_WritePacket(&store->bdev, store->ch, blockOffset, &req->breq);
+  NULLize(req->breq.sp);
 }
 
 __attribute__((nonnull)) static inline void

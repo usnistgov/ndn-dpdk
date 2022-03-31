@@ -31,10 +31,20 @@ Bdev_ReadSuccess(BdevRequest* req)
     if (saveLen == 0) {
       break;
     }
+
     uint16_t headLen = sp->headTail[i] >> 4;
     uint16_t headTailLen = sp->headTail[i] & 0x0F;
     uint16_t segLen = saveLen - headTailLen;
-    memmove(dst, RTE_PTR_ADD(src, headLen), segLen);
+
+    if (i == 0 && sp->saveLen[1] == 0) {
+      pkt->data_off += headLen;
+      return;
+    }
+
+    const uint8_t* src1 = RTE_PTR_ADD(src, headLen);
+    if (likely(dst != src1)) {
+      memmove(dst, src1, segLen);
+    }
     dst = RTE_PTR_ADD(dst, segLen);
     src = RTE_PTR_ADD(src, saveLen);
   }
@@ -70,10 +80,8 @@ Bdev_ReadPacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, Bdev
   }
 
   pkt->data_off = RTE_PTR_DIFF(first, pkt->buf_addr);
-  req->iov_[0].iov_base = first;
-  req->iov_[0].iov_len = totalLen;
-  int res = spdk_bdev_readv_blocks(bd->desc, ch, req->iov_, 1, blockOffset, blockCount,
-                                   Bdev_ReadComplete, req);
+  int res =
+    spdk_bdev_read_blocks(bd->desc, ch, first, blockOffset, blockCount, Bdev_ReadComplete, req);
   if (unlikely(res != 0)) {
     req->cb(req, res);
   }
@@ -95,6 +103,7 @@ Bdev_WritePrepare(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp)
   uint32_t saveTotal = 0;
   int i = 0;
   for (struct rte_mbuf* m = pkt; m != NULL; m = m->next) {
+    NDNDPDK_ASSERT(m->data_len != 0);
     uint16_t headLen = m->data_off & 0x03;
     uint16_t saveLen = RTE_ALIGN_CEIL(headLen + m->data_len, 4);
     uint16_t headTailLen = saveLen - m->data_len;

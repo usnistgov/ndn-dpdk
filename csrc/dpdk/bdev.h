@@ -92,8 +92,8 @@ Bdev_WritePrepare(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp);
  * @brief Write block device from mbuf via scatter gather list.
  * @pre This must be called in a SPDK thread.
  * @param ch an SPDK I/O channel associated with the bdev and the current SPDK thread.
- * @param req request context. All fields except @c req->sp must be kept alive until @c req->cb
- *            is called.
+ * @param req request context. @c req->sp may be freed after this function returns. All other
+ *            fields must be kept alive until @c req->cb is called.
  *
  * @c req->pkt->pkt_len determines write length. Some headroom and tailroom in each mbuf segment
  * may be written to disk to achieve proper alignment as required by SPDK bdev driver, but they
