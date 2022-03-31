@@ -25,20 +25,17 @@ func (a *CArgs) Close() error {
 }
 
 // NewCArgs constructs CArgs.
-func NewCArgs(args []string) *CArgs {
-	a := &CArgs{
+func NewCArgs(args []string) (a *CArgs) {
+	ptrSize := int(unsafe.Sizeof((*C.char)(nil)))
+	a = &CArgs{
 		Argc: len(args),
+		Argv: C.malloc(C.size_t(ptrSize) * C.size_t(len(args))),
 	}
-
-	var b *C.char
-	ptrSize := int(unsafe.Sizeof(b))
-	a.Argv = C.malloc(C.size_t(ptrSize) * C.size_t(len(args)))
 
 	for i, arg := range args {
 		argvEle := (**C.char)(unsafe.Add(a.Argv, i*ptrSize))
 		*argvEle = C.CString(arg)
 		a.strMems = append(a.strMems, unsafe.Pointer(*argvEle))
 	}
-
 	return a
 }

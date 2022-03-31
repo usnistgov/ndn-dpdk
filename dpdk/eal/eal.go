@@ -3,11 +3,11 @@ package eal
 
 import (
 	"math/rand"
-	"sort"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"golang.org/x/exp/slices"
 )
 
 var logger = logging.New("eal")
@@ -49,12 +49,12 @@ func UpdateLCoreSockets(lcoreSockets map[int]int, mainLCoreID int) (undo func())
 			Workers = append(Workers, LCoreFromID(lcID))
 		}
 	}
-	sort.Slice(Workers, func(i, j int) bool { return Workers[i].v < Workers[j].v })
+	slices.SortFunc(Workers, func(a, b LCore) bool { return a.v < b.v })
 
 	for socketID := range socketIDs {
 		Sockets = append(Sockets, NumaSocketFromID(socketID))
 	}
-	sort.Slice(Sockets, func(i, j int) bool { return Sockets[i].v < Sockets[j].v })
+	slices.SortFunc(Sockets, func(a, b NumaSocket) bool { return a.v < b.v })
 
 	return
 }

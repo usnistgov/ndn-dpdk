@@ -2,10 +2,10 @@ package ealthread
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 )
 
 var allocated [eal.MaxLCoreID]string
@@ -80,7 +80,7 @@ func AllocRequest(requests ...AllocReq) (list []eal.LCore, e error) {
 
 	sockets := append([]eal.NumaSocket{}, eal.Sockets...)
 	for _, i := range reqAny {
-		sort.Slice(sockets, func(a, b int) bool { return len(workersBySocket[sockets[a]]) > len(workersBySocket[sockets[b]]) })
+		slices.SortFunc(sockets, func(a, b eal.NumaSocket) bool { return len(workersBySocket[a]) > len(workersBySocket[b]) })
 		list[i] = take(sockets[0]) // pick from least occupied NUMA socket
 	}
 

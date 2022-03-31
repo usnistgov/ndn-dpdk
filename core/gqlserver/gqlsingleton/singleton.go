@@ -1,3 +1,4 @@
+// Package gqlsingleton provides singleton objects in GraphQL server.
 package gqlsingleton
 
 import (

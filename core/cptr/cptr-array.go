@@ -8,8 +8,6 @@ import (
 	_ "github.com/ianlancetaylor/cgosymbolizer"
 )
 
-const sizeofPtr = unsafe.Sizeof(unsafe.Pointer(nil))
-
 // ParseCptrArray converts any slice of pointer-sized items to C void*[] type.
 func ParseCptrArray(arr any) (ptr unsafe.Pointer, count int) {
 	v := reflect.ValueOf(arr)
@@ -23,9 +21,9 @@ func ParseCptrArray(arr any) (ptr unsafe.Pointer, count int) {
 	}
 
 	first := v.Index(0)
-	if typ := first.Type(); typ.Size() != sizeofPtr {
+	if typ := first.Type(); typ.Size() != unsafe.Sizeof(unsafe.Pointer(nil)) {
 		panic(typ.String() + " element size is incompatible with C pointer")
 	}
 
-	return unsafe.Pointer(first.UnsafeAddr()), len
+	return first.Addr().UnsafePointer(), len
 }

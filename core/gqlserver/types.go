@@ -42,12 +42,10 @@ func NewNonNullList(ofType graphql.Type, optionalNullable ...bool) graphql.Type 
 }
 
 // NewStringEnum constructs an enum type.
-// The underlying type of value must be string.
-func NewStringEnum(name, desc string, values ...any) *graphql.Enum {
+func NewStringEnum[T ~string](name, desc string, values ...T) *graphql.Enum {
 	vm := graphql.EnumValueConfigMap{}
 	for _, value := range values {
-		val := reflect.ValueOf(value)
-		vm[val.String()] = &graphql.EnumValueConfig{Value: value}
+		vm[string(value)] = &graphql.EnumValueConfig{Value: value}
 	}
 	return graphql.NewEnum(graphql.EnumConfig{
 		Name:        name,
@@ -74,18 +72,4 @@ func Optional(value any, optionalValid ...bool) any {
 		return value
 	}
 	return nil
-}
-
-// MethodResolver creates a FieldResolveFn that invokes the named method with p.Source receiver and no arguments.
-func MethodResolver(value any, methodName string) graphql.FieldResolveFn {
-	typ := reflect.TypeOf(value)
-	method, ok := typ.MethodByName(methodName)
-	if !ok || !method.IsExported() || method.Type.NumIn() != 1 || method.Type.NumOut() != 1 {
-		panic("cannot create MethodResolver")
-	}
-	return func(p graphql.ResolveParams) (any, error) {
-		val := reflect.ValueOf(p.Source)
-		result := method.Func.Call([]reflect.Value{val})
-		return result[0].Interface(), nil
-	}
 }

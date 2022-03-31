@@ -6,6 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"go.uber.org/zap"
+	"golang.org/x/exp/maps"
 )
 
 var logger = logging.New("strategycode")
@@ -40,11 +41,7 @@ func Find(name string) *Strategy {
 func List() []*Strategy {
 	tableLock.Lock()
 	defer tableLock.Unlock()
-	list := make([]*Strategy, 0, len(table))
-	for _, sc := range table {
-		list = append(list, sc)
-	}
-	return list
+	return maps.Values(table)
 }
 
 // DestroyAll immediately unloads all strategies.

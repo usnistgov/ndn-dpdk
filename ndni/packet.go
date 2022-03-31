@@ -62,14 +62,14 @@ func (pkt *Packet) PName() *PName {
 func (pkt *Packet) PitToken() (token []byte) {
 	tokenC := &C.Packet_GetLpL3Hdr(pkt.ptr()).pitToken
 	token = make([]byte, int(tokenC.length))
-	copy(token, cptr.AsByteSlice(&tokenC.value))
+	copy(token, cptr.AsByteSlice(tokenC.value[:]))
 	return
 }
 
 // SetPitToken updates the PIT token.
 func (pkt *Packet) SetPitToken(token []byte) {
 	tokenC := &C.Packet_GetLpL3Hdr(pkt.ptr()).pitToken
-	tokenC.length = C.uint8_t(copy(cptr.AsByteSlice(&tokenC.value), token))
+	tokenC.length = C.uint8_t(copy(cptr.AsByteSlice(tokenC.value[:]), token))
 }
 
 // ComputeDataImplicitDigest computes and stores implicit digest in *C.PData.
@@ -78,7 +78,7 @@ func (pkt *Packet) ComputeDataImplicitDigest() []byte {
 	digest := pkt.ToNPacket().Data.ComputeDigest()
 
 	pdata := C.Packet_GetDataHdr(pkt.ptr())
-	copy(cptr.AsByteSlice(&pdata.digest), digest)
+	copy(cptr.AsByteSlice(pdata.digest[:]), digest)
 	pdata.hasDigest = true
 
 	return digest

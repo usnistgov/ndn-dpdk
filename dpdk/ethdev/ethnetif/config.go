@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/peterbourgon/mergemap"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"golang.org/x/exp/maps"
 )
 
 var logger = logging.New("ethnetif")
@@ -108,7 +108,7 @@ func createXDP(cfg Config) (ethdev.EthDev, error) {
 	if cfg.XDPProgram != "" {
 		args["xdp_prog"] = cfg.XDPProgram
 	}
-	args = mergemap.Merge(args, cfg.DevArgs)
+	maps.Copy(args, cfg.DevArgs)
 
 	if !cfg.SkipEthtool {
 		n.SetOneChannel()
@@ -144,7 +144,7 @@ func createAfPacket(cfg Config) (ethdev.EthDev, error) {
 		"iface":  n.Name,
 		"qpairs": 1,
 	}
-	args = mergemap.Merge(args, cfg.DevArgs)
+	maps.Copy(args, cfg.DevArgs)
 
 	return ethdev.NewVDev(n.VDevName(ethdev.DriverAfPacket), args, n.NumaSocket())
 }

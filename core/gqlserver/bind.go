@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/VojtechVitek/mergemaps"
 	"github.com/graphql-go/graphql"
 	"go.uber.org/zap"
 )
@@ -14,17 +15,11 @@ type fieldIndexResolver []int
 
 func (index fieldIndexResolver) Resolve(p graphql.ResolveParams) (any, error) {
 	v := reflect.ValueOf(p.Source)
-	// unlike v.FieldByIndex, this logic does not panic upon nil pointer
-	for _, i := range index {
-		if v.Kind() == reflect.Ptr {
-			if v.IsNil() {
-				return nil, nil
-			}
-			v = v.Elem()
-		}
-		v = v.Field(i)
+	r, e := v.FieldByIndexErr(index)
+	if e != nil {
+		return nil, nil
 	}
-	return v.Interface(), nil
+	return r.Interface(), nil
 }
 
 // FieldTypes contains known GraphQL types of fields.
@@ -34,9 +29,7 @@ type FieldTypes map[reflect.Type]graphql.Type
 func (m FieldTypes) Merge(a ...FieldTypes) (s FieldTypes) {
 	s = FieldTypes{}
 	for _, v := range append([]FieldTypes{m}, a...) {
-		for k, t := range v {
-			s[k] = t
-		}
+		mergemaps.MergeInto(s, v, mergemaps.OverwriteExistingDstKey)
 	}
 	return s
 }

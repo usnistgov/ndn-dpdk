@@ -69,12 +69,16 @@ func init() {
 			"patterns": &graphql.Field{
 				Description: "Traffic patterns.",
 				Type:        gqlserver.NonNullJSON,
-				Resolve:     gqlserver.MethodResolver((*Producer)(nil), "Patterns"),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(*Producer).Patterns(), nil
+				},
 			},
 			"counters": &graphql.Field{
 				Description: "Counters.",
 				Type:        graphql.NewNonNull(GqlCountersType),
-				Resolve:     gqlserver.MethodResolver((*Producer)(nil), "Counters"),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(*Producer).Counters(), nil
+				},
 			},
 		}),
 	}))

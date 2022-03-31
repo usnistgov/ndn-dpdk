@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/VojtechVitek/mergemaps"
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/core/subtract"
+	"golang.org/x/exp/maps"
 )
 
 // PublishChan publishes a channel in reply to GraphQL subscription.
@@ -175,12 +175,11 @@ func AddCounters(cfg *CountersConfig) {
 	}
 
 	if cfg.Subscription != "" {
-		args := graphql.FieldConfigArgument{}
-		mergemaps.MergeInto(args, cfg.Args, 0)
-		mergemaps.MergeInto(args, cfg.FindArgs, 0)
-		mergemaps.MergeInto(args, subArgInterval, 0)
+		args := maps.Clone(cfg.Args)
+		maps.Copy(args, cfg.FindArgs)
+		maps.Copy(args, subArgInterval)
 		if !cfg.NoDiff {
-			mergemaps.MergeInto(args, subArgDiff, 0)
+			maps.Copy(args, subArgDiff)
 		}
 		AddSubscription(&graphql.Field{
 			Name:        cfg.Subscription,

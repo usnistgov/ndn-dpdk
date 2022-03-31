@@ -21,7 +21,6 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
 	github.com/machinebox/graphql v0.2.2
-	github.com/peterbourgon/mergemap v0.0.1
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rickb777/plural v1.4.1
@@ -38,6 +37,7 @@ require (
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
+	golang.org/x/exp v0.0.0-20220328175248-053ad81199eb
 	golang.org/x/sys v0.0.0-20220330033206-e17cdc41300f
 	inet.af/netaddr v0.0.0-20211027220019-c74959edd3b6
 )

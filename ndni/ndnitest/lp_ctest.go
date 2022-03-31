@@ -37,7 +37,7 @@ func ctestLpParse(t *testing.T) {
 			if len(tt.PitToken) == 0 {
 				assert.Zero(lph.l3.pitToken.length, tt.Input)
 			} else {
-				assert.Equal(tt.PitToken, cptr.AsByteSlice(&lph.l3.pitToken.value)[:lph.l3.pitToken.length], tt.Input)
+				assert.Equal(tt.PitToken, cptr.AsByteSlice(lph.l3.pitToken.value[:])[:lph.l3.pitToken.length], tt.Input)
 			}
 			assert.EqualValues(tt.NackReason, lph.l3.nackReason, tt.Input)
 			assert.EqualValues(tt.CongMark, lph.l3.congMark, tt.Input)

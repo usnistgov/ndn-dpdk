@@ -54,7 +54,7 @@ func (w *worker) setPatterns(patterns []Pattern, dataGenVec *pktmbuf.Vector) {
 		*c = C.TgpPattern{
 			nReplies: C.uint8_t(len(pattern.Replies)),
 		}
-		prefixL := copy(cptr.AsByteSlice(&c.prefixBuffer), pattern.prefixV)
+		prefixL := copy(cptr.AsByteSlice(c.prefixBuffer[:]), pattern.prefixV)
 		c.prefix.value = &c.prefixBuffer[0]
 		c.prefix.length = C.uint16_t(prefixL)
 

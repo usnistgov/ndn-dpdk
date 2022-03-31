@@ -120,28 +120,24 @@ func NameComponentFrom(typ uint32, value tlv.Fielder) NameComponent {
 // ParseNameComponent parses URI representation of name component.
 // It uses best effort and can accept any input.
 func ParseNameComponent(input string) (comp NameComponent) {
-	comp.Type = uint32(an.TtGenericNameComponent)
-	pos := strings.IndexByte(input, '=')
-	if pos >= 0 {
-		typ, e := strconv.ParseUint(input[:pos], 10, 32)
-		typ32 := uint32(typ)
+	comp.Type = an.TtGenericNameComponent
+	if typS, valS, hasTyp := strings.Cut(input, "="); hasTyp {
+		typ64, e := strconv.ParseUint(typS, 10, 32)
+		typ32 := uint32(typ64)
 		if e == nil && isValidNameComponentType(typ32) {
 			comp.Type = typ32
-			pos++
-		} else {
-			pos = 0
+			input = valS
 		}
-	} else {
-		pos = 0
 	}
 
-	if len(strings.TrimRight(input, ".")) == pos && len(input) >= 3 {
-		comp.Value = []byte(input)[pos+3:]
+	if len(strings.TrimRight(input, ".")) == 0 && len(input) >= 3 {
+		comp.Value = []byte(input)[3:]
 		return comp
 	}
 
 	var value bytes.Buffer
-	for i := pos; i < len(input); {
+	value.Grow(len(input))
+	for i := 0; i < len(input); {
 		ch := input[i]
 		if ch == '%' && i+2 < len(input) {
 			b, e := strconv.ParseUint(input[i+1:i+3], 16, 8)

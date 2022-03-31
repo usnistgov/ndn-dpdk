@@ -110,7 +110,7 @@ func (entry *Entry) assignReal(u *fibdef.RealUpdate, sgGlobals []unsafe.Pointer)
 	entry.height = 0
 
 	nameV, _ := u.Name.MarshalBinary()
-	entry.nameL = C.uint16_t(copy(cptr.AsByteSlice(&entry.nameV), nameV))
+	entry.nameL = C.uint16_t(copy(cptr.AsByteSlice(entry.nameV[:]), nameV))
 	entry.nComps = C.uint8_t(len(u.Name))
 
 	entry.nNexthops = C.uint8_t(len(u.Nexthops))
@@ -145,7 +145,7 @@ func (entry *Entry) assignVirt(u *fibdef.VirtUpdate, real *Entry) {
 	entry.height = C.uint8_t(u.Height)
 
 	nameV, _ := u.Name.MarshalBinary()
-	entry.nameL = C.uint16_t(copy(cptr.AsByteSlice(&entry.nameV), nameV))
+	entry.nameL = C.uint16_t(copy(cptr.AsByteSlice(entry.nameV[:]), nameV))
 	entry.nComps = C.uint8_t(len(u.Name))
 
 	*entry.ptrReal() = real.ptr()

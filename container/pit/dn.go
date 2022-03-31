@@ -25,7 +25,7 @@ func (dn DnRecord) FaceID() iface.ID {
 // PitToken returns the last received PIT token.
 func (dn DnRecord) PitToken() (token []byte) {
 	token = make([]byte, int(dn.c.token.length))
-	copy(token, cptr.AsByteSlice(&dn.c.token.value))
+	copy(token, cptr.AsByteSlice(dn.c.token.value[:]))
 	return
 }
 

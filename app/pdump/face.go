@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"sort"
 	"sync"
 	"unsafe"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 )
 
 // Direction indicates traffic direction.
@@ -190,7 +190,7 @@ func NewFaceSource(cfg FaceConfig) (s *FaceSource, e error) {
 	C.pcg32_srandom_r(&s.c.rng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
 
 	// sort by decending name length for longest prefix match
-	sort.Slice(s.Names, func(i, j int) bool { return len(s.Names[i].Name) > len(s.Names[j].Name) })
+	slices.SortFunc(s.Names, func(a, b NameFilterEntry) bool { return len(a.Name) > len(b.Name) })
 	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&s.c.nameL), unsafe.Sizeof(s.c.nameL),
 		unsafe.Pointer(&s.c.nameV), unsafe.Sizeof(s.c.nameV))
 	for i, nf := range s.Names {
