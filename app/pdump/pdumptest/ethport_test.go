@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/netip"
 	"os"
 	"testing"
 	"time"
@@ -21,7 +22,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"inet.af/netaddr"
 )
 
 func TestEthPortUnmatched(t *testing.T) {
@@ -75,9 +75,9 @@ func TestEthPortUnmatched(t *testing.T) {
 	locB2 := ethface.UDPLocator{}
 	locB2.EthDev = portB.EthDev()
 	locB2.Local.HardwareAddr, _ = net.ParseMAC("02:00:00:00:00:B0")
-	locB2.LocalIP, locB2.LocalUDP = netaddr.IPv4(192, 168, 2, 1), 6363
+	locB2.LocalIP, locB2.LocalUDP = netip.MustParseAddr("192.168.2.1"), 6363
 	locB2.Remote.HardwareAddr, _ = net.ParseMAC("02:00:00:00:00:A0")
-	locB2.RemoteIP, locB2.RemoteUDP = netaddr.IPv4(192, 168, 1, 1), 6363
+	locB2.RemoteIP, locB2.RemoteUDP = netip.MustParseAddr("192.168.1.1"), 6363
 	faceB2, e := locB2.CreateFace()
 	require.NoError(e)
 	defer faceB2.Close()

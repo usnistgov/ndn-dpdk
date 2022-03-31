@@ -3,12 +3,12 @@ package ethface
 import (
 	"errors"
 	"math"
+	"net/netip"
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
-	"inet.af/netaddr"
 )
 
 // Error conditions.
@@ -27,11 +27,11 @@ type IPLocator struct {
 
 	// LocalIP is the local IP address.
 	// It may be either IPv4 or IPv6.
-	LocalIP netaddr.IP `json:"localIP"`
+	LocalIP netip.Addr `json:"localIP"`
 
 	// RemoteIP is the remote IP address.
 	// It may be either IPv4 or IPv6.
-	RemoteIP netaddr.IP `json:"remoteIP"`
+	RemoteIP netip.Addr `json:"remoteIP"`
 }
 
 // Validate checks Locator fields.
@@ -44,7 +44,7 @@ func (loc IPLocator) Validate() error {
 	switch {
 	case !macaddr.IsUnicast(loc.Remote.HardwareAddr):
 		return packettransport.ErrUnicastMacAddr
-	case local.IsZero(), remote.IsZero():
+	case local.BitLen() == 0, remote.BitLen() == 0:
 		return ErrIP
 	case local.BitLen() != remote.BitLen():
 		return ErrIPFamily

@@ -2,11 +2,11 @@ package main
 
 import (
 	"net"
+	"net/netip"
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
-	"inet.af/netaddr"
 )
 
 const gqlFaceCounters = "rxFrames rxInterests rxData rxNacks txFrames txInterests txData txNacks"
@@ -112,8 +112,8 @@ func init() {
 		Local       macaddr.Flag  `json:"local"`
 		Remote      macaddr.Flag  `json:"remote"`
 		VLAN        int           `json:"vlan,omitempty"`
-		LocalIP     *netaddr.IP   `json:"localIP,omitempty"`
-		RemoteIP    *netaddr.IP   `json:"remoteIP,omitempty"`
+		LocalIP     *netip.Addr   `json:"localIP,omitempty"`
+		RemoteIP    *netip.Addr   `json:"remoteIP,omitempty"`
 		LocalUDP    *int          `json:"localUDP,omitempty"`
 		RemoteUDP   *int          `json:"remoteUDP,omitempty"`
 		VXLAN       int           `json:"vxlan,omitempty"`
@@ -198,14 +198,14 @@ func init() {
 			if e != nil {
 				return e
 			}
-			localIP, _ := netaddr.FromStdIP(local.IP)
+			localIP := local.AddrPort().Addr()
 			loc.LocalIP, loc.LocalUDP = &localIP, &local.Port
 
 			remote, e := net.ResolveUDPAddr("udp", c.String("udp-remote"))
 			if e != nil {
 				return e
 			}
-			remoteIP, _ := netaddr.FromStdIP(remote.IP)
+			remoteIP := remote.AddrPort().Addr()
 			loc.RemoteIP, loc.RemoteUDP = &remoteIP, &remote.Port
 
 			return nil
@@ -253,14 +253,14 @@ func init() {
 			if e != nil {
 				return e
 			}
-			localIP, _ := netaddr.FromStdIP(local.IP)
+			localIP, _ := netip.AddrFromSlice(local.IP)
 			loc.LocalIP = &localIP
 
 			remote, e := net.ResolveIPAddr("ip", c.String("ip-remote"))
 			if e != nil {
 				return e
 			}
-			remoteIP, _ := netaddr.FromStdIP(remote.IP)
+			remoteIP, _ := netip.AddrFromSlice(remote.IP)
 			loc.RemoteIP = &remoteIP
 
 			loc.InnerLocal = &innerLocal

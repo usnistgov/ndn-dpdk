@@ -2,6 +2,8 @@ package ethface_test
 
 import (
 	"fmt"
+	"net"
+	"net/netip"
 	"testing"
 
 	"github.com/google/gopacket"
@@ -18,7 +20,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/vishvananda/netlink"
 	"go4.org/must"
-	"inet.af/netaddr"
 )
 
 func createTUN(t testing.TB) *water.Interface {
@@ -70,8 +71,8 @@ func TestXDPSimple(t *testing.T) {
 	locUDP4.Local.HardwareAddr = localMAC
 	locUDP4.Remote.Set("02:00:00:00:00:02")
 	locUDP4.VLAN = 1987
-	locUDP4.LocalIP, locUDP4.LocalUDP = netaddr.IPv4(192, 168, 2, 1), 6363
-	locUDP4.RemoteIP, locUDP4.RemoteUDP = netaddr.IPv4(192, 168, 2, 2), 6363
+	locUDP4.LocalIP, locUDP4.LocalUDP = netip.MustParseAddr("192.168.2.1"), 6363
+	locUDP4.RemoteIP, locUDP4.RemoteUDP = netip.MustParseAddr("192.168.2.2"), 6363
 	faceUDP4 := addFace(locUDP4)
 
 	locUDP4p1 := locUDP4
@@ -80,8 +81,8 @@ func TestXDPSimple(t *testing.T) {
 
 	locUDP6 := locUDP4
 	locUDP6.VLAN = 0
-	locUDP6.LocalIP = netaddr.MustParseIP("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001")
-	locUDP6.RemoteIP = netaddr.MustParseIP("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002")
+	locUDP6.LocalIP = netip.MustParseAddr("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001")
+	locUDP6.RemoteIP = netip.MustParseAddr("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002")
 	faceUDP6 := addFace(locUDP6)
 
 	var locVX ethface.VxlanLocator
@@ -105,7 +106,7 @@ func TestXDPSimple(t *testing.T) {
 		_, e = tun.Write(packetFromLayers(
 			&layers.Ethernet{SrcMAC: locUDP4.Remote.HardwareAddr, DstMAC: locUDP4.Local.HardwareAddr, EthernetType: layers.EthernetTypeDot1Q},
 			&layers.Dot1Q{Priority: 1, VLANIdentifier: uint16(locUDP4.VLAN), Type: layers.EthernetTypeIPv4},
-			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: locUDP4.RemoteIP.IPAddr().IP, DstIP: locUDP4.LocalIP.IPAddr().IP},
+			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locUDP4.RemoteIP.AsSlice()), DstIP: net.IP(locUDP4.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP4.RemoteUDP), DstPort: layers.UDPPort(locUDP4.LocalUDP)},
 			gopacket.Payload(wire),
 		))
@@ -114,7 +115,7 @@ func TestXDPSimple(t *testing.T) {
 		_, e = tun.Write(packetFromLayers(
 			&layers.Ethernet{SrcMAC: locUDP4p1.Remote.HardwareAddr, DstMAC: locUDP4p1.Local.HardwareAddr, EthernetType: layers.EthernetTypeDot1Q},
 			&layers.Dot1Q{VLANIdentifier: uint16(locUDP4p1.VLAN), Type: layers.EthernetTypeIPv4},
-			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: locUDP4p1.RemoteIP.IPAddr().IP, DstIP: locUDP4p1.LocalIP.IPAddr().IP},
+			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locUDP4p1.RemoteIP.AsSlice()), DstIP: net.IP(locUDP4p1.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP4p1.RemoteUDP), DstPort: layers.UDPPort(locUDP4p1.LocalUDP)},
 			gopacket.Payload(wire),
 		))
@@ -122,7 +123,7 @@ func TestXDPSimple(t *testing.T) {
 
 		_, e = tun.Write(packetFromLayers(
 			&layers.Ethernet{SrcMAC: locUDP6.Remote.HardwareAddr, DstMAC: locUDP6.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv6},
-			&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: locUDP6.RemoteIP.IPAddr().IP, DstIP: locUDP6.LocalIP.IPAddr().IP},
+			&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: net.IP(locUDP6.RemoteIP.AsSlice()), DstIP: net.IP(locUDP6.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP6.RemoteUDP), DstPort: layers.UDPPort(locUDP6.LocalUDP)},
 			gopacket.Payload(wire),
 		))
@@ -130,7 +131,7 @@ func TestXDPSimple(t *testing.T) {
 
 		_, e = tun.Write(packetFromLayers(
 			&layers.Ethernet{SrcMAC: locVX.Remote.HardwareAddr, DstMAC: locVX.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv6},
-			&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: locVX.RemoteIP.IPAddr().IP, DstIP: locVX.LocalIP.IPAddr().IP},
+			&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: net.IP(locVX.RemoteIP.AsSlice()), DstIP: net.IP(locVX.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(65535 - i), DstPort: 4789},
 			&layers.VXLAN{ValidIDFlag: true, VNI: uint32(locVX.VXLAN)},
 			&layers.Ethernet{SrcMAC: locVX.InnerRemote.HardwareAddr, DstMAC: locVX.InnerLocal.HardwareAddr, EthernetType: an.EtherTypeNDN},
