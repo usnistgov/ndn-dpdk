@@ -28,7 +28,6 @@ static int c_spdk_bdev_unmap_blocks(struct spdk_bdev_desc* desc, struct spdk_io_
 import "C"
 import (
 	"fmt"
-	"math/bits"
 	"runtime/cgo"
 	"strings"
 	"unsafe"
@@ -151,13 +150,11 @@ func (bd *Bdev) WritePacket(blockOffset int64, pkt *pktmbuf.Packet) (sp StoredPa
 // Open opens a block device.
 func Open(device Device, mode Mode) (bd *Bdev, e error) {
 	bdi := device.DevInfo()
-	blockSize := uint64(bdi.BlockSize())
-	if blockSize > C.BdevFillerLen_ {
-		// this is an assumption in Bdev_PrepareIovecShort
-		return nil, fmt.Errorf("device block size %d exceeds filler length", blockSize)
+	if blockSize := bdi.BlockSize(); blockSize != RequiredBlockSize {
+		return nil, fmt.Errorf("not supported: block size is %d, not %d", blockSize, RequiredBlockSize)
 	}
-	if bits.OnesCount64(blockSize) != 1 {
-		return nil, fmt.Errorf("device block size %d is not power of two", blockSize)
+	if writeUnit := bdi.WriteUnitSize(); writeUnit != 1 {
+		return nil, fmt.Errorf("not supported: write unit size is %d, not 1", writeUnit)
 	}
 
 	bd = &Bdev{Device: device}
@@ -172,8 +169,6 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 		return nil, e
 	}
 
-	bd.c.blockSizeMinus1 = C.uint32_t(blockSize - 1)
-	bd.c.blockSizeLog2 = C.uint32_t(bits.Len64(uint64(blockSize)) - 1)
 	bd.c.bufAlign = C.uint32_t(bdi.BufAlign())
 	if strings.HasPrefix(bdi.Name(), "nvme") {
 		bd.enableDwordAlign()

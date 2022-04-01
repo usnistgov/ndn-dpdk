@@ -6,7 +6,7 @@ This package implements an on-disk storage of Data packets.
 
 DiskStore is an on-disk storage of Data packets.
 
-It is backed by an SPDK block device (bdev), whose block size must be 512 bytes.
+It is backed by an [SPDK block device (bdev)](../../dpdk/bdev), whose block size must be 512 bytes.
 One or more adjacent blocks are joined together to form a *slot*, identified by a slot number.
 The `DiskStore` type stores and retrieves a Data packet via its slot number.
 It does not have an index, and cannot search Data packets by name.

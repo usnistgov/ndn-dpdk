@@ -66,7 +66,7 @@ func TestSizeCalc(t *testing.T) {
 	assert.Equal(int64(40010), calc.MinBlocks())
 
 	f := NewStoreFixture(t)
-	f.AddDevice(bdev.NewMalloc(disk.BlockSize, calc.MinBlocks()))
+	f.AddDevice(bdev.NewMalloc(calc.MinBlocks()))
 	f.MakeStore(calc.BlocksPerSlot())
 
 	a0 := disk.NewAllocIn(f.Store, 0, calc.NThreads, eal.NumaSocket{})

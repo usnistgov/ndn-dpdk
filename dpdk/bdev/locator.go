@@ -27,7 +27,7 @@ type Locator struct {
 
 // Create creates a block device.
 // It ensures block size is as expected, and a minimum number of blocks are present.
-func (loc Locator) Create(blockSize int, minBlocks int64) (Device, io.Closer, error) {
+func (loc Locator) Create(minBlocks int64) (Device, io.Closer, error) {
 	type devCloser interface {
 		Device
 		io.Closer
@@ -38,18 +38,18 @@ func (loc Locator) Create(blockSize int, minBlocks int64) (Device, io.Closer, er
 
 	switch {
 	case loc.Malloc:
-		return retDevCloser(NewMalloc(blockSize, minBlocks))
+		return retDevCloser(NewMalloc(minBlocks))
 
 	case loc.File != "":
 		loc.File = filepath.Clean(loc.File)
-		if e := TruncateFile(loc.File, int64(blockSize)*minBlocks); e != nil {
+		if e := TruncateFile(loc.File, RequiredBlockSize*minBlocks); e != nil {
 			return nil, nil, e
 		}
 
 		if loc.FileDriver == nil {
-			return retDevCloser(NewFile(loc.File, blockSize))
+			return retDevCloser(NewFile(loc.File))
 		}
-		return retDevCloser(NewFileWithDriver(*loc.FileDriver, loc.File, blockSize))
+		return retDevCloser(NewFileWithDriver(*loc.FileDriver, loc.File))
 
 	case loc.PCIAddr != nil:
 		nvme, e := AttachNvme(*loc.PCIAddr)
@@ -58,13 +58,13 @@ func (loc Locator) Create(blockSize int, minBlocks int64) (Device, io.Closer, er
 		}
 
 		for _, nn := range nvme.Namespaces {
-			if nn.BlockSize() == blockSize && nn.CountBlocks() >= minBlocks {
+			if nn.BlockSize() == RequiredBlockSize && nn.CountBlocks() >= minBlocks {
 				return nn, nvme, nil
 			}
 		}
 
 		nvme.Close()
-		return nil, nil, fmt.Errorf("no NVMe namespace has at least %d blocks of %d octets", minBlocks, blockSize)
+		return nil, nil, fmt.Errorf("no NVMe namespace has at least %d blocks of %d octets", minBlocks, RequiredBlockSize)
 
 	default:
 		return nil, nil, errors.New("invalid bdev locator")

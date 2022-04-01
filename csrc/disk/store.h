@@ -8,9 +8,6 @@
 #include "../dpdk/spdk-thread.h"
 #include "../ndni/packet.h"
 
-/** @brief Expected block size of the underlying block device. */
-#define DiskStore_BlockSize 512
-
 typedef struct DiskStore DiskStore;
 
 /** @brief DiskStore compact request context. */

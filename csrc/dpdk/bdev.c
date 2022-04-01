@@ -65,8 +65,8 @@ Bdev_ReadComplete(struct spdk_bdev_io* io, bool success, void* req0)
 void
 Bdev_ReadPacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, BdevRequest* req)
 {
-  uint32_t blockCount = Bdev_ComputeBlockCount(bd, req->sp);
-  uint32_t totalLen = blockCount << bd->blockSizeLog2;
+  uint32_t blockCount = BdevStoredPacket_ComputeBlockCount(req->sp);
+  uint32_t totalLen = blockCount * BdevBlockSize;
 
   struct rte_mbuf* pkt = req->pkt;
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_pktmbuf_is_contiguous(pkt) &&
@@ -127,8 +127,8 @@ void
 Bdev_WritePacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, BdevRequest* req)
 {
   BdevStoredPacket* sp = req->sp;
-  uint32_t blockCount = Bdev_ComputeBlockCount(bd, sp);
-  uint32_t totalLen = blockCount << bd->blockSizeLog2;
+  uint32_t blockCount = BdevStoredPacket_ComputeBlockCount(sp);
+  uint32_t totalLen = blockCount * BdevBlockSize;
 
   struct rte_mbuf* pkt = req->pkt;
   struct rte_mbuf* lastSeg = pkt;

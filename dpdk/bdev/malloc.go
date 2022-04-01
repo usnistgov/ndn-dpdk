@@ -17,13 +17,13 @@ func (device *Malloc) Close() error {
 }
 
 // NewMalloc creates a memory-backed block device.
-func NewMalloc(blockSize int, nBlocks int64) (device *Malloc, e error) {
+func NewMalloc(nBlocks int64) (device *Malloc, e error) {
 	initBdevLib()
 	args := struct {
 		BlockSize int   `json:"block_size"`
 		NumBlocks int64 `json:"num_blocks"`
 	}{
-		BlockSize: blockSize,
+		BlockSize: RequiredBlockSize,
 		NumBlocks: nBlocks,
 	}
 	var name string

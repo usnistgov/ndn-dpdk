@@ -4,7 +4,7 @@
 
 N_LOG_INIT(DiskStore);
 
-static_assert((int)BdevMaxMbufSegs >= (int)LpMaxFragments, "");
+static_assert((int)BdevMaxMbufSegs == (int)LpMaxFragments, "");
 
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline DiskStoreSlimRequest*
 DiskStoreSlimRequest_FromData(PData* data)
@@ -267,7 +267,7 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt, BdevStoredPac
 {
   NDNDPDK_ASSERT(slotID > 0);
 
-  uint32_t blockCount = Bdev_ComputeBlockCount(&store->bdev, sp);
+  uint32_t blockCount = BdevStoredPacket_ComputeBlockCount(sp);
   if (unlikely(blockCount > store->nBlocksPerSlot)) {
     N_LOGW("PutData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("packet-too-long"), slotID, npkt);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));

@@ -40,16 +40,16 @@ func (device *File) Close() error {
 }
 
 // NewFileWithDriver opens a file-backed block device with specified driver.
-func NewFileWithDriver(driver FileDriver, filename string, blockSize int) (device *File, e error) {
+func NewFileWithDriver(driver FileDriver, filename string) (device *File, e error) {
 	initBdevLib()
 	args := struct {
 		Name      string `json:"name"`
 		Filename  string `json:"filename"`
-		BlockSize int    `json:"block_size,omitempty"`
+		BlockSize int    `json:"block_size"`
 	}{
 		Name:      eal.AllocObjectID("bdev.File"),
 		Filename:  filename,
-		BlockSize: blockSize,
+		BlockSize: RequiredBlockSize,
 	}
 	var name string
 	if e = spdkenv.RPC(fmt.Sprintf("bdev_%s_create", driver), args, &name); e != nil {
@@ -64,12 +64,12 @@ func NewFileWithDriver(driver FileDriver, filename string, blockSize int) (devic
 }
 
 // NewFile opens a file-backed block device.
-func NewFile(filename string, blockSize int) (*File, error) {
-	device, e0 := NewFileWithDriver(FileUring, filename, blockSize)
+func NewFile(filename string) (*File, error) {
+	device, e0 := NewFileWithDriver(FileUring, filename)
 	if e0 == nil {
 		return device, nil
 	}
-	device, e1 := NewFileWithDriver(FileAio, filename, blockSize)
+	device, e1 := NewFileWithDriver(FileAio, filename)
 	if e1 == nil {
 		return device, nil
 	}

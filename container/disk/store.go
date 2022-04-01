@@ -26,9 +26,6 @@ import (
 
 var logger = logging.New("disk")
 
-// BlockSize is the supported bdev block size.
-const BlockSize = C.DiskStore_BlockSize
-
 var (
 	// StoreGetDataCallback is a C function type for store.GetData callback.
 	StoreGetDataCallback = cptr.FunctionType{"Packet"}
@@ -143,12 +140,6 @@ func (store *Store) Close() error {
 // NewStore creates a Store.
 func NewStore(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int, getDataCb cptr.Function) (store *Store, e error) {
 	bdi := device.DevInfo()
-	if blockSz := bdi.BlockSize(); blockSz != BlockSize {
-		return nil, fmt.Errorf("bdev not supported: block size is %d, not %d", blockSz, BlockSize)
-	}
-	if writeUnit := bdi.WriteUnitSize(); writeUnit != 1 {
-		return nil, fmt.Errorf("bdev not supported: write unit size is %d, not 1", writeUnit)
-	}
 
 	store = &Store{th: th}
 	capacity := math.MaxInt64(256, math.MinInt64(bdi.CountBlocks()/1024, 8192))

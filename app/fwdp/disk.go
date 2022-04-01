@@ -50,7 +50,7 @@ func (cfg *DiskConfig) createDevice(nBlocks int64) (bdev.Device, io.Closer, erro
 	}
 	nBlocks = int64(math.Ceil(float64(nBlocks) * cfg.Overprovision))
 
-	return cfg.Locator.Create(disk.BlockSize, nBlocks)
+	return cfg.Locator.Create(nBlocks)
 }
 
 // Disk represents a disk helper thread.

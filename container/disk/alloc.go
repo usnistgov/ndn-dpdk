@@ -8,6 +8,7 @@ import (
 	"errors"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
@@ -74,7 +75,7 @@ type SizeCalc struct {
 
 // BlocksPerSlot returns number of blocks per packet slot.
 func (calc SizeCalc) BlocksPerSlot() int {
-	return (calc.PacketSize + BlockSize - 1) / BlockSize
+	return (calc.PacketSize + bdev.RequiredBlockSize - 1) / bdev.RequiredBlockSize
 }
 
 // MinBlocks calculates minimum number of blocks required in the Store.

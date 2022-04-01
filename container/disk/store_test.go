@@ -86,7 +86,7 @@ func NewStoreFixture(t testing.TB) (f *StoreFixture) {
 func TestStore(t *testing.T) {
 	assert, _ := makeAR(t)
 	f := NewStoreFixture(t)
-	f.AddDevice(bdev.NewMalloc(disk.BlockSize, 256))
+	f.AddDevice(bdev.NewMalloc(256))
 	f.MakeStore(8)
 
 	minSlotID, maxSlotID := f.Store.SlotRange()
@@ -130,7 +130,7 @@ func TestStore(t *testing.T) {
 func TestStoreQueue(t *testing.T) {
 	assert, _ := makeAR(t)
 	f := NewStoreFixture(t)
-	f.AddDevice(bdev.NewMalloc(disk.BlockSize, 256))
+	f.AddDevice(bdev.NewMalloc(256))
 	f.AddDevice(bdev.NewDelay(f.Device, bdev.DelayConfig{
 		AvgReadLatency:  100 * time.Millisecond,
 		P99ReadLatency:  200 * time.Millisecond,

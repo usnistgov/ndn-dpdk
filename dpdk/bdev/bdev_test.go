@@ -14,17 +14,14 @@ import (
 	"go4.org/must"
 )
 
-const (
-	blockSize  = 1024
-	blockCount = 256
-)
+const blockCount = 256
 
 func checkSize(t testing.TB, device bdev.Device) {
 	assert, _ := makeAR(t)
 
 	bdi := device.DevInfo()
-	assert.Equal(blockSize, bdi.BlockSize())
-	assert.Equal(int64(blockCount), bdi.CountBlocks())
+	assert.EqualValues(bdev.RequiredBlockSize, bdi.BlockSize())
+	assert.EqualValues(blockCount, bdi.CountBlocks())
 }
 
 type bdevRWTest struct {
@@ -102,7 +99,7 @@ func testBdev(t testing.TB, device bdev.Device, mode bdev.Mode, ops ...func(t te
 func TestMalloc(t *testing.T) {
 	_, require := makeAR(t)
 
-	device, e := bdev.NewMalloc(blockSize, blockCount)
+	device, e := bdev.NewMalloc(blockCount)
 	require.NoError(e)
 	defer must.Close(device)
 
@@ -119,7 +116,7 @@ func TestMalloc(t *testing.T) {
 func TestDelayError(t *testing.T) {
 	assert, require := makeAR(t)
 
-	malloc, e := bdev.NewMalloc(blockSize, blockCount)
+	malloc, e := bdev.NewMalloc(blockCount)
 	require.NoError(e)
 	defer must.Close(malloc)
 
@@ -152,12 +149,12 @@ func TestDelayError(t *testing.T) {
 func TestFile(t *testing.T) {
 	assert, require := makeAR(t)
 	filename := testenv.TempName(t)
-	require.NoError(bdev.TruncateFile(filename, blockSize*blockCount))
+	require.NoError(bdev.TruncateFile(filename, bdev.RequiredBlockSize*blockCount))
 
 	for _, ctor := range []func() (*bdev.File, error){
-		func() (*bdev.File, error) { return bdev.NewFile(filename, blockSize) },
-		func() (*bdev.File, error) { return bdev.NewFileWithDriver(bdev.FileAio, filename, blockSize) },
-		func() (*bdev.File, error) { return bdev.NewFileWithDriver(bdev.FileUring, filename, blockSize) },
+		func() (*bdev.File, error) { return bdev.NewFile(filename) },
+		func() (*bdev.File, error) { return bdev.NewFileWithDriver(bdev.FileAio, filename) },
+		func() (*bdev.File, error) { return bdev.NewFileWithDriver(bdev.FileUring, filename) },
 	} {
 		device, e := ctor()
 		require.NoError(e)
