@@ -14,23 +14,17 @@ Some DPDK drivers may require external dependencies.
 For example, the mlx5 driver for Mellanox ConnectX-4/5/6 Ethernet adapters needs the `libibverbs-dev` package.
 You can use `APT_PKGS` build argument to add external dependencies.
 
-By default, the image is non-portable due to the use of `-march=native` compiler flag.
-The [installation guide](INSTALL.md) "dependencies" section explains that you can pass `--arch=CPU-TYPE` command line argument to the ndndpdk-depends.sh script to change the target CPU architecture.
-Moreover, the script allows configuring download mirrors via environment variables.
-You can use `DEPENDS_ENV` and `DEPENDS_ARGS` build arguments to pass environment variables and command line arguments to the script.
+By default, the image is non-portable due to the use of `-march=native` and `GOAMD64=v3` compiler flags, and NDN-DPDK is built in debug mode.
+The [installation guide](INSTALL.md) "compile-time settings" section explains how to change these settings.
+You can use `DEPENDS_ENV` and `DEPENDS_ARGS` build arguments to pass environment variables and command line arguments to the dependency installation script, and use `MAKE_ENV` build argument to pass environment variables to the Makefile.
 
-By default, NDN-DPDK is built in debug mode.
-The [installation guide](INSTALL.md) "compile-time settings" section explains that you can set `NDNDPDK_MK_RELEASE=1` environment variable to select release mode.
-You can use `MAKE_ENV` build argument to pass environment variables to the Makefile.
-
-Example command to enable mlx5 driver, use alternate GOPROXY, target Skylake CPU, and select release mode:
+Example command to enable mlx5 driver, target Nehalem CPU, and select release mode:
 
 ```bash
 docker build --pull \
   --build-arg APT_PKGS="libibverbs-dev" \
-  --build-arg DEPENDS_ENV="GOPROXY=https://goproxy.io,direct" \
-  --build-arg DEPENDS_ARGS="--arch=skylake" \
-  --build-arg MAKE_ENV="NDNDPDK_MK_RELEASE=1" \
+  --build-arg DEPENDS_ARGS="--arch=nehalem" \
+  --build-arg MAKE_ENV="GOAMD64=v2 NDNDPDK_MK_RELEASE=1" \
   -t ndn-dpdk .
 ```
 

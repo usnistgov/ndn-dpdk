@@ -1,7 +1,8 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"/..
-LANG=${1,,}
+LANG=${1:-}
+LANG=${LANG,,}
 
 # C
 if [[ -z $LANG ]] || [[ $LANG == c ]]; then

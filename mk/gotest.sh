@@ -1,7 +1,6 @@
 #!/bin/bash
-set -eo pipefail
-source mk/cflags.sh
-export GOAMD64=v3
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"/..
 TESTCOUNT=${TESTCOUNT:-1}
 
 SUDO='sudo -E'
@@ -22,7 +21,7 @@ getTestPkg() {
 if [[ $# -eq 0 ]]; then
   # run all tests, optional filter in $MK_GOTEST_FILTER
   find -name '*_test.go' -printf '%h\n' | sort -u | sed -E "${MK_GOTEST_FILTER:-}" \
-    | xargs -I{} $SUDO go test {} -count=$TESTCOUNT
+    | xargs -I{} $SUDO mk/go.sh test {} -count=$TESTCOUNT
 
 elif [[ $# -eq 1 ]]; then
   # run tests in one package
@@ -30,9 +29,9 @@ elif [[ $# -eq 1 ]]; then
   TESTPKG=$(getTestPkg "$PKG")
 
   $SUDO rm -f /tmp/gotest.cover
-  $SUDO go test -cover -covermode count -coverpkg ./"$PKG" -coverprofile /tmp/gotest.cover ./"$TESTPKG" -v -count=$TESTCOUNT
+  $SUDO mk/go.sh test -cover -covermode count -coverpkg ./"$PKG" -coverprofile /tmp/gotest.cover ./"$TESTPKG" -v -count=$TESTCOUNT
   $SUDO chown "$(id -u)" /tmp/gotest.cover
-  go tool cover -html /tmp/gotest.cover -o /tmp/gotest.cover.html
+  mk/go.sh tool cover -html /tmp/gotest.cover -o /tmp/gotest.cover.html
 
 elif [[ $# -eq 2 ]]; then
   # run one test
@@ -47,7 +46,7 @@ elif [[ $# -eq 2 ]]; then
   if [[ ${TEST,,} == bench* ]]; then
     RUN+=(-bench "$TEST")
   fi
-  $SUDO GODEBUG=cgocheck=2 go test ./"$TESTPKG" -v -count=$TESTCOUNT "${RUN[@]}"
+  $SUDO GODEBUG=cgocheck=2 mk/go.sh test ./"$TESTPKG" -v -count=$TESTCOUNT "${RUN[@]}"
 
 elif [[ $# -eq 3 ]]; then
   # run one test with debug tool
@@ -62,7 +61,7 @@ elif [[ $# -eq 3 ]]; then
     *) echo "Unknown debug tool: $DBGTOOL" >/dev/stderr; exit 1;;
   esac
 
-  go test -c ./"$TESTPKG" -o /tmp/gotest.exe
+  mk/go.sh test -c ./"$TESTPKG" -o /tmp/gotest.exe
   $SUDO $DBG /tmp/gotest.exe -test.v -test.run "Test${TEST}.*"
 
 else

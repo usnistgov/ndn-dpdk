@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 cd "$( dirname "${BASH_SOURCE[0]}" )"/..
 
 rm -rf build/netlify

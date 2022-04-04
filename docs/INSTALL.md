@@ -24,11 +24,6 @@ You can also [build a Docker container](Docker.md), which would work on other op
 You can run the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to the script for specific configuration options.
 Certain hardware drivers may require installing extra dependencies before building DPDK or running the script; see [hardware known to work](hardware.md) for more information.
 
-By default, DPDK and SPDK are compiled with `-march=native` flag to maximize performance.
-Binaries built this way are non-portable and can only work on machines with the same CPU model.
-You can pass `--arch=CPU-TYPE` argument to the script to change the target CPU architecture.
-*CPU-TYPE* should be set to the oldest CPU architecture you want to support, see [GCC - x86 options](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html) for available options.
-
 The script automatically downloads dependencies from the Internet.
 If your network cannot reach certain download sites, you can specify a mirror site via `NDNDPDK_DL_*` environment variables.
 See script source code for variable names and their default values.
@@ -97,14 +92,29 @@ For example:
 
 ## Compile-Time Settings
 
-You can change compile-time settings by setting these environment variables:
+You can change compile-time settings by setting environment variables.
+Unless indicated otherwise, you must run `make clean` when switching compile-time settings.
 
-* `NDNDPDK_MK_RELEASE=1` selects release mode that disables assertions and verbose logging in C code.
-* `NDNDPDK_MK_THREADSLEEP=1` causes a polling thread to sleep for a short duration if it processed zero packets in a loop iteration.
-  This reduces CPU utilization when running on a machine with fewer CPU cores, but may negatively impact performance.
-* `NDNDPDK_MK_COVERAGE=1` enables C code coverage collection.
-  After running unit tests, you can generate coverage report with `make coverage` (requires `lcov` dependency).
-* C code (except eBPF) is compiled with `gcc` by default; you can override this by setting the `CC` environment variable.
-* eBPF programs are compiled with `clang-11` by default; you can override this by setting the `BPFCC` environment variable.
+`NDNDPDK_MK_RELEASE=1` environment variable selects release mode that disables assertions and verbose logging in C code.
 
-You must run `make clean` when switching compile-time settings.
+`NDNDPDK_MK_THREADSLEEP=1` environment variable causes a polling thread to sleep for a short duration if it processed zero packets in a loop iteration.
+This reduces CPU utilization when running on a machine with fewer CPU cores, but may negatively impact performance.
+
+`NDNDPDK_MK_COVERAGE=1` environment variable enables C code coverage collection.
+After running unit tests, you can generate coverage report with `make coverage` (requires `lcov` dependency).
+
+`CC` environment variable specifies a compiler for C code, excluding eBPF.
+The default is `gcc`.
+
+`BPFCC` environment variable specifies a compiler for eBPF programs.
+The default is `clang-11`.
+
+C code (including DPDK and SPDK, excluding eBPF) is compiled with `-march=native` flag by default.
+It selects the CPU instruction sets available on the local machine, and makes the compiled binaries incompatible with any other CPU model.
+Pass `--arch=`*CPU-type* argument to the `ndndpdk-install.sh` to change the target CPU architecture.
+See [GCC - x86 options](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html) for available options.
+To switch this setting, you need to rerun the dependency installation script before recompiling NDN-DPDK.
+
+`GOAMD64` environment variable selects the x86-64-v3 architecture level for Go code, and makes the compiled binaries incompatible with older CPU models.
+See [Go Minimum Requirements - amd64](https://github.com/golang/go/wiki/MinimumRequirements#amd64) for available options.
+The default is `GOAMD64=v3`.

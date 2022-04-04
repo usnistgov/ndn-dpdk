@@ -99,7 +99,7 @@ jobs:
       - name: build docs
         run: make doxygen
       - name: build docs site
-        run: bash mk/netlify.sh
+        run: mk/netlify.sh
         if: ${{ matrix.compiler == 'gcc-7' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
       - name: deploy docs site
         uses: South-Paw/action-netlify-deploy@v1.2.1

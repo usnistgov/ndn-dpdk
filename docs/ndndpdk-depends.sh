@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 NEEDED_BINARIES=(
   curl
@@ -48,6 +48,8 @@ DFLT_SPDKVER=v22.01
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
+HELP=0
+CONFIRM=0
 CODEROOT=$DFLT_CODEROOT
 NODEVER=$DFLT_NODEVER
 GOVER=$DFLT_GOVER
@@ -58,7 +60,6 @@ URINGVER=$DFLT_URINGVER
 DPDKVER=$DFLT_DPDKVER
 DPDKPATCH=$DFLT_DPDKPATCH
 DPDKOPTS=$DFLT_DPDKOPTS
-KMODSVER=$DFLT_KMODSVER
 SPDKVER=$DFLT_SPDKVER
 NJOBS=$DFLT_NJOBS
 TARGETARCH=$DFLT_TARGETARCH
@@ -132,7 +133,7 @@ fi
 
 curl_test() {
   local SITE=${!1}
-  if ! curl -fsILS "$SITE$2" >/dev/null; then
+  if ! curl -fsILS "$SITE${2:-}" >/dev/null; then
     echo "Cannot reach ${SITE}"
     echo "You can specify a mirror site by setting the $1 environment variable"
     echo "Example: $1=${SITE}"
@@ -163,7 +164,7 @@ case $DISTRO in
   bullseye) ;;
   *)
     echo "Distro ${DISTRO} is not supported by this script."
-    if [[ -z $SKIPDISTROCHECK ]]; then
+    if [[ -z ${SKIPDISTROCHECK:-} ]]; then
       echo 'To skip this check, set the environment variable SKIPDISTROCHECK=1'
       exit 1
     fi
@@ -171,7 +172,7 @@ case $DISTRO in
 esac
 
 if [[ $(uname -r | awk -F. '{ print ($1*1000+$2>=5004) }') -ne 1 ]] &&
-   [[ -z $SKIPKERNELCHECK ]] && ! [[ -f /.dockerenv ]]; then
+   [[ -z ${SKIPKERNELCHECK:-} ]] && ! [[ -f /.dockerenv ]]; then
   echo 'Linux kernel 5.4 or newer is required'
   if [[ $DISTRO == bionic ]]; then
     echo 'To upgrade kernel, run this command and reboot:'
@@ -306,7 +307,7 @@ if [[ $GOVER != 0 ]]; then
   if ! grep -q go/bin ~/.bashrc; then
     echo 'export PATH=${HOME}/go/bin${PATH:+:}${PATH}' >>~/.bashrc
   fi
-  if [[ -n $GOPROXY ]]; then
+  if [[ -n ${GOPROXY:-} ]]; then
     go env -w GOPROXY="$GOPROXY"
   fi
   $SUDO update-alternatives --remove-all go || true

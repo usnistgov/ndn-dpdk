@@ -1,2 +1,3 @@
 #!/bin/bash
-$GODEFCC $(pkg-config --cflags libdpdk) -DGODEF "$@"
+set -euo pipefail
+exec $GODEFCC $(pkg-config --cflags libdpdk) -DGODEF "$@"

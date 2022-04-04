@@ -1,16 +1,9 @@
-export GOAMD64 := v3
-export CGO_CFLAGS_ALLOW := '.*'
-ifeq ($(origin CC),default)
-	CC = gcc
-endif
-export CC
-
 .PHONY: all
 all: gopkg cmds npm
 
 .PHONY: gopkg
 gopkg: godeps
-	go build -v ./...
+	mk/go.sh build -v ./...
 
 .PHONY: godeps
 godeps: build/libndn-dpdk-c.a build/cgodeps.done build/bpf.done
@@ -22,34 +15,34 @@ build/build.ninja: csrc/meson.build mk/meson.build
 	bash -c 'source mk/cflags.sh; meson build $$MESONFLAGS'
 
 csrc/core/rttest-enum.h: core/rttest/rttest.go
-	go generate ./$(<D)
+	mk/go.sh generate ./$(<D)
 
 csrc/dpdk/thread-enum.h: dpdk/ealthread/ctrl.go
-	go generate ./$(<D)
+	mk/go.sh generate ./$(<D)
 
 csrc/fileserver/enum.h csrc/fileserver/an.h: app/fileserver/config.go ndn/rdr/ndn6file/*.go
-	go generate ./$(<D)
+	mk/go.sh generate ./$(<D)
 
 csrc/fib/enum.h: container/fib/fibdef/enum.go
-	go generate ./$(<D)
+	mk/go.sh generate ./$(<D)
 
 csrc/ndni/enum.h csrc/ndni/an.h: ndni/enum.go ndn/an/*.go
-	go generate ./$(<D)
+	mk/go.sh generate ./$(<D)
 
 csrc/iface/enum.h: iface/enum.go
-	go generate ./$(<D)
+	mk/go.sh generate ./$(<D)
 
 csrc/pcct/cs-enum.h: container/cs/enum.go
-	go generate ./$(<D)
+	mk/go.sh generate ./$(<D)
 
 csrc/pdump/enum.h: app/pdump/enum.go
-	go generate ./$(<D)
+	mk/go.sh generate ./$(<D)
 
 csrc/tgconsumer/enum.h: app/tgconsumer/config.go
-	go generate ./$(<D)
+	mk/go.sh generate ./$(<D)
 
 csrc/tgproducer/enum.h: app/tgproducer/config.go
-	go generate ./$(<D)
+	mk/go.sh generate ./$(<D)
 
 .PHONY: build/libndn-dpdk-c.a
 build/libndn-dpdk-c.a: build/build.ninja csrc/core/rttest-enum.h csrc/dpdk/thread-enum.h csrc/fib/enum.h csrc/fileserver/an.h csrc/fileserver/enum.h csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h csrc/pdump/enum.h csrc/tgconsumer/enum.h csrc/tgproducer/enum.h
@@ -67,7 +60,7 @@ build/bpf.done: build/build.ninja bpf/**/*.c csrc/strategyapi/* csrc/fib/enum.h 
 cmds: build/share/bash_autocomplete build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-jrproxy build/bin/ndndpdk-svc
 
 build/bin/%: cmd/%/* godeps
-	GOBIN=$$(realpath build/bin) go install ./cmd/$*
+	GOBIN=$$(realpath build/bin) mk/go.sh install ./cmd/$*
 
 build/share/bash_autocomplete: go.mod
 	mkdir -p $(@D)
@@ -110,4 +103,4 @@ coverage:
 clean:
 	awk '!(/node_modules/ || /pnpm-lock/ || /\*/)' .dockerignore | xargs rm -rf
 	awk '/\*/' .dockerignore | xargs -I{} -n1 find -wholename ./{} -delete
-	go clean -cache ./...
+	mk/go.sh clean -cache ./...

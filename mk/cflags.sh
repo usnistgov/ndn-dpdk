@@ -1,16 +1,15 @@
 export CC=${CC:-gcc}
-export CGO_CFLAGS_ALLOW='.*'
 
 MESONFLAGS=
 CFLAGS='-Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -D_GNU_SOURCE'
 LGCOV=
-if [[ $NDNDPDK_MK_RELEASE -eq 1 ]]; then
+if [[ ${NDNDPDK_MK_RELEASE:-} -eq 1 ]]; then
   CFLAGS+=' -DNDEBUG -DN_LOG_LEVEL=RTE_LOG_NOTICE'
 fi
-if [[ $NDNDPDK_MK_THREADSLEEP -eq 1 ]]; then
+if [[ ${NDNDPDK_MK_THREADSLEEP:-} -eq 1 ]]; then
   CFLAGS+=' -DNDNDPDK_THREADSLEEP'
 fi
-if [[ $NDNDPDK_MK_COVERAGE -eq 1 ]]; then
+if [[ ${NDNDPDK_MK_COVERAGE:-} -eq 1 ]]; then
   MESONFLAGS+=' -Db_coverage=true'
   LGCOV='-lgcov'
 fi
