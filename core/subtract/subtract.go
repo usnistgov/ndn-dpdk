@@ -11,8 +11,8 @@ import (
 // It returns the result in a new instance of the same type, and does not modify the arguments.
 //
 // If the struct has `func (T) Sub(T) T` method, it is used; otherwise, this calls SubFields.
-func Sub(curr, prev any) (diff any) {
-	return subV(reflect.ValueOf(curr), reflect.ValueOf(prev)).Interface()
+func Sub[T any](curr, prev T) (diff T) {
+	return subV(reflect.ValueOf(curr), reflect.ValueOf(prev)).Interface().(T)
 }
 
 func subV(currV, prevV reflect.Value) (diffV reflect.Value) {
@@ -37,7 +37,7 @@ func subV(currV, prevV reflect.Value) (diffV reflect.Value) {
 //  - array (recursive).
 // Other fields are ignored.
 // A field may be explicitly skipped with `subtract:"-"` tag.
-func SubFields(curr, prev, diffPtr any) {
+func SubFields[T any](curr, prev T, diffPtr *T) {
 	subFieldsV(reflect.ValueOf(curr), reflect.ValueOf(prev), reflect.ValueOf(diffPtr).Elem())
 }
 

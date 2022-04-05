@@ -24,7 +24,7 @@ func TestGoodSubMethod(t *testing.T) {
 	nSubCurr, nSubPrev := 0, 0
 	curr := withGoodSubMethod{I: 5, nSub: &nSubCurr}
 	prev := withGoodSubMethod{I: 3, nSub: &nSubPrev}
-	diff := subtract.Sub(curr, prev).(withGoodSubMethod)
+	diff := subtract.Sub(curr, prev)
 	assert.Equal(0, diff.I)
 	assert.Equal(1, nSubCurr)
 	assert.Equal(0, nSubPrev)
@@ -45,7 +45,7 @@ func TestBadSubMethod(t *testing.T) {
 	nSubCurr, nSubPrev := 0, 0
 	curr := withBadSubMethod{I: 5, nSub: &nSubCurr}
 	prev := withBadSubMethod{I: 3, nSub: &nSubPrev}
-	diff := subtract.Sub(curr, prev).(withBadSubMethod)
+	diff := subtract.Sub(curr, prev)
 	assert.Equal(2, diff.I)
 	assert.Equal(0, nSubCurr)
 	assert.Equal(0, nSubPrev)
@@ -68,7 +68,7 @@ func TestStruct(t *testing.T) {
 	assert, _ := makeAR(t)
 	curr := structA{I: -5, U: 5, A: [2]int32{50, -500}, S: []uint32{5000}, B: &structB{U: 500000}, X: 5000000}
 	prev := structA{I: -3, U: 3, A: [2]int32{30, -300}, S: []uint32{3000, 30000}, B: &structB{U: 300000}, X: 3000000}
-	diff := subtract.Sub(curr, prev).(structA)
+	diff := subtract.Sub(curr, prev)
 	assert.EqualValues(-2, diff.I)
 	assert.EqualValues(2, diff.U)
 	assert.Equal([2]int32{20, -200}, diff.A)
@@ -79,14 +79,14 @@ func TestStruct(t *testing.T) {
 	assert.Zero(diff.X)
 
 	zero := structA{}
-	positive := subtract.Sub(curr, zero).(structA)
+	positive := subtract.Sub(curr, zero)
 	assert.EqualValues(-5, positive.I)
 	assert.EqualValues(5, positive.U)
 	assert.Equal([2]int32{50, -500}, positive.A)
 	assert.Len(positive.S, 0)
 	assert.Nil(positive.B)
 
-	negative := subtract.Sub(zero, curr).(structA)
+	negative := subtract.Sub(zero, curr)
 	assert.EqualValues(5, negative.I)
 	assert.EqualValues(-5, negative.U)
 	assert.Equal([2]int32{-50, 500}, negative.A)

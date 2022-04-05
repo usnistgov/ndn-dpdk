@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
 	github.com/FDio/vpp v1.0.1-0.20220223130241-7911f29c518c
-	github.com/VojtechVitek/mergemaps v0.0.0-20141203190546-051fb3759de5
 	github.com/bhoriuchi/graphql-go-tools v0.3.3
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/coreos/go-systemd/v22 v22.3.2

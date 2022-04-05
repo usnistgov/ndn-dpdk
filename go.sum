@@ -54,8 +54,6 @@ github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f/go.mod h1:f4BU/
 github.com/FDio/vpp v1.0.1-0.20220223130241-7911f29c518c h1:LBPtGjH0+VctuRdDqaJEokyvXt9MwPJ6dNXpr7Ryu8k=
 github.com/FDio/vpp v1.0.1-0.20220223130241-7911f29c518c/go.mod h1:fWoqUodOWSgkemrSJih4oOIeAVvG7w91Gru7sNcdaMA=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
-github.com/VojtechVitek/mergemaps v0.0.0-20141203190546-051fb3759de5 h1:vFjP3TRKHvdTYsDY9TTgXyN8k2sZYtr5bMc2oKdfh4E=
-github.com/VojtechVitek/mergemaps v0.0.0-20141203190546-051fb3759de5/go.mod h1:PWGaryWLybyfTFfsoJ7KkSsmOyXklXdVtOTM1NvcFQI=
 github.com/alecthomas/participle/v2 v2.0.0-alpha6 h1:6IeFBBLWi0xcTk4ModH9UKkLBYf5l5OzaYkJOjZW1rg=
 github.com/alecthomas/participle/v2 v2.0.0-alpha6/go.mod h1:Z1zPLDbcGsVsBYsThKXY00i84575bN/nMczzIrU4rWU=
 github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 h1:GDQdwm/gAcJcLAKQQZGOJ4knlw+7rfEQQcmwTbt4p5E=
