@@ -10,7 +10,7 @@ import (
 	"os"
 	"unsafe"
 
-	"go4.org/must"
+	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
 )
 
@@ -35,26 +35,29 @@ func (p *FilePipeCGo) ReadAll() (data []byte, e error) {
 }
 
 // CloseReader closes the reader.
-func (p *FilePipeCGo) CloseReader() {
+func (p *FilePipeCGo) CloseReader() (e error) {
 	if p.Reader != nil {
-		must.Close(p.Reader)
+		e = p.Reader.Close()
 		p.Reader = nil
 	}
+	return e
 }
 
 // CloseWriter closes the writer.
-func (p *FilePipeCGo) CloseWriter() {
+func (p *FilePipeCGo) CloseWriter() error {
 	if p.Writer != nil {
 		C.fclose((*C.FILE)(p.Writer))
 		p.Writer = nil
 	}
+	return nil
 }
 
 // Close closes both reader and writer.
 func (p *FilePipeCGo) Close() error {
-	p.CloseWriter()
-	p.CloseReader()
-	return nil
+	return multierr.Append(
+		p.CloseWriter(),
+		p.CloseReader(),
+	)
 }
 
 // NewFilePipeCGo creates a FilePipeCGo.
@@ -64,7 +67,7 @@ func NewFilePipeCGo(cfg FilePipeConfig) (p *FilePipeCGo, e error) {
 		return nil, e
 	}
 	defer func() {
-		for fd := range pipefd {
+		for _, fd := range pipefd {
 			unix.Close(fd)
 		}
 	}()
@@ -77,8 +80,8 @@ func NewFilePipeCGo(cfg FilePipeConfig) (p *FilePipeCGo, e error) {
 
 	p = &FilePipeCGo{}
 
-	wMode := C.char('w')
-	p.Writer = unsafe.Pointer(C.fdopen(C.int(pipefd[1]), &wMode))
+	wMode := []C.char{'w', 0}
+	p.Writer = unsafe.Pointer(C.fdopen(C.int(pipefd[1]), &wMode[0]))
 	if p.Writer == nil {
 		return nil, errors.New("fdopen error")
 	}
@@ -102,8 +105,8 @@ func CaptureFileDump(f func(fp unsafe.Pointer)) (data []byte, e error) {
 
 	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		data, e = p.ReadAll()
-		close(done)
 	}()
 
 	f(p.Writer)

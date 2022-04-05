@@ -11,7 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 )
 
-// As of Go 1.17.8 + gcc 7 + SPDK 22.01, calling an SPDK function significantly reduces linker execution time.
+// As of Go 1.18 + gcc 7 + SPDK 22.01, calling an SPDK function significantly reduces linker execution time.
 var _ = C.spdk_get_ticks()
 
 func ctestByteSlice(t *testing.T) {

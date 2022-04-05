@@ -19,7 +19,7 @@ func AsByteSlice[T ~uint8 | ~int8, A ~[]T](value A) (b []byte) {
 //
 // T must be a pointer or unsafe.Pointer.
 // *R should be equivalent to T.
-func FirstPtr[R any, T any, A ~[]T](value A) *R {
+func FirstPtr[R, T any, A ~[]T](value A) *R {
 	if len(value) == 0 {
 		return nil
 	}
