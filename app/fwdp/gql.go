@@ -3,7 +3,6 @@ package fwdp
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"unsafe"
 
 	"github.com/graphql-go/graphql"
@@ -35,29 +34,15 @@ type gqlFibNexthopRttRecord struct {
 
 // GraphQL types.
 var (
-	GqlInputNodeType     *gqlserver.NodeType
-	GqlInputType         *graphql.Object
-	GqlFwdNodeType       *gqlserver.NodeType
-	GqlFwdType           *graphql.Object
+	GqlInputType         *gqlserver.NodeType[*Input]
+	GqlFwdType           *gqlserver.NodeType[*Fwd]
 	GqlDataPlaneType     *graphql.Object
 	GqlFwdCountersType   *graphql.Object
 	GqlFibNexthopRttType *graphql.Object
 )
 
 func init() {
-	GqlInputNodeType = gqlserver.NewNodeType((*Input)(nil))
-	GqlInputNodeType.Retrieve = func(id string) (any, error) {
-		if GqlDataPlane == nil {
-			return nil, errNoGqlDataPlane
-		}
-		i, e := strconv.Atoi(id)
-		if e != nil || i < 0 || i >= len(GqlDataPlane.fwis) {
-			return nil, nil
-		}
-		return GqlDataPlane.fwis[i], nil
-	}
-
-	GqlInputType = graphql.NewObject(GqlInputNodeType.Annotate(graphql.ObjectConfig{
+	GqlInputType = gqlserver.NewNodeType(graphql.ObjectConfig{
 		Name: "FwInput",
 		Fields: graphql.Fields{
 			"nid": &graphql.Field{
@@ -70,22 +55,19 @@ func init() {
 			},
 			"worker": ealthread.GqlWithWorker(nil),
 		},
-	}))
-	GqlInputNodeType.Register(GqlInputType)
+	}, gqlserver.NodeConfig[*Input]{
+		RetrieveInt: func(id int) *Input {
+			if GqlDataPlane == nil {
+				return nil
+			}
+			if id < 0 || id >= len(GqlDataPlane.fwis) {
+				return nil
+			}
+			return GqlDataPlane.fwis[id]
+		},
+	})
 
-	GqlFwdNodeType = gqlserver.NewNodeType((*Fwd)(nil))
-	GqlFwdNodeType.Retrieve = func(id string) (any, error) {
-		if GqlDataPlane == nil {
-			return nil, errNoGqlDataPlane
-		}
-		i, e := strconv.Atoi(id)
-		if e != nil || i < 0 || i >= len(GqlDataPlane.fwds) {
-			return nil, nil
-		}
-		return GqlDataPlane.fwds[i], nil
-	}
-
-	GqlFwdType = graphql.NewObject(GqlFwdNodeType.Annotate(graphql.ObjectConfig{
+	GqlFwdType = gqlserver.NewNodeType(graphql.ObjectConfig{
 		Name: "FwFwd",
 		Fields: graphql.Fields{
 			"nid": &graphql.Field{
@@ -98,15 +80,24 @@ func init() {
 			},
 			"worker": ealthread.GqlWithWorker(nil),
 		},
-	}))
-	GqlFwdNodeType.Register(GqlFwdType)
+	}, gqlserver.NodeConfig[*Fwd]{
+		RetrieveInt: func(id int) *Fwd {
+			if GqlDataPlane == nil {
+				return nil
+			}
+			if id < 0 || id >= len(GqlDataPlane.fwds) {
+				return nil
+			}
+			return GqlDataPlane.fwds[id]
+		},
+	})
 
 	GqlDataPlaneType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "FwDataPlane",
 		Fields: graphql.Fields{
 			"inputs": &graphql.Field{
 				Description: "Input threads.",
-				Type:        gqlserver.NewNonNullList(GqlInputType),
+				Type:        gqlserver.NewNonNullList(GqlInputType.Object),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					dp := p.Source.(*DataPlane)
 					return dp.fwis, nil
@@ -114,7 +105,7 @@ func init() {
 			},
 			"fwds": &graphql.Field{
 				Description: "Forwarding threads.",
-				Type:        gqlserver.NewNonNullList(GqlFwdType),
+				Type:        gqlserver.NewNonNullList(GqlFwdType.Object),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					dp := p.Source.(*DataPlane)
 					return dp.fwds, nil
@@ -134,7 +125,7 @@ func init() {
 
 	GqlFwdCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name:   "FwFwdCounters",
-		Fields: gqlserver.BindFields(FwdCounters{}, nil),
+		Fields: gqlserver.BindFields[FwdCounters](nil),
 	})
 	GqlFwdCountersType.AddFieldConfig("inputLatency", &graphql.Field{
 		Description: "Latency between packet arrival and dequeuing at forwarding thread, in nanoseconds.",
@@ -192,17 +183,12 @@ func init() {
 			},
 		},
 		Find: func(p graphql.ResolveParams) (source any, enders []any, e error) {
-			id := p.Args["id"].(string)
-			var fwd *Fwd
-			if e := gqlserver.RetrieveNodeOfType(GqlFwdNodeType, id, &fwd); e != nil {
-				return nil, nil, e
-			}
-			return fwd, nil, nil
+			return GqlFwdType.Retrieve(p.Args["id"].(string)), nil, nil
 		},
 	}
 	gqlserver.AddCounters(&gqlserver.CountersConfig{
 		Description:  "Forwarding thread counters in forwarder data plane.",
-		Parent:       GqlFwdType,
+		Parent:       GqlFwdType.Object,
 		Name:         "counters",
 		Subscription: "fwFwdCounters",
 		NoDiff:       true,
@@ -216,7 +202,7 @@ func init() {
 	})
 	gqlserver.AddCounters(&gqlserver.CountersConfig{
 		Description:  "PIT counters in forwarder data plane.",
-		Parent:       GqlFwdType,
+		Parent:       GqlFwdType.Object,
 		Name:         "pitCounters",
 		Subscription: "fwPitCounters",
 		FindArgs:     fwdCountersConfigTemplate.FindArgs,
@@ -229,7 +215,7 @@ func init() {
 	})
 	gqlserver.AddCounters(&gqlserver.CountersConfig{
 		Description:  "CS counters in forwarder data plane.",
-		Parent:       GqlFwdType,
+		Parent:       GqlFwdType.Object,
 		Name:         "csCounters",
 		Subscription: "fwCsCounters",
 		FindArgs:     fwdCountersConfigTemplate.FindArgs,
@@ -245,8 +231,8 @@ func init() {
 		Name:        "FibNexthopRtt",
 		Description: "FIB nexthop and RTT measurements in a forwarding thread.",
 		Fields: graphql.Fields{
-			"face": &graphql.Field{Type: iface.GqlFaceType},
-			"fwd":  &graphql.Field{Type: graphql.NewNonNull(GqlFwdType)},
+			"face": &graphql.Field{Type: iface.GqlFaceType.Object},
+			"fwd":  &graphql.Field{Type: graphql.NewNonNull(GqlFwdType.Object)},
 			"srtt": &graphql.Field{
 				Type: graphql.NewNonNull(graphql.Float),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
@@ -267,7 +253,7 @@ func init() {
 			},
 		},
 	})
-	fib.GqlEntryType.AddFieldConfig("nexthopRtts", &graphql.Field{
+	fib.GqlEntryType.Object.AddFieldConfig("nexthopRtts", &graphql.Field{
 		Description: "FIB nexthops and their RTT measurements in a forwarding thread.",
 		Type:        gqlserver.NewNonNullList(GqlFibNexthopRttType),
 		Args: graphql.FieldConfigArgument{
@@ -280,8 +266,8 @@ func init() {
 			entry := p.Source.(fib.Entry)
 			var fwd *Fwd
 			if fwdID := p.Args["fwd"]; fwdID != nil {
-				if e := gqlserver.RetrieveNodeOfType(GqlFwdNodeType, fwdID, &fwd); e != nil {
-					return nil, e
+				if fwd = GqlFwdType.Retrieve(fwdID.(string)); fwd == nil {
+					return nil, errors.New("fwd not found")
 				}
 			} else if GqlDataPlane == nil {
 				return nil, errNoGqlDataPlane

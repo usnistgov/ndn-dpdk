@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/graphql-go/graphql"
 )
@@ -14,13 +15,10 @@ import (
 var (
 	idKey      [64]byte
 	idEncoding = base32.HexEncoding.WithPadding(base32.NoPadding)
-	nodeTypes  = map[string]*NodeType{}
+	nodeTypes  = map[string]*NodeTypeBase{}
 
-	//lint:ignore ST1005 'Node' is a proper noun referring to GraphQL type
-	errNotFound   = errors.New("Node not found")
-	errNoRetrieve = errors.New("cannot retrieve Node")
-	errNoDelete   = errors.New("cannot delete Node")
-	errWrongType  = errors.New("ID refers to wrong NodeType")
+	errNotFound = errors.New("node not found")
+	errNoDelete = errors.New("cannot delete node")
 )
 
 func xorID(value []byte) []byte {
@@ -51,30 +49,32 @@ func parseID(id string) (prefix, suffix string, ok bool) {
 	return string(tokens[0]), string(tokens[1]), true
 }
 
-// NodeType defines a Node subtype.
-type NodeType struct {
-	prefix string
-	typ    reflect.Type
-
-	object *graphql.Object
-
-	// GetID extracts unprefixed ID from the source object.
-	GetID func(source any) string
-
-	// Retrieve fetches an object from unprefixed ID.
-	Retrieve func(id string) (any, error)
-
-	// Delete deletes the source object.
-	Delete func(source any) error
+// NodeTypeBase contains non-generic fields of NodeType.
+type NodeTypeBase struct {
+	Object      *graphql.Object
+	prefix      string
+	typ         reflect.Type
+	retrieveAny func(suffix string) (node any, e error)
+	deleteByID  func(suffix string) (ok bool, e error)
 }
 
-// Annotate updates ObjectConfig with Node interface and "id" field.
-//
-// The 'id' can be resolved from:
-//  - nt.GetID function.
-//  - ObjectConfig 'nid' field, which must have NonNullID, NonNullInt, or NonNullString type.
-// If neither is present, this function panics.
-func (nt *NodeType) Annotate(oc graphql.ObjectConfig) graphql.ObjectConfig {
+// NodeType defines a Node subtype.
+type NodeType[T any] struct {
+	NodeTypeBase
+	retrieve func(suffix string) T
+}
+
+// Retrieve retrieves node by ID.
+func (nt *NodeType[T]) Retrieve(id string) (node T) {
+	prefix, suffix, ok := parseID(id)
+	if !ok || prefix != nt.prefix {
+		return node
+	}
+	return nt.retrieve(suffix)
+}
+
+// NewNodeType creates a NodeType.
+func NewNodeType[T any](oc graphql.ObjectConfig, nc NodeConfig[T]) (nt *NodeType[T]) {
 	if oc.Interfaces == nil {
 		oc.Interfaces = []*graphql.Interface{}
 	}
@@ -84,70 +84,100 @@ func (nt *NodeType) Annotate(oc graphql.ObjectConfig) graphql.ObjectConfig {
 		oc.Fields = graphql.Fields{}
 	}
 	fields := oc.Fields.(graphql.Fields)
+	fields["id"] = &graphql.Field{
+		Type:        graphql.NewNonNull(graphql.ID),
+		Description: "Globally unique ID.",
+		Resolve:     nc.makeResolveID(oc.Name, fields),
+	}
 
-	var resolve graphql.FieldResolveFn
-	if nt.GetID != nil {
-		resolve = func(p graphql.ResolveParams) (any, error) {
-			return makeID(nt.prefix, nt.GetID(p.Source)), nil
+	obj := graphql.NewObject(oc)
+	Schema.Types = append(Schema.Types, obj)
+
+	nt = &NodeType[T]{
+		NodeTypeBase: NodeTypeBase{
+			Object: obj,
+			prefix: oc.Name,
+			typ:    reflect.TypeOf((*T)(nil)).Elem(),
+		},
+		retrieve: nc.makeRetrieve(),
+	}
+	nt.retrieveAny = func(suffix string) (any, error) {
+		node := nt.retrieve(suffix)
+		if reflect.ValueOf(node).IsZero() {
+			return nil, errNotFound
 		}
-	} else if nidField := fields["nid"]; nidField != nil {
+		return node, nil
+	}
+	nt.deleteByID = func(suffix string) (ok bool, e error) {
+		node := nt.retrieve(suffix)
+		if reflect.ValueOf(node).IsZero() {
+			return false, nil
+		}
+		if nc.Delete == nil {
+			return true, errNoDelete
+		}
+		return true, nc.Delete(node)
+	}
+
+	nodeTypes[nt.prefix] = &nt.NodeTypeBase
+	return nt
+}
+
+// NodeConfig contains options to construct a NodeType.
+type NodeConfig[T any] struct {
+	// GetID extracts un-prefixed ID from the source object.
+	GetID func(source T) string
+
+	// Retrieve fetches an object from un-prefixed ID.
+	// Returning zero value indicates the object does not exist.
+	Retrieve func(id string) T
+
+	// RetrieveInt fetches an object from un-prefixed ID parsed as integer.
+	RetrieveInt func(id int) T
+
+	// Delete deletes the source object.
+	Delete func(source T) error
+}
+
+func (nc NodeConfig[T]) makeResolveID(prefix string, fields graphql.Fields) graphql.FieldResolveFn {
+	if nc.GetID != nil {
+		return func(p graphql.ResolveParams) (any, error) {
+			return makeID(prefix, nc.GetID(p.Source.(T))), nil
+		}
+	}
+
+	if nidField := fields["nid"]; nidField != nil {
 		switch nidField.Type {
 		case NonNullID, NonNullInt, NonNullString:
-			resolve = func(p graphql.ResolveParams) (any, error) {
+			return func(p graphql.ResolveParams) (any, error) {
 				nid, e := nidField.Resolve(p)
 				if e != nil {
 					return nil, e
 				}
-				return makeID(nt.prefix, nid), nil
+				return makeID(prefix, nid), nil
 			}
 		}
 	}
-	if resolve == nil {
-		panic("cannot resolve 'id' field")
-	}
 
-	fields["id"] = &graphql.Field{
-		Type:        graphql.NewNonNull(graphql.ID),
-		Description: "Globally unique ID.",
-		Resolve:     resolve,
-	}
-
-	return oc
+	logger.Panic("cannot resolve 'id' field")
+	return nil
 }
 
-// Register enables accessing Node of this type by ID.
-func (nt *NodeType) Register(object *graphql.Object) {
-	nt.object = object
-	Schema.Types = append(Schema.Types, object)
-
-	if nodeTypes[nt.prefix] != nil {
-		panic("duplicate prefix " + nt.prefix)
-	}
-	nodeTypes[nt.prefix] = nt
-}
-
-// NewNodeType creates a NodeType.
-func NewNodeType(value any) *NodeType {
-	return NewNodeTypeNamed("", value)
-}
-
-// NewNodeTypeNamed creates a NodeType with specified name.
-func NewNodeTypeNamed(name string, value any) (nt *NodeType) {
-	typ := reflect.TypeOf(value)
-	if typ.Kind() == reflect.Ptr {
-		if elem := typ.Elem(); elem.Kind() == reflect.Interface {
-			typ = elem
+func (nc NodeConfig[T]) makeRetrieve() func(suffix string) T {
+	switch {
+	case nc.Retrieve != nil:
+		return nc.Retrieve
+	case nc.RetrieveInt != nil:
+		return func(suffix string) (node T) {
+			n, e := strconv.Atoi(suffix)
+			if e != nil {
+				return
+			}
+			return nc.RetrieveInt(n)
 		}
 	}
-	if name == "" {
-		name = typ.String()
-	}
-
-	nt = &NodeType{
-		prefix: name,
-		typ:    typ,
-	}
-	return nt
+	logger.Panic("either Retrieve or RetrieveInt must be set")
+	return nil
 }
 
 var nodeInterface = graphql.NewInterface(graphql.InterfaceConfig{
@@ -161,47 +191,12 @@ var nodeInterface = graphql.NewInterface(graphql.InterfaceConfig{
 		typ := reflect.TypeOf(p.Value)
 		for _, nt := range nodeTypes {
 			if typ.AssignableTo(nt.typ) {
-				return nt.object
+				return nt.Object
 			}
 		}
 		return nil
 	},
 })
-
-// RetrieveNode locates Node by full ID.
-func RetrieveNode(id any) (*NodeType, any, error) {
-	prefix, suffix, ok := parseID(id.(string))
-	if !ok {
-		return nil, nil, errNotFound
-	}
-
-	nt := nodeTypes[prefix]
-	if nt == nil || nt.Retrieve == nil {
-		return nt, nil, errNoRetrieve
-	}
-
-	obj, e := nt.Retrieve(suffix)
-	if e != nil {
-		return nt, nil, e
-	}
-	if val := reflect.ValueOf(obj); obj == nil || (val.Kind() == reflect.Ptr && val.IsNil()) {
-		return nt, nil, errNotFound
-	}
-	return nt, obj, nil
-}
-
-// RetrieveNodeOfType locates Node by full ID, ensures it has correct type, and assigns it to *ptr.
-func RetrieveNodeOfType(expectedNodeType *NodeType, id, ptr any) error {
-	nt, node, e := RetrieveNode(id)
-	if e != nil {
-		return e
-	}
-	if nt != expectedNodeType {
-		return errWrongType
-	}
-	reflect.ValueOf(ptr).Elem().Set(reflect.ValueOf(node))
-	return nil
-}
 
 func init() {
 	if _, e := rand.Read(idKey[:]); e != nil {
@@ -218,8 +213,14 @@ func init() {
 		},
 		Type: nodeInterface,
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			_, obj, e := RetrieveNode(p.Args["id"])
-			return obj, e
+			prefix, suffix, ok := parseID(p.Args["id"].(string))
+			if !ok {
+				return nil, nil
+			}
+			if nt := nodeTypes[prefix]; nt != nil {
+				return nt.retrieveAny(suffix)
+			}
+			return nil, nil
 		},
 	})
 
@@ -233,15 +234,14 @@ func init() {
 		},
 		Type: NonNullBoolean,
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			nt, obj, e := RetrieveNode(p.Args["id"])
-			if e != nil || obj == nil {
-				return false, e
+			prefix, suffix, ok := parseID(p.Args["id"].(string))
+			if !ok {
+				return false, nil
 			}
-
-			if nt.Delete == nil {
-				return true, errNoDelete
+			if nt := nodeTypes[prefix]; nt != nil {
+				return nt.deleteByID(suffix)
 			}
-			return true, nt.Delete(obj)
+			return false, nil
 		},
 	})
 }

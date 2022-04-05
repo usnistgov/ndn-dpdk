@@ -51,7 +51,7 @@ func init() {
 	GqlInterestTemplateInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "InterestTemplateInput",
 		Description: "Interest template.",
-		Fields: gqlserver.BindInputFields(InterestTemplateConfig{}, gqlserver.FieldTypes{
+		Fields: gqlserver.BindInputFields[InterestTemplateConfig](gqlserver.FieldTypes{
 			reflect.TypeOf(ndn.Name{}):                 gqlserver.NonNullString,
 			reflect.TypeOf(nnduration.Milliseconds(0)): nnduration.GqlMilliseconds,
 		}),
@@ -60,7 +60,7 @@ func init() {
 	GqlDataGenInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "DataGenInput",
 		Description: "Data generator template.",
-		Fields: gqlserver.BindInputFields(DataGenConfig{}, gqlserver.FieldTypes{
+		Fields: gqlserver.BindInputFields[DataGenConfig](gqlserver.FieldTypes{
 			reflect.TypeOf(ndn.Name{}):                 gqlserver.NonNullString,
 			reflect.TypeOf(nnduration.Milliseconds(0)): nnduration.GqlMilliseconds,
 		}),

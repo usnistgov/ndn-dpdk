@@ -13,20 +13,16 @@ import (
 var (
 	// GqlLCore is the LCore used for writer created via GraphQL.
 	GqlLCore  eal.LCore
-	gqlWriter gqlsingleton.Singleton
+	gqlWriter gqlsingleton.Singleton[*Writer]
 )
 
 // GraphQL types.
 var (
-	GqlWriterNodeType *gqlserver.NodeType
-	GqlWriterType     *graphql.Object
+	GqlWriterType *gqlserver.NodeType[*Writer]
 )
 
 func init() {
-	GqlWriterNodeType = gqlserver.NewNodeType((*Writer)(nil))
-	gqlWriter.SetNodeType(GqlWriterNodeType)
-
-	GqlWriterType = graphql.NewObject(GqlWriterNodeType.Annotate(graphql.ObjectConfig{
+	GqlWriterType = gqlserver.NewNodeType(graphql.ObjectConfig{
 		Name:        "HrlogWriter",
 		Description: "High resolution log writer.",
 		Fields: graphql.Fields{
@@ -40,8 +36,7 @@ func init() {
 			},
 			"worker": ealthread.GqlWithWorker(nil),
 		},
-	}))
-	GqlWriterNodeType.Register(GqlWriterType)
+	}, gqlWriter.NodeConfig())
 
 	gqlserver.AddMutation(&graphql.Field{
 		Name:        "createHrlogWriter",
@@ -56,8 +51,8 @@ func init() {
 				Type:        graphql.Int,
 			},
 		},
-		Type: graphql.NewNonNull(GqlWriterType),
-		Resolve: gqlWriter.CreateWith(func(p graphql.ResolveParams) (any, error) {
+		Type: graphql.NewNonNull(GqlWriterType.Object),
+		Resolve: gqlWriter.CreateWith(func(p graphql.ResolveParams) (w *Writer, e error) {
 			if !GqlLCore.Valid() || GqlLCore.IsBusy() {
 				return nil, fmt.Errorf("no LCore for %s role; check activation parameters and ensure there's no other writer running", Role)
 			}
@@ -68,7 +63,7 @@ func init() {
 			if count, ok := p.Args["count"]; ok {
 				cfg.Count = count.(int)
 			}
-			w, e := NewWriter(cfg)
+			w, e = NewWriter(cfg)
 			if e != nil {
 				return nil, e
 			}
@@ -81,7 +76,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "hrlogWriters",
 		Description: "List of active high resolution log writers.",
-		Type:        gqlserver.NewNonNullList(GqlWriterType),
+		Type:        gqlserver.NewNonNullList(GqlWriterType.Object),
 		Resolve:     gqlWriter.QueryList,
 	})
 }

@@ -3,7 +3,6 @@ package iface
 import (
 	"errors"
 	"reflect"
-	"strconv"
 
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
@@ -23,8 +22,7 @@ var (
 // GraphQL types.
 var (
 	GqlPktQueueInput  *graphql.InputObject
-	GqlFaceNodeType   *gqlserver.NodeType
-	GqlFaceType       *graphql.Object
+	GqlFaceType       *gqlserver.NodeType[Face]
 	GqlRxCountersType *graphql.Object
 	GqlTxCountersType *graphql.Object
 	GqlCountersType   *graphql.Object
@@ -34,25 +32,12 @@ func init() {
 	GqlPktQueueInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "FacePktQueueInput",
 		Description: "Packet queue configuration.",
-		Fields: gqlserver.BindInputFields(PktQueueConfig{}, gqlserver.FieldTypes{
+		Fields: gqlserver.BindInputFields[PktQueueConfig](gqlserver.FieldTypes{
 			reflect.TypeOf(nnduration.Nanoseconds(0)): nnduration.GqlNanoseconds,
 		}),
 	})
 
-	GqlFaceNodeType = gqlserver.NewNodeType((*Face)(nil))
-	GqlFaceNodeType.Retrieve = func(id string) (any, error) {
-		nid, e := strconv.Atoi(id)
-		if e != nil {
-			return nil, e
-		}
-		return Get(ID(nid)), nil
-	}
-	GqlFaceNodeType.Delete = func(source any) error {
-		face := source.(Face)
-		return face.Close()
-	}
-
-	GqlFaceType = graphql.NewObject(GqlFaceNodeType.Annotate(graphql.ObjectConfig{
+	GqlFaceType = gqlserver.NewNodeType(graphql.ObjectConfig{
 		Name: "Face",
 		Fields: graphql.Fields{
 			"nid": &graphql.Field{
@@ -76,7 +61,7 @@ func init() {
 			},
 			"numaSocket": eal.GqlWithNumaSocket,
 			"txLoop": &graphql.Field{
-				Type:        ealthread.GqlWorkerType,
+				Type:        ealthread.GqlWorkerType.Object,
 				Description: "TxLoop serving this face.",
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					face := p.Source.(Face)
@@ -89,13 +74,19 @@ func init() {
 				},
 			},
 		},
-	}))
-	GqlFaceNodeType.Register(GqlFaceType)
+	}, gqlserver.NodeConfig[Face]{
+		RetrieveInt: func(id int) Face {
+			return Get(ID(id))
+		},
+		Delete: func(source Face) error {
+			return source.Close()
+		},
+	})
 
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "faces",
 		Description: "List of faces.",
-		Type:        gqlserver.NewNonNullList(GqlFaceType),
+		Type:        gqlserver.NewNonNullList(GqlFaceType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return List(), nil
 		},
@@ -110,7 +101,7 @@ func init() {
 				Type:        gqlserver.NonNullJSON,
 			},
 		},
-		Type: graphql.NewNonNull(GqlFaceType),
+		Type: graphql.NewNonNull(GqlFaceType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if !GqlCreateFaceAllowed {
 				return nil, errGqlCreateFaceDisallowed
@@ -126,22 +117,22 @@ func init() {
 
 	GqlRxCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name:   "FaceRxCounters",
-		Fields: gqlserver.BindFields(RxCounters{}, nil),
+		Fields: gqlserver.BindFields[RxCounters](nil),
 	})
 	GqlTxCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name:   "FaceTxCounters",
-		Fields: gqlserver.BindFields(TxCounters{}, nil),
+		Fields: gqlserver.BindFields[TxCounters](nil),
 	})
 	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "FaceCounters",
-		Fields: gqlserver.BindFields(Counters{}, gqlserver.FieldTypes{
+		Fields: gqlserver.BindFields[Counters](gqlserver.FieldTypes{
 			reflect.TypeOf(RxCounters{}): GqlRxCountersType,
 			reflect.TypeOf(TxCounters{}): GqlTxCountersType,
 		}),
 	})
 	gqlserver.AddCounters(&gqlserver.CountersConfig{
 		Description:  "Face counters.",
-		Parent:       GqlFaceType,
+		Parent:       GqlFaceType.Object,
 		Name:         "counters",
 		Subscription: "faceCounters",
 		FindArgs: graphql.FieldConfigArgument{
@@ -151,11 +142,7 @@ func init() {
 			},
 		},
 		Find: func(p graphql.ResolveParams) (root any, enders []any, e error) {
-			id := p.Args["id"].(string)
-			var face Face
-			if e := gqlserver.RetrieveNodeOfType(GqlFaceNodeType, id, &face); e != nil {
-				return nil, nil, e
-			}
+			face := GqlFaceType.Retrieve(p.Args["id"].(string))
 			return face, nil, nil
 		},
 		Type: GqlCountersType,

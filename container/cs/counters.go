@@ -52,5 +52,5 @@ func (cs *Cs) Counters() (cnt Counters) {
 // GqlCountersType is the GraphQL type for Counters.
 var GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 	Name:   "CsCounters",
-	Fields: gqlserver.BindFields(Counters{}, nil),
+	Fields: gqlserver.BindFields[Counters](nil),
 })

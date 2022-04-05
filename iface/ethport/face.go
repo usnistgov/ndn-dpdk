@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net"
 
-	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethnetif"
@@ -71,7 +70,7 @@ func (cfg FaceConfig) FindPort(local net.HardwareAddr) (port *Port, e error) {
 	switch {
 	case dev != nil:
 	case cfg.Port != "":
-		gqlserver.RetrieveNodeOfType(ethdev.GqlEthDevNodeType, cfg.Port, &dev)
+		dev = ethdev.GqlEthDevType.Retrieve(cfg.Port)
 	case macaddr.IsUnicast(local):
 		dev = ethdev.FromHardwareAddr(local)
 	}

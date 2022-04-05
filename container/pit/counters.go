@@ -44,5 +44,5 @@ func (pit *Pit) Counters() (cnt Counters) {
 // GqlCountersType is the GraphQL type for Counters.
 var GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 	Name:   "PitCounters",
-	Fields: gqlserver.BindFields(Counters{}, nil),
+	Fields: gqlserver.BindFields[Counters](nil),
 })

@@ -25,23 +25,23 @@ var (
 
 // GraphQL types.
 var (
-	GqlTrafficGenNodeType *gqlserver.NodeType
-	GqlTrafficGenType     *graphql.Object
-	GqlCountersType       *graphql.Object
+	GqlTrafficGenType *gqlserver.NodeType[*TrafficGen]
+	GqlCountersType   *graphql.Object
 )
 
 func init() {
-	retrieve := func(id iface.ID) any { return Get(id) }
-	GqlTrafficGenNodeType = tggql.NewNodeType("Tg", (*TrafficGen)(nil), &retrieve)
-	GqlTrafficGenNodeType.Delete = func(source any) error {
-		return source.(*TrafficGen).Close()
+	retrieve := Get
+	nc := tggql.NodeConfig(&retrieve)
+	nc.Delete = func(gen *TrafficGen) error {
+		return gen.Close()
+
 	}
-	GqlTrafficGenType = graphql.NewObject(GqlTrafficGenNodeType.Annotate(graphql.ObjectConfig{
+	GqlTrafficGenType = gqlserver.NewNodeType(graphql.ObjectConfig{
 		Name: "TrafficGen",
 		Fields: tggql.CommonFields(graphql.Fields{
 			"producer": &graphql.Field{
 				Description: "Producer module.",
-				Type:        tgproducer.GqlProducerType,
+				Type:        tgproducer.GqlProducerType.Object,
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					gen := p.Source.(*TrafficGen)
 					return gen.Producer(), nil
@@ -49,7 +49,7 @@ func init() {
 			},
 			"fileServer": &graphql.Field{
 				Description: "File server module.",
-				Type:        fileserver.GqlServerType,
+				Type:        fileserver.GqlServerType.Object,
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					gen := p.Source.(*TrafficGen)
 					return gen.FileServer(), nil
@@ -57,7 +57,7 @@ func init() {
 			},
 			"consumer": &graphql.Field{
 				Description: "Consumer module.",
-				Type:        tgconsumer.GqlConsumerType,
+				Type:        tgconsumer.GqlConsumerType.Object,
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					gen := p.Source.(*TrafficGen)
 					return gen.Consumer(), nil
@@ -65,18 +65,18 @@ func init() {
 			},
 			"fetcher": &graphql.Field{
 				Description: "Fetcher module.",
-				Type:        fetch.GqlFetcherType,
+				Type:        fetch.GqlFetcherType.Object,
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					gen := p.Source.(*TrafficGen)
 					return gen.Fetcher(), nil
 				},
 			},
 		}),
-	}))
-	GqlTrafficGenNodeType.Register(GqlTrafficGenType)
-	iface.GqlFaceType.AddFieldConfig("trafficgen", &graphql.Field{
+	}, nc)
+
+	iface.GqlFaceType.Object.AddFieldConfig("trafficgen", &graphql.Field{
 		Description: "Traffic generator operating on this face.",
-		Type:        GqlTrafficGenType,
+		Type:        GqlTrafficGenType.Object,
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			face := p.Source.(iface.Face)
 			return Get(face.ID()), nil
@@ -86,14 +86,14 @@ func init() {
 	gqlserver.AddMutation(&graphql.Field{
 		Name:        "startTrafficGen",
 		Description: "Create and start a traffic generator.",
-		Args: gqlserver.BindArguments(Config{}, gqlserver.FieldTypes{
+		Args: gqlserver.BindArguments[Config](gqlserver.FieldTypes{
 			reflect.TypeOf(iface.LocatorWrapper{}): gqlserver.JSON,
 			reflect.TypeOf(tgproducer.Config{}):    tgproducer.GqlConfigInput,
 			reflect.TypeOf(fileserver.Config{}):    fileserver.GqlConfigInput,
 			reflect.TypeOf(tgconsumer.Config{}):    tgconsumer.GqlConfigInput,
 			reflect.TypeOf(fetch.FetcherConfig{}):  fetch.GqlConfigInput,
 		}),
-		Type: graphql.NewNonNull(GqlTrafficGenType),
+		Type: graphql.NewNonNull(GqlTrafficGenType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if !GqlCreateEnabled {
 				return nil, errGqlDisabled
@@ -119,7 +119,7 @@ func init() {
 	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name:        "TgCounters",
 		Description: "Traffic generator counters.",
-		Fields: gqlserver.BindFields(Counters{}, gqlserver.FieldTypes{
+		Fields: gqlserver.BindFields[Counters](gqlserver.FieldTypes{
 			reflect.TypeOf(tgproducer.Counters{}): tgproducer.GqlCountersType,
 			reflect.TypeOf(fileserver.Counters{}): fileserver.GqlCountersType,
 			reflect.TypeOf(tgconsumer.Counters{}): tgconsumer.GqlCountersType,
@@ -128,7 +128,7 @@ func init() {
 
 	gqlserver.AddCounters(&gqlserver.CountersConfig{
 		Description:  "Traffic generator counters.",
-		Parent:       GqlTrafficGenType,
+		Parent:       GqlTrafficGenType.Object,
 		Name:         "counters",
 		Subscription: "tgCounters",
 		FindArgs: graphql.FieldConfigArgument{
@@ -138,10 +138,9 @@ func init() {
 			},
 		},
 		Find: func(p graphql.ResolveParams) (root any, enders []any, e error) {
-			id := p.Args["id"].(string)
-			var gen *TrafficGen
-			if e := gqlserver.RetrieveNodeOfType(GqlTrafficGenNodeType, id, &gen); e != nil {
-				return nil, nil, e
+			gen := GqlTrafficGenType.Retrieve(p.Args["id"].(string))
+			if gen == nil {
+				return nil, nil, nil
 			}
 			return gen, []any{gen.exit}, nil
 		},

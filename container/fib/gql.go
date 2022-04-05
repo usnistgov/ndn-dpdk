@@ -26,41 +26,16 @@ var (
 // GraphQL types.
 var (
 	GqlEntryCountersType graphql.Type
-	GqlEntryNodeType     *gqlserver.NodeType
-	GqlEntryType         *graphql.Object
+	GqlEntryType         *gqlserver.NodeType[Entry]
 )
 
 func init() {
 	GqlEntryCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name:   "FibEntryCounters",
-		Fields: gqlserver.BindFields(fibdef.EntryCounters{}, nil),
+		Fields: gqlserver.BindFields[fibdef.EntryCounters](nil),
 	})
 
-	GqlEntryNodeType = gqlserver.NewNodeType(Entry{})
-	GqlEntryNodeType.GetID = func(source any) string {
-		entry := source.(Entry)
-		return entry.Name.String()
-	}
-	GqlEntryNodeType.Retrieve = func(id string) (any, error) {
-		if GqlFib == nil {
-			return nil, errNoGqlFib
-		}
-		name := ndn.ParseName(id)
-		entry := GqlFib.Find(name)
-		if entry == nil {
-			return nil, nil
-		}
-		return *entry, nil
-	}
-	GqlEntryNodeType.Delete = func(source any) error {
-		if GqlFib == nil {
-			return errNoGqlFib
-		}
-		entry := source.(Entry)
-		return GqlFib.Erase(entry.Name)
-	}
-
-	GqlEntryType = graphql.NewObject(GqlEntryNodeType.Annotate(graphql.ObjectConfig{
+	GqlEntryType = gqlserver.NewNodeType(graphql.ObjectConfig{
 		Name: "FibEntry",
 		Fields: graphql.Fields{
 			"name": &graphql.Field{
@@ -73,7 +48,7 @@ func init() {
 			},
 			"nexthops": &graphql.Field{
 				Description: "FIB nexthops. null indicates a deleted face.",
-				Type:        gqlserver.NewNonNullList(iface.GqlFaceType, true),
+				Type:        gqlserver.NewNonNullList(iface.GqlFaceType.Object, true),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					entry := p.Source.(Entry)
 					var list []iface.Face
@@ -85,7 +60,7 @@ func init() {
 			},
 			"strategy": &graphql.Field{
 				Description: "Forwarding strategy. null indicates a deleted strategy.",
-				Type:        strategycode.GqlStrategyType,
+				Type:        strategycode.GqlStrategyType.Object,
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					entry := p.Source.(Entry)
 					return strategycode.Get(entry.Strategy), nil
@@ -100,13 +75,38 @@ func init() {
 				},
 			},
 		},
-	}))
-	GqlEntryNodeType.Register(GqlEntryType)
+	}, gqlserver.NodeConfig[Entry]{
+		GetID: func(entry Entry) string {
+			nameV, _ := entry.Name.MarshalBinary()
+			return string(nameV)
+		},
+		Retrieve: func(id string) (entry Entry) {
+			if GqlFib == nil {
+				return
+			}
+
+			var name ndn.Name
+			if e := name.UnmarshalBinary([]byte(id)); e != nil {
+				return
+			}
+
+			if entryPtr := GqlFib.Find(name); entryPtr != nil {
+				return *entryPtr
+			}
+			return
+		},
+		Delete: func(entry Entry) error {
+			if GqlFib == nil {
+				return errNoGqlFib
+			}
+			return GqlFib.Erase(entry.Name)
+		},
+	})
 
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "fib",
 		Description: "List of FIB entries.",
-		Type:        gqlserver.NewNonNullList(GqlEntryType),
+		Type:        gqlserver.NewNonNullList(GqlEntryType.Object),
 		Args: graphql.FieldConfigArgument{
 			"name": &graphql.ArgumentConfig{
 				Description: "Filter by exact name.",
@@ -130,9 +130,9 @@ func init() {
 		},
 	})
 
-	iface.GqlFaceType.AddFieldConfig("fibEntries", &graphql.Field{
+	iface.GqlFaceType.Object.AddFieldConfig("fibEntries", &graphql.Field{
 		Description: "FIB entries having this face as nexthop.",
-		Type:        graphql.NewList(graphql.NewNonNull(GqlEntryType)),
+		Type:        graphql.NewList(graphql.NewNonNull(GqlEntryType.Object)),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlFib == nil {
 				return nil, nil
@@ -150,9 +150,9 @@ func init() {
 		},
 	})
 
-	strategycode.GqlStrategyType.AddFieldConfig("fibEntries", &graphql.Field{
+	strategycode.GqlStrategyType.Object.AddFieldConfig("fibEntries", &graphql.Field{
 		Description: "FIB entries using this strategy.",
-		Type:        graphql.NewList(graphql.NewNonNull(GqlEntryType)),
+		Type:        graphql.NewList(graphql.NewNonNull(GqlEntryType.Object)),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlFib == nil {
 				return nil, nil
@@ -191,7 +191,7 @@ func init() {
 				Type:        gqlserver.JSON,
 			},
 		},
-		Type: graphql.NewNonNull(GqlEntryType),
+		Type: graphql.NewNonNull(GqlEntryType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlFib == nil {
 				return nil, errNoGqlFib
@@ -200,18 +200,19 @@ func init() {
 			var entry fibdef.Entry
 			entry.Name = p.Args["name"].(ndn.Name)
 			for i, nh := range p.Args["nexthops"].([]any) {
-				var face iface.Face
-				if e := gqlserver.RetrieveNodeOfType(iface.GqlFaceNodeType, nh, &face); e != nil {
-					return nil, fmt.Errorf("nexthops[%d] not found: %w", i, e)
+				face := iface.GqlFaceType.Retrieve(nh.(string))
+				if face == nil {
+					return nil, fmt.Errorf("nexthops[%d] not found", i)
 				}
 				entry.Nexthops = append(entry.Nexthops, face.ID())
 			}
 
 			sc := GqlDefaultStrategy
 			if strategy, ok := p.Args["strategy"].(string); ok {
-				if e := gqlserver.RetrieveNodeOfType(strategycode.GqlStrategyNodeType, strategy, &sc); e != nil {
-					return nil, fmt.Errorf("strategy not found: %w", e)
-				}
+				sc = strategycode.GqlStrategyType.Retrieve(strategy)
+			}
+			if sc == nil {
+				return nil, fmt.Errorf("strategy not found")
 			}
 			entry.Strategy = sc.ID()
 

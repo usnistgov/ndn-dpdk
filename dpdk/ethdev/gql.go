@@ -5,8 +5,8 @@ package ethdev
 */
 import "C"
 import (
+	"errors"
 	"fmt"
-	"strconv"
 	"unsafe"
 
 	"github.com/graphql-go/graphql"
@@ -17,21 +17,11 @@ import (
 
 // GraphQL types.
 var (
-	GqlEthDevNodeType *gqlserver.NodeType
-	GqlEthDevType     *graphql.Object
+	GqlEthDevType *gqlserver.NodeType[EthDev]
 )
 
 func init() {
-	GqlEthDevNodeType = gqlserver.NewNodeType((*EthDev)(nil))
-	GqlEthDevNodeType.Retrieve = func(id string) (any, error) {
-		nid, e := strconv.Atoi(id)
-		if e != nil {
-			return nil, e
-		}
-		return FromID(nid), nil
-	}
-
-	GqlEthDevType = graphql.NewObject(GqlEthDevNodeType.Annotate(graphql.ObjectConfig{
+	GqlEthDevType = gqlserver.NewNodeType(graphql.ObjectConfig{
 		Name: "EthDev",
 		Fields: graphql.Fields{
 			"nid": &graphql.Field{
@@ -107,13 +97,14 @@ func init() {
 				},
 			},
 		},
-	}))
-	GqlEthDevNodeType.Register(GqlEthDevType)
+	}, gqlserver.NodeConfig[EthDev]{
+		RetrieveInt: FromID,
+	})
 
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "ethDevs",
 		Description: "List of Ethernet devices.",
-		Type:        gqlserver.NewNonNullList(GqlEthDevType),
+		Type:        gqlserver.NewNonNullList(GqlEthDevType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return List(), nil
 		},
@@ -127,11 +118,11 @@ func init() {
 				Type: gqlserver.NonNullID,
 			},
 		},
-		Type: graphql.NewNonNull(GqlEthDevType),
+		Type: graphql.NewNonNull(GqlEthDevType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			var port EthDev
-			if e := gqlserver.RetrieveNodeOfType(GqlEthDevNodeType, p.Args["id"], &port); e != nil {
-				return nil, e
+			port := GqlEthDevType.Retrieve(p.Args["id"].(string))
+			if port == nil {
+				return nil, errors.New("port not found")
 			}
 			port.ResetStats()
 			return port, nil

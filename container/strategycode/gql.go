@@ -1,60 +1,48 @@
 package strategycode
 
 import (
-	"strconv"
-
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 )
 
 // GraphQL types.
 var (
-	GqlStrategyNodeType *gqlserver.NodeType
-	GqlStrategyType     *graphql.Object
+	GqlStrategyType *gqlserver.NodeType[*Strategy]
 )
 
 func init() {
-	GqlStrategyNodeType = gqlserver.NewNodeType((*Strategy)(nil))
-	GqlStrategyNodeType.Retrieve = func(id string) (any, error) {
-		nid, e := strconv.Atoi(id)
-		if e != nil {
-			return nil, e
-		}
-		return Get(nid), nil
-	}
-	GqlStrategyNodeType.Delete = func(source any) error {
-		strategy := source.(*Strategy)
-		strategy.Unref()
-		return nil
-	}
-
-	GqlStrategyType = graphql.NewObject(GqlStrategyNodeType.Annotate(graphql.ObjectConfig{
+	GqlStrategyType = gqlserver.NewNodeType(graphql.ObjectConfig{
 		Name: "Strategy",
 		Fields: graphql.Fields{
 			"nid": &graphql.Field{
 				Description: "Numeric strategy code identifier.",
 				Type:        gqlserver.NonNullInt,
 				Resolve: func(p graphql.ResolveParams) (any, error) {
-					strategy := p.Source.(*Strategy)
-					return int(strategy.ID()), nil
+					sc := p.Source.(*Strategy)
+					return int(sc.ID()), nil
 				},
 			},
 			"name": &graphql.Field{
 				Description: "Short name.",
 				Type:        gqlserver.NonNullString,
 				Resolve: func(p graphql.ResolveParams) (any, error) {
-					strategy := p.Source.(*Strategy)
-					return strategy.Name(), nil
+					sc := p.Source.(*Strategy)
+					return sc.Name(), nil
 				},
 			},
 		},
-	}))
-	GqlStrategyNodeType.Register(GqlStrategyType)
+	}, gqlserver.NodeConfig[*Strategy]{
+		RetrieveInt: Get,
+		Delete: func(sc *Strategy) error {
+			sc.Unref()
+			return nil
+		},
+	})
 
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "strategies",
 		Description: "List of strategies.",
-		Type:        gqlserver.NewNonNullList(GqlStrategyType),
+		Type:        gqlserver.NewNonNullList(GqlStrategyType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return List(), nil
 		},
@@ -73,7 +61,7 @@ func init() {
 				Type:        graphql.NewNonNull(gqlserver.Bytes),
 			},
 		},
-		Type: graphql.NewNonNull(GqlStrategyType),
+		Type: graphql.NewNonNull(GqlStrategyType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			name := p.Args["name"].(string)
 			elf := p.Args["elf"].([]byte)

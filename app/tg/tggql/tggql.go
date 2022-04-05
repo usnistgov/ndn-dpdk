@@ -24,7 +24,7 @@ func CommonFields(fields graphql.Fields) graphql.Fields {
 
 	fields["workers"] = &graphql.Field{
 		Description: "Worker threads.",
-		Type:        gqlserver.NewNonNullList(ealthread.GqlWorkerType),
+		Type:        gqlserver.NewNonNullList(ealthread.GqlWorkerType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			lcores := []eal.LCore{}
 			for _, w := range p.Source.(withCommonFields).Workers() {
@@ -36,7 +36,7 @@ func CommonFields(fields graphql.Fields) graphql.Fields {
 
 	fields["face"] = &graphql.Field{
 		Description: "Face on which this traffic generator operates.",
-		Type:        graphql.NewNonNull(iface.GqlFaceType),
+		Type:        graphql.NewNonNull(iface.GqlFaceType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return p.Source.(withCommonFields).Face(), nil
 		},
@@ -45,18 +45,17 @@ func CommonFields(fields graphql.Fields) graphql.Fields {
 	return fields
 }
 
-// NewNodeType creates a NodeType for traffic generator element.
-func NewNodeType(name string, value withCommonFields, retrieve *func(iface.ID) any) (nt *gqlserver.NodeType) {
-	nt = gqlserver.NewNodeTypeNamed(name, value)
-	nt.GetID = func(source any) string {
-		return strconv.Itoa(int(source.(withCommonFields).Face().ID()))
+// NodeConfig constructs NodeConfig for traffic generator element.
+func NodeConfig[T withCommonFields](retrieve *func(iface.ID) T) (nc gqlserver.NodeConfig[T]) {
+	nc.GetID = func(source T) string {
+		return strconv.Itoa(int(source.Face().ID()))
 	}
-	nt.Retrieve = func(id string) (any, error) {
-		i, e := strconv.Atoi(id)
-		if e != nil || *retrieve == nil {
-			return nil, nil
+	nc.RetrieveInt = func(id int) T {
+		var zero T
+		if *retrieve == nil {
+			return zero
 		}
-		return (*retrieve)(iface.ID(i)), nil
+		return (*retrieve)(iface.ID(id))
 	}
-	return nt
+	return
 }

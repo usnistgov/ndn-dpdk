@@ -15,18 +15,18 @@ func init() {
 		}
 	})
 
-	makeRetrieveByFaceID := func(fromGen func(gen *TrafficGen) any) func(id iface.ID) any {
-		return func(id iface.ID) any {
-			gen := Get(id)
-			if gen == nil {
-				return nil
-			}
-			return fromGen(gen)
-		}
-	}
+	tgproducer.GqlRetrieveByFaceID = makeRetrieveByFaceID(TrafficGen.Producer)
+	fileserver.GqlRetrieveByFaceID = makeRetrieveByFaceID(TrafficGen.FileServer)
+	tgconsumer.GqlRetrieveByFaceID = makeRetrieveByFaceID(TrafficGen.Consumer)
+	fetch.GqlRetrieveByFaceID = makeRetrieveByFaceID(TrafficGen.Fetcher)
+}
 
-	tgproducer.GqlRetrieveByFaceID = makeRetrieveByFaceID(func(gen *TrafficGen) any { return gen.Producer() })
-	fileserver.GqlRetrieveByFaceID = makeRetrieveByFaceID(func(gen *TrafficGen) any { return gen.FileServer() })
-	tgconsumer.GqlRetrieveByFaceID = makeRetrieveByFaceID(func(gen *TrafficGen) any { return gen.Consumer() })
-	fetch.GqlRetrieveByFaceID = makeRetrieveByFaceID(func(gen *TrafficGen) any { return gen.Fetcher() })
+func makeRetrieveByFaceID[T any](f func(TrafficGen) *T) func(id iface.ID) *T {
+	return func(id iface.ID) *T {
+		gen := Get(id)
+		if gen == nil {
+			return nil
+		}
+		return f(*gen)
+	}
 }

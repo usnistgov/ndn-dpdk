@@ -31,5 +31,5 @@ func (store *Store) Counters() (cnt StoreCounters) {
 // GqlStoreCountersType is the GraphQL type for StoreCounters.
 var GqlStoreCountersType = graphql.NewObject(graphql.ObjectConfig{
 	Name:   "DiskStoreCounters",
-	Fields: gqlserver.BindFields(StoreCounters{}, nil),
+	Fields: gqlserver.BindFields[StoreCounters](nil),
 })

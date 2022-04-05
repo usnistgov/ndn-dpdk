@@ -1,6 +1,7 @@
 package fetch
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -16,30 +17,27 @@ import (
 
 // GqlRetrieveByFaceID returns *Fetcher associated with a face.
 // It is assigned during package tg initialization.
-var GqlRetrieveByFaceID func(id iface.ID) any
+var GqlRetrieveByFaceID func(id iface.ID) *Fetcher
 
 // GraphQL types.
 var (
-	GqlConfigInput     *graphql.InputObject
-	GqlFetcherNodeType *gqlserver.NodeType
-	GqlFetcherType     *graphql.Object
+	GqlConfigInput *graphql.InputObject
+	GqlFetcherType *gqlserver.NodeType[*Fetcher]
 )
 
 func init() {
 	GqlConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "FetcherConfigInput",
 		Description: "Fetcher config.",
-		Fields: gqlserver.BindInputFields(FetcherConfig{}, gqlserver.FieldTypes{
+		Fields: gqlserver.BindInputFields[FetcherConfig](gqlserver.FieldTypes{
 			reflect.TypeOf(iface.PktQueueConfig{}): iface.GqlPktQueueInput,
 		}),
 	})
 
-	GqlFetcherNodeType = tggql.NewNodeType("Fetcher", (*Fetcher)(nil), &GqlRetrieveByFaceID)
-	GqlFetcherType = graphql.NewObject(GqlFetcherNodeType.Annotate(graphql.ObjectConfig{
+	GqlFetcherType = gqlserver.NewNodeType(graphql.ObjectConfig{
 		Name:   "Fetcher",
 		Fields: tggql.CommonFields(graphql.Fields{}),
-	}))
-	GqlFetcherNodeType.Register(GqlFetcherType)
+	}, tggql.NodeConfig(&GqlRetrieveByFaceID))
 
 	gqlserver.AddMutation(&graphql.Field{
 		Name:        "runFetchBenchmark",
@@ -68,9 +66,9 @@ func init() {
 		},
 		Type: gqlserver.NonNullJSON,
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			var fetcher *Fetcher
-			if e := gqlserver.RetrieveNodeOfType(GqlFetcherNodeType, p.Args["fetcher"], &fetcher); e != nil {
-				return nil, e
+			fetcher := GqlFetcherType.Retrieve(p.Args["fetcher"].(string))
+			if fetcher == nil {
+				return nil, errors.New("fetcher not found")
 			}
 
 			var templates []ndni.InterestTemplateConfig

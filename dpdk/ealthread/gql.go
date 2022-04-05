@@ -1,8 +1,6 @@
 package ealthread
 
 import (
-	"strconv"
-
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -10,27 +8,12 @@ import (
 
 // GraphQL types.
 var (
-	GqlWorkerNodeType *gqlserver.NodeType
-	GqlWorkerType     *graphql.Object
-	GqlLoadStatType   *graphql.Object
+	GqlWorkerType   *gqlserver.NodeType[eal.LCore]
+	GqlLoadStatType *graphql.Object
 )
 
 func init() {
-	GqlWorkerNodeType = gqlserver.NewNodeType(eal.LCore{})
-	GqlWorkerNodeType.Retrieve = func(id string) (any, error) {
-		nid, e := strconv.Atoi(id)
-		if e != nil {
-			return nil, e
-		}
-		for _, lc := range eal.Workers {
-			if lc.ID() == nid {
-				return lc, nil
-			}
-		}
-		return nil, nil
-	}
-
-	GqlWorkerType = graphql.NewObject(GqlWorkerNodeType.Annotate(graphql.ObjectConfig{
+	GqlWorkerType = gqlserver.NewNodeType(graphql.ObjectConfig{
 		Name: "Worker",
 		Fields: graphql.Fields{
 			"nid": &graphql.Field{
@@ -59,13 +42,21 @@ func init() {
 			},
 			"numaSocket": eal.GqlWithNumaSocket,
 		},
-	}))
-	GqlWorkerNodeType.Register(GqlWorkerType)
+	}, gqlserver.NodeConfig[eal.LCore]{
+		RetrieveInt: func(id int) eal.LCore {
+			for _, lc := range eal.Workers {
+				if lc.ID() == id {
+					return lc
+				}
+			}
+			return eal.LCore{}
+		},
+	})
 
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "workers",
 		Description: "Worker LCore allocations.",
-		Type:        gqlserver.NewNonNullList(GqlWorkerType),
+		Type:        gqlserver.NewNonNullList(GqlWorkerType.Object),
 		Args: graphql.FieldConfigArgument{
 			"role": &graphql.ArgumentConfig{
 				Description: "Filter by assigned role. Empty string matches unassigned LCores.",
@@ -90,11 +81,11 @@ func init() {
 
 	GqlLoadStatType = graphql.NewObject(graphql.ObjectConfig{
 		Name:   "ThreadLoadStat",
-		Fields: gqlserver.BindFields(LoadStat{}, nil),
+		Fields: gqlserver.BindFields[LoadStat](nil),
 	})
 	gqlserver.AddCounters(&gqlserver.CountersConfig{
 		Description:  "Thread load statistics.",
-		Parent:       GqlWorkerType,
+		Parent:       GqlWorkerType.Object,
 		Name:         "loadStat",
 		Subscription: "threadLoadStat",
 		FindArgs: graphql.FieldConfigArgument{
@@ -104,12 +95,8 @@ func init() {
 			},
 		},
 		Find: func(p graphql.ResolveParams) (root any, enders []any, e error) {
-			id := p.Args["id"].(string)
-			var lc eal.LCore
-			if e := gqlserver.RetrieveNodeOfType(GqlWorkerNodeType, id, &lc); e != nil {
-				return nil, nil, e
-			}
-			return lc, nil, nil
+			lc := GqlWorkerType.Retrieve(p.Args["id"].(string))
+			return gqlserver.Optional(lc, lc.Valid()), nil, nil
 		},
 		Type: GqlLoadStatType,
 		Read: func(p graphql.ResolveParams) (any, error) {
@@ -130,17 +117,18 @@ func init() {
 // GqlWithWorker is a GraphQL field for source object that implements Thread.
 // get is a function that returns a Thread; if nil, p.Source must implement Thread.
 func GqlWithWorker(get func(p graphql.ResolveParams) Thread) *graphql.Field {
+	if get == nil {
+		get = func(p graphql.ResolveParams) Thread {
+			return p.Source.(Thread)
+		}
+	}
+
 	return &graphql.Field{
-		Type:        GqlWorkerType,
+		Type:        GqlWorkerType.Object,
 		Name:        "worker",
 		Description: "Worker lcore.",
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			var thread Thread
-			if get == nil {
-				thread = p.Source.(Thread)
-			} else {
-				thread = get(p)
-			}
+			thread := get(p)
 			if thread == nil {
 				return nil, nil
 			}

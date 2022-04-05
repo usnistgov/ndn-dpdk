@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	ethdev.GqlEthDevType.AddFieldConfig("rxImpl", &graphql.Field{
+	ethdev.GqlEthDevType.Object.AddFieldConfig("rxImpl", &graphql.Field{
 		Description: "Active ethface RX implementation.",
 		Type:        graphql.String,
 		Resolve: func(p graphql.ResolveParams) (any, error) {
@@ -21,9 +21,9 @@ func init() {
 			return port.rxImpl.String(), nil
 		},
 	})
-	ethdev.GqlEthDevType.AddFieldConfig("faces", &graphql.Field{
+	ethdev.GqlEthDevType.Object.AddFieldConfig("faces", &graphql.Field{
 		Description: "Faces on Ethernet device.",
-		Type:        graphql.NewList(graphql.NewNonNull(iface.GqlFaceType)),
+		Type:        graphql.NewList(graphql.NewNonNull(iface.GqlFaceType.Object)),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			port := Find(p.Source.(ethdev.EthDev))
 			if port == nil {
@@ -33,9 +33,9 @@ func init() {
 		},
 	})
 
-	iface.GqlFaceType.AddFieldConfig("ethDev", &graphql.Field{
+	iface.GqlFaceType.Object.AddFieldConfig("ethDev", &graphql.Field{
 		Description: "Ethernet device containing this face.",
-		Type:        ethdev.GqlEthDevType,
+		Type:        ethdev.GqlEthDevType.Object,
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			face, ok := p.Source.(*Face)
 			if !ok {
@@ -48,8 +48,8 @@ func init() {
 	gqlserver.AddMutation(&graphql.Field{
 		Name:        "createEthPort",
 		Description: "Create an Ethernet port.",
-		Args:        gqlserver.BindArguments(Config{}, ethnetif.GqlConfigFieldTypes),
-		Type:        ethdev.GqlEthDevType,
+		Args:        gqlserver.BindArguments[Config](ethnetif.GqlConfigFieldTypes),
+		Type:        ethdev.GqlEthDevType.Object,
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			var cfg Config
 			if e := jsonhelper.Roundtrip(p.Args, &cfg); e != nil {
@@ -63,13 +63,4 @@ func init() {
 			return port.dev, nil
 		},
 	})
-
-	ethdev.GqlEthDevNodeType.Delete = func(source any) error {
-		dev := source.(ethdev.EthDev)
-		port := Find(dev)
-		if port == nil {
-			return dev.Close()
-		}
-		return port.Close()
-	}
 }

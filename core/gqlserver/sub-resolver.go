@@ -40,7 +40,7 @@ var (
 	}
 )
 
-// Publish publishes results at an interval in reply to GraphQL subscription.
+// PublishInterval publishes results at an interval in reply to GraphQL subscription.
 //
 // read is a callback function that returns a single result.
 // enders are channels that indicate the subscription should be canceled, when a value is received or the channel is closed.
