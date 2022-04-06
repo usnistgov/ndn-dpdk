@@ -5,6 +5,11 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
+)
+
+var (
+	makeAR = testenv.MakeAR
 )
 
 func TestMilliseconds(t *testing.T) {
@@ -14,16 +19,13 @@ func TestMilliseconds(t *testing.T) {
 
 	ms := nnduration.Milliseconds(5274)
 	assert.Equal(5274*time.Millisecond, ms.DurationOr(2816))
-	assert.Equal(`5274`, toJSON(ms))
+	assert.Equal(`5274`, testenv.ToJSON(ms))
 
-	var decoded nnduration.Milliseconds
-	fromJSON(`5274`, &decoded)
-	assert.Equal(ms, decoded)
+	assert.Equal(ms, testenv.FromJSON[nnduration.Milliseconds](`5274`))
 
-	fromJSON(`"5274"`, &decoded)
-	assert.Equal(ms, decoded)
+	assert.Equal(ms, testenv.FromJSON[nnduration.Milliseconds](`"5274"`))
 
-	fromJSON(`"6s"`, &decoded)
+	decoded := testenv.FromJSON[nnduration.Milliseconds](`"6s"`)
 	assert.Equal(nnduration.Milliseconds(6000), decoded)
 	assert.Equal(6*time.Second, decoded.Duration())
 }
@@ -35,13 +37,11 @@ func TestNanoseconds(t *testing.T) {
 
 	ns := nnduration.Nanoseconds(7011)
 	assert.Equal(7011*time.Nanosecond, ns.DurationOr(1652))
-	assert.Equal(`7011`, toJSON(ns))
+	assert.Equal(`7011`, testenv.ToJSON(ns))
 
-	var decoded nnduration.Nanoseconds
-	fromJSON(`7011`, &decoded)
-	assert.Equal(ns, decoded)
+	assert.Equal(ns, testenv.FromJSON[nnduration.Nanoseconds](`7011`))
 
-	fromJSON(`"3us"`, &decoded)
+	decoded := testenv.FromJSON[nnduration.Nanoseconds](`"3us"`)
 	assert.Equal(nnduration.Nanoseconds(3000), decoded)
 	assert.Equal(3*time.Microsecond, decoded.Duration())
 }

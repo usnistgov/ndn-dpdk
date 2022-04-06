@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
-	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/socketface"
@@ -131,7 +131,7 @@ func TestTCP(t *testing.T) {
 
 func TestUnix(t *testing.T) {
 	assert, require := makeAR(t)
-	addr := testenv.TempName(t, "unix.sock")
+	addr := filepath.Join(t.TempDir(), "unix.sock")
 
 	listener, e := net.Listen("unix", addr)
 	require.NoError(e)

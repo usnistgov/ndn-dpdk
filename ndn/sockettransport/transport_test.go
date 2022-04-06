@@ -2,10 +2,10 @@ package sockettransport_test
 
 import (
 	"net"
+	"path/filepath"
 	"sync"
 	"testing"
 
-	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 )
@@ -52,7 +52,7 @@ func TestTCP(t *testing.T) {
 
 func TestUnix(t *testing.T) {
 	_, require := makeAR(t)
-	addr := testenv.TempName(t, "unix.sock")
+	addr := filepath.Join(t.TempDir(), "unix.sock")
 
 	listener, e := net.Listen("unix", addr)
 	require.NoError(e)

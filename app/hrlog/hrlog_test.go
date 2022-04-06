@@ -2,12 +2,12 @@ package hrlog_test
 
 import (
 	"math/rand"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/hrlog"
 	"github.com/usnistgov/ndn-dpdk/app/hrlog/hrlogreader"
-	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 )
@@ -15,7 +15,7 @@ import (
 func TestWriter(t *testing.T) {
 	t.Cleanup(ealthread.AllocClear)
 	assert, require := makeAR(t)
-	filename := testenv.TempName(t)
+	filename := filepath.Join(t.TempDir(), "hrlog.bin")
 
 	w, e := hrlog.NewWriter(hrlog.WriterConfig{
 		Filename:     filename,

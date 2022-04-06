@@ -4,10 +4,10 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/memifface"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
@@ -18,7 +18,7 @@ import (
 func TestMemif(t *testing.T) {
 	assert, require := makeAR(t)
 	fixture := ifacetestenv.NewFixture(t)
-	socketName := testenv.TempName(t, "subdir/memif.sock")
+	socketName := filepath.Join(t.TempDir(), "subdir/memif.sock")
 
 	var locA memifface.Locator
 	locA.SocketName = socketName

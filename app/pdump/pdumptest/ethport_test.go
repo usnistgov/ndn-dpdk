@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/netip"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcapgo"
 	"github.com/usnistgov/ndn-dpdk/app/pdump"
-	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethringdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
@@ -26,7 +26,7 @@ import (
 
 func TestEthPortUnmatched(t *testing.T) {
 	assert, require := makeAR(t)
-	filename := testenv.TempName(t)
+	filename := filepath.Join(t.TempDir(), "pdump.pcapng")
 
 	w, e := pdump.NewWriter(pdump.WriterConfig{
 		Filename:     filename,

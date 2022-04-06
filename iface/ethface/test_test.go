@@ -34,7 +34,6 @@ func TestMain(m *testing.M) {
 
 var (
 	makeAR     = testenv.MakeAR
-	fromJSON   = testenv.FromJSON
 	makePacket = mbuftestenv.MakePacket
 )
 
@@ -72,8 +71,7 @@ func makeEtherLocator(dev ethdev.EthDev) (loc ethface.EtherLocator) {
 }
 
 func parseLocator(j string) ethport.Locator {
-	var locw iface.LocatorWrapper
-	fromJSON(j, &locw)
+	locw := testenv.FromJSON[iface.LocatorWrapper](j)
 	return locw.Locator.(ethport.Locator)
 }
 

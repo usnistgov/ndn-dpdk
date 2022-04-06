@@ -8,9 +8,7 @@ import (
 )
 
 var (
-	makeAR   = testenv.MakeAR
-	fromJSON = testenv.FromJSON
-	toJSON   = testenv.ToJSON
+	makeAR = testenv.MakeAR
 )
 
 func TestPCIAddress(t *testing.T) {
@@ -28,9 +26,7 @@ func TestPCIAddress(t *testing.T) {
 	assert.Error(e)
 
 	a.Bus, a.Slot, a.Function = 0x5e, 0x01, 0x0
-	assert.Equal(`"0000:5e:01.0"`, toJSON(a))
+	assert.Equal(`"0000:5e:01.0"`, testenv.ToJSON(a))
 
-	var decoded pciaddr.PCIAddress
-	fromJSON(`"0000:5e:01.0"`, &decoded)
-	assert.Equal(a, decoded)
+	assert.Equal(a, testenv.FromJSON[pciaddr.PCIAddress](`"0000:5e:01.0"`))
 }

@@ -8,14 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 )
 
 func TestTransport(t *testing.T) {
 	assert, require := makeAR(t)
-	dir := testenv.TempDir(t)
+	dir := t.TempDir()
 
 	helper := exec.Command(os.Args[0], memifbridgeArg, dir)
 	helperIn, e := helper.StdinPipe()

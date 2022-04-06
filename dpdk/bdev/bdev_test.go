@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
-	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
 	"go4.org/must"
@@ -148,7 +148,7 @@ func TestDelayError(t *testing.T) {
 
 func TestFile(t *testing.T) {
 	assert, require := makeAR(t)
-	filename := testenv.TempName(t)
+	filename := filepath.Join(t.TempDir(), "bdev.disk")
 	require.NoError(bdev.TruncateFile(filename, bdev.RequiredBlockSize*blockCount))
 
 	for _, ctor := range []func() (*bdev.File, error){

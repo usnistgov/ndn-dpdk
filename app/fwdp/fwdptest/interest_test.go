@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/container/cs"
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
-	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
@@ -391,7 +391,7 @@ func TestCsHitDiskMalloc(t *testing.T) {
 
 func TestCsHitDiskFile(t *testing.T) {
 	testCsHitDisk(t, bdev.Locator{
-		File: testenv.TempName(t),
+		File: filepath.Join(t.TempDir(), "cs.disk"),
 	})
 }
 

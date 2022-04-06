@@ -4,11 +4,12 @@ import "encoding/json"
 
 // FromJSON unmarshals from JSON string.
 // Error causes panic.
-func FromJSON(j string, ptr any) {
-	e := json.Unmarshal([]byte(j), ptr)
+func FromJSON[T any](j string) (value T) {
+	e := json.Unmarshal([]byte(j), &value)
 	if e != nil {
 		panic(e)
 	}
+	return
 }
 
 // ToJSON marshals a value as JSON string.
