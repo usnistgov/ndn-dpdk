@@ -10,12 +10,12 @@ import (
 	"io"
 	"unsafe"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
 	"go4.org/must"
 )
@@ -84,14 +84,14 @@ func (c *Config) ApplyDefaults() {
 	if c.ReassemblerCapacity == 0 {
 		c.ReassemblerCapacity = DefaultReassemblerCapacity
 	}
-	c.ReassemblerCapacity = math.MinInt(math.MaxInt(MinReassemblerCapacity, c.ReassemblerCapacity), MaxReassemblerCapacity)
+	c.ReassemblerCapacity = generic.Clamp(c.ReassemblerCapacity, MinReassemblerCapacity, MaxReassemblerCapacity)
 
 	c.OutputQueueSize = ringbuffer.AlignCapacity(c.OutputQueueSize, MinOutputQueueSize, DefaultOutputQueueSize)
 }
 
 // WithMaxMTU returns a copy of Config with consideration of device MTU.
 func (c Config) WithMaxMTU(max int) Config {
-	c.maxMTU = math.MinInt(max, MaxMTU)
+	c.maxMTU = generic.Min(max, MaxMTU)
 	return c
 }
 

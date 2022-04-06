@@ -1,13 +1,13 @@
 package ndntestenv
 
 import (
-	"math"
 	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"github.com/zyedidia/generic"
 )
 
 // BridgeConfig contains Bridge parameters.
@@ -37,7 +37,7 @@ type BridgeRelayConfig struct {
 }
 
 func (cfg *BridgeRelayConfig) applyDefaults() {
-	cfg.Loss = math.Min(math.Max(0.0, cfg.Loss), 1.0)
+	cfg.Loss = generic.Clamp(cfg.Loss, 0.0, 1.0)
 	if cfg.MinDelay < cfg.MaxDelay {
 		cfg.MinDelay, cfg.MaxDelay = cfg.MaxDelay, cfg.MinDelay
 	}

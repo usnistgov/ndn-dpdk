@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/zyedidia/generic"
 )
 
 const (
@@ -102,5 +102,5 @@ type Pattern struct {
 }
 
 func (pattern *Pattern) applyDefaults() {
-	pattern.Weight = math.MaxInt(1, pattern.Weight)
+	pattern.Weight = generic.Max(1, pattern.Weight)
 }

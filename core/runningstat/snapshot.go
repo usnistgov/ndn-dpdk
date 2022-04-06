@@ -3,6 +3,8 @@ package runningstat
 import (
 	"encoding/json"
 	"math"
+
+	"github.com/zyedidia/generic"
 )
 
 // Snapshot contains a snapshot of RunningStat reading.
@@ -81,8 +83,8 @@ func (s Snapshot) Add(o Snapshot) (sum Snapshot) {
 	}
 	sum.v.I = s.v.I + o.v.I
 	sum.v.N = s.v.N + o.v.N
-	sum.v.Min = math.Min(s.v.Min, o.v.Min)
-	sum.v.Max = math.Max(s.v.Max, o.v.Max)
+	sum.v.Min = generic.Min(s.v.Min, o.v.Min)
+	sum.v.Max = generic.Max(s.v.Max, o.v.Max)
 	aN := float64(s.v.N)
 	bN := float64(o.v.N)
 	cN := float64(sum.v.N)

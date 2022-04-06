@@ -7,9 +7,9 @@ import (
 	"path"
 
 	binutils "github.com/jfoster/binary-utilities"
-	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"github.com/zyedidia/generic"
 )
 
 // Defaults and limits.
@@ -97,13 +97,13 @@ func (loc *Locator) ApplyDefaults(defaultRole Role) {
 	if loc.Dataroom == 0 {
 		loc.Dataroom = DefaultDataroom
 	} else {
-		loc.Dataroom = mathpkg.MinInt(mathpkg.MaxInt(MinDataroom, loc.Dataroom), MaxDataroom)
+		loc.Dataroom = generic.Clamp(loc.Dataroom, MinDataroom, MaxDataroom)
 	}
 
 	if loc.RingCapacity == 0 {
 		loc.RingCapacity = DefaultRingCapacity
 	} else {
-		loc.RingCapacity = mathpkg.MinInt(mathpkg.MaxInt(MinRingCapacity, loc.RingCapacity), MaxRingCapacity)
+		loc.RingCapacity = generic.Clamp(loc.RingCapacity, MinRingCapacity, MaxRingCapacity)
 	}
 	loc.RingCapacity = int(binutils.NextPowerOfTwo(int64(loc.RingCapacity)))
 }

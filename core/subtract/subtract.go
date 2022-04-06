@@ -4,7 +4,7 @@ package subtract
 import (
 	"reflect"
 
-	"github.com/pkg/math"
+	"github.com/zyedidia/generic"
 )
 
 // Sub computes the numerical difference between two structs of the same type.
@@ -59,7 +59,7 @@ func subValue(currV, prevV, diffV reflect.Value) {
 	case reflect.Struct:
 		diffV.Set(subV(currV, prevV))
 	case reflect.Slice:
-		length := math.MinInt(currV.Len(), prevV.Len())
+		length := generic.Min(currV.Len(), prevV.Len())
 		diffV.Set(reflect.MakeSlice(currV.Type(), length, length))
 		fallthrough
 	case reflect.Array:

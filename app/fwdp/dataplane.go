@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
@@ -16,6 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/zyedidia/generic"
 	"go.uber.org/multierr"
 	"go4.org/must"
 )
@@ -62,12 +62,12 @@ func (cfg *Config) validate() error {
 		cfg.FwdNackQueue.DequeueBurstSize = cfg.FwdDataQueue.DequeueBurstSize
 	}
 	if cfg.FwdInterestQueue.DequeueBurstSize <= 0 {
-		cfg.FwdInterestQueue.DequeueBurstSize = math.MaxInt(cfg.FwdDataQueue.DequeueBurstSize/2, 1)
+		cfg.FwdInterestQueue.DequeueBurstSize = generic.Max(cfg.FwdDataQueue.DequeueBurstSize/2, 1)
 	}
 
 	latencySampleFreq := 16
 	if cfg.LatencySampleFreq != nil {
-		latencySampleFreq = math.MinInt(math.MaxInt(0, *cfg.LatencySampleFreq), 30)
+		latencySampleFreq = generic.Clamp(*cfg.LatencySampleFreq, 0, 30)
 	}
 	cfg.LatencySampleFreq = &latencySampleFreq
 

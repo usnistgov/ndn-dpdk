@@ -10,13 +10,13 @@ import (
 	"math"
 	"time"
 
-	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/rttest"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"github.com/zyedidia/generic"
 )
 
 // FetchOptions contains options for Fetch function.
@@ -197,7 +197,7 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 		}
 
 		switch {
-		case len(pendings)-retxQ.Len() >= mathpkg.Min(ca.Cwnd(), f.MaxCwnd):
+		case len(pendings)-retxQ.Len() >= generic.Min(ca.Cwnd(), f.MaxCwnd):
 			// congestion window full
 
 		case retxQ.Len() > 0:
@@ -322,7 +322,7 @@ func (f *fetcher) Count() int {
 }
 
 func (f *fetcher) EstimatedTotal() int {
-	segLast := mathpkg.MinUint64(f.SegmentEnd, f.finalBlock)
+	segLast := generic.Min(f.SegmentEnd, f.finalBlock)
 	if segLast == math.MaxUint64 {
 		return -1
 	}

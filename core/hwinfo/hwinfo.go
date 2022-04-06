@@ -2,8 +2,8 @@
 package hwinfo
 
 import (
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
+	"github.com/zyedidia/generic"
 )
 
 var logger = logging.New("hwinfo")
@@ -31,7 +31,7 @@ func (cores Cores) ByNumaSocket() (m map[int]Cores) {
 func (cores Cores) MaxNumaSocket() int {
 	maxSocket := -1
 	for _, core := range cores {
-		maxSocket = math.MaxInt(maxSocket, core.NumaSocket)
+		maxSocket = generic.Max(maxSocket, core.NumaSocket)
 	}
 	return maxSocket
 }

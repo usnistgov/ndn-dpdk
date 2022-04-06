@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"github.com/zyedidia/generic"
 )
 
 // Config contains socket transport configuration.
@@ -46,7 +46,7 @@ func (cfg *Config) applyDefaults() {
 	if cfg.RedialBackoffMaximum <= 0 {
 		cfg.RedialBackoffMaximum = 60 * time.Second
 	}
-	cfg.RedialBackoffMaximum = time.Duration(math.MaxInt64(int64(cfg.RedialBackoffMaximum), int64(cfg.RedialBackoffInitial)))
+	cfg.RedialBackoffMaximum = generic.Max(cfg.RedialBackoffMaximum, cfg.RedialBackoffInitial)
 }
 
 // Counters contains socket transport counters.
@@ -193,7 +193,7 @@ func (tr *transport) handleError(e error) {
 	backoff := tr.cfg.RedialBackoffInitial
 	for !tr.isClosed() {
 		time.Sleep(backoff)
-		backoff = time.Duration(math.MinInt64(int64(backoff*2), int64(tr.cfg.RedialBackoffMaximum)))
+		backoff = generic.Min(backoff*2, tr.cfg.RedialBackoffMaximum)
 
 		conn, e := tr.impl.Redial(tr.Conn())
 		tr.cnt.NRedials++

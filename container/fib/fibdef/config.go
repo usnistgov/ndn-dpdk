@@ -2,8 +2,8 @@ package fibdef
 
 import (
 	binutils "github.com/jfoster/binary-utilities"
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
+	"github.com/zyedidia/generic"
 )
 
 // Limits and defaults.
@@ -29,7 +29,7 @@ func (cfg *Config) ApplyDefaults() {
 	if cfg.Capacity == 0 {
 		cfg.Capacity = DefaultCapacity
 	} else {
-		cfg.Capacity = math.MinInt(math.MaxInt(MinCapacity, cfg.Capacity), MaxCapacity)
+		cfg.Capacity = generic.Clamp(cfg.Capacity, MinCapacity, MaxCapacity)
 	}
 	cfg.Capacity = mempool.ComputeOptimumCapacity(cfg.Capacity)
 
@@ -41,6 +41,6 @@ func (cfg *Config) ApplyDefaults() {
 	if cfg.StartDepth == 0 {
 		cfg.StartDepth = DefaultStartDepth
 	} else {
-		cfg.StartDepth = math.MinInt(math.MaxInt(MinStartDepth, cfg.StartDepth), MaxStartDepth)
+		cfg.StartDepth = generic.Clamp(cfg.StartDepth, MinStartDepth, MaxStartDepth)
 	}
 }

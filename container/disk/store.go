@@ -13,7 +13,6 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
@@ -21,6 +20,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
 )
 
@@ -142,7 +142,7 @@ func NewStore(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int, getDat
 	bdi := device.DevInfo()
 
 	store = &Store{th: th}
-	capacity := math.MaxInt64(256, math.MinInt64(bdi.CountBlocks()/1024, 8192))
+	capacity := generic.Clamp(bdi.CountBlocks()/1024, 256, 8192)
 	socket := th.LCore().NumaSocket()
 
 	if store.bd, e = bdev.Open(device, bdev.ReadWrite); e != nil {

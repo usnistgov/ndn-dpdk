@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/zyedidia/generic"
 )
 
 // RxCounters contains face/queue RX counters.
@@ -93,7 +93,7 @@ func (cnt *Counters) sumRx() {
 	for i, thCnt := range cnt.RxThreads {
 		thV := reflect.ValueOf(thCnt)
 		if thV.IsZero() {
-			zeroIndex = math.MinInt(zeroIndex, i)
+			zeroIndex = generic.Min(zeroIndex, i)
 		} else {
 			for field, nFields := 0, sumV.NumField(); field < nFields; field++ {
 				sumF, thF := sumV.Field(field), thV.Field(field)

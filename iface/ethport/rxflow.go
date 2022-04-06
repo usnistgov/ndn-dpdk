@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
 )
 
@@ -75,7 +75,7 @@ func (impl *rxFlow) Init(port *Port) error {
 }
 
 func (impl *rxFlow) Start(face *Face) error {
-	nRxQueues := math.MaxInt(1, face.loc.EthFaceConfig().NRxQueues)
+	nRxQueues := generic.Max(1, face.loc.EthFaceConfig().NRxQueues)
 	if nRxQueues > len(impl.availQueues) {
 		return fmt.Errorf("%d RX queues requested but only %d available on Port", nRxQueues, len(impl.availQueues))
 	}

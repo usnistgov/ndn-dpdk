@@ -10,9 +10,9 @@
 package l3
 
 import (
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"github.com/zyedidia/generic"
 )
 
 // Limits and defaults.
@@ -26,7 +26,7 @@ type FaceConfig struct {
 }
 
 func (cfg *FaceConfig) applyDefaults() {
-	cfg.ReassemblerCapacity = math.MaxInt(cfg.ReassemblerCapacity, MinReassemblerCapacity)
+	cfg.ReassemblerCapacity = generic.Max(cfg.ReassemblerCapacity, MinReassemblerCapacity)
 }
 
 // Face represents a communicate channel to send and receive NDN network layer packets.

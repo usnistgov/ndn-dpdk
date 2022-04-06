@@ -2,8 +2,8 @@ package ndt
 
 import (
 	binutils "github.com/jfoster/binary-utilities"
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/zyedidia/generic"
 )
 
 // Limits and defaults.
@@ -46,20 +46,20 @@ func (c *Config) applyDefaults() {
 	if c.PrefixLen == 0 {
 		c.PrefixLen = DefaultPrefixLen
 	} else {
-		c.PrefixLen = math.MinInt(math.MaxInt(MinPrefixLen, c.PrefixLen), MaxPrefixLen)
+		c.PrefixLen = generic.Clamp(c.PrefixLen, MinPrefixLen, MaxPrefixLen)
 	}
 
 	if c.Capacity == 0 {
 		c.Capacity = DefaultCapacity
 	} else {
-		c.Capacity = math.MinInt(math.MaxInt(MinCapacity, c.Capacity), MaxCapacity)
+		c.Capacity = generic.Clamp(c.Capacity, MinCapacity, MaxCapacity)
 	}
 	c.Capacity = int(binutils.NextPowerOfTwo(int64(c.Capacity)))
 
 	if c.SampleInterval == 0 {
 		c.SampleInterval = DefaultSampleInterval
 	} else {
-		c.SampleInterval = math.MinInt(math.MaxInt(MinSampleInterval, c.PrefixLen), MaxSampleInterval)
+		c.SampleInterval = generic.Clamp(c.PrefixLen, MinSampleInterval, MaxSampleInterval)
 	}
 	c.SampleInterval = int(binutils.NextPowerOfTwo(int64(c.SampleInterval)))
 }

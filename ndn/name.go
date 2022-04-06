@@ -4,9 +4,9 @@ import (
 	"encoding"
 	"strings"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"github.com/zyedidia/generic"
 )
 
 // Name represents a name.
@@ -108,7 +108,7 @@ func (name Name) IsPrefixOf(other Name) bool {
 }
 
 func (name Name) compareCommonPrefix(other Name) int {
-	commonPrefixLen := math.MinInt(len(name), len(other))
+	commonPrefixLen := generic.Min(len(name), len(other))
 	for i := 0; i < commonPrefixLen; i++ {
 		if d := name[i].Compare(other[i]); d != 0 {
 			return d

@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/app/fileserver"
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
@@ -23,6 +22,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/rdr/ndn6file"
 	"github.com/usnistgov/ndn-dpdk/ndn/segmented"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"github.com/zyedidia/generic"
 	"golang.org/x/sys/unix"
 )
 
@@ -143,7 +143,7 @@ func TestServer(t *testing.T) {
 			}
 			nFound++
 		}
-		assert.GreaterOrEqual(nFound, mathpkg.MinInt(cfg.SegmentLen/(unix.NAME_MAX+2), len(dirEntryNames)))
+		assert.GreaterOrEqual(nFound, generic.Min(cfg.SegmentLen/(unix.NAME_MAX+2), len(dirEntryNames)))
 	}
 	testNotFound := func(name string, expectNack bool) {
 		defer wg.Done()

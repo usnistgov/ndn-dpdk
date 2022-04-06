@@ -11,9 +11,9 @@ import (
 	"unsafe"
 
 	binutils "github.com/jfoster/binary-utilities"
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/zyedidia/generic"
 )
 
 // Limits and defaults.
@@ -49,7 +49,7 @@ func AlignCapacity(capacity int, opts ...int) int {
 	} else {
 		capacity = int(binutils.NextPowerOfTwo(int64(capacity)))
 	}
-	return math.MinInt(math.MaxInt(min, capacity), max)
+	return generic.Clamp(capacity, min, max)
 }
 
 // ProducerMode indicates ring producer synchronization mode.

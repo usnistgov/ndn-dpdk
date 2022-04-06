@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
+	"github.com/zyedidia/generic"
 )
 
 // Driver names.
@@ -101,7 +101,7 @@ func (info DevInfo) MarshalJSON() ([]byte, error) {
 // adjustQueueCapacity adjust RX/TX queue capacity to satisfy driver requirements.
 func (lim DescLim) adjustQueueCapacity(capacity int) int {
 	capacity -= capacity % int(lim.Align)
-	return math.MinInt(math.MaxInt(int(lim.Min), capacity), int(lim.Max))
+	return generic.Clamp(capacity, int(lim.Min), int(lim.Max))
 }
 
 func (stats Stats) String() string {

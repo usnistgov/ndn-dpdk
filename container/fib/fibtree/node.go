@@ -3,10 +3,10 @@ package fibtree
 import (
 	"bytes"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"github.com/zyedidia/generic"
 )
 
 func componentToString(comp ndn.NameComponent) string {
@@ -37,7 +37,7 @@ func (n *node) removeChild(child *node) {
 func (n *node) updateHeight() {
 	h := -1
 	for _, child := range n.children {
-		h = math.MaxInt(h, child.height)
+		h = generic.Max(h, child.height)
 	}
 	n.height = h + 1
 }

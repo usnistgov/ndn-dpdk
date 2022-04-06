@@ -6,7 +6,6 @@ import (
 	"math"
 	"time"
 
-	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -15,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
 	"golang.org/x/sys/unix"
 )
@@ -107,7 +107,7 @@ type Config struct {
 
 // Validate applies defaults and validates the configuration.
 func (cfg *Config) Validate() error {
-	cfg.NThreads = mathpkg.MaxInt(1, cfg.NThreads)
+	cfg.NThreads = generic.Max(1, cfg.NThreads)
 
 	cfg.RxQueue.DisableCoDel = true
 
@@ -165,7 +165,7 @@ func (cfg Config) adjustUringThres(thres *float64, dflt float64) (lbound int) {
 		*thres = dflt
 	}
 	lbound = int(float64(cfg.UringCapacity) * (*thres))
-	return mathpkg.Min(mathpkg.Max(iface.MaxBurstSize, lbound), cfg.UringCapacity-iface.MaxBurstSize)
+	return generic.Clamp(lbound, iface.MaxBurstSize, cfg.UringCapacity-iface.MaxBurstSize)
 }
 
 func (cfg *Config) checkPayloadMempool(segmentLen int) error {
@@ -186,7 +186,7 @@ func (cfg *Config) checkPayloadMempool(segmentLen int) error {
 	}
 
 	suggest := pktmbuf.DefaultHeadroom + ndni.NameMaxLength +
-		mathpkg.MaxInt(segmentLen, ndni.NameMaxLength+EstimatedMetadataSize) + ndni.DataEncNullSigLen + 64
+		generic.Max(segmentLen, ndni.NameMaxLength+EstimatedMetadataSize) + ndni.DataEncNullSigLen + 64
 	if tpl.Dataroom < suggest {
 		logger.Warn("PAYLOAD dataroom too small for configured segmentLen, Interests with long names may be dropped",
 			zap.Int("configured-dataroom", tpl.Dataroom),
@@ -195,7 +195,7 @@ func (cfg *Config) checkPayloadMempool(segmentLen int) error {
 		)
 	}
 
-	cfg.payloadHeadroom = tpl.Dataroom - ndni.DataEncNullSigLen - mathpkg.MaxInt(segmentLen, EstimatedMetadataSize)
+	cfg.payloadHeadroom = tpl.Dataroom - ndni.DataEncNullSigLen - generic.Max(segmentLen, EstimatedMetadataSize)
 	if cfg.payloadHeadroom < pktmbuf.DefaultHeadroom {
 		return fmt.Errorf("PAYLOAD dataroom %d too small for segmentLen %d; increase PAYLOAD dataroom to %d",
 			tpl.Dataroom, segmentLen, suggest)

@@ -20,7 +20,6 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
 	github.com/machinebox/graphql v0.2.2
-	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rickb777/plural v1.4.1
 	github.com/safchain/ethtool v0.2.0
@@ -33,6 +32,7 @@ require (
 	github.com/urfave/cli/v2 v2.4.0
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
+	github.com/zyedidia/generic v0.2.1-0.20220406174630-7bf84966e70c
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
@@ -56,6 +56,7 @@ require (
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/segmentio/fasthash v1.0.3 // indirect
 	github.com/smartystreets/goconvey v1.7.2 // indirect
 	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect

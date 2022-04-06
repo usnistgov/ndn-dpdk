@@ -8,10 +8,10 @@ import (
 	"reflect"
 	"strconv"
 
-	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealinit"
+	"github.com/zyedidia/generic"
 )
 
 // EnvCpus declares an environment variable to reduce the number of usable CPU cores.
@@ -57,7 +57,7 @@ func Init() {
 		if e != nil || maxCores < 1 {
 			panic("invalid " + EnvCpus)
 		}
-		hwInfo.MaxCores = mathpkg.MinInt(hwInfo.MaxCores, maxCores)
+		hwInfo.MaxCores = generic.Min(hwInfo.MaxCores, maxCores)
 	}
 
 	var cfg ealconfig.Config

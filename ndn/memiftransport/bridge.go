@@ -5,7 +5,7 @@ package memiftransport
 import (
 	"fmt"
 
-	"github.com/pkg/math"
+	"github.com/zyedidia/generic"
 	"go4.org/must"
 )
 
@@ -50,7 +50,7 @@ func NewBridge(locA, locB Locator) (bridge *Bridge, e error) {
 }
 
 func (bridge *Bridge) transferLoop(src, dst *handle) {
-	buf := make([]byte, math.MaxInt(src.Locator.Dataroom, dst.Locator.Dataroom))
+	buf := make([]byte, generic.Max(src.Locator.Dataroom, dst.Locator.Dataroom))
 	for {
 		select {
 		case <-bridge.closing:

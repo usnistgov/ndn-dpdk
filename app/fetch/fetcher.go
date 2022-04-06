@@ -10,7 +10,6 @@ import (
 	"math"
 	"unsafe"
 
-	mathpkg "github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
@@ -20,6 +19,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/zyedidia/generic"
 	"go.uber.org/multierr"
 )
 
@@ -33,8 +33,8 @@ type FetcherConfig struct {
 
 // Validate applies defaults and validates the configuration.
 func (cfg *FetcherConfig) Validate() error {
-	cfg.NThreads = mathpkg.MaxInt(1, cfg.NThreads)
-	cfg.NProcs = mathpkg.MaxInt(1, cfg.NProcs)
+	cfg.NThreads = generic.Max(1, cfg.NThreads)
+	cfg.NProcs = generic.Max(1, cfg.NProcs)
 	cfg.RxQueue.DisableCoDel = true
 	cfg.WindowCapacity = ringbuffer.AlignCapacity(cfg.WindowCapacity, 16, 65536)
 	return nil

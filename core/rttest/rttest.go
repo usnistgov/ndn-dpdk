@@ -4,6 +4,8 @@ package rttest
 import (
 	"math"
 	"time"
+
+	"github.com/zyedidia/generic"
 )
 
 //go:generate go run ../../mk/enumgen/ -guard=NDNDPDK_CORE_RTTEST_ENUM_H -out=../../csrc/core/rttest-enum.h .
@@ -70,7 +72,7 @@ func (rtte *RttEstimator) updateRTO() {
 }
 
 func (rtte *RttEstimator) setRTO(rto float64) {
-	rtte.rto = math.Max(MinRtoSeconds, math.Min(rto, MaxRtoSeconds))
+	rtte.rto = generic.Clamp(rto, MinRtoSeconds, MaxRtoSeconds)
 }
 
 // SRTT returns smoothed round-trip time.

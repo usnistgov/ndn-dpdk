@@ -1,9 +1,10 @@
 package endpoint
 
 import (
-	"math"
 	"math/rand"
 	"time"
+
+	"github.com/zyedidia/generic"
 )
 
 // RetxIterable is a generator function for successive retransmission intervals.
@@ -59,7 +60,7 @@ func (retx RetxOptions) IntervalIterable(lifetime time.Duration) RetxIterable {
 		retx.Randomize = 0
 	}
 
-	retx.Backoff = math.Min(math.Max(1.0, retx.Backoff), 2.0)
+	retx.Backoff = generic.Clamp(retx.Backoff, 1.0, 2.0)
 
 	if retx.Max == 0 {
 		retx.Max = lifetime / 10 * 9
@@ -74,7 +75,7 @@ func (retx RetxOptions) IntervalIterable(lifetime time.Duration) RetxIterable {
 		count++
 
 		d = time.Duration(nextInterval * (1 - retx.Randomize + rand.Float64()*2*retx.Randomize))
-		nextInterval = math.Min(nextInterval*retx.Backoff, max)
+		nextInterval = generic.Min(nextInterval*retx.Backoff, max)
 		return d
 	}
 }

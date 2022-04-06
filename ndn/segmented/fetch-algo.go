@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	mathpkg "github.com/pkg/math"
+	"github.com/zyedidia/generic"
 )
 
 const (
@@ -25,7 +25,7 @@ type cubic struct {
 }
 
 func (ca *cubic) Cwnd() int {
-	return mathpkg.MaxInt(cubicIw, int(ca.cwnd))
+	return generic.Max(cubicIw, int(ca.cwnd))
 }
 
 func (ca *cubic) Increase(now time.Time, rtt time.Duration) {
@@ -65,7 +65,7 @@ func (ca *cubic) Decrease(now time.Time) {
 	}
 	ca.k = math.Cbrt(ca.wMax * (1 - cubicBeta) / cubicC)
 	ca.cwnd *= cubicBeta
-	ca.ssthresh = math.Max(ca.cwnd, 2)
+	ca.ssthresh = generic.Max(ca.cwnd, 2)
 }
 
 func newCubic() (ca *cubic) {

@@ -2,11 +2,11 @@ package iface_test
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"testing"
 	"unsafe"
 
-	"github.com/pkg/math"
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
+	"github.com/zyedidia/generic"
 )
 
 type InputDemuxFixture struct {
@@ -107,12 +108,14 @@ func testInputDemuxRoundRobin(t testing.TB, n int) {
 	assert.Empty(fixture.Rejects)
 
 	cnt := fixture.Counts()
-	sum := 0
+	sum, min, max := 0, math.MaxInt, math.MinInt
 	for _, c := range cnt {
 		sum += c
+		min = generic.Min(min, c)
+		max = generic.Max(max, c)
 	}
 	assert.Equal(500, sum)
-	assert.InDelta(math.MinIntN(cnt...), math.MaxIntN(cnt...), 1.0)
+	assert.InDelta(min, max, 1.0)
 }
 
 func TestInputDemuxRoundRobin5(t *testing.T) {
