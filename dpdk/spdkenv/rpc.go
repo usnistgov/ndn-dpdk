@@ -47,7 +47,7 @@ func initRPC() error {
 }
 
 // RPC calls a method on SPDK RPC server.
-func RPC(method string, args any, reply any) (e error) {
+func RPC(method string, args, reply any) (e error) {
 	e = rpcClient.Call(method, args, reply)
 
 	if ce := logger.Check(zap.DebugLevel, "RPC"); ce != nil {

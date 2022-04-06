@@ -188,12 +188,12 @@ func (fetcher Fetcher) Workers() []ealthread.ThreadWithRole {
 
 // Launch launches all fetch threads.
 func (fetcher *Fetcher) Launch() {
-	tgdef.LaunchWorkers(fetcher.Workers())
+	tgdef.LaunchWorkers(fetcher.workers)
 }
 
 // Stop stops all fetch threads.
 func (fetcher *Fetcher) Stop() error {
-	return tgdef.StopWorkers(fetcher.Workers())
+	return tgdef.StopWorkers(fetcher.workers)
 }
 
 // Close deallocates data structures.

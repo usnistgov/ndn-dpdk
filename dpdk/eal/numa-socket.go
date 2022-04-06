@@ -6,7 +6,6 @@ package eal
 import "C"
 import (
 	"encoding/json"
-	"reflect"
 	"strconv"
 
 	"github.com/graphql-go/graphql"
@@ -119,26 +118,13 @@ type WithNumaSocket interface {
 //  T: type that satisfies WithNumaSocket interface
 //  s: source []T
 // Returns map[eal.NumaSocket][]T
-func ClassifyByNumaSocket(s any, r RewriteAnyNumaSocket) any {
-	sV := reflect.ValueOf(s)
-	sT := sV.Type()
-	mV := reflect.MakeMap(reflect.MapOf(reflect.TypeOf(NumaSocket{}), sT))
-
-	for i, count := 0, sV.Len(); i < count; i++ {
-		itemV := sV.Index(i)
-
-		socket := r.Rewrite(itemV.Interface().(WithNumaSocket).NumaSocket())
-		socketV := reflect.ValueOf(socket)
-
-		bucketV := mV.MapIndex(socketV)
-		if bucketV.Kind() == 0 {
-			bucketV = reflect.MakeSlice(sT, 0, count)
-		}
-		bucketV = reflect.Append(bucketV, itemV)
-		mV.SetMapIndex(socketV, bucketV)
+func ClassifyByNumaSocket[T WithNumaSocket, S ~[]T](s S, r RewriteAnyNumaSocket) (m map[NumaSocket]S) {
+	m = map[NumaSocket]S{}
+	for _, item := range s {
+		socket := r.Rewrite(item.NumaSocket())
+		m[socket] = append(m[socket], item)
 	}
-
-	return mV.Interface()
+	return m
 }
 
 // GqlWithNumaSocket is a GraphQL field for source object that implements WithNumaSocket.

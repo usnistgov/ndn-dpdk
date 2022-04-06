@@ -162,10 +162,8 @@ type request struct {
 
 func (r request) isSubscription() bool {
 	var verb string
-	if _, e := fmt.Sscan(r.Query, &verb); e == nil && verb == "subscription" {
-		return true
-	}
-	return false
+	_, e := fmt.Sscan(r.Query, &verb)
+	return e == nil && verb == "subscription"
 }
 
 func (r request) Execute(ctx context.Context, ptr any) error {

@@ -1,7 +1,6 @@
 package ealthread
 
 import (
-	"reflect"
 	"time"
 )
 
@@ -50,28 +49,4 @@ func (stop StopChan) RequestStop() {
 // NewStopChan constructs a StopChan.
 func NewStopChan() (stop StopChan) {
 	return make(StopChan)
-}
-
-// StopClose stops a thread by closing a channel.
-// The thread is not restartable.
-type StopClose struct {
-	v reflect.Value // chan<-
-}
-
-// BeforeWait requests a stop.
-func (stop StopClose) BeforeWait() {
-	stop.v.Close()
-}
-
-// AfterWait completes a stop request.
-func (stop StopClose) AfterWait() {
-}
-
-// NewStopClose constructs a StopClose.
-func NewStopClose(ch any) (stop StopClose) {
-	v := reflect.ValueOf(ch)
-	if v.Type().ChanDir()&reflect.SendDir == 0 {
-		panic("StopClose requires chan<-")
-	}
-	return StopClose{v}
 }

@@ -44,12 +44,12 @@ func (p *Server) Workers() []ealthread.ThreadWithRole {
 
 // Launch launches all workers.
 func (p *Server) Launch() {
-	tgdef.LaunchWorkers(p.Workers())
+	tgdef.LaunchWorkers(p.workers)
 }
 
 // Stop stops all workers.
 func (p *Server) Stop() error {
-	return tgdef.StopWorkers(p.Workers())
+	return tgdef.StopWorkers(p.workers)
 }
 
 // Close closes the server.

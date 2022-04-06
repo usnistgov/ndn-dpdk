@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	"github.com/stretchr/testify/assert"
-
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
 
@@ -32,13 +31,13 @@ func getName(obj any) ndn.Name {
 
 // NameEqual asserts that actual name equals expected name.
 // Name arguments can be string, Name, object with Name() method, or object with Name field.
-func NameEqual(a *assert.Assertions, expected any, actual any, msgAndArgs ...any) bool {
+func NameEqual(a *assert.Assertions, expected, actual any, msgAndArgs ...any) bool {
 	return a.Equal(getName(expected).String(), getName(actual).String(), msgAndArgs...)
 }
 
 // NameIsPrefix asserts that name starts with prefix.
 // Name arguments can be string, Name, object with Name() method, or object with Name field.
-func NameIsPrefix(a *assert.Assertions, prefix any, name any, msgAndArgs ...any) bool {
+func NameIsPrefix(a *assert.Assertions, prefix, name any, msgAndArgs ...any) bool {
 	prefixN := getName(prefix)
 	nameN := getName(name)
 	if prefixN.IsPrefixOf(nameN) {

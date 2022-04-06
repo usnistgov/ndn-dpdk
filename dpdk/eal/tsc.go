@@ -36,7 +36,7 @@ func InitTscUnit() {
 	unixRef := time.Now()
 	tsc2 := TscNow()
 	C.TscTimeRefUnixNano_ = C.double(unixRef.UnixNano())
-	C.TscTimeRefTsc_ = C.double((float64(tsc1) + float64(tsc2)) / 2.0)
+	C.TscTimeRefTsc_ = (C.double(tsc1) + C.double(tsc2)) / 2.0
 }
 
 // TscTime represents a time point on TSC clock.

@@ -58,12 +58,12 @@ func (p Producer) Workers() []ealthread.ThreadWithRole {
 
 // Launch launches all workers.
 func (p *Producer) Launch() {
-	tgdef.LaunchWorkers(p.Workers())
+	tgdef.LaunchWorkers(p.workers)
 }
 
 // Stop stops all workers.
 func (p *Producer) Stop() error {
-	return tgdef.StopWorkers(p.Workers())
+	return tgdef.StopWorkers(p.workers)
 }
 
 // Close closes the producer.

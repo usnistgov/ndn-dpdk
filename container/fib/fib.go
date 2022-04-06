@@ -126,7 +126,7 @@ func New(cfg fibdef.Config, threads []LookupThread) (*Fib, error) {
 		replicas: map[eal.NumaSocket]*fibreplica.Table{},
 	}
 
-	threadByNuma := eal.ClassifyByNumaSocket(threads, eal.RewriteAnyNumaSocketFirst).(map[eal.NumaSocket][]LookupThread)
+	threadByNuma := eal.ClassifyByNumaSocket(threads, eal.RewriteAnyNumaSocketFirst)
 	for socket, ths := range threadByNuma {
 		sgGlobals := make([]unsafe.Pointer, len(ths))
 		for i, th := range ths {

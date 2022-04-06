@@ -7,9 +7,10 @@ static int c_rte_errno() { return rte_errno; }
 */
 import "C"
 import (
-	"reflect"
 	"strconv"
 	"syscall"
+
+	"golang.org/x/exp/constraints"
 )
 
 // Errno represents a DPDK error.
@@ -20,9 +21,7 @@ func (e Errno) Error() string {
 }
 
 // MakeErrno creates Errno from non-zero number or returns nil for zero.
-// errno must be a signed integer.
-func MakeErrno(errno any) error {
-	v := reflect.ValueOf(errno).Int()
+func MakeErrno[I constraints.Signed](v I) error {
 	switch {
 	case v == 0:
 		return nil
