@@ -167,7 +167,7 @@ func LoadFile(name, filename string) (sc *Strategy, e error) {
 	lastID++
 
 	sc = &Strategy{
-		c:    (*C.StrategyCode)(eal.Zmalloc("Strategy", C.sizeof_StrategyCode, eal.NumaSocket{})),
+		c:    eal.Zmalloc[C.StrategyCode]("Strategy", C.sizeof_StrategyCode, eal.NumaSocket{}),
 		id:   lastID,
 		name: name,
 	}

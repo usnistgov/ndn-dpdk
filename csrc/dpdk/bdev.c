@@ -1,6 +1,6 @@
 #include "bdev.h"
 
-void* BdevFiller_ = NULL;
+uint8_t* BdevFiller_ = NULL;
 
 __attribute__((nonnull)) static inline void
 Bdev_Complete(struct spdk_bdev_io* io, bool success, void* req0)

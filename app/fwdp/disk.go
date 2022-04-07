@@ -92,7 +92,7 @@ func (fwdisk *Disk) Init(lc eal.LCore, demuxPrep *demuxPreparer, cfg DiskConfig)
 	}
 
 	socket := lc.NumaSocket()
-	fwdisk.c = (*C.FwDisk)(eal.ZmallocAligned("FwDisk", C.sizeof_FwDisk, 1, socket))
+	fwdisk.c = eal.ZmallocAligned[C.FwDisk]("FwDisk", C.sizeof_FwDisk, 1, socket)
 	fwdisk.SetLCore(lc)
 
 	if fwdisk.store, e = disk.NewStore(fwdisk.bdev, fwdisk.Thread, calc.BlocksPerSlot(),

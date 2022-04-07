@@ -59,7 +59,7 @@ func (w worker) counters() countersC {
 
 func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e error) {
 	w = &worker{
-		c: (*C.FileServer)(eal.Zmalloc("FileServer", C.sizeof_FileServer, socket)),
+		c: eal.Zmalloc[C.FileServer]("FileServer", C.sizeof_FileServer, socket),
 	}
 
 	if e := w.rxQueue().Init(cfg.RxQueue, socket); e != nil {

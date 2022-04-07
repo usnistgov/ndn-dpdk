@@ -178,7 +178,7 @@ func NewFaceSource(cfg FaceConfig) (s *FaceSource, e error) {
 	socket := s.Face.NumaSocket()
 
 	s.logger = logger.With(s.Face.ID().ZapField("face"), zap.String("dir", string(s.Dir)))
-	s.c = (*C.PdumpFaceSource)(eal.Zmalloc("PdumpFaceSource", C.sizeof_PdumpFaceSource, socket))
+	s.c = eal.Zmalloc[C.PdumpFaceSource]("PdumpFaceSource", C.sizeof_PdumpFaceSource, socket)
 	s.c.base = C.PdumpSource{
 		directMp: (*C.struct_rte_mempool)(pktmbuf.Direct.Get(socket).Ptr()),
 		queue:    s.Writer.c.queue,

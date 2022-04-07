@@ -15,7 +15,7 @@ enum
   BdevMaxMbufSegs = 31,
 };
 
-extern void* BdevFiller_;
+extern uint8_t* BdevFiller_;
 
 /** @brief Length and alignment descriptor of a stored packet. */
 typedef struct BdevStoredPacket

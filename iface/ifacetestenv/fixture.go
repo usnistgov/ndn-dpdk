@@ -49,7 +49,7 @@ type Fixture struct {
 }
 
 func (fixture *Fixture) preparePktQueue(demux *iface.InputDemux) *iface.PktQueue {
-	q := (*iface.PktQueue)(eal.Zmalloc("PktQueue", unsafe.Sizeof(iface.PktQueue{}), eal.NumaSocket{}))
+	q := eal.Zmalloc[iface.PktQueue]("PktQueue", unsafe.Sizeof(iface.PktQueue{}), eal.NumaSocket{})
 	q.Init(iface.PktQueueConfig{}, eal.NumaSocket{})
 	demux.InitFirst()
 	demux.SetDest(0, q)

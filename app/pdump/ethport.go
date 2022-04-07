@@ -112,7 +112,7 @@ func NewEthPortSource(cfg EthPortConfig) (s *EthPortSource, e error) {
 	id, socket := dev.ID(), dev.NumaSocket()
 
 	s.logger = logger.With(dev.ZapField("port"))
-	s.c = (*C.PdumpSource)(eal.Zmalloc("PdumpSource", C.sizeof_PdumpSource, socket))
+	s.c = eal.Zmalloc[C.PdumpSource]("PdumpSource", C.sizeof_PdumpSource, socket)
 	*s.c = C.PdumpSource{
 		directMp: (*C.struct_rte_mempool)(pktmbuf.Direct.Get(socket).Ptr()),
 		queue:    s.Writer.c.queue,

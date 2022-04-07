@@ -13,9 +13,8 @@ import (
 func TestLogic(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	flPtr := eal.Zmalloc("FetchLogic", unsafe.Sizeof(fetch.Logic{}), eal.NumaSocket{})
-	defer eal.Free(flPtr)
-	fl := fetch.LogicFromPtr(flPtr)
+	fl := eal.Zmalloc[fetch.Logic]("FetchLogic", unsafe.Sizeof(fetch.Logic{}), eal.NumaSocket{})
+	defer eal.Free(fl)
 	fl.Init(64, eal.NumaSocket{})
 	defer fl.Close()
 

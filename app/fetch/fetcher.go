@@ -92,7 +92,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 	}
 	for i := range fetcher.workers {
 		w := &worker{
-			c: (*C.FetchThread)(eal.Zmalloc("FetchThread", C.sizeof_FetchThread, socket)),
+			c: eal.Zmalloc[C.FetchThread]("FetchThread", C.sizeof_FetchThread, socket),
 		}
 		w.c.face = (C.FaceID)(faceID)
 		w.c.interestMp = interestMp
@@ -105,7 +105,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 	}
 
 	for i := range fetcher.fp {
-		fp := (*C.FetchProc)(eal.Zmalloc("FetchProc", C.sizeof_FetchProc, socket))
+		fp := eal.Zmalloc[C.FetchProc]("FetchProc", C.sizeof_FetchProc, socket)
 		if e := iface.PktQueueFromPtr(unsafe.Pointer(&fp.rxQueue)).Init(cfg.RxQueue, socket); e != nil {
 			return nil, e
 		}
@@ -119,7 +119,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 
 // Logic returns the Logic of i-th fetch procedure.
 func (fetcher *Fetcher) Logic(i int) *Logic {
-	return LogicFromPtr(unsafe.Pointer(&fetcher.fp[i].logic))
+	return (*Logic)(&fetcher.fp[i].logic)
 }
 
 // Reset resets all Logics.

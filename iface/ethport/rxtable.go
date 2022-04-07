@@ -72,7 +72,7 @@ func (rxt *rxgTable) Close() error {
 
 func newRxgTable(port *Port) (rxt *rxgTable) {
 	socket := port.dev.NumaSocket()
-	rxt = (*rxgTable)(eal.Zmalloc("EthRxTable", C.sizeof_EthRxTable, socket))
+	rxt = eal.Zmalloc[rxgTable]("EthRxTable", C.sizeof_EthRxTable, socket)
 	rxt.port = C.uint16_t(port.dev.ID())
 	rxt.queue = 0
 	rxt.base.rxBurst = C.RxGroup_RxBurstFunc(C.EthRxTable_RxBurst)

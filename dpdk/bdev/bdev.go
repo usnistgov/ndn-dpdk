@@ -100,7 +100,7 @@ func (bd *Bdev) do(pkt *pktmbuf.Packet, f func(breq *C.BdevRequest)) error {
 	ctx := cgo.NewHandle(done)
 	defer ctx.Delete()
 
-	req := (*C.go_BdevRequest)(eal.Zmalloc("BdevRequest", C.sizeof_go_BdevRequest, eal.NumaSocket{}))
+	req := eal.Zmalloc[C.go_BdevRequest]("BdevRequest", C.sizeof_go_BdevRequest, eal.NumaSocket{})
 	defer eal.Free(req)
 	req.handle = C.uintptr_t(ctx)
 

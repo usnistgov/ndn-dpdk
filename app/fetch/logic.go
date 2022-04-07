@@ -5,8 +5,6 @@ package fetch
 */
 import "C"
 import (
-	"unsafe"
-
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
@@ -82,10 +80,4 @@ func (fl *Logic) RxData(segNum uint64, hasCongMark bool) {
 		pkt.congMark = 1
 	}
 	C.FetchLogic_RxDataBurst(fl.ptr(), &pkt, 1)
-}
-
-// LogicFromPtr converts *C.FetchLogic to *Logic.
-// ptr must be in C memory due to TAILQ_HEAD usage.
-func LogicFromPtr(ptr unsafe.Pointer) (fl *Logic) {
-	return (*Logic)(ptr)
 }

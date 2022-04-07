@@ -104,7 +104,7 @@ func NewThread() (*Thread, error) {
 
 	th := &Thread{
 		name:        name,
-		c:           (*C.SpdkThread)(eal.Zmalloc("SpdkThread", C.sizeof_SpdkThread, eal.NumaSocket{})),
+		c:           eal.Zmalloc[C.SpdkThread]("SpdkThread", C.sizeof_SpdkThread, eal.NumaSocket{}),
 		RcuReadSide: &urcu.ReadSide{IsOnline: true},
 	}
 	th.c.spdkTh = spdkThread

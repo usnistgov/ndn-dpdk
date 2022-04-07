@@ -28,7 +28,7 @@ func (ndq *Querier) ptr() *C.NdtQuerier {
 func (ndq *Querier) Init(ndt *Ndt, socket eal.NumaSocket) {
 	*ndq = Querier{
 		ndt:   ndt.getReplica(socket).ptr(),
-		nHits: (*C.uint32_t)(eal.ZmallocAligned("NdtQuerier.nHits", C.sizeof_uint32_t*ndt.cfg.Capacity, 1, socket)),
+		nHits: eal.ZmallocAligned[C.uint32_t]("NdtQuerier.nHits", C.sizeof_uint32_t*ndt.cfg.Capacity, 1, socket),
 	}
 	ndt.queriers[ndq] = true
 }
@@ -51,9 +51,4 @@ func (ndq *Querier) Lookup(name ndn.Name) uint8 {
 
 func (ndq *Querier) hitCounters(nEntries int) (hits []uint32) {
 	return unsafe.Slice((*uint32)(unsafe.Pointer(ndq.nHits)), nEntries)
-}
-
-// QuerierFromPtr converts *C.NdtQuerier to *Querier.
-func QuerierFromPtr(ptr unsafe.Pointer) *Querier {
-	return (*Querier)(ptr)
 }

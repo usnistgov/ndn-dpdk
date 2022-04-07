@@ -45,7 +45,7 @@ func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN ifac
 	latencySampleFreq int, suppressCfg pit.SuppressConfig) (e error) {
 	socket := lc.NumaSocket()
 
-	fwd.c = (*C.FwFwd)(eal.Zmalloc("FwFwd", C.sizeof_FwFwd, socket))
+	fwd.c = eal.Zmalloc[C.FwFwd]("FwFwd", C.sizeof_FwFwd, socket)
 	fwd.c.id = C.uint8_t(fwd.id)
 	fwd.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(unsafe.Pointer(C.FwFwd_Run), fwd.c),

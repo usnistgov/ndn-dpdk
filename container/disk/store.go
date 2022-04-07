@@ -68,7 +68,7 @@ func (store *Store) SlotRange() (min, max uint64) {
 
 // PutData asynchronously stores a Data packet.
 func (store *Store) PutData(slotID uint64, data *ndni.Packet) (sp bdev.StoredPacket, e error) {
-	spC := (*C.BdevStoredPacket)(eal.Zmalloc("BdevStoredPacket", C.sizeof_BdevStoredPacket, eal.NumaSocket{}))
+	spC := eal.Zmalloc[C.BdevStoredPacket]("BdevStoredPacket", C.sizeof_BdevStoredPacket, eal.NumaSocket{})
 	defer eal.Free(spC)
 	npkt := (*C.Packet)(data.Ptr())
 	if ok := C.DiskStore_PutPrepare(store.c, npkt, spC); !ok {
@@ -149,7 +149,7 @@ func NewStore(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int, getDat
 		return nil, e
 	}
 
-	store.c = (*C.DiskStore)(eal.Zmalloc("DiskStore", C.sizeof_DiskStore, socket))
+	store.c = eal.Zmalloc[C.DiskStore]("DiskStore", C.sizeof_DiskStore, socket)
 	store.bd.CopyToC(unsafe.Pointer(&store.c.bdev))
 	store.c.nBlocksPerSlot = C.uint64_t(nBlocksPerSlot)
 	store.c.th = (*C.struct_spdk_thread)(th.Ptr())
@@ -168,8 +168,8 @@ func NewStore(device bdev.Device, th *spdkenv.Thread, nBlocksPerSlot int, getDat
 		eal.Free(store.c)
 		return nil, fmt.Errorf("HashTable_New failed: %w", e)
 	}
-	store.c.requestArray = (*C.DiskStoreRequest)(eal.Zmalloc("disk.Store.requestArray",
-		C.sizeof_DiskStoreRequest*(1+C.rte_hash_max_key_id(store.c.requestHt)), socket))
+	store.c.requestArray = eal.Zmalloc[C.DiskStoreRequest]("DiskStoreRequest",
+		C.sizeof_DiskStoreRequest*(1+C.rte_hash_max_key_id(store.c.requestHt)), socket)
 
 	f, ctx, revoke := StoreGetDataCallback.CallbackReuse(getDataCb)
 	store.c.getDataCb, store.c.getDataCtx, store.getDataCbRevoke = C.DiskStore_GetDataCb(f), C.uintptr_t(ctx), revoke

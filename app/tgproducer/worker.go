@@ -99,7 +99,7 @@ func (w *worker) freeDataGen() {
 
 func newWorker(faceID iface.ID, socket eal.NumaSocket, rxqCfg iface.PktQueueConfig) (w *worker, e error) {
 	w = &worker{
-		c: (*C.Tgp)(eal.Zmalloc("Tgp", C.sizeof_Tgp, socket)),
+		c: eal.Zmalloc[C.Tgp]("Tgp", C.sizeof_Tgp, socket),
 	}
 
 	rxQueue := iface.PktQueueFromPtr(unsafe.Pointer(&w.c.rxQueue))

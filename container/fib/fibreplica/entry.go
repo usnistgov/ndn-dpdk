@@ -128,7 +128,7 @@ func (entry *Entry) assignReal(u *fibdef.RealUpdate, sgGlobals []unsafe.Pointer)
 		defer paramsHdl.Delete()
 		now := C.TscTime(eal.TscNow())
 		for i, sgGlobal := range sgGlobals {
-			ctx := (*C.FibSgInitCtx)(eal.Zmalloc("FibSgInitCtx", C.sizeof_FibSgInitCtx, eal.NumaSocket{}))
+			ctx := eal.Zmalloc[C.FibSgInitCtx]("FibSgInitCtx", C.sizeof_FibSgInitCtx, eal.NumaSocket{})
 			*ctx = C.FibSgInitCtx{
 				global:   (*C.SgGlobal)(sgGlobal),
 				now:      now,

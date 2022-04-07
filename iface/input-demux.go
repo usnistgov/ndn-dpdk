@@ -52,7 +52,7 @@ func (demux *InputDemux) InitGenericHash(nDest int) {
 // Clear() the NDT querier before freeing the InputDemux or changing dispatch function.
 func (demux *InputDemux) InitNdt() *ndt.Querier {
 	ndq := C.InputDemux_SetDispatchByNdt(demux.ptr())
-	return ndt.QuerierFromPtr(unsafe.Pointer(ndq))
+	return (*ndt.Querier)(unsafe.Pointer(ndq))
 }
 
 // InitToken configures to dispatch according to specified octet in the PIT token.

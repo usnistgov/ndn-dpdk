@@ -103,7 +103,7 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 
 	w = &Writer{
 		filename: cfg.Filename,
-		c:        (*C.HrlogWriter)(eal.Zmalloc("HrlogWriter", C.sizeof_HrlogWriter, cfg.Socket)),
+		c:        eal.Zmalloc[C.HrlogWriter]("HrlogWriter", C.sizeof_HrlogWriter, cfg.Socket),
 	}
 	w.c.filename = C.CString(cfg.Filename)
 	w.c.count = C.int64_t(cfg.Count)

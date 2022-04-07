@@ -52,7 +52,7 @@ type RxLoop interface {
 // NewRxLoop creates an RxLoop.
 func NewRxLoop(socket eal.NumaSocket) RxLoop {
 	rxl := &rxLoop{
-		c:      (*C.RxLoop)(eal.Zmalloc("RxLoop", C.sizeof_RxLoop, socket)),
+		c:      eal.Zmalloc[C.RxLoop]("RxLoop", C.sizeof_RxLoop, socket),
 		socket: socket,
 	}
 	rxl.ThreadWithCtrl = ealthread.NewThreadWithCtrl(

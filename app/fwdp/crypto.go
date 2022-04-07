@@ -45,7 +45,7 @@ var (
 // Init initializes the crypto helper thread.
 func (fwc *Crypto) Init(lc eal.LCore, demuxPrep *demuxPreparer) error {
 	socket := lc.NumaSocket()
-	fwc.c = (*C.FwCrypto)(eal.ZmallocAligned("FwCrypto", C.sizeof_FwCrypto, 1, socket))
+	fwc.c = eal.ZmallocAligned[C.FwCrypto]("FwCrypto", C.sizeof_FwCrypto, 1, socket)
 	fwc.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(unsafe.Pointer(C.FwCrypto_Run), unsafe.Pointer(fwc.c)),
 		unsafe.Pointer(&fwc.c.ctrl),

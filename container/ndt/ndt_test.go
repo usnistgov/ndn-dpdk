@@ -54,14 +54,14 @@ func (th *lookupTestThread) main() {
 }
 
 func newLookupTestThread(t testing.TB, table *ndt.Ndt, names []ndn.Name) *lookupTestThread {
-	ndqPtr := eal.Zmalloc("NdtQuerier", unsafe.Sizeof(ndt.Querier{}), eal.NumaSocket{})
+	ndq := eal.Zmalloc[ndt.Querier]("NdtQuerier", unsafe.Sizeof(ndt.Querier{}), eal.NumaSocket{})
 	t.Cleanup(func() {
-		eal.Free(ndqPtr)
+		eal.Free(ndq)
 	})
 
 	th := &lookupTestThread{
 		stop: ealthread.NewStopChan(),
-		ndq:  ndt.QuerierFromPtr(ndqPtr),
+		ndq:  ndq,
 	}
 	th.ndq.Init(table, eal.NumaSocket{})
 	for _, name := range names {

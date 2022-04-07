@@ -30,7 +30,7 @@ func (fixture *PktQueueFixture) PopMax(vec pktmbuf.Vector, now eal.TscTime) (cou
 func NewPktQueueFixture(t testing.TB, cfg iface.PktQueueConfig) (fixture *PktQueueFixture) {
 	_, require := makeAR(t)
 	fixture = &PktQueueFixture{
-		Q: (*iface.PktQueue)(eal.ZmallocAligned("PktQueue", unsafe.Sizeof(iface.PktQueue{}), 1, eal.NumaSocket{})),
+		Q: eal.ZmallocAligned[iface.PktQueue]("PktQueue", unsafe.Sizeof(iface.PktQueue{}), 1, eal.NumaSocket{}),
 	}
 	t.Cleanup(func() {
 		fixture.Q.Close()

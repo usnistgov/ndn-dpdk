@@ -131,7 +131,7 @@ func (c *Consumer) assignDigestPattern(pattern Pattern, txP *C.TgcTxPattern, dat
 	nameV, _ := tlv.EncodeValueOnly(name.Field())
 
 	d := len(c.dPatterns)
-	dp := (*C.TgcTxDigestPattern)(eal.Zmalloc("TgcTxDigestPattern", C.sizeof_TgcTxDigestPattern+len(nameV), c.socket))
+	dp := eal.Zmalloc[C.TgcTxDigestPattern]("TgcTxDigestPattern", C.sizeof_TgcTxDigestPattern+len(nameV), c.socket)
 	(*ndni.Mempools)(unsafe.Pointer(&dp.dataMp)).Assign(c.socket, ndni.DataMempool)
 	c.digestCrypto.QueuePairs()[d].CopyToC(unsafe.Pointer(&dp.cqp))
 
@@ -246,8 +246,8 @@ func New(face iface.Face, cfg Config) (c *Consumer, e error) {
 	c = &Consumer{
 		cfg:    cfg,
 		socket: socket,
-		rxC:    (*C.TgcRx)(eal.Zmalloc("TgcRx", C.sizeof_TgcRx, socket)),
-		txC:    (*C.TgcTx)(eal.Zmalloc("TgcTx", C.sizeof_TgcTx, socket)),
+		rxC:    eal.Zmalloc[C.TgcRx]("TgcRx", C.sizeof_TgcRx, socket),
+		txC:    eal.Zmalloc[C.TgcTx]("TgcTx", C.sizeof_TgcTx, socket),
 	}
 
 	if e := c.rxQueue().Init(cfg.RxQueue, socket); e != nil {

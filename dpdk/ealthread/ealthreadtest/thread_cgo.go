@@ -41,7 +41,7 @@ var (
 
 func newTestThread() *testThread {
 	var th testThread
-	th.c = (*C.TestThread)(eal.Zmalloc("TestThread", C.sizeof_TestThread, eal.NumaSocket{}))
+	th.c = eal.Zmalloc[C.TestThread]("TestThread", C.sizeof_TestThread, eal.NumaSocket{})
 	th.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(unsafe.Pointer(C.TestThread_Run), th.c),
 		unsafe.Pointer(&th.c.ctrl),

@@ -72,7 +72,7 @@ func NewInputDemuxFixture(t testing.TB) (fixture *InputDemuxFixture) {
 
 	return &InputDemuxFixture{
 		t: t,
-		D: (*iface.InputDemux)(eal.Zmalloc("InputDemux", unsafe.Sizeof(iface.InputDemux{}), eal.NumaSocket{})),
+		D: eal.Zmalloc[iface.InputDemux]("InputDemux", unsafe.Sizeof(iface.InputDemux{}), eal.NumaSocket{}),
 	}
 }
 

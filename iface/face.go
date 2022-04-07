@@ -194,7 +194,7 @@ func newFace(p NewParams) (Face, error) {
 	c := f.ptr()
 	c.id = C.FaceID(f.id)
 	c.state = StateUp
-	c.impl = (*C.FaceImpl)(eal.ZmallocAligned("FaceImpl", C.sizeof_FaceImpl+p.SizeofPriv, 1, p.Socket))
+	c.impl = eal.ZmallocAligned[C.FaceImpl]("FaceImpl", C.sizeof_FaceImpl+p.SizeofPriv, 1, p.Socket)
 
 	initResult, e := p.Init(f)
 	if e != nil {
@@ -339,7 +339,7 @@ func (f *face) EnableInputDemuxes() {
 	if impl.rxDemuxes != nil {
 		return
 	}
-	impl.rxDemuxes = (*C.InputDemuxes)(eal.Zmalloc("InputDemux", unsafe.Sizeof(C.InputDemuxes{}), f.socket))
+	impl.rxDemuxes = eal.Zmalloc[C.InputDemuxes]("InputDemux", unsafe.Sizeof(C.InputDemuxes{}), f.socket)
 }
 
 func (f *face) SetDown(isDown bool) {

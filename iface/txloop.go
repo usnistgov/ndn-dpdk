@@ -35,7 +35,7 @@ type TxLoop interface {
 // NewTxLoop creates a TxLoop.
 func NewTxLoop(socket eal.NumaSocket) TxLoop {
 	txl := &txLoop{
-		c:      (*C.TxLoop)(eal.Zmalloc("TxLoop", C.sizeof_TxLoop, socket)),
+		c:      eal.Zmalloc[C.TxLoop]("TxLoop", C.sizeof_TxLoop, socket),
 		socket: socket,
 	}
 	txl.ThreadWithCtrl = ealthread.NewThreadWithCtrl(

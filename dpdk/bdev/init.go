@@ -36,5 +36,5 @@ func go_bdevInitialized(ctx unsafe.Pointer, rc C.int) {
 	if rc != 0 {
 		logger.Panic("spdk_bdev_initialize error", zap.Error(eal.MakeErrno(rc)))
 	}
-	C.BdevFiller_ = eal.ZmallocAligned("BdevFiller", C.UINT16_MAX+1, 4096/C.RTE_CACHE_LINE_SIZE, eal.NumaSocket{})
+	C.BdevFiller_ = eal.ZmallocAligned[C.uint8_t]("BdevFiller", C.UINT16_MAX+1, 4096/C.RTE_CACHE_LINE_SIZE, eal.NumaSocket{})
 }

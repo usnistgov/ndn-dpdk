@@ -184,7 +184,7 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 
 	w = &Writer{
 		filename: cfg.Filename,
-		c:        (*C.PdumpWriter)(eal.Zmalloc("PdumpWriter", C.sizeof_PdumpWriter, cfg.Socket)),
+		c:        eal.Zmalloc[C.PdumpWriter]("PdumpWriter", C.sizeof_PdumpWriter, cfg.Socket),
 		mp:       pktmbuf.Direct.Get(cfg.Socket),
 		intfs:    map[int]pcapgo.NgInterface{},
 	}

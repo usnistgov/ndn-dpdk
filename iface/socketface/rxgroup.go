@@ -51,7 +51,7 @@ func (rxg *rxGroup) addFace(capacity int) (e error) {
 			return e
 		}
 
-		rxg.c = (*C.SocketRxGroup)(eal.Zmalloc("SocketRxGroup", C.sizeof_SocketRxGroup, rxg.socket))
+		rxg.c = eal.Zmalloc[C.SocketRxGroup]("SocketRxGroup", C.sizeof_SocketRxGroup, rxg.socket)
 		rxg.c.base.rxBurst = C.RxGroup_RxBurstFunc(C.SocketRxGroup_RxBurst)
 		rxg.c.ring = (*C.struct_rte_ring)(rxg.ring.Ptr())
 

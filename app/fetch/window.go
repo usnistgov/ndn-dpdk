@@ -24,17 +24,15 @@ func (win *Window) ptr() *C.FetchWindow {
 // Init allocates and initializes the FetchWindow.
 // capacity must be power of two.
 func (win *Window) Init(capacity int, socket eal.NumaSocket) {
-	c := win.ptr()
-	c.array = (*C.FetchSeg)(eal.ZmallocAligned("FetchWindow", capacity*C.sizeof_FetchSeg, 1, socket))
-	c.capacityMask = C.uint(capacity - 1)
+	win.array = eal.ZmallocAligned[C.FetchSeg]("FetchWindow", capacity*C.sizeof_FetchSeg, 1, socket)
+	win.capacityMask = C.uint(capacity - 1)
 }
 
 // Reset clears the state in the FetchWindow.
 func (win *Window) Reset() {
-	c := win.ptr()
-	c.loPos = 0
-	c.loSegNum = 0
-	c.hiSegNum = 0
+	win.loPos = 0
+	win.loSegNum = 0
+	win.hiSegNum = 0
 }
 
 // Close deallocates the FetchWindow.
