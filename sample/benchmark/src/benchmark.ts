@@ -1,6 +1,7 @@
 import type { ActivateFwArgs, ActivateGenArgs, EtherLocator, FaceLocator, FetchCounters, InterestTemplate, TgConfig, VxlanLocator } from "@usnistgov/ndn-dpdk";
 import delay from "delay";
 import { gql, GraphQLClient } from "graphql-request";
+import type { RequestInit as gqlRequestInit } from "graphql-request/dist/types.dom";
 
 export interface ServerEnv {
   F_GQLSERVER: string;
@@ -44,8 +45,12 @@ export class Benchmark {
       private readonly opts: BenchmarkOptions,
       signal: AbortSignal,
   ) {
-    this.cF = new GraphQLClient(env.F_GQLSERVER, { signal });
-    this.cG = new GraphQLClient(env.G_GQLSERVER, { signal });
+    // graphql-request package bundles a copy of DOM typing incompatible with @types/web
+    const init: gqlRequestInit = {
+      signal: signal as gqlRequestInit["signal"],
+    };
+    this.cF = new GraphQLClient(env.F_GQLSERVER, init);
+    this.cG = new GraphQLClient(env.G_GQLSERVER, init);
     this.state = JSON.parse(JSON.stringify(initialState));
   }
 

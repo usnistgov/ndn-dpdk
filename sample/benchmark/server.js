@@ -2,7 +2,7 @@
 
 import "dotenv/config"; // eslint-disable-line import/no-unassigned-import
 
-import strattadbEnvironment from "@strattadb/environment";
+import Environment from "@strattadb/environment";
 import Fastify from "fastify";
 import FastifyExpress from "fastify-express";
 import FastifyProxy from "fastify-http-proxy";
@@ -12,9 +12,9 @@ import { fileURLToPath } from "node:url";
 import webpack from "webpack";
 import devMiddleware from "webpack-dev-middleware";
 
-const { makeEnv, parsers, EnvironmentVariableError } = strattadbEnvironment;
+const { makeEnv, parsers, EnvironmentVariableError } = Environment;
 
-/** @type {strattadbEnvironment.Parser} */
+/** @type {Environment.Parser} */
 const parsePorts = (() => {
 const parseArray = parsers.array({ parser: parsers.regex(/^[\da-f]{2}:[\da-f]{2}\.[\da-f]$/i) });
 return (s) => {
@@ -28,7 +28,7 @@ return (s) => {
 
 /**
  * @param {number} min
- * @returns {strattadbEnvironment.Parser}
+ * @returns {Environment.Parser}
  */
 function parseCores(min) {
   const parseArray = parsers.array({ parser: parsers.nonNegativeInteger });
@@ -76,7 +76,6 @@ const compiler = webpack({
   },
 });
 
-(async () => {
 const fastify = Fastify();
 
 await fastify.register(FastifyExpress);
@@ -106,4 +105,3 @@ await fastify.get("/env.json", async (request, reply) => {
 });
 
 await fastify.listen(3333, "127.0.0.1");
-})();
