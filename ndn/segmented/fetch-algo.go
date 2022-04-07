@@ -1,11 +1,11 @@
 package segmented
 
 import (
-	"container/list"
 	"math"
 	"time"
 
 	"github.com/zyedidia/generic"
+	"github.com/zyedidia/generic/list"
 )
 
 const (
@@ -76,13 +76,45 @@ func newCubic() (ca *cubic) {
 }
 
 type fetchSeg struct {
-	TxTime      time.Time
-	RtoExpiry   time.Time
-	NRetx       int
-	RetxElement *list.Element
+	TxTime    time.Time
+	RtoExpiry time.Time
+	NRetx     int
+	RetxQNode *list.Node[uint64]
 }
 
 func (fs *fetchSeg) setTimeNow(rto time.Duration) {
 	fs.TxTime = time.Now()
 	fs.RtoExpiry = fs.TxTime.Add(rto)
+}
+
+type retxQueue struct {
+	L *list.List[uint64]
+	N int
+}
+
+func (q *retxQueue) Push(seg uint64, fs *fetchSeg) {
+	q.L.PushBack(seg)
+	fs.RetxQNode = q.L.Back
+	q.N++
+}
+
+func (q *retxQueue) Pop(m map[uint64]*fetchSeg) (seg uint64, fs *fetchSeg) {
+	seg = q.L.Front.Value
+	fs = m[seg]
+	q.Delete(fs)
+	return
+}
+
+func (q *retxQueue) Delete(fs *fetchSeg) {
+	if fs.RetxQNode == nil {
+		return
+	}
+	q.L.Remove(fs.RetxQNode)
+	fs.RetxQNode = nil
+	q.N--
+}
+
+func makeRetxQueue() (q retxQueue) {
+	q.L = list.New[uint64]()
+	return
 }

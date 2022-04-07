@@ -35,7 +35,7 @@ func extractSegment(name ndn.Name, prefixLen int) (segment uint64, ok bool) {
 
 // ServeOptions contains options for Serve function.
 type ServeOptions struct {
-	// ProducerOptions includes setting prefix, L3 forwarder, signer, etc.
+	// ProducerOptions includes prefix, L3 forwarder, signer, etc.
 	// Handler will be overwritten.
 	endpoint.ProducerOptions
 

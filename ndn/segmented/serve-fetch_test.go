@@ -15,7 +15,8 @@ import (
 )
 
 var makeAR = testenv.MakeAR
-var fetchTimeout = 10 * time.Second
+
+const fetchTimeout = 10 * time.Second
 
 type ServeFetchFixture struct {
 	t       testing.TB

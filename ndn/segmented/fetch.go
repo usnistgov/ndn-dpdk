@@ -3,7 +3,6 @@ package segmented
 
 import (
 	"bytes"
-	"container/list"
 	"context"
 	"fmt"
 	"io"
@@ -118,7 +117,7 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 	rtte := rttest.New()
 	ca := newCubic()
 	pendings := map[uint64]*fetchSeg{}
-	retxQ := list.New()
+	retxQ := makeRetxQueue()
 	ticker := time.NewTicker(time.Millisecond)
 	segNext, segLast := f.SegmentBegin, f.SegmentEnd-1
 	defer ticker.Stop()
@@ -169,41 +168,34 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 			f.count++
 			unordered <- pkt.Data
 
-			if fs.RetxElement != nil {
-				retxQ.Remove(fs.RetxElement)
-				fs.RetxElement = nil
-			}
+			retxQ.Delete(fs)
 			delete(pendings, seg)
 		}
 
 		now := time.Now()
 		for seg, fs := range pendings {
 			if seg > segLast {
-				if fs.RetxElement != nil {
-					retxQ.Remove(fs.RetxElement)
-				}
+				retxQ.Delete(fs)
 				delete(pendings, seg)
 				continue
 			}
 
-			if fs.RetxElement == nil && fs.RtoExpiry.Before(now) {
+			if fs.RetxQNode == nil && fs.RtoExpiry.Before(now) {
 				if fs.NRetx >= f.RetxLimit {
 					return fmt.Errorf("exceed retx limit on segment %d", seg)
 				}
 				rtte.Backoff()
 				ca.Decrease(fs.RtoExpiry)
-				fs.RetxElement = retxQ.PushBack(seg)
+				retxQ.Push(seg, fs)
 			}
 		}
 
 		switch {
-		case len(pendings)-retxQ.Len() >= generic.Min(ca.Cwnd(), f.MaxCwnd):
+		case len(pendings)-retxQ.N >= generic.Min(ca.Cwnd(), f.MaxCwnd):
 			// congestion window full
 
-		case retxQ.Len() > 0:
-			seg := retxQ.Remove(retxQ.Front()).(uint64)
-			fs := pendings[seg]
-			fs.RetxElement = nil
+		case retxQ.N > 0:
+			seg, fs := retxQ.Pop(pendings)
 
 			fs.setTimeNow(rtte.RTO())
 			fs.NRetx++
