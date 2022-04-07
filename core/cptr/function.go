@@ -39,7 +39,7 @@ func (ft FunctionType) C(f unsafe.Pointer, arg any) Function {
 	switch val.Kind() {
 	case reflect.Uintptr:
 		ctx = uintptr(val.Uint())
-	case reflect.Ptr, reflect.UnsafePointer:
+	case reflect.Pointer, reflect.UnsafePointer:
 		ctx = val.Pointer()
 	default:
 		panic("arg must be pointer or uintptr_t")

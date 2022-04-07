@@ -78,10 +78,11 @@ type transport struct {
 func (tr *transport) prepare(loc packettransport.Locator) error {
 	fd := int(reflect.ValueOf(tr.h).Elem().FieldByName("fd").Int())
 	ifindex := tr.intf.Index
-	ethtype := make([]byte, 2)
-	binary.BigEndian.PutUint16(ethtype, packettransport.EthernetTypeNDN)
+
+	var ethtype [2]byte
+	binary.BigEndian.PutUint16(ethtype[:], packettransport.EthernetTypeNDN)
 	sockaddr := unix.SockaddrLinklayer{
-		Protocol: binary.LittleEndian.Uint16(ethtype),
+		Protocol: binary.LittleEndian.Uint16(ethtype[:]),
 		Ifindex:  ifindex,
 	}
 	if e := unix.Bind(fd, &sockaddr); e != nil {

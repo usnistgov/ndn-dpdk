@@ -66,7 +66,7 @@ func subValue(currV, prevV, diffV reflect.Value) {
 		for i, length := 0, diffV.Len(); i < length; i++ {
 			subValue(currV.Index(i), prevV.Index(i), diffV.Index(i))
 		}
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if !currV.IsNil() && !prevV.IsNil() {
 			diffV.Set(reflect.New(currV.Type().Elem()))
 			subValue(currV.Elem(), prevV.Elem(), diffV.Elem())

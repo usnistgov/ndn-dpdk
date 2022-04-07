@@ -21,10 +21,7 @@ func getName(obj any) ndn.Name {
 	case getNamer:
 		return v.Name()
 	default:
-		val := reflect.ValueOf(obj)
-		if val.Kind() == reflect.Ptr {
-			val = val.Elem()
-		}
+		val := reflect.Indirect(reflect.ValueOf(obj))
 		return val.FieldByName("Name").Interface().(ndn.Name)
 	}
 }

@@ -11,12 +11,7 @@ import (
 
 func makeFieldIndexResolver(index []int) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (any, error) {
-		v := reflect.ValueOf(p.Source)
-		if v.Kind() == reflect.Ptr {
-			v = v.Elem()
-		}
-
-		r, e := v.FieldByIndexErr(index)
+		r, e := reflect.Indirect(reflect.ValueOf(p.Source)).FieldByIndexErr(index)
 		if e != nil {
 			return nil, nil
 		}
@@ -29,14 +24,14 @@ type FieldTypes map[reflect.Type]graphql.Type
 
 func (m FieldTypes) resolveType(typ reflect.Type) graphql.Type {
 	if t := m[typ]; t != nil {
-		if kind := typ.Kind(); kind == reflect.Ptr || kind == reflect.Slice {
+		if kind := typ.Kind(); kind == reflect.Pointer || kind == reflect.Slice {
 			return t
 		}
 		return toNonNull(t)
 	}
 
 	switch typ.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return graphql.GetNullable(m.resolveType(typ.Elem())).(graphql.Type)
 	case reflect.Slice:
 		return graphql.NewList(m.resolveType(typ.Elem()))
@@ -64,7 +59,7 @@ func (m FieldTypes) resolveType(typ reflect.Type) graphql.Type {
 
 func (m FieldTypes) bindFields(zero any, save func(name string, p fieldInfo)) {
 	typ := reflect.TypeOf(zero)
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 

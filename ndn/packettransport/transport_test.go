@@ -6,9 +6,14 @@ import (
 	"testing"
 
 	"github.com/google/gopacket"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 	"go4.org/must"
+)
+
+var (
+	makeAR = testenv.MakeAR
 )
 
 type pipePacketDataHandle struct {
