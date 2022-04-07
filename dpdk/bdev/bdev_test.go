@@ -32,12 +32,23 @@ type bdevRWTest struct {
 	sp bdev.StoredPacket
 }
 
+func (rwt *bdevRWTest) assignSegs(expectedBlocks int, lengths ...int) {
+	rwt.segs = make([][]byte, len(lengths))
+	size := 0
+	for i, length := range lengths {
+		size += length
+		seg := make([]byte, length)
+		rand.Read(seg)
+		rwt.segs[i] = seg
+	}
+
+	if !(bdev.RequiredBlockSize*(expectedBlocks-1) < size && size <= bdev.RequiredBlockSize*expectedBlocks) {
+		panic("wrong number of blocks")
+	}
+}
+
 func (rwt *bdevRWTest) Write(t testing.TB, bd *bdev.Bdev) {
 	assert, _ := makeAR(t)
-
-	for _, seg := range rwt.segs {
-		rand.Read(seg)
-	}
 
 	pkt := makePacket(rwt.headroom, rwt.segs)
 	defer pkt.Close()
@@ -60,14 +71,21 @@ func (rwt *bdevRWTest) Read(t testing.TB, bd *bdev.Bdev) {
 
 func makeRW3(device bdev.Device) (rwt0, rwt1, rwt2 bdevRWTest) {
 	rwt0.headroom = 0
-	rwt0.segs = [][]byte{make([]byte, 500), make([]byte, 400), make([]byte, 134)}
+	rwt0.assignSegs(2, 500, 400, 124)
 	rwt1.headroom = 1
-	rwt1.segs = [][]byte{make([]byte, 500), make([]byte, 400), make([]byte, 135)}
+	rwt1.assignSegs(3, 500, 400, 135)
 	rwt2.headroom = 1
-	rwt2.segs = [][]byte{make([]byte, 136)}
+	rwt2.assignSegs(1, 136)
 
 	nBlocks := device.DevInfo().CountBlocks()
-	for len(map[int64]bool{rwt0.blockOffset: true, rwt1.blockOffset: true, rwt2.blockOffset: true}) != 3 {
+	for len(map[int64]bool{
+		rwt0.blockOffset + 0: true,
+		rwt0.blockOffset + 1: true,
+		rwt1.blockOffset + 0: true,
+		rwt1.blockOffset + 1: true,
+		rwt1.blockOffset + 2: true,
+		rwt2.blockOffset + 0: true,
+	}) != 6 {
 		rwt0.blockOffset = rand.Int63n(nBlocks)
 		rwt1.blockOffset = rand.Int63n(nBlocks)
 		rwt2.blockOffset = rand.Int63n(nBlocks)
