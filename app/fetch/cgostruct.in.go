@@ -10,7 +10,6 @@ import "C"
 // SegState contains per-segment state.
 type SegState C.FetchSeg
 
-type fetchRetxNode C.FetchRetxNode
-type fetchRetxQueue C.FetchRetxQueue
+type cdsListHead C.struct_cds_list_head
 type minSched C.MinSched
 type minTmr C.MinTmr

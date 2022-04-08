@@ -12,20 +12,20 @@
 /** @brief File descriptor related information in the file server. */
 typedef struct FileServerFd
 {
-  RTE_MARKER self;                     ///< self reference used in HASH_ADD_BYHASHVALUE
-  struct statx st;                     ///< statx result (.stx_ino is TscTime nextUpdate)
-  UT_hash_handle hh;                   ///< fdHt hashtable handle
-  struct rte_mbuf* mbuf;               ///< mbuf storing this entry
-  TAILQ_ENTRY(FileServerFd) queueNode; ///< fdQ node
-  DataEnc_MetaInfoBuffer(15) meta;     ///< MetaInfo (FinalBlockId only)
-  uint64_t version;                    ///< version number
-  uint64_t lastSeg;                    ///< last segment number
-  int fd;                              ///< file descriptor
-  uint16_t refcnt;                     ///< number of inflight SQEs referencing this entry
-  uint16_t prefixL;                    ///< mount+path TLV-LENGTH
-  uint16_t versionedL;                 ///< mount+path+[32=ls]+version TLV-LENGTH
-  uint16_t segmentL;                   ///< mount+path+[32=ls]+version+finalSeg TLV-LENGTH
-  uint8_t nameV[NameMaxLength];        ///< name TLV-VALUE
+  RTE_MARKER self;                 ///< self reference used in HASH_ADD_BYHASHVALUE
+  struct statx st;                 ///< statx result (.stx_ino is TscTime nextUpdate)
+  UT_hash_handle hh;               ///< fdHt hashtable handle
+  struct rte_mbuf* mbuf;           ///< mbuf storing this entry
+  struct cds_list_head queueNode;  ///< fdQ node
+  DataEnc_MetaInfoBuffer(15) meta; ///< MetaInfo (FinalBlockId only)
+  uint64_t version;                ///< version number
+  uint64_t lastSeg;                ///< last segment number
+  int fd;                          ///< file descriptor
+  uint16_t refcnt;                 ///< number of inflight SQEs referencing this entry
+  uint16_t prefixL;                ///< mount+path TLV-LENGTH
+  uint16_t versionedL;             ///< mount+path+[32=ls]+version TLV-LENGTH
+  uint16_t segmentL;               ///< mount+path+[32=ls]+version+finalSeg TLV-LENGTH
+  uint8_t nameV[NameMaxLength];    ///< name TLV-VALUE
 } FileServerFd;
 
 /** @brief Sentinel value to indicate file not found. */

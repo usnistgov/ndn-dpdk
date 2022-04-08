@@ -23,8 +23,7 @@ MinSched_New(int nSlotBits, TscDuration interval, MinTmrCb cb, uintptr_t ctx)
          sched->interval, cb);
 
   for (uint32_t i = 0; i < nSlots; ++i) {
-    MinTmr* slot = &sched->slot[i];
-    slot->next = slot->prev = slot;
+    CDS_INIT_LIST_HEAD(&sched->slot[i]);
   }
   return sched;
 }
@@ -40,44 +39,33 @@ MinSched_Trigger_(MinSched* sched, TscTime now)
 {
   while (sched->nextTime <= now) {
     sched->lastSlot = (sched->lastSlot + 1) & sched->slotMask;
-    MinTmr* slot = &sched->slot[sched->lastSlot];
     N_LOGV("Trigger sched=%p slot=%" PRIu16 " time=%" PRIu64 " now=%" PRIu64, sched,
            sched->lastSlot, sched->nextTime, now);
     sched->nextTime += sched->interval;
 
-    MinTmr* next;
-    for (MinTmr* tmr = slot->next; tmr != slot; tmr = next) {
-      next = tmr->next;
-      MinTmr_Init(tmr);
-      // clear timer before invoking callback, because callback could reschedule timer
-      N_LOGD("Trigger sched=%p slot=%" PRIu16 " tmr=%p", sched, sched->lastSlot, tmr);
+    struct cds_list_head* pos;
+    struct cds_list_head* p;
+    cds_list_for_each_safe (pos, p, &sched->slot[sched->lastSlot]) {
+      MinTmr* tmr = cds_list_entry(pos, MinTmr, h);
+      cds_list_del_init(pos);
       ++sched->nTriggered;
-      (sched->cb)(tmr, sched->ctx);
+      sched->cb(tmr, sched->ctx);
     }
-    slot->next = slot->prev = slot;
   }
-}
-
-__attribute__((nonnull)) static __rte_always_inline void
-MinTmr_Cancel2(MinTmr* tmr)
-{
-  tmr->next->prev = tmr->prev;
-  tmr->prev->next = tmr->next;
 }
 
 void
 MinTmr_Cancel_(MinTmr* tmr)
 {
   N_LOGD("Cancel tmr=%p", tmr);
-  MinTmr_Cancel2(tmr);
-  MinTmr_Init(tmr);
+  cds_list_del_init(&tmr->h);
 }
 
 bool
 MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched)
 {
-  if (tmr->next != NULL) {
-    MinTmr_Cancel2(tmr);
+  if (likely(tmr->h.next != NULL)) {
+    cds_list_del(&tmr->h);
   }
 
   uint64_t nSlotsAway = RTE_MAX(after, 0) / sched->interval + 1;
@@ -91,10 +79,6 @@ MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched)
   uint32_t slotNum = (sched->lastSlot + nSlotsAway) & sched->slotMask;
   N_LOGD("After sched=%p tmr=%p after=%" PRId64 " slot=%" PRIu16 " last=%" PRIu16, sched, tmr,
          after, slotNum, sched->lastSlot);
-  MinTmr* slot = &sched->slot[slotNum];
-  tmr->next = slot->next;
-  tmr->next->prev = tmr;
-  slot->next = tmr;
-  tmr->prev = slot;
+  cds_list_add_tail(&tmr->h, &sched->slot[slotNum]);
   return true;
 }

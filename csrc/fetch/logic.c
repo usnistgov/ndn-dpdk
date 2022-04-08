@@ -14,9 +14,9 @@ FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit)
 
   while (fl->nInFlight < cwnd && count < limit) {
     FetchSeg* seg;
-    if ((seg = TAILQ_FIRST(&fl->retxQ)) != NULL) { // drain retxQ first
-      TAILQ_REMOVE(&fl->retxQ, seg, retxQ);
-      seg->inRetxQ = false;
+    if (!cds_list_empty(&fl->retxQ)) { // drain retxQ first
+      seg = cds_list_first_entry(&fl->retxQ, FetchSeg, retxNode);
+      cds_list_del_init(&seg->retxNode);
       ++seg->nRetx;
       ++nRetx;
     } else if (unlikely(fl->win.hiSegNum > fl->finalSegNum)) { // reached final segment
@@ -70,9 +70,9 @@ FetchLogic_RxData(FetchLogic* fl, TscTime now, uint64_t segNum, bool hasCongMark
   }
   ++fl->nRxData;
 
-  if (unlikely(seg->inRetxQ)) {
+  if (unlikely(!cds_list_empty(&seg->retxNode))) {
     // cancel retransmission
-    TAILQ_REMOVE(&fl->retxQ, seg, retxQ);
+    cds_list_del_init(&seg->retxNode);
   } else {
     // cancel RTO timer
     --fl->nInFlight;
@@ -120,8 +120,7 @@ FetchLogic_RtoTimeout(MinTmr* tmr, uintptr_t flPtr)
     RttEst_Backoff(&fl->rtte);
   }
 
-  seg->inRetxQ = true;
-  TAILQ_INSERT_TAIL(&fl->retxQ, seg, retxQ);
+  cds_list_add_tail(&seg->retxNode, &fl->retxQ);
 }
 
 void
@@ -129,7 +128,7 @@ FetchLogic_Init_(FetchLogic* fl)
 {
   NDNDPDK_ASSERT(rte_align32pow2(fl->win.capacityMask) - 1 == fl->win.capacityMask);
 
-  TAILQ_INIT(&fl->retxQ);
+  CDS_INIT_LIST_HEAD(&fl->retxQ);
   fl->nTxRetx = 0;
   fl->nRxData = 0;
   fl->finalSegNum = UINT64_MAX;

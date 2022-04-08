@@ -15,7 +15,7 @@ typedef struct FetchLogic
   FetchWindow win;
   RttEst rtte;
   TcpCubic ca;
-  FetchRetxQueue retxQ;
+  struct cds_list_head retxQ;
   MinSched* sched;
   uint64_t nTxRetx;
   uint64_t nRxData;

@@ -36,7 +36,8 @@
 
 #include <float.h>
 #include <math.h>
-#include <sys/queue.h>
+
+#include <urcu/list.h>
 
 #include <rte_byteorder.h>
 #include <rte_cycles.h>

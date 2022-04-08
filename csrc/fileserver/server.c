@@ -16,7 +16,7 @@ FileServer_Run(FileServer* p)
   }
   N_LOGI("uring init sqe=%" PRIu32 " cqe=%" PRIu32 " features=0x%" PRIx32, uringParams.sq_entries,
          uringParams.cq_entries, uringParams.features);
-  TAILQ_INIT(&p->fdQ);
+  CDS_INIT_LIST_HEAD(&p->fdQ);
 
   uint32_t nProcessed = 0;
   while (ThreadCtrl_Continue(p->ctrl, nProcessed)) {

@@ -104,7 +104,7 @@ __attribute__((nonnull)) static inline FileServerFd*
 FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
 {
   if (unlikely(entry->refcnt == 0)) {
-    TAILQ_REMOVE(&p->fdQ, entry, queueNode);
+    cds_list_del(&entry->queueNode);
     --p->fdQCount;
   }
 
@@ -229,16 +229,16 @@ FileServerFd_Unref(FileServer* p, FileServerFd* entry)
   }
 
   N_LOGD("Unref keep fd=%d", entry->fd);
-  TAILQ_INSERT_TAIL(&p->fdQ, entry, queueNode);
+  cds_list_add_tail(&entry->queueNode, &p->fdQ);
   ++p->fdQCount;
   if (unlikely(p->fdQCount <= p->fdQCapacity)) {
     return;
   }
 
-  FileServerFd* evict = TAILQ_FIRST(&p->fdQ);
+  FileServerFd* evict = cds_list_first_entry(&p->fdQ, FileServerFd, queueNode);
   N_LOGD("Unref close fd=%d", evict->fd);
   HASH_DELETE(hh, p->fdHt, evict);
-  TAILQ_REMOVE(&p->fdQ, evict, queueNode);
+  cds_list_del(&evict->queueNode);
   --p->fdQCount;
   close(evict->fd);
   rte_pktmbuf_free(evict->mbuf);
@@ -256,7 +256,7 @@ FileServerFd_Clear(FileServer* p)
     rte_pktmbuf_free(entry->mbuf);
   }
   HASH_CLEAR(hh, p->fdHt);
-  TAILQ_INIT(&p->fdQ);
+  CDS_INIT_LIST_HEAD(&p->fdQ);
   p->fdQCount = 0;
 }
 

@@ -36,7 +36,7 @@ typedef struct FileServer
   struct rte_mempool* payloadMp;
   struct io_uring uring;
   FileServerFd* fdHt;
-  TAILQ_HEAD(FileServerFdQueue, FileServerFd) fdQ;
+  struct cds_list_head fdQ;
   TscDuration statValidity;
 
   uint32_t uringCount;

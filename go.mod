@@ -14,7 +14,7 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/graphql-go/graphql v0.8.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20220217162856-c813f11194b9
+	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20220405231054-a1ae3e4bba26
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
@@ -36,8 +36,8 @@ require (
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/exp v0.0.0-20220328175248-053ad81199eb
-	golang.org/x/sys v0.0.0-20220330033206-e17cdc41300f
+	golang.org/x/exp v0.0.0-20220407100705-7b9b53b0aca4
+	golang.org/x/sys v0.0.0-20220406163625-3f8b81556e12
 )
 
 require (

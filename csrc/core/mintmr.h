@@ -5,14 +5,22 @@
 
 #include "../dpdk/tsc.h"
 
-typedef struct MinTmr MinTmr;
-
 /** @brief Timer on minute scheduler. */
-struct MinTmr
+typedef struct MinTmr
 {
-  MinTmr* prev;
-  MinTmr* next;
-};
+  struct cds_list_head h;
+} MinTmr;
+
+/**
+ * @brief Initialize a timer.
+ *
+ * MinTmr must be either zeroed or initialized with this function.
+ */
+__attribute__((nonnull)) static __rte_always_inline void
+MinTmr_Init(MinTmr* tmr)
+{
+  CDS_INIT_LIST_HEAD(&tmr->h);
+}
 
 typedef void (*MinTmrCb)(MinTmr* tmr, uintptr_t ctx);
 
@@ -27,7 +35,7 @@ typedef struct MinSched
   uint32_t lastSlot;
   uint32_t slotMask;
   uint32_t nSlots;
-  MinTmr slot[];
+  struct cds_list_head slot[];
 } MinSched;
 
 /**
@@ -51,17 +59,9 @@ __attribute__((nonnull)) static __rte_always_inline void
 MinSched_Trigger(MinSched* sched)
 {
   TscTime now = rte_get_tsc_cycles();
-  if (sched->nextTime > now) {
-    return;
+  if (sched->nextTime <= now) {
+    MinSched_Trigger_(sched, now);
   }
-  MinSched_Trigger_(sched, now);
-}
-
-/** @brief Initialize a timer. */
-__attribute__((nonnull)) static __rte_always_inline void
-MinTmr_Init(MinTmr* tmr)
-{
-  tmr->next = tmr->prev = NULL;
 }
 
 /** @brief Calculate the maximum delay allowed in @c MinTmr_After . */
@@ -78,10 +78,9 @@ MinTmr_Cancel_(MinTmr* tmr);
 __attribute__((nonnull)) static __rte_always_inline void
 MinTmr_Cancel(MinTmr* tmr)
 {
-  if (tmr->next == NULL) {
-    return;
+  if (likely(tmr->h.next != NULL && !cds_list_empty(&tmr->h))) {
+    MinTmr_Cancel_(tmr);
   }
-  MinTmr_Cancel_(tmr);
 }
 
 /**

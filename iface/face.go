@@ -223,8 +223,8 @@ func newFace(p NewParams) (Face, error) {
 	for i := 0; i < MaxFaceRxThreads; i++ {
 		reassID := C.CString(eal.AllocObjectID("iface.Reassembler"))
 		defer C.free(unsafe.Pointer(reassID))
-		if ok := bool(C.Reassembler_Init(&c.impl.rx[i].reass, reassID,
-			C.uint32_t(p.ReassemblerCapacity), C.unsigned(p.Socket.ID()))); !ok {
+		if ok := C.Reassembler_Init(&c.impl.rx[i].reass, reassID,
+			C.uint32_t(p.ReassemblerCapacity), C.int(p.Socket.ID())); !ok {
 			e := eal.GetErrno()
 			logEntry.Warn("Reassembler_Init error", zap.Int("rx-thread", i), zap.Error(e))
 			return f.clear(), e

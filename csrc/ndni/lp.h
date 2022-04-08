@@ -21,7 +21,7 @@ typedef struct LpL2
    * Thus, when this variable becomes zero, all the fragments have arrived.
    */
   uint32_t reassBitmap;
-  TAILQ_ENTRY(LpL2) reassNode;
+  struct cds_list_head reassNode;
   Packet* reassFrags[LpMaxFragments];
 } LpL2;
 static_assert(LpMaxFragments <= UINT8_MAX, "");

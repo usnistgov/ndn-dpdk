@@ -13,7 +13,7 @@ typedef struct Reassembler
   uint64_t nDropFragments;    ///< dropped fragments
 
   struct rte_hash* table;
-  TAILQ_HEAD(LpL2Queue, LpL2) list;
+  struct cds_list_head list;
   uint32_t count;
   uint32_t capacity;
 } Reassembler;
@@ -28,7 +28,7 @@ typedef struct Reassembler
  * @return whether success. Error code is in @c rte_errno .
  */
 __attribute__((nonnull)) bool
-Reassembler_Init(Reassembler* reass, const char* id, uint32_t capacity, unsigned numaSocket);
+Reassembler_Init(Reassembler* reass, const char* id, uint32_t capacity, int numaSocket);
 
 /** @brief Release all memory except @p reass struct. */
 __attribute__((nonnull)) void

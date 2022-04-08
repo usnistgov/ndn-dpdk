@@ -3,11 +3,8 @@
 
 /** @file */
 
-#include "../core/common.h"
-
 #include "../dpdk/cryptodev.h"
 #include "../dpdk/mbuf.h"
-
 #include "an.h"
 #include "enum.h"
 

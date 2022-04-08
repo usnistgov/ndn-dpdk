@@ -52,24 +52,17 @@ func (q *PktQueue) ptr() *C.PktQueue {
 // Init initializes PktQueue.
 func (q *PktQueue) Init(cfg PktQueueConfig, socket eal.NumaSocket) error {
 	capacity := 131072
-	convertDuration := func(input nnduration.Nanoseconds, defaultMs int) C.TscDuration {
-		d := input.Duration()
-		if d == 0 {
-			d = time.Duration(defaultMs) * time.Millisecond
-		}
-		return C.TscDuration(eal.ToTscDuration(d))
-	}
 	switch {
 	case cfg.Delay > 0:
 		q.pop = C.PktQueue_PopOp(C.PktQueue_PopDelay)
-		q.target = convertDuration(cfg.Delay, 0)
+		q.target = C.TscDuration(eal.ToTscDuration(cfg.Delay.Duration()))
 	case cfg.DisableCoDel:
 		q.pop = C.PktQueue_PopOp(C.PktQueue_PopPlain)
 		capacity = 4096
 	default:
 		q.pop = C.PktQueue_PopOp(C.PktQueue_PopCoDel)
-		q.target = convertDuration(cfg.Target, 5)
-		q.interval = convertDuration(cfg.Interval, 100)
+		q.target = C.TscDuration(eal.ToTscDuration(cfg.Target.DurationOr(nnduration.Nanoseconds(5 * time.Millisecond))))
+		q.interval = C.TscDuration(eal.ToTscDuration(cfg.Interval.DurationOr(nnduration.Nanoseconds(100 * time.Millisecond))))
 	}
 	if cfg.Capacity > 0 {
 		capacity = cfg.Capacity

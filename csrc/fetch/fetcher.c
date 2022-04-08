@@ -5,8 +5,6 @@
 
 N_LOG_INIT(FetchProc);
 
-#define FETCHER_TX_BURST_SIZE 64
-
 __attribute__((nonnull)) static void
 FetchProc_Encode(FetchProc* fp, FetchThread* fth, struct rte_mbuf* pkt, uint64_t segNum)
 {
@@ -23,13 +21,13 @@ FetchProc_Encode(FetchProc* fp, FetchThread* fth, struct rte_mbuf* pkt, uint64_t
 __attribute__((nonnull)) static uint32_t
 FetchProc_TxBurst(FetchProc* fp, FetchThread* fth)
 {
-  uint64_t segNums[FETCHER_TX_BURST_SIZE];
-  size_t count = FetchLogic_TxInterestBurst(&fp->logic, segNums, FETCHER_TX_BURST_SIZE);
+  uint64_t segNums[MaxBurstSize];
+  size_t count = FetchLogic_TxInterestBurst(&fp->logic, segNums, RTE_DIM(segNums));
   if (unlikely(count == 0)) {
     return count;
   }
 
-  struct rte_mbuf* pkts[FETCHER_TX_BURST_SIZE];
+  struct rte_mbuf* pkts[MaxBurstSize];
   int res = rte_pktmbuf_alloc_bulk(fth->interestMp, pkts, count);
   if (unlikely(res != 0)) {
     N_LOGW("%p interestMp-full", fp);
