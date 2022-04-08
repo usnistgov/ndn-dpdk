@@ -35,9 +35,8 @@ func (fl *Logic) Init(windowCapacity int, socket eal.NumaSocket) {
 
 // Reset resets this to initial state.
 func (fl *Logic) Reset() {
-	c := fl.ptr()
-	C.MinSched_Close(c.sched)
-	*c = C.FetchLogic{win: c.win}
+	C.MinSched_Close(fl.sched)
+	*fl = Logic{win: fl.win}
 	fl.Window().Reset()
 	C.RttEst_Init(&fl.rtte)
 	fl.Cubic().Init()

@@ -80,7 +80,6 @@ func init() {
 			zap.Uintptr("pcct", uintptr(unsafe.Pointer(pcct))),
 			zap.Uintptr("pit", uintptr(unsafe.Pointer(pit))),
 		)
-
 		C.Pit_Init(pit)
 	}
 }

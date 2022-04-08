@@ -37,7 +37,7 @@ func (pit *Pit) Counters() (cnt Counters) {
 	cnt.NDataMiss = uint64(pit.nDataMiss)
 	cnt.NNackHit = uint64(pit.nNackHit)
 	cnt.NNackMiss = uint64(pit.nNackMiss)
-	cnt.NExpired = uint64(pit.timeoutSched.nTriggered)
+	cnt.NExpired = uint64(pit.nExpired)
 	return cnt
 }
 

@@ -79,6 +79,8 @@ Pcct_Clear(Pcct* pcct)
     }
   }
 
+  MinSched_Close(pcct->pit.timeoutSched);
+
   HASH_CLEAR(hh, pcct->keyHt);
   if (pcct->tokenHt != NULL) {
     rte_hash_free(pcct->tokenHt);

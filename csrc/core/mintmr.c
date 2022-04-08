@@ -7,7 +7,7 @@ N_LOG_INIT(MinTmr);
 MinSched*
 MinSched_New(int nSlotBits, TscDuration interval, MinTmrCb cb, uintptr_t ctx)
 {
-  uint32_t nSlots = 1 << nSlotBits;
+  uint32_t nSlots = RTE_BIT32(nSlotBits);
   NDNDPDK_ASSERT(nSlots != 0);
 
   MinSched* sched = rte_zmalloc("MinSched", sizeof(MinSched) + nSlots * sizeof(MinTmr), 0);
@@ -37,7 +37,7 @@ MinSched_Close(MinSched* sched)
 void
 MinSched_Trigger_(MinSched* sched, TscTime now)
 {
-  while (sched->nextTime <= now) {
+  while (now >= sched->nextTime) {
     sched->lastSlot = (sched->lastSlot + 1) & sched->slotMask;
     N_LOGV("Trigger sched=%p slot=%" PRIu16 " time=%" PRIu64 " now=%" PRIu64, sched,
            sched->lastSlot, sched->nextTime, now);
@@ -48,7 +48,6 @@ MinSched_Trigger_(MinSched* sched, TscTime now)
     cds_list_for_each_safe (pos, p, &sched->slot[sched->lastSlot]) {
       MinTmr* tmr = cds_list_entry(pos, MinTmr, h);
       cds_list_del_init(pos);
-      ++sched->nTriggered;
       sched->cb(tmr, sched->ctx);
     }
   }

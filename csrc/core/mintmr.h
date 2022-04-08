@@ -31,7 +31,6 @@ typedef struct MinSched
   TscTime nextTime;
   MinTmrCb cb;
   uintptr_t ctx;
-  uint64_t nTriggered; ///< count of triggered events
   uint32_t lastSlot;
   uint32_t slotMask;
   uint32_t nSlots;
@@ -40,9 +39,9 @@ typedef struct MinSched
 
 /**
  * @brief Create a minute scheduler.
- * @param nSlotBits set the number of time slots to (1 << nSlotBits)
- * @param interval duration between executing slots
- * @param cb callback function when a timer expires
+ * @param nSlotBits set the number of time slots to @c 1<<nSlotBits .
+ * @param interval duration between executing slots.
+ * @param cb callback function when a timer expires.
  */
 __attribute__((returns_nonnull)) MinSched*
 MinSched_New(int nSlotBits, TscDuration interval, MinTmrCb cb, uintptr_t ctx);
@@ -59,7 +58,7 @@ __attribute__((nonnull)) static __rte_always_inline void
 MinSched_Trigger(MinSched* sched)
 {
   TscTime now = rte_get_tsc_cycles();
-  if (sched->nextTime <= now) {
+  if (now >= sched->nextTime) {
     MinSched_Trigger_(sched, now);
   }
 }

@@ -20,10 +20,7 @@ var logger = logging.New("pcct")
 
 // PIT and CS initialization functions.
 // These are assigned during package pit and package cs initialization.
-var (
-	InitPit func(cfg Config, pcct *Pcct)
-	InitCs  func(cfg Config, pcct *Pcct)
-)
+var InitPit, InitCs func(cfg Config, pcct *Pcct)
 
 // Config contains PCCT configuration.
 type Config struct {
