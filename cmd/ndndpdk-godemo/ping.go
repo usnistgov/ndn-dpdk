@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"sync/atomic"
 	"time"
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
+	"go.uber.org/atomic"
 )
 
 func init() {
@@ -120,7 +120,7 @@ func init() {
 			defer ticker.Stop()
 
 			seqNum := rand.Uint64()
-			var nData, nErrors int64
+			var nData, nErrors atomic.Int64
 			for {
 				select {
 				case <-interrupt:
@@ -133,10 +133,10 @@ func init() {
 						})
 						rtt := time.Since(t0)
 						if e == nil {
-							nDataL, nErrorsL := atomic.AddInt64(&nData, 1), atomic.LoadInt64(&nErrors)
+							nDataL, nErrorsL := nData.Inc(), nErrors.Load()
 							log.Printf("%6.2f%% D %016X %6dus", 100*float64(nDataL)/float64(nDataL+nErrorsL), seqNum, rtt.Microseconds())
 						} else {
-							nDataL, nErrorsL := atomic.LoadInt64(&nData), atomic.AddInt64(&nErrors, 1)
+							nDataL, nErrorsL := nData.Load(), nErrors.Inc()
 							log.Printf("%6.2f%% E %016X %v", 100*float64(nDataL)/float64(nDataL+nErrorsL), seqNum, e)
 						}
 					}(timestamp, seqNum)

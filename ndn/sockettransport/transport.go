@@ -4,11 +4,11 @@ package sockettransport
 import (
 	"fmt"
 	"net"
-	"sync/atomic"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/zyedidia/generic"
+	"go.uber.org/atomic"
 )
 
 // Config contains socket transport configuration.
@@ -119,7 +119,7 @@ type transport struct {
 	err     chan error
 	cnt     Counters
 	closing chan struct{}
-	closed  int32 // atomic bool
+	closed  atomic.Bool
 }
 
 func (tr *transport) Conn() net.Conn {
@@ -134,7 +134,7 @@ func (tr *transport) Counters() (cnt Counters) {
 }
 
 func (tr *transport) isClosed() bool {
-	return atomic.LoadInt32(&tr.closed) != 0
+	return tr.closed.Load()
 }
 
 func (tr *transport) rxLoop() {
@@ -172,7 +172,7 @@ CLOSING:
 		}
 	}
 
-	atomic.StoreInt32(&tr.closed, 1)
+	tr.closed.Store(true)
 	tr.drainErrors()
 	tr.Conn().Close()
 }

@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync/atomic"
 	"time"
 
 	"github.com/coreos/go-systemd/v22/daemon"
@@ -22,6 +21,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/version"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
+	"go.uber.org/atomic"
 	"go.uber.org/zap"
 	"golang.org/x/sys/unix"
 )
@@ -39,7 +39,7 @@ func init() {
 	type activator interface {
 		Activate() error
 	}
-	var isActivated int32
+	var isActivated atomic.Bool
 
 	gqlserver.AddMutation(&graphql.Field{
 		Name: "activate",
@@ -78,7 +78,7 @@ func init() {
 					return
 				}
 
-				if !atomic.CompareAndSwapInt32(&isActivated, 0, 1) {
+				if !isActivated.CAS(false, true) {
 					e = errors.New("ndndpdk-svc is already activated")
 					return
 				}
@@ -123,7 +123,7 @@ func init() {
 				exitCode = 75
 			}
 
-			logger.Info("shutdown requested", zap.Bool("restart", restart))
+			logger.Info("shutdown requested by GraphQL", zap.Bool("restart", restart))
 			daemon.SdNotify(false, daemon.SdNotifyStopping)
 			delayedShutdown(func() { os.Exit(exitCode) })
 			return true, nil
@@ -150,7 +150,8 @@ var app = &cli.App{
 		go func() {
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, unix.SIGINT, unix.SIGTERM)
-			<-c
+			sig := <-c
+			logger.Info("shutdown requested by signal", zap.Stringer("signal", sig))
 			delayedShutdown(func() { os.Exit(0) })
 		}()
 

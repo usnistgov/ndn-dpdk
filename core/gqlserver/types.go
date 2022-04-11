@@ -35,7 +35,16 @@ func toNonNull(ofType graphql.Type) graphql.Type {
 // NewNonNullList(T) returns [T!]!.
 // NewNonNullList(T, true) returns [T]!.
 func NewNonNullList(ofType graphql.Type, optionalNullable ...bool) graphql.Type {
-	if len(optionalNullable) < 1 || !optionalNullable[0] {
+	nullable := false
+	switch len(optionalNullable) {
+	case 0:
+	case 1:
+		nullable = optionalNullable[0]
+	default:
+		panic("NewNonNullList: bad arguments")
+	}
+
+	if !nullable {
 		ofType = toNonNull(ofType)
 	}
 	return graphql.NewNonNull(graphql.NewList(ofType))

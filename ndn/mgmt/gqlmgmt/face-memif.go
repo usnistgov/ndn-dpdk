@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
+	"go.uber.org/atomic"
 	"go4.org/must"
 )
 
@@ -26,7 +26,7 @@ const autoSocketPath = "/run/ndn"
 var (
 	autoSocketOnce sync.Once
 	autoSocketName = ""
-	autoMemifID    uint32
+	autoMemifID    atomic.Uint32
 )
 
 // OpenMemif creates a face connected to the current application using memif transport.
@@ -42,7 +42,7 @@ func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 			}
 		})
 		loc.SocketName = autoSocketName
-		loc.ID = int(atomic.AddUint32(&autoMemifID, 1))
+		loc.ID = int(autoMemifID.Inc())
 		loc.SocketOwner = &[2]int{os.Getuid(), os.Getgid()}
 	}
 	loc.ApplyDefaults(memiftransport.RoleClient)

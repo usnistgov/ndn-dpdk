@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
-	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -23,6 +22,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
+	"go.uber.org/atomic"
 	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
@@ -70,7 +70,7 @@ type Writer struct {
 	queue    *ringbuffer.Ring
 	mp       *pktmbuf.Pool
 
-	nSources int32
+	nSources atomic.Int32
 	intfs    map[int]pcapgo.NgInterface
 	hasSHB   bool
 }
@@ -83,8 +83,7 @@ var (
 // startSource records a source starting.
 // The writer cannot be closed until all sources have stopped.
 func (w *Writer) startSource() {
-	n := atomic.AddInt32(&w.nSources, 1)
-	if n <= 0 {
+	if n := w.nSources.Inc(); n <= 0 {
 		panic("attempting to startSource on stopped Writer")
 	}
 }
@@ -92,8 +91,7 @@ func (w *Writer) startSource() {
 // stopSource records a source stopping.
 // The writer can be closed after all sources have stopped.
 func (w *Writer) stopSource() {
-	n := atomic.AddInt32(&w.nSources, -1)
-	if n < 0 {
+	if n := w.nSources.Dec(); n < 0 {
 		panic("w.nSources is negative")
 	}
 }
@@ -143,7 +141,7 @@ func (Writer) ThreadRole() string {
 
 // Close releases resources.
 func (w *Writer) Close() error {
-	if !atomic.CompareAndSwapInt32(&w.nSources, 0, -65536) {
+	if !w.nSources.CAS(0, -65536) {
 		return errors.New("cannot stop Writer with active sources")
 	}
 
