@@ -123,7 +123,7 @@ PdumpWriter_Run(PdumpWriter* w)
     rte_pktmbuf_free_bulk(pkts, count);
   }
 
-  if (!MmapFd_Close(&w->m, w->pos)) {
+  if (!MmapFd_Close(&w->m, w->filename, w->pos)) {
     return 2;
   }
   return 0;

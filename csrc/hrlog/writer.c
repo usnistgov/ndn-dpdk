@@ -34,7 +34,8 @@ HrlogWriter_Run(HrlogWriter* w)
   oldRing = rcu_xchg_pointer(&theHrlogRing.r, NULL);
   NDNDPDK_ASSERT(oldRing == w->queue);
 
-  if (!MmapFd_Close(&m, sizeof(hdr) + RTE_MIN(nCollected, w->count) * sizeof(buf[0]))) {
+  if (!MmapFd_Close(&m, w->filename,
+                    sizeof(hdr) + RTE_MIN(nCollected, w->count) * sizeof(buf[0]))) {
     return 2;
   }
   return 0;

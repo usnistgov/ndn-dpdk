@@ -8,15 +8,13 @@
 
 N_LOG_INIT(MmapFd);
 
-#define MmapFd_Error(func)                                                                         \
-  N_LOGE("%s(%s,fd=%d)" N_LOG_ERROR_ERRNO, #func, m->filename, m->fd, errno)
+#define MmapFd_Error(func) N_LOGE("%s(%s,fd=%d)" N_LOG_ERROR_ERRNO, #func, filename, m->fd, errno)
 
 __attribute__((nonnull)) static inline void
 MmapFd_Free(MmapFd* m)
 {
-  free((void*)m->filename);
   close(m->fd);
-  *m = (const MmapFd){ 0 };
+  *m = (const MmapFd){ .fd = -1 };
 }
 
 bool
@@ -24,7 +22,6 @@ MmapFd_Open(MmapFd* m, const char* filename, size_t size)
 {
   NDNDPDK_ASSERT(size > 0);
   *m = (const MmapFd){
-    .filename = strdup(filename),
     .size = size,
   };
 
@@ -33,13 +30,8 @@ MmapFd_Open(MmapFd* m, const char* filename, size_t size)
     MmapFd_Error(open);
     return false;
   }
-
-  if (lseek(m->fd, size - 1, SEEK_SET) == -1) {
-    MmapFd_Error(lseek);
-    goto FAIL;
-  }
-  if (write(m->fd, "", 1) == -1) {
-    MmapFd_Error(write);
+  if (fallocate(m->fd, 0, 0, size) != 0) {
+    MmapFd_Error(fallocate);
     goto FAIL;
   }
 
@@ -57,7 +49,7 @@ FAIL:
 }
 
 bool
-MmapFd_Close(MmapFd* m, size_t size)
+MmapFd_Close(MmapFd* m, const char* filename, size_t size)
 {
   NDNDPDK_ASSERT(m->size > 0);
 
