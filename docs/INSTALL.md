@@ -115,6 +115,7 @@ Pass `--arch=`*CPU-type* argument to the `ndndpdk-install.sh` to change the targ
 See [GCC - x86 options](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html) for available options.
 To switch this setting, you need to rerun the dependency installation script before recompiling NDN-DPDK.
 
-`GOAMD64` environment variable selects the x86-64-v3 architecture level for Go code, and makes the compiled binaries incompatible with older CPU models.
+`GOAMD64` environment variable selects the x86-64 architecture level for Go code.
 See [Go Minimum Requirements - amd64](https://github.com/golang/go/wiki/MinimumRequirements#amd64) for available options.
-The default is `GOAMD64=v3`.
+The default is `GOAMD64=v2`.
+It may be overridden to a higher level such as `GOAMD64=v3`.

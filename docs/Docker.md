@@ -14,17 +14,17 @@ Some DPDK drivers may require external dependencies.
 For example, the mlx5 driver for Mellanox ConnectX-4/5/6 Ethernet adapters needs the `libibverbs-dev` package.
 You can use `APT_PKGS` build argument to add external dependencies.
 
-By default, the image is non-portable due to the use of `-march=native` and `GOAMD64=v3` compiler flags, and NDN-DPDK is built in debug mode.
+By default, the image is non-portable due to the use of `-march=native` compiler flag, and NDN-DPDK is built in debug mode.
 The [installation guide](INSTALL.md) "compile-time settings" section explains how to change these settings.
 You can use `DEPENDS_ENV` and `DEPENDS_ARGS` build arguments to pass environment variables and command line arguments to the dependency installation script, and use `MAKE_ENV` build argument to pass environment variables to the Makefile.
 
-Example command to enable mlx5 driver, target Nehalem CPU, and select release mode:
+Example command to enable mlx5 driver, target Skylake CPU, and select release mode:
 
 ```bash
 docker build --pull \
   --build-arg APT_PKGS="libibverbs-dev" \
-  --build-arg DEPENDS_ARGS="--arch=nehalem" \
-  --build-arg MAKE_ENV="GOAMD64=v2 NDNDPDK_MK_RELEASE=1" \
+  --build-arg DEPENDS_ARGS="--arch=skylake" \
+  --build-arg MAKE_ENV="GOAMD64=v3 NDNDPDK_MK_RELEASE=1" \
   -t ndn-dpdk .
 ```
 
