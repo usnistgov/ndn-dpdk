@@ -41,7 +41,7 @@ func LoadGroup(groupFilename string) error {
 		return errors.New("dlopen.LoadGroup parse error")
 	}
 
-	libs := make(groupError)
+	libs := groupError{}
 	for _, filename := range tokens {
 		if strings.HasSuffix(filename, ".so") {
 			libs[filename] = nil
@@ -49,7 +49,7 @@ func LoadGroup(groupFilename string) error {
 	}
 
 	for {
-		failed := make(groupError)
+		failed := groupError{}
 		for filename := range libs {
 			if _, e := Load(filename); e != nil {
 				failed[filename] = e

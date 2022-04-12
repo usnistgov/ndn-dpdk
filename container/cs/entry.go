@@ -38,7 +38,7 @@ func (entry *Entry) ListIndirects() (indirects []*Entry) {
 	}
 
 	c := entry.ptr()
-	indirects = make([]*Entry, int(c.nIndirects))
+	indirects = make([]*Entry, c.nIndirects)
 	for i := range indirects {
 		indirects[i] = (*Entry)(c.indirect[i])
 	}

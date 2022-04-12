@@ -61,7 +61,7 @@ func (pkt *Packet) PName() *PName {
 // PitToken retrieves the PIT token.
 func (pkt *Packet) PitToken() (token []byte) {
 	tokenC := &C.Packet_GetLpL3Hdr(pkt.ptr()).pitToken
-	token = make([]byte, int(tokenC.length))
+	token = make([]byte, tokenC.length)
 	copy(token, cptr.AsByteSlice(tokenC.value[:]))
 	return
 }

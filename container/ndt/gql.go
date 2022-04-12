@@ -77,8 +77,8 @@ func init() {
 		Description: "Update NDT entry.",
 		Args: graphql.FieldConfigArgument{
 			"index": &graphql.ArgumentConfig{
-				Description: "Entry index. Either 'index' or 'name' is required; if both are specified, 'index' is preferred.",
-				Type:        graphql.Int,
+				Description: "Entry index or hash. Either 'index' or 'name' is required; if both are specified, 'index' is preferred.",
+				Type:        gqlserver.Uint64,
 			},
 			"name": &graphql.ArgumentConfig{
 				Description: "Name to derive index. Either 'index' or 'name' is required; if both are specified, 'index' is preferred.",
@@ -96,8 +96,8 @@ func init() {
 			}
 
 			var index uint64
-			if i, ok := p.Args["index"].(int); ok {
-				index = GqlNdt.IndexOfHash(uint64(i))
+			if i, ok := p.Args["index"].(uint64); ok {
+				index = GqlNdt.IndexOfHash(i)
 			} else if name, ok := p.Args["name"].(ndn.Name); ok {
 				index = GqlNdt.IndexOfName(name)
 			} else {

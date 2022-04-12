@@ -9,6 +9,7 @@ import (
 	"math"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"go.uber.org/zap"
 )
@@ -60,15 +61,13 @@ type PName C.PName
 
 // NewPName creates PName from ndn.Name.
 func NewPName(name ndn.Name) *PName {
-	var lname C.LName
-	var value []byte
-	if len(name) > 0 {
-		value, _ = name.MarshalBinary()
-		lname = C.LName{length: C.uint16_t(len(value)), value: (*C.uint8_t)(C.CBytes(value))}
-	}
+	value, _ := name.MarshalBinary()
+	pname := eal.Zmalloc[C.PName]("PName", C.sizeof_PName+len(value), eal.NumaSocket{})
+	valueC := unsafe.Add(unsafe.Pointer(pname), C.sizeof_PName)
+	copy(unsafe.Slice((*byte)(valueC), len(value)), value)
 
-	pname := (*C.PName)(C.malloc(C.sizeof_PName))
-	if !C.PName_Parse(pname, lname) {
+	if !C.PName_Parse(pname, C.LName{length: C.uint16_t(len(value)), value: (*C.uint8_t)(valueC)}) {
+		defer eal.Free(pname)
 		logger.Panic("PName_Parse error",
 			zap.Stringer("name", name),
 			zap.Binary("value", value),
@@ -88,11 +87,7 @@ func (p *PName) lname() C.LName {
 
 // Free releases memory.
 func (p *PName) Free() {
-	pname := (*C.PName)(p)
-	if pname.value != nil {
-		C.free(unsafe.Pointer(pname.value))
-	}
-	C.free(unsafe.Pointer(pname))
+	eal.Free(p)
 }
 
 // ComputeHash returns LName hash.

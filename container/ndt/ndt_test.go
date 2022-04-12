@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"reflect"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 	"unsafe"
@@ -28,9 +29,15 @@ func (entry *lookupTestEntry) AddResult(result uint8) {
 
 type lookupTestThread struct {
 	ealthread.Thread
+	started *sync.WaitGroup
 	stop    ealthread.StopChan
 	ndq     *ndt.Querier
 	Entries []lookupTestEntry
+	socket  eal.NumaSocket
+}
+
+func (th *lookupTestThread) NumaSocket() eal.NumaSocket {
+	return th.socket
 }
 
 func (th *lookupTestThread) ThreadRole() string {
@@ -38,6 +45,7 @@ func (th *lookupTestThread) ThreadRole() string {
 }
 
 func (th *lookupTestThread) main() {
+	th.started.Done()
 	entries := make([]*lookupTestEntry, len(th.Entries))
 	for i := range th.Entries {
 		entries[i] = &th.Entries[i]
@@ -53,15 +61,16 @@ func (th *lookupTestThread) main() {
 	}
 }
 
-func newLookupTestThread(t testing.TB, table *ndt.Ndt, names []ndn.Name) *lookupTestThread {
+func newLookupTestThread(t testing.TB, table *ndt.Ndt, names []ndn.Name, started *sync.WaitGroup) *lookupTestThread {
 	ndq := eal.Zmalloc[ndt.Querier]("NdtQuerier", unsafe.Sizeof(ndt.Querier{}), eal.NumaSocket{})
 	t.Cleanup(func() {
 		eal.Free(ndq)
 	})
 
 	th := &lookupTestThread{
-		stop: ealthread.NewStopChan(),
-		ndq:  ndq,
+		started: started,
+		stop:    ealthread.NewStopChan(),
+		ndq:     ndq,
 	}
 	th.ndq.Init(table, eal.NumaSocket{})
 	for _, name := range names {
@@ -103,11 +112,18 @@ func TestNdt(t *testing.T) {
 		}
 	}
 
+	var started sync.WaitGroup
+	started.Add(4)
 	threads := []*lookupTestThread{
-		newLookupTestThread(t, table, names[:6]),
-		newLookupTestThread(t, table, names[:6]),
-		newLookupTestThread(t, table, names[:6]),
-		newLookupTestThread(t, table, names[6:]),
+		newLookupTestThread(t, table, names[:6], &started),
+		newLookupTestThread(t, table, names[:6], &started),
+		newLookupTestThread(t, table, names[:6], &started),
+		newLookupTestThread(t, table, names[6:], &started),
+	}
+	if len(eal.Sockets) >= 2 {
+		threads[0].socket = eal.Sockets[0]
+		threads[2].socket = eal.Sockets[0]
+		threads[1].socket = eal.Sockets[1]
 	}
 
 	table.Randomize(250)
@@ -115,11 +131,12 @@ func TestNdt(t *testing.T) {
 	for _, th := range threads {
 		require.NoError(ealthread.AllocLaunch(th))
 	}
+	started.Wait()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(400 * time.Millisecond)
 	list1 := table.List()
 	table.Randomize(250)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(400 * time.Millisecond)
 
 	for _, th := range threads {
 		th.Stop()
@@ -145,7 +162,7 @@ func TestNdt(t *testing.T) {
 	// th0, th1, th2 should see consistent results
 	for i := range names[:6] {
 		for j := 1; j <= 2; j++ {
-			assert.Equal(threads[0].Entries[i].Results, threads[j].Entries[i].Results)
+			assert.Equal(threads[0].Entries[i].Results, threads[j].Entries[i].Results, "%d %d", i, j)
 		}
 	}
 

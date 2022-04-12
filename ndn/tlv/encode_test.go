@@ -13,7 +13,7 @@ func (m testEncodeMarshaler) Field() tlv.Field {
 	if m < 0 {
 		return tlv.FieldError(errors.New("testEncodeMarshaler error"))
 	}
-	return tlv.TLVBytes(uint32(m), make([]byte, int(m)))
+	return tlv.TLVBytes(uint32(m), make([]byte, m))
 }
 
 func TestEncode(t *testing.T) {

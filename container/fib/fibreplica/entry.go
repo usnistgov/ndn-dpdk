@@ -60,7 +60,7 @@ func (entry *Entry) Read() (de fibdef.Entry) {
 
 	de.Name.UnmarshalBinary(cptr.AsByteSlice(entry.nameV[:entry.nameL]))
 
-	de.Nexthops = make([]iface.ID, int(entry.nNexthops))
+	de.Nexthops = make([]iface.ID, entry.nNexthops)
 	for i := range de.Nexthops {
 		de.Nexthops[i] = iface.ID(entry.nexthops[i])
 	}
