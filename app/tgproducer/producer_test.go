@@ -114,7 +114,6 @@ func TestPatterns(t *testing.T) {
 			time.Sleep(50 * time.Microsecond)
 		}
 		time.Sleep(200 * time.Millisecond)
-		close(face.Tx)
 	}()
 
 	e = p.Stop()

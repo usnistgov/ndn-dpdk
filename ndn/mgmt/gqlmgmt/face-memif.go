@@ -80,7 +80,7 @@ func (f *face) openMemif(loc memiftransport.Locator) error {
 
 	f.l3face, e = l3.NewFace(tr, l3.FaceConfig{})
 	if e != nil {
-		close(tr.Tx())
+		tr.Close()
 		return fmt.Errorf("l3.NewFace: %w", e)
 	}
 	return nil

@@ -40,18 +40,6 @@ func init() {
 				Usage:       "respond every Interest with Data",
 				Destination: &respond,
 			},
-			&cli.IntFlag{
-				Name:        "rxq",
-				Usage:       "RX queue size",
-				Value:       l3.DefaultTransportRxQueueSize,
-				Destination: &cfg.RxQueueSize,
-			},
-			&cli.IntFlag{
-				Name:        "txq",
-				Usage:       "TX queue size",
-				Value:       l3.DefaultTransportTxQueueSize,
-				Destination: &cfg.TxQueueSize,
-			},
 		},
 		Action: func(c *cli.Context) error {
 			tr, e := afpacket.New(netif, cfg)

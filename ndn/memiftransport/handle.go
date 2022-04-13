@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"sync"
 
 	"github.com/FDio/vpp/extras/gomemif/memif"
@@ -51,7 +50,7 @@ func newHandle(loc Locator, setState func(l3.TransportState)) (hdl *handle, e er
 		setState = func(l3.TransportState) {}
 	}
 	hdl = &handle{
-		Locator:    loc,
+		loc:        loc,
 		sock:       sock,
 		memifError: make(chan error),
 		setState:   setState,
@@ -74,7 +73,7 @@ func newHandle(loc Locator, setState func(l3.TransportState)) (hdl *handle, e er
 }
 
 type handle struct {
-	Locator Locator
+	loc Locator
 
 	sock       *memif.Socket
 	memifError chan error
@@ -118,15 +117,6 @@ func (hdl *handle) Read(buf []byte) (n int, e error) {
 	if hdl.rxq != nil {
 		n, e = hdl.rxq.ReadPacket(buf)
 	}
-
-	if e == nil {
-		if n == 0 {
-			runtime.Gosched()
-			e = io.ErrNoProgress
-		} else if n > len(buf) {
-			e = io.ErrShortBuffer
-		}
-	}
 	return n, e
 }
 
@@ -151,6 +141,6 @@ func (hdl *handle) Close() error {
 	hdl.mutex.Unlock()
 
 	hdl.sock.Delete()
-	handleCoexist.Remove(hdl.Locator)
+	handleCoexist.Remove(hdl.loc)
 	return nil
 }

@@ -3,11 +3,13 @@ package pktmbuf
 
 /*
 #include "../../csrc/dpdk/mbuf.h"
+enum { c_offsetof_Mbuf_PacketType = offsetof(struct rte_mbuf, packet_type) };
 */
 import "C"
 import (
 	"errors"
 	"fmt"
+	"io"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/logging"
@@ -62,14 +64,18 @@ func (pkt *Packet) SetTimestamp(t eal.TscTime) {
 	C.Mbuf_SetTimestamp(pkt.ptr(), C.TscTime(t))
 }
 
+func (pkt *Packet) ptrType32() *uint32 {
+	return (*uint32)(unsafe.Add(pkt.Ptr(), C.c_offsetof_Mbuf_PacketType))
+}
+
 // Type32 returns 32-bit packet type.
 func (pkt *Packet) Type32() uint32 {
-	return uint32(*C.Mbuf_PtrPacketType(pkt.ptr()))
+	return *pkt.ptrType32()
 }
 
 // SetType32 sets 32-bit packet type.
 func (pkt *Packet) SetType32(packetType uint32) {
-	*C.Mbuf_PtrPacketType(pkt.ptr()) = C.uint32_t(packetType)
+	*pkt.ptrType32() = packetType
 }
 
 // SegmentLengths returns lengths of segments in this packet.
@@ -94,9 +100,18 @@ func (pkt *Packet) Bytes() []byte {
 	return b
 }
 
+// ZeroCopyBytes returns a the data in this packet.
+// It may alias the mbuf if it only has one segment.
+func (pkt *Packet) ZeroCopyBytes() []byte {
+	if pkt.nb_segs == 1 {
+		return unsafe.Slice((*byte)(pkt.DataPtr()), pkt.Len())
+	}
+	return pkt.Bytes()
+}
+
 // Headroom returns headroom of the first segment.
 func (pkt *Packet) Headroom() int {
-	return int(C.rte_pktmbuf_headroom(pkt.ptr()))
+	return int(pkt.data_off)
 }
 
 // SetHeadroom changes headroom of the first segment.
@@ -114,7 +129,25 @@ func (pkt *Packet) SetHeadroom(headroom int) error {
 
 // Tailroom returns tailroom of the last segment.
 func (pkt *Packet) Tailroom() int {
+	if pkt.nb_segs == 1 {
+		return int(pkt.buf_len - pkt.data_off - pkt.data_len)
+	}
 	return int(C.rte_pktmbuf_tailroom(C.rte_pktmbuf_lastseg(pkt.ptr())))
+}
+
+// ReadFrom reads from reader and appends into the dataroom of this packet.
+// It can only be used on an empty packet.
+func (pkt *Packet) ReadFrom(r io.Reader) (n int64, e error) {
+	if pkt.Len() > 0 {
+		return 0, errors.New("cannot ReadFrom on non-empty packet")
+	}
+	room := unsafe.Slice((*byte)(pkt.DataPtr()), pkt.Tailroom())
+	ni, e := r.Read(room)
+	if ni > 0 {
+		pkt.pkt_len = C.uint32_t(ni)
+		pkt.data_len = C.uint16_t(ni)
+	}
+	return int64(ni), e
 }
 
 // Prepend prepends to the packet in headroom of the first segment.

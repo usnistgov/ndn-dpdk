@@ -6,7 +6,7 @@ package tgconsumer
 #include "../../csrc/tgconsumer/tx.h"
 
 static_assert(offsetof(TgcTxPattern, digest) == offsetof(TgcTxPattern, seqNumOffset), "");
-enum { c_offsetof_TgcTxPattern_DigestSeqNumOffse = offsetof(TgcTxPattern, digest) };
+enum { c_offsetof_TgcTxPattern_DigestSeqNumOffset = offsetof(TgcTxPattern, digest) };
 */
 import "C"
 import (
@@ -116,7 +116,7 @@ func (c *Consumer) assignPattern(i int, pattern Pattern, dataGenVec pktmbuf.Vect
 		c.assignDigestPattern(pattern, txP, dataGenVec)
 	case pattern.SeqNumOffset != 0:
 		txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Offset)
-		*(*C.uint64_t)(unsafe.Add(unsafe.Pointer(txP), C.c_offsetof_TgcTxPattern_DigestSeqNumOffse)) = C.uint64_t(pattern.SeqNumOffset)
+		*(*C.uint64_t)(unsafe.Add(unsafe.Pointer(txP), C.c_offsetof_TgcTxPattern_DigestSeqNumOffset)) = C.uint64_t(pattern.SeqNumOffset)
 	default:
 		txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Increment)
 	}
@@ -143,7 +143,7 @@ func (c *Consumer) assignDigestPattern(pattern Pattern, txP *C.TgcTxPattern, dat
 	dp.prefix.value = (*C.uint8_t)(nameVC)
 	dp.prefix.length = C.uint16_t(len(nameV))
 
-	*(**C.TgcTxDigestPattern)(unsafe.Add(unsafe.Pointer(txP), C.c_offsetof_TgcTxPattern_DigestSeqNumOffse)) = dp
+	*(**C.TgcTxDigestPattern)(unsafe.Add(unsafe.Pointer(txP), C.c_offsetof_TgcTxPattern_DigestSeqNumOffset)) = dp
 	c.dPatterns = append(c.dPatterns, dp)
 }
 

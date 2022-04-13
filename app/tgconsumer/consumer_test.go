@@ -104,7 +104,6 @@ func TestConsumer(t *testing.T) {
 				assert.Fail("unexpected Interest", "%v", interest)
 			}
 		}
-		close(face.Tx)
 	}()
 
 	assert.InDelta(200*time.Microsecond, c.Interval(), float64(1*time.Microsecond))

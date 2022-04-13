@@ -5,7 +5,6 @@ package memiftransport
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 )
@@ -18,7 +17,7 @@ type Transport interface {
 }
 
 // New creates a Transport.
-func New(loc Locator) (Transport, error) {
+func New(loc Locator) (t Transport, e error) {
 	if e := loc.Validate(); e != nil {
 		return nil, fmt.Errorf("loc.Validate %w", e)
 	}
@@ -26,55 +25,21 @@ func New(loc Locator) (Transport, error) {
 
 	tr := &transport{}
 	tr.TransportBase, tr.p = l3.NewTransportBase(l3.TransportBaseConfig{
-		TransportQueueConfig: loc.TransportQueueConfig,
-		MTU:                  loc.Dataroom,
+		MTU: loc.Dataroom,
 	})
 
-	hdl, e := newHandle(loc, tr.p.SetState)
-	if e != nil {
+	if tr.handle, e = newHandle(loc, tr.p.SetState); e != nil {
 		return nil, e
 	}
-	tr.hdl = hdl
-
-	go tr.rxLoop()
-	go tr.txLoop()
 	return tr, nil
 }
 
 type transport struct {
+	*handle
 	*l3.TransportBase
-	p   *l3.TransportBasePriv
-	hdl *handle
+	p *l3.TransportBasePriv
 }
 
 func (tr *transport) Locator() Locator {
-	return tr.hdl.Locator
-}
-
-func (tr *transport) rxLoop() {
-	dataroom := tr.MTU()
-	buf := make([]byte, dataroom)
-	for {
-		n, e := tr.hdl.Read(buf)
-		if e == io.EOF {
-			break
-		}
-		if e != nil {
-			continue
-		}
-
-		select {
-		case tr.p.Rx <- buf[:n]:
-		default: // drop
-		}
-		buf = make([]byte, dataroom)
-	}
-	close(tr.p.Rx)
-}
-
-func (tr *transport) txLoop() {
-	for pkt := range tr.p.Tx {
-		tr.hdl.Write(pkt)
-	}
-	tr.hdl.Close()
+	return tr.loc
 }

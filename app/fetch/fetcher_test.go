@@ -39,7 +39,6 @@ func TestFetcher(t *testing.T) {
 				intFace.Tx <- ndn.MakeData(packet.Interest)
 			}
 		}
-		close(intFace.Tx)
 	}()
 
 	fetcher.Reset()

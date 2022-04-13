@@ -2,7 +2,7 @@ package ndntestenv
 
 import (
 	"math/rand"
-	"sync"
+	"net"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -43,16 +43,33 @@ func (cfg *BridgeRelayConfig) applyDefaults() {
 	}
 }
 
+func (cfg BridgeRelayConfig) makeLoss() func() (loss bool) {
+	if cfg.Loss == 0 {
+		return func() (loss bool) { return false }
+	}
+	return func() (loss bool) { return rand.Float64() < cfg.Loss }
+}
+
+func (cfg BridgeRelayConfig) makeDelay() func() (delay time.Duration) {
+	if cfg.MinDelay == cfg.MaxDelay {
+		return func() (delay time.Duration) { return cfg.MinDelay }
+	}
+
+	delayRange := float64(cfg.MaxDelay - cfg.MinDelay)
+	return func() time.Duration { return cfg.MinDelay + time.Duration(delayRange*rand.Float64()) }
+}
+
 // Bridge links two l3.Forwarder and emulates a lossy link.
 type Bridge struct {
 	FwA, FwB     l3.Forwarder
 	FaceA, FaceB l3.FwFace
-	closing      chan struct{}
+	trA, trB     *bridgeTransport
 }
 
 // Close detaches the link from forwarders.
 func (br *Bridge) Close() error {
-	close(br.closing)
+	br.trA.Close()
+	br.trB.Close()
 	return nil
 }
 
@@ -60,16 +77,13 @@ func (br *Bridge) Close() error {
 func NewBridge(cfg BridgeConfig) (br *Bridge) {
 	cfg.applyDefaults()
 	br = &Bridge{
-		FwA:     cfg.FwA,
-		FwB:     cfg.FwB,
-		closing: make(chan struct{}),
+		FwA: cfg.FwA,
+		FwB: cfg.FwB,
 	}
-	trA, trB := newBridgeTransport(), newBridgeTransport()
-	trA.peer, trB.peer = trB, trA
-	go trA.loop(cfg.RelayAB, br.closing)
-	go trB.loop(cfg.RelayBA, br.closing)
-	faceA, _ := l3.NewFace(trA, l3.FaceConfig{})
-	faceB, _ := l3.NewFace(trB, l3.FaceConfig{})
+	connA, connB := net.Pipe()
+	br.trA, br.trB = newBridgeTransport(connA, cfg.RelayAB), newBridgeTransport(connB, cfg.RelayBA)
+	faceA, _ := l3.NewFace(br.trA, l3.FaceConfig{})
+	faceB, _ := l3.NewFace(br.trB, l3.FaceConfig{})
 	br.FaceA, _ = br.FwA.AddFace(faceA)
 	br.FaceB, _ = br.FwB.AddFace(faceB)
 	br.FaceA.AddRoute(ndn.Name{})
@@ -78,47 +92,32 @@ func NewBridge(cfg BridgeConfig) (br *Bridge) {
 }
 
 type bridgeTransport struct {
+	net.Conn
 	*l3.TransportBase
-	p    *l3.TransportBasePriv
-	peer *bridgeTransport
+	p *l3.TransportBasePriv
+
+	loss  func() (loss bool)
+	delay func() (delay time.Duration)
 }
 
-func (tr *bridgeTransport) loop(relay BridgeRelayConfig, closing <-chan struct{}) {
-	delay := func() time.Duration { return relay.MinDelay }
-	if relay.MinDelay != relay.MaxDelay {
-		delayRange := float64(relay.MaxDelay - relay.MinDelay)
-		delay = func() time.Duration { return relay.MinDelay + time.Duration(delayRange*rand.Float64()) }
+func (tr *bridgeTransport) Write(buf []byte) (n int, e error) {
+	if !tr.loss() {
+		go func(delay time.Duration, pkt []byte) {
+			time.Sleep(delay)
+			tr.Conn.Write(buf)
+		}(tr.delay(), buf)
 	}
-
-	var wg sync.WaitGroup
-	defer func() {
-		wg.Wait()
-		close(tr.peer.p.Rx)
-	}()
-
-	for {
-		select {
-		case <-closing:
-			return
-		case pkt, ok := <-tr.p.Tx:
-			if !ok {
-				return
-			}
-			if rand.Float64() < relay.Loss {
-				continue
-			}
-
-			wg.Add(1)
-			go func(delay time.Duration, pkt []byte) {
-				time.Sleep(delay)
-				tr.peer.p.Rx <- pkt
-			}(delay(), pkt)
-		}
-	}
+	return len(buf), nil
 }
 
-func newBridgeTransport() (tr *bridgeTransport) {
-	tr = &bridgeTransport{}
-	tr.TransportBase, tr.p = l3.NewTransportBase(l3.TransportBaseConfig{})
+func newBridgeTransport(conn net.Conn, relay BridgeRelayConfig) (tr *bridgeTransport) {
+	tr = &bridgeTransport{
+		Conn:  conn,
+		loss:  relay.makeLoss(),
+		delay: relay.makeDelay(),
+	}
+	tr.TransportBase, tr.p = l3.NewTransportBase(l3.TransportBaseConfig{
+		MTU: 9000,
+	})
 	return tr
 }

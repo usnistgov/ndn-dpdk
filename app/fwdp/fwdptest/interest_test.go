@@ -16,6 +16,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 func TestInterestData(t *testing.T) {
@@ -507,7 +508,8 @@ func TestImplicitDigestSimple(t *testing.T) {
 	require.NoError(e)
 	require.Greater(len(frags), 1)
 	for _, frag := range frags {
-		face2.Tx <- frag
+		wire, _ := tlv.EncodeFrom(frag)
+		face2.A.Transport().Write(wire)
 		fixture.StepDelay()
 	}
 	require.Equal(1, collect1.Count())

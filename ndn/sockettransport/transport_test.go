@@ -33,7 +33,7 @@ func TestUDP(t *testing.T) {
 	// REUSEADDR
 	trC, e := dialer.Dial("udp", "127.0.0.1:7001", "127.0.0.1:7003")
 	if assert.NoError(e) {
-		close(trC.Tx())
+		trC.Close()
 	}
 
 	var c ndntestenv.L3FaceTester
@@ -69,21 +69,21 @@ func checkStream(t testing.TB, listener net.Listener) {
 	wg.Add(2)
 
 	go func() {
+		defer wg.Done()
 		var dialer sockettransport.Dialer
 		listenAddr := listener.Addr()
 		tr, e := dialer.Dial(listenAddr.Network(), "", listenAddr.String())
 		require.NoError(e)
 		trA = tr
-		wg.Done()
 	}()
 
 	go func() {
+		defer wg.Done()
 		socket, e := listener.Accept()
 		require.NoError(e)
 		tr, e := sockettransport.New(socket, sockettransport.Config{})
 		require.NoError(e)
 		trB = tr
-		wg.Done()
 	}()
 
 	wg.Wait()

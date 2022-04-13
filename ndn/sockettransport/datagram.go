@@ -11,17 +11,8 @@ type datagramImpl struct {
 	nopRedialer
 }
 
-func (datagramImpl) RxLoop(tr *transport) error {
-	for {
-		buffer := make([]byte, tr.cfg.RxBufferLength)
-		datagramLength, e := tr.Conn().Read(buffer)
-		if e != nil {
-			return e
-		}
-
-		wire := buffer[:datagramLength]
-		tr.p.Rx <- wire
-	}
+func (datagramImpl) Read(tr *transport, trc *trConn, buf []byte) (n int, e error) {
+	return trc.conn.Read(buf)
 }
 
 type pipeImpl struct {

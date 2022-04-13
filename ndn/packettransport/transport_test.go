@@ -30,16 +30,14 @@ func newPipePacketDataHandle(rx, tx net.Conn) packettransport.PacketDataHandle {
 	}
 }
 
-func (h *pipePacketDataHandle) ReadPacketData() (pkt []byte, ci gopacket.CaptureInfo, e error) {
+func (h *pipePacketDataHandle) ZeroCopyReadPacketData() (pkt []byte, ci gopacket.CaptureInfo, e error) {
 	n, e := h.rx.Read(h.buffer)
 	if e == io.ErrClosedPipe {
 		return nil, ci, io.EOF
 	}
 	ci.CaptureLength = n
 	ci.Length = n
-	pkt = make([]byte, n)
-	copy(pkt, h.buffer)
-	return pkt, ci, e
+	return h.buffer[:n], ci, e
 }
 
 func (h *pipePacketDataHandle) WritePacketData(pkt []byte) error {
@@ -55,9 +53,11 @@ func (h *pipePacketDataHandle) Close() {
 func TestPipe(t *testing.T) {
 	_, require := makeAR(t)
 
-	var cfgA, cfgB packettransport.Config
+	var cfgA packettransport.Config
+	cfgA.MTU = 4096
 	cfgA.Local.UnmarshalText([]byte("02:00:00:00:00:01"))
 	cfgA.Remote.UnmarshalText([]byte("02:00:00:00:00:02"))
+	cfgB := cfgA
 	cfgB.Local, cfgB.Remote = cfgA.Remote, cfgA.Local
 
 	rxA, txB := net.Pipe()

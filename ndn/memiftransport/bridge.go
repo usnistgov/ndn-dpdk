@@ -50,7 +50,7 @@ func NewBridge(locA, locB Locator) (bridge *Bridge, e error) {
 }
 
 func (bridge *Bridge) transferLoop(src, dst *handle) {
-	buf := make([]byte, generic.Max(src.Locator.Dataroom, dst.Locator.Dataroom))
+	buf := make([]byte, generic.Max(src.loc.Dataroom, dst.loc.Dataroom))
 	for {
 		select {
 		case <-bridge.closing:
@@ -59,7 +59,7 @@ func (bridge *Bridge) transferLoop(src, dst *handle) {
 		}
 
 		n, e := src.Read(buf)
-		if e == nil {
+		if e == nil && n > 0 {
 			dst.Write(buf[:n])
 		}
 	}

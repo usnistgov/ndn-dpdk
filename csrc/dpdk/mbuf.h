@@ -28,12 +28,6 @@ Mbuf_SetTimestamp(struct rte_mbuf* m, TscTime timestamp)
   *RTE_MBUF_DYNFIELD(m, Mbuf_Timestamp_DynFieldOffset_, TscTime*) = timestamp;
 }
 
-__attribute__((nonnull)) static inline uint32_t*
-Mbuf_PtrPacketType(struct rte_mbuf* m)
-{
-  return &m->packet_type;
-}
-
 /**
  * @brief Copy contents of mbuf to a buffer.
  * @param[out] dst destination buffer, must have sufficient size.

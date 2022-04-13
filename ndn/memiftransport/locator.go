@@ -8,7 +8,6 @@ import (
 
 	binutils "github.com/jfoster/binary-utilities"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
-	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/zyedidia/generic"
 )
 
@@ -39,8 +38,6 @@ const (
 
 // Locator identifies memif interface.
 type Locator struct {
-	l3.TransportQueueConfig
-
 	// Role selects memif role.
 	// Default is "client" in NDNgo library and "server" in NDN-DPDK service.
 	Role Role `json:"role,omitempty"`
@@ -86,8 +83,6 @@ func (loc Locator) Validate() error {
 
 // ApplyDefaults sets empty values to defaults.
 func (loc *Locator) ApplyDefaults(defaultRole Role) {
-	loc.ApplyTransportQueueConfigDefaults()
-
 	loc.SocketName = path.Clean(loc.SocketName)
 
 	if loc.Role == "" {

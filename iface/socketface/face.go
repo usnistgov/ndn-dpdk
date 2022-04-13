@@ -8,6 +8,7 @@ STATIC_ASSERT_FUNC_TYPE(Face_TxBurstFunc, go_SocketFace_TxBurst);
 */
 import "C"
 import (
+	"runtime"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
@@ -30,8 +31,6 @@ type Config struct {
 
 	// sockettransport.Config fields.
 	// See ndn-dpdk/ndn/sockettransport package for their semantics and defaults.
-	RxQueueSize          int                     `json:"rxQueueSize,omitempty"`
-	TxQueueSize          int                     `json:"txQueueSize,omitempty"`
 	RedialBackoffInitial nnduration.Milliseconds `json:"redialBackoffInitial,omitempty"`
 	RedialBackoffMaximum nnduration.Milliseconds `json:"redialBackoffMaximum,omitempty"`
 }
@@ -49,9 +48,6 @@ func New(loc Locator) (iface.Face, error) {
 
 	var dialer sockettransport.Dialer
 	dialer.MTU = cfg.MTU
-	dialer.RxBufferLength = ndni.PacketMempool.Config().Dataroom
-	dialer.RxQueueSize = cfg.RxQueueSize
-	dialer.TxQueueSize = cfg.TxQueueSize
 	dialer.RedialBackoffInitial = cfg.RedialBackoffInitial.Duration()
 	dialer.RedialBackoffMaximum = cfg.RedialBackoffMaximum.Duration()
 	transport, e := dialer.Dial(loc.Network, loc.Local, loc.Remote)
@@ -107,9 +103,7 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 			return nil
 		},
 		Close: func() error {
-			// close the channel after Get(id) would return nil.
-			// Otherwise, go_SocketFace_TxBurst could panic for sending into closed channel.
-			close(face.transport.Tx())
+			face.transport.Close()
 			return nil
 		},
 		ExCounters: func() any {
@@ -126,18 +120,28 @@ type socketFace struct {
 }
 
 func (face *socketFace) rxLoop() {
-	for wire := range face.transport.Rx() {
+	for {
 		vec, e := face.rxMempool.Alloc(1)
 		if e != nil { // ignore alloc error
+			runtime.Gosched()
 			continue
 		}
+		pkt := vec[0]
+		pkt.SetPort(uint16(face.ID()))
+		pkt.SetHeadroom(0)
 
-		mbuf := vec[0]
-		mbuf.SetPort(uint16(face.ID()))
-		mbuf.SetTimestamp(eal.TscNow())
-		mbuf.SetHeadroom(0)
-		mbuf.Append(wire)
+		for {
+			n, e := pkt.ReadFrom(face.transport)
+			if e != nil {
+				vec.Close()
+				return
+			}
+			if n > 0 {
+				break
+			}
+		}
 
+		pkt.SetTimestamp(eal.TscNow())
 		rxg.rx(vec)
 	}
 }
@@ -148,11 +152,7 @@ func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint
 	vec := pktmbuf.VectorFromPtr(unsafe.Pointer(pkts), int(nPkts))
 	defer vec.Close()
 	for _, pkt := range vec {
-		wire := pkt.Bytes()
-		select {
-		case face.transport.Tx() <- wire:
-		default: // packet loss
-		}
+		face.transport.Write(pkt.ZeroCopyBytes())
 	}
 	return nPkts
 }

@@ -10,6 +10,8 @@
 package l3
 
 import (
+	"fmt"
+
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/zyedidia/generic"
@@ -18,15 +20,33 @@ import (
 // Limits and defaults.
 const (
 	MinReassemblerCapacity = 16
+	DefaultRxQueueSize     = 64
+	DefaultTxQueueSize     = 64
 )
 
 // FaceConfig contains options for NewFace.
 type FaceConfig struct {
+	// ReassemblerCapacity is the maximum number of partial messages stored in the reassembler.
+	// Default is MinReassemblerCapacity.
 	ReassemblerCapacity int
+
+	// RxQueueSize is the Go channel buffer size of RX channel.
+	// Default is DefaultRxQueueSize.
+	RxQueueSize int `json:"rxQueueSize,omitempty"`
+
+	// TxQueueSize is the Go channel buffer size of TX channel.
+	// Default is DefaultTxQueueSize.
+	TxQueueSize int `json:"txQueueSize,omitempty"`
 }
 
 func (cfg *FaceConfig) applyDefaults() {
 	cfg.ReassemblerCapacity = generic.Max(cfg.ReassemblerCapacity, MinReassemblerCapacity)
+	if cfg.RxQueueSize <= 0 {
+		cfg.RxQueueSize = DefaultRxQueueSize
+	}
+	if cfg.TxQueueSize <= 0 {
+		cfg.TxQueueSize = DefaultTxQueueSize
+	}
 }
 
 // Face represents a communicate channel to send and receive NDN network layer packets.
@@ -49,20 +69,22 @@ type Face interface {
 }
 
 // NewFace creates a Face.
-// tr.Rx() and tr.Tx() should not be used after this operation.
+// tr.Read() and tr.Write() should not be used after this operation.
 func NewFace(tr Transport, cfg FaceConfig) (Face, error) {
 	cfg.applyDefaults()
+	mtu := tr.MTU()
+	if mtu <= 0 {
+		return nil, fmt.Errorf("bad MTU %d", mtu)
+	}
+
 	f := &face{
 		faceTr:      faceTr{tr},
-		rx:          make(chan *ndn.Packet),
-		tx:          make(chan ndn.L3Packet),
+		rx:          make(chan *ndn.Packet, cfg.RxQueueSize),
+		tx:          make(chan ndn.L3Packet, cfg.TxQueueSize),
+		mtu:         mtu,
+		fragmenter:  ndn.NewLpFragmenter(mtu),
 		reassembler: ndn.NewLpReassembler(cfg.ReassemblerCapacity),
 	}
-
-	if mtu := tr.MTU(); mtu > 0 {
-		f.fragmenter = ndn.NewLpFragmenter(mtu)
-	}
-
 	go f.rxLoop()
 	go f.txLoop()
 	return f, nil
@@ -73,6 +95,7 @@ type face struct {
 	rx chan *ndn.Packet
 	tx chan ndn.L3Packet
 
+	mtu         int
 	fragmenter  *ndn.LpFragmenter
 	reassembler *ndn.LpReassembler
 }
@@ -94,10 +117,18 @@ func (f *face) Tx() chan<- ndn.L3Packet {
 }
 
 func (f *face) rxLoop() {
-	for wire := range f.faceTr.Rx() {
-		var pkt ndn.Packet
-		e := tlv.Decode(wire, &pkt)
+	for {
+		buf := make([]byte, f.mtu)
+		n, e := f.faceTr.Read(buf)
 		if e != nil {
+			break
+		}
+		if n == 0 {
+			continue
+		}
+
+		var pkt ndn.Packet
+		if e := tlv.Decode(buf[:n], &pkt); e != nil {
 			continue
 		}
 
@@ -114,27 +145,18 @@ func (f *face) rxLoop() {
 }
 
 func (f *face) txLoop() {
-	transportTx := f.faceTr.Tx()
 	for l3packet := range f.tx {
 		pkt := l3packet.ToPacket()
+		frames, e := f.fragmenter.Fragment(pkt)
+		if e != nil {
+			continue
+		}
 
-		if f.fragmenter == nil {
-			f.txFrames(transportTx, pkt)
-		} else {
-			frags, e := f.fragmenter.Fragment(pkt)
-			if e == nil {
-				f.txFrames(transportTx, frags...)
+		for _, frame := range frames {
+			if wire, e := tlv.EncodeFrom(frame); e == nil {
+				f.faceTr.Write(wire)
 			}
 		}
 	}
-	close(transportTx)
-}
-
-func (f *face) txFrames(transportTx chan<- []byte, frames ...*ndn.Packet) {
-	for _, frame := range frames {
-		wire, e := tlv.EncodeFrom(frame)
-		if e == nil {
-			transportTx <- wire
-		}
-	}
+	f.faceTr.Close()
 }

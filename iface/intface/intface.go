@@ -10,6 +10,18 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 )
 
+var faceByID = map[iface.ID]*IntFace{}
+
+func init() {
+	iface.OnFaceClosing(func(id iface.ID) {
+		f := faceByID[id]
+		if f != nil {
+			close(f.Tx)
+			delete(faceByID, id)
+		}
+	})
+}
+
 // IntFace is an iface.Face and a ndn.L3Face connected together.
 type IntFace struct {
 	// D is the face on DPDK side.
@@ -33,14 +45,15 @@ type IntFace struct {
 }
 
 // New creates an IntFace.
-func New(cfg socketface.Config) (*IntFace, error) {
-	var f IntFace
-
-	trA, trD, e := sockettransport.Pipe(sockettransport.Config{})
+func New(cfg socketface.Config) (f *IntFace, e error) {
+	trA, trD, e := sockettransport.Pipe(sockettransport.Config{
+		MTU: cfg.MTU,
+	})
 	if e != nil {
 		return nil, e
 	}
 
+	f = &IntFace{}
 	if f.A, e = l3.NewFace(trA, l3.FaceConfig{}); e != nil {
 		return nil, e
 	}
@@ -51,7 +64,8 @@ func New(cfg socketface.Config) (*IntFace, error) {
 	f.ID = f.D.ID()
 	f.Rx = f.A.Rx()
 	f.Tx = f.A.Tx()
-	return &f, nil
+	faceByID[f.ID] = f
+	return f, nil
 }
 
 // Must panics on error.

@@ -12,19 +12,18 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
-	"go4.org/must"
+	"golang.org/x/exp/slices"
 )
 
 // PacketDataHandle represents a network interface to send and receive Ethernet frames.
 type PacketDataHandle interface {
-	gopacket.PacketDataSource
+	gopacket.ZeroCopyPacketDataSource
 	WritePacketData(pkt []byte) error
 }
 
 // Config contains Transport configuration.
 type Config struct {
 	Locator
-	l3.TransportQueueConfig
 	MTU int
 }
 
@@ -32,8 +31,6 @@ func (cfg *Config) applyDefaults() {
 	if cfg.Remote.Empty() {
 		cfg.Remote.HardwareAddr = MulticastAddressNDN
 	}
-
-	cfg.ApplyTransportQueueConfigDefaults()
 }
 
 // Transport is an l3.Transport that communicates over a PacketDataHandle.
@@ -60,12 +57,11 @@ func New(hdl PacketDataHandle, cfg Config) (Transport, error) {
 		loc: cfg.Locator,
 	}
 	tr.TransportBase, tr.p = l3.NewTransportBase(l3.TransportBaseConfig{
-		TransportQueueConfig: cfg.TransportQueueConfig,
-		MTU:                  cfg.MTU,
+		MTU: cfg.MTU,
 	})
 
-	go tr.rxLoop()
-	go tr.txLoop()
+	tr.rx.Prepare(tr.loc)
+	tr.tx.Prepare(tr.loc)
 	return tr, nil
 }
 
@@ -74,59 +70,93 @@ type transport struct {
 	p   *l3.TransportBasePriv
 	hdl PacketDataHandle
 	loc Locator
+	rx  transportRx
+	tx  transportTx
 }
 
 func (tr *transport) Handle() PacketDataHandle {
 	return tr.hdl
 }
 
-func (tr *transport) rxLoop() {
-	matchSrc := func(a net.HardwareAddr) bool { return macaddr.Equal(tr.loc.Remote.HardwareAddr, a) }
-	matchDst := func(a net.HardwareAddr) bool { return macaddr.Equal(tr.loc.Local.HardwareAddr, a) }
-	if macaddr.IsMulticast(tr.loc.Remote.HardwareAddr) {
-		matchSrc = func(net.HardwareAddr) bool { return true }
-		matchDst = func(a net.HardwareAddr) bool { return macaddr.Equal(tr.loc.Remote.HardwareAddr, a) }
+func (tr *transport) Read(buf []byte) (n int, e error) {
+	return tr.rx.Read(tr.hdl, buf)
+}
+
+func (tr *transport) Write(buf []byte) (n int, e error) {
+	return tr.tx.Write(tr.hdl, buf)
+}
+
+func (tr *transport) Close() error {
+	defer tr.p.SetState(l3.TransportClosed)
+
+	type closer interface {
+		Close()
+	}
+	switch hdl := tr.hdl.(type) {
+	case io.Closer:
+		return hdl.Close()
+	case closer:
+		hdl.Close()
+		return nil
+	}
+	return nil
+}
+
+type transportRx struct {
+	eth     layers.Ethernet
+	parser  *gopacket.DecodingLayerParser
+	decoded []gopacket.LayerType
+
+	matchSrc, matchDst func(a net.HardwareAddr) bool
+	extractPayload     func(layerType gopacket.LayerType) []byte
+}
+
+func (rx *transportRx) Prepare(loc Locator) {
+	rx.matchSrc = func(a net.HardwareAddr) bool { return macaddr.Equal(loc.Remote.HardwareAddr, a) }
+	rx.matchDst = func(a net.HardwareAddr) bool { return macaddr.Equal(loc.Local.HardwareAddr, a) }
+	if macaddr.IsMulticast(loc.Remote.HardwareAddr) {
+		rx.matchSrc = func(net.HardwareAddr) bool { return true }
+		rx.matchDst = func(a net.HardwareAddr) bool { return macaddr.Equal(loc.Remote.HardwareAddr, a) }
 	}
 
-	var eth layers.Ethernet
 	var payload gopacket.Payload
-	parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &eth, &payload)
-	extractPayload := func(layerType gopacket.LayerType) []byte {
-		if layerType == layers.LayerTypeEthernet && eth.EthernetType == EthernetTypeNDN {
-			return eth.Payload
+	rx.parser = gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &rx.eth, &payload)
+	rx.extractPayload = func(layerType gopacket.LayerType) []byte {
+		if layerType == layers.LayerTypeEthernet && rx.eth.EthernetType == EthernetTypeNDN {
+			return rx.eth.Payload
 		}
 		return nil
 	}
-	if tr.loc.VLAN > 0 {
+	if loc.VLAN > 0 {
 		var dot1q layers.Dot1Q
-		parser.AddDecodingLayer(&dot1q)
-		vlan16 := uint16(tr.loc.VLAN)
-		extractPayload = func(layerType gopacket.LayerType) []byte {
+		rx.parser.AddDecodingLayer(&dot1q)
+		vlan16 := uint16(loc.VLAN)
+		rx.extractPayload = func(layerType gopacket.LayerType) []byte {
 			if layerType == layers.LayerTypeDot1Q && dot1q.VLANIdentifier == vlan16 && dot1q.Type == EthernetTypeNDN {
-				return eth.Payload
+				return dot1q.Payload
 			}
 			return nil
 		}
 	}
+}
 
-	decoded := []gopacket.LayerType{}
+func (rx *transportRx) Read(hdl PacketDataHandle, buf []byte) (n int, e error) {
 DROP:
 	for {
-		packetData, _, e := tr.hdl.ReadPacketData()
+		packetData, _, e := hdl.ZeroCopyReadPacketData()
 		if errors.Is(e, io.EOF) {
-			close(tr.p.Rx)
-			return
+			return 0, e
 		}
-		if e = parser.DecodeLayers(packetData, &decoded); e != nil {
+		if e = rx.parser.DecodeLayers(packetData, &rx.decoded); e != nil {
 			continue
 		}
 
-		for _, layerType := range decoded {
-			if layerType == layers.LayerTypeEthernet && (!matchSrc(eth.SrcMAC) || !matchDst(eth.DstMAC)) {
+		for _, layerType := range rx.decoded {
+			if layerType == layers.LayerTypeEthernet && (!rx.matchSrc(rx.eth.SrcMAC) || !rx.matchDst(rx.eth.DstMAC)) {
 				continue DROP
 			}
 
-			payload := extractPayload(layerType)
+			payload := rx.extractPayload(layerType)
 			if len(payload) == 0 {
 				continue
 			}
@@ -136,49 +166,47 @@ DROP:
 			if e != nil {
 				continue DROP
 			}
-			select {
-			case tr.p.Rx <- element.Wire:
-			default:
-			}
+
+			return copy(buf, element.Wire), nil
 		}
 	}
 }
 
-func (tr *transport) txLoop() {
+type transportTx struct {
+	headers []gopacket.SerializableLayer
+	buf     gopacket.SerializeBuffer
+	opts    gopacket.SerializeOptions
+}
+
+func (tx *transportTx) Prepare(loc Locator) {
 	var eth layers.Ethernet
-	eth.SrcMAC = tr.loc.Local.HardwareAddr
-	eth.DstMAC = tr.loc.Remote.HardwareAddr
+	eth.SrcMAC = loc.Local.HardwareAddr
+	eth.DstMAC = loc.Remote.HardwareAddr
 	eth.EthernetType = EthernetTypeNDN
-	headers := []gopacket.SerializableLayer{&eth}
-	if tr.loc.VLAN > 0 {
+	tx.headers = []gopacket.SerializableLayer{&eth}
+
+	if loc.VLAN > 0 {
 		var dot1q layers.Dot1Q
 		dot1q.Type = eth.EthernetType
-		dot1q.VLANIdentifier = uint16(tr.loc.VLAN)
-		headers = append(headers, &dot1q)
+		dot1q.VLANIdentifier = uint16(loc.VLAN)
+		tx.headers = append(tx.headers, &dot1q)
 		eth.EthernetType = layers.EthernetTypeDot1Q
 	}
 
-	buf := gopacket.NewSerializeBuffer()
-	opts := gopacket.SerializeOptions{}
-	for payload := range tr.p.Tx {
-		packetLayers := append([]gopacket.SerializableLayer{}, headers...)
-		packetLayers = append(packetLayers, gopacket.Payload(payload))
-		if e := gopacket.SerializeLayers(buf, opts, packetLayers...); e != nil {
-			continue
-		}
-		tr.hdl.WritePacketData(buf.Bytes())
-	}
+	tx.buf = gopacket.NewSerializeBuffer()
 
-	type closer interface {
-		Close()
+	tx.opts = gopacket.SerializeOptions{
+		FixLengths:       true,
+		ComputeChecksums: true,
 	}
-	switch hdl := tr.hdl.(type) {
-	case io.Closer:
-		must.Close(hdl)
-	case closer:
-		hdl.Close()
+}
+
+func (tx *transportTx) Write(hdl PacketDataHandle, buf []byte) (n int, e error) {
+	packetLayers := append(slices.Clone(tx.headers), gopacket.Payload(buf))
+	if e := gopacket.SerializeLayers(tx.buf, tx.opts, packetLayers...); e != nil {
+		return 0, e
 	}
-	tr.p.SetState(l3.TransportClosed)
+	return len(buf), hdl.WritePacketData(tx.buf.Bytes())
 }
 
 func init() {

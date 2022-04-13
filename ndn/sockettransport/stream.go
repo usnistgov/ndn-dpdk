@@ -2,46 +2,50 @@ package sockettransport
 
 import "github.com/usnistgov/ndn-dpdk/ndn/tlv"
 
-type streamRxLooper struct{}
-
-func (streamRxLooper) RxLoop(tr *transport) error {
-	buffer := make([]byte, tr.cfg.RxBufferLength)
-	nAvail := 0
-	for {
-		nRead, e := tr.Conn().Read(buffer[nAvail:])
-		if e != nil {
-			return e
+func streamDecode(received, buf []byte) (rest []byte, n int) {
+	if len(received) > 0 {
+		d := tlv.DecodingBuffer(received)
+		if de, e := d.Element(); e == nil {
+			return de.After, copy(buf, de.Wire)
 		}
-		nAvail += nRead
-
-		// parse and post packets
-		d := tlv.DecodingBuffer(buffer[:nAvail])
-		elements := d.Elements()
-		if len(elements) == 0 {
-			continue
-		}
-
-		for _, de := range elements {
-			tr.p.Rx <- de.Wire
-		}
-
-		// copy remaining portion to a new buffer
-		// can't reuse buffer because posted packets are still referencing it
-		buffer = make([]byte, tr.cfg.RxBufferLength)
-		nAvail = copy(buffer, d.Rest())
 	}
+	return received, 0
+}
+
+type streamReader struct{}
+
+func (streamReader) Read(tr *transport, trc *trConn, buf []byte) (n int, e error) {
+	received, _ := trc.rx.([]byte)
+	received, n = streamDecode(received, buf)
+	if n > 0 {
+		trc.rx = received
+		return n, nil
+	}
+
+	if mtu := tr.MTU(); cap(received) < mtu {
+		received = append(make([]byte, 0, 2*mtu), received...)
+	}
+	r, e := trc.conn.Read(received[len(received):cap(received)])
+	if e != nil {
+		return 0, e
+	}
+	received = received[:len(received)+r]
+
+	received, n = streamDecode(received, buf)
+	trc.rx = received
+	return n, nil
 }
 
 type tcpImpl struct {
 	noLocalAddrDialer
 	localAddrRedialer
-	streamRxLooper
+	streamReader
 }
 
 type unixImpl struct {
 	noLocalAddrDialer
 	noLocalAddrRedialer
-	streamRxLooper
+	streamReader
 }
 
 func init() {
