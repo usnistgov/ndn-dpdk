@@ -4,9 +4,8 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/jwangsadinata/go-multimap"
-	"github.com/jwangsadinata/go-multimap/setmultimap"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/zyedidia/generic/multimap"
 )
 
 // Forwarder is a logical forwarding plane.
@@ -44,7 +43,7 @@ type Forwarder interface {
 func NewForwarder() Forwarder {
 	fw := &forwarder{
 		faces:         map[uint32]*fwFace{},
-		announcements: setmultimap.New(),
+		announcements: multimap.NewMapSlice[string, *fwFace](),
 		readvertise:   map[ReadvertiseDestination]bool{},
 		cmd:           make(chan func()),
 		rx:            make(chan fwRxPkt),
@@ -60,7 +59,7 @@ type fwRxPkt struct {
 
 type forwarder struct {
 	faces         map[uint32]*fwFace
-	announcements multimap.MultiMap // multimap[string(prefixV)]*fwFace
+	announcements multimap.MultiMap[string, *fwFace]
 	readvertise   map[ReadvertiseDestination]bool
 	cmd           chan func()
 	rx            chan fwRxPkt

@@ -104,7 +104,7 @@ func (f *fwFace) AddAnnouncement(name ndn.Name) {
 	f.fw.execute(func() {
 		f.announcements[nameS] = name
 
-		if !f.fw.announcements.ContainsKey(nameS) {
+		if !f.fw.announcements.Has(nameS) {
 			for dest := range f.fw.readvertise {
 				go dest.Advertise(name)
 			}
@@ -125,7 +125,7 @@ func (f *fwFace) removeAnnouncementImpl(name ndn.Name, nameS string) {
 	delete(f.announcements, nameS)
 
 	f.fw.announcements.Remove(nameS, f)
-	if !f.fw.announcements.ContainsKey(nameS) {
+	if !f.fw.announcements.Has(nameS) {
 		for dest := range f.fw.readvertise {
 			go dest.Withdraw(name)
 		}

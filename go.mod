@@ -16,7 +16,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20220405231054-a1ae3e4bba26
 	github.com/jfoster/binary-utilities v0.2.1
-	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
 	github.com/machinebox/graphql v0.2.2
@@ -33,13 +32,13 @@ require (
 	github.com/urfave/cli/v2 v2.4.0
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
-	github.com/zyedidia/generic v0.2.1-0.20220406174630-7bf84966e70c
+	github.com/zyedidia/generic v0.2.1-0.20220413035348-c1f83ecadbb0
 	go.uber.org/atomic v1.9.0
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/exp v0.0.0-20220407100705-7b9b53b0aca4
-	golang.org/x/sys v0.0.0-20220408201424-a24fb2fb8a0f
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
 )
 
 require (
