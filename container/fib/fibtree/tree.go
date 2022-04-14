@@ -53,14 +53,14 @@ func (t *Tree) CountEntries() int {
 func (t *Tree) seek(name ndn.Name, canInsert bool) (n *node, isNew bool) {
 	n = t.root
 	for _, comp := range name {
-		compS := componentToString(comp)
-		child := n.children[compS]
+		c := component{uint16(comp.Type), string(comp.Value)}
+		child := n.children[c]
 		if child == nil {
 			if !canInsert {
 				return nil, false
 			}
 			child = newNode()
-			n.addChild(compS, child)
+			n.AddChild(c, child)
 			t.nNodes++
 			isNew = true
 		}
@@ -71,14 +71,14 @@ func (t *Tree) seek(name ndn.Name, canInsert bool) (n *node, isNew bool) {
 
 // List lists entries.
 func (t *Tree) List() (list []fibdef.Entry) {
-	t.root.appendListTo("", &list)
+	t.root.AppendListTo(nil, &list)
 	return
 }
 
 // Find retrieves an entry by exact match.
 func (t *Tree) Find(name ndn.Name) *fibdef.Entry {
 	n, _ := t.seek(name, false)
-	if n == nil || !n.isEntry() {
+	if n == nil || !n.IsEntry() {
 		return nil
 	}
 	return &fibdef.Entry{
@@ -106,7 +106,7 @@ func (t *Tree) Insert(entry fibdef.Entry) fibdef.Update {
 		Action:    fibdef.ActReplace,
 		EntryBody: entry.EntryBody,
 	}
-	if n.isEntry() {
+	if n.IsEntry() {
 		oldEntry := fibdef.Entry{
 			Name:      entry.Name,
 			EntryBody: n.EntryBody,
@@ -137,12 +137,12 @@ func (t *Tree) Insert(entry fibdef.Entry) fibdef.Update {
 		for depth, p := len(entry.Name), n.parent; p != nil; p = p.parent {
 			depth--
 			oldHeight := p.height
-			p.updateHeight()
+			p.UpdateHeight()
 			if depth == t.startDepth && oldHeight != p.height {
 				u.virt = &fibdef.VirtUpdate{
-					Name:    p.name(),
+					Name:    p.Name(),
 					Action:  fibdef.ActReplace,
-					HasReal: p.isEntry(),
+					HasReal: p.IsEntry(),
 					Height:  p.height,
 				}
 				if oldHeight == 0 {
@@ -159,7 +159,7 @@ func (t *Tree) Erase(name ndn.Name) fibdef.Update {
 	var u update
 
 	n, _ := t.seek(name, false)
-	if n == nil || !n.isEntry() {
+	if n == nil || !n.IsEntry() {
 		return u
 	}
 	oldEntry := fibdef.Entry{
@@ -186,18 +186,18 @@ func (t *Tree) Erase(name ndn.Name) fibdef.Update {
 		return u
 	}
 
-	for depth, c, p := len(name), n, n.parent; p != nil && !c.isEntry() && len(c.children) == 0; c, p = p, p.parent {
+	for depth, c, p := len(name), n, n.parent; p != nil && !c.IsEntry() && len(c.children) == 0; c, p = p, p.parent {
 		depth--
-		p.removeChild(c)
+		p.RemoveChild(c)
 		t.nNodes--
 
 		oldHeight := p.height
-		p.updateHeight()
+		p.UpdateHeight()
 		if depth == t.startDepth && oldHeight != p.height {
 			u.virt = &fibdef.VirtUpdate{
-				Name:    p.name(),
+				Name:    p.Name(),
 				Action:  fibdef.ActReplace,
-				HasReal: p.isEntry(),
+				HasReal: p.IsEntry(),
 				Height:  p.height,
 			}
 			if p.height == 0 {

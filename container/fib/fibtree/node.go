@@ -1,17 +1,20 @@
 package fibtree
 
 import (
-	"bytes"
-
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/zyedidia/generic"
 )
 
-func componentToString(comp ndn.NameComponent) string {
-	compV, _ := tlv.EncodeFrom(comp)
-	return string(compV)
+type component struct {
+	typ   uint16
+	value string
+}
+
+func (c component) NameComponent() (nc ndn.NameComponent) {
+	nc.Type = uint32(c.typ)
+	nc.Value = []byte(c.value)
+	return
 }
 
 type node struct {
@@ -19,22 +22,22 @@ type node struct {
 	height int
 
 	parent   *node
-	comp     string
-	children map[string]*node
+	comp     component
+	children map[component]*node
 }
 
-func (n *node) addChild(comp string, child *node) {
+func (n *node) AddChild(comp component, child *node) {
 	child.comp = comp
 	child.parent = n
 	n.children[comp] = child
 }
 
-func (n *node) removeChild(child *node) {
+func (n *node) RemoveChild(child *node) {
 	delete(n.children, child.comp)
 	child.parent = nil
 }
 
-func (n *node) updateHeight() {
+func (n *node) UpdateHeight() {
 	h := -1
 	for _, child := range n.children {
 		h = generic.Max(h, child.height)
@@ -42,41 +45,42 @@ func (n *node) updateHeight() {
 	n.height = h + 1
 }
 
-func (n *node) name() (name ndn.Name) {
-	var buffer bytes.Buffer
-	n.appendNameValue(&buffer)
-	name.UnmarshalBinary(buffer.Bytes())
-	return name
-}
-
-func (n *node) appendNameValue(buffer *bytes.Buffer) {
-	if n.parent != nil {
-		n.parent.appendNameValue(buffer)
-		buffer.WriteString(n.comp) // root node has no component
+func (n *node) Name() (name ndn.Name) {
+	if n.parent == nil {
+		return make(ndn.Name, 0, n.height)
 	}
+	return append(n.parent.Name(), n.comp.NameComponent())
 }
 
-func (n *node) isEntry() bool {
+func (n *node) IsEntry() bool {
 	return len(n.Nexthops) > 0
 }
 
-func (n *node) appendListTo(parentNameV string, list *[]fibdef.Entry) {
-	nameV := parentNameV + n.comp
-	if n.isEntry() {
+func (n *node) AppendListTo(parentName ndn.Name, list *[]fibdef.Entry) {
+	var name ndn.Name
+	if n.parent == nil {
+		name = ndn.Name{}
+	} else {
+		name = make(ndn.Name, len(parentName)+1)
+		copy(name, parentName)
+		name[len(parentName)] = n.comp.NameComponent()
+	}
+
+	if n.IsEntry() {
 		entry := fibdef.Entry{
 			EntryBody: n.EntryBody,
+			Name:      name,
 		}
-		entry.Name.UnmarshalBinary([]byte(nameV))
 		*list = append(*list, entry)
 	}
 
 	for _, child := range n.children {
-		child.appendListTo(nameV, list)
+		child.AppendListTo(name, list)
 	}
 }
 
 func newNode() *node {
 	return &node{
-		children: map[string]*node{},
+		children: map[component]*node{},
 	}
 }
