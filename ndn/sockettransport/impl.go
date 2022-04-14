@@ -10,7 +10,7 @@ type impl interface {
 	Redial(oldConn net.Conn) (net.Conn, error)
 
 	// Receive a TLV packet on the socket.
-	Read(tr *transport, trc *trConn, buf []byte) (n int, e error)
+	Read(tr *transport, buf []byte) (n int, e error)
 }
 
 var implByNetwork = map[string]impl{}

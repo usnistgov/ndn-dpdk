@@ -135,7 +135,7 @@ func (pkt *Packet) Tailroom() int {
 	return int(C.rte_pktmbuf_tailroom(C.rte_pktmbuf_lastseg(pkt.ptr())))
 }
 
-// ReadFrom reads from reader and appends into the dataroom of this packet.
+// ReadFrom reads once from the reader into the dataroom of this packet.
 // It can only be used on an empty packet.
 func (pkt *Packet) ReadFrom(r io.Reader) (n int64, e error) {
 	if pkt.Len() > 0 {

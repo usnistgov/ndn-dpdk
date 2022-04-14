@@ -183,12 +183,6 @@ export interface SocketFaceConfig extends FaceConfig {
   mtu?: Uint;
 
   /**
-   * @minimum 256
-   * @default 4096
-   */
-  rxGroupCapacity?: Uint;
-
-  /**
    * @default 100
    */
   redialBackoffInitial?: NNMilliseconds;
@@ -196,7 +190,7 @@ export interface SocketFaceConfig extends FaceConfig {
   /**
    * @default 60000
    */
-   redialBackoffMaximum?: NNMilliseconds;
+  redialBackoffMaximum?: NNMilliseconds;
 }
 
 /**

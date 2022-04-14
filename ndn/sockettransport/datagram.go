@@ -11,8 +11,8 @@ type datagramImpl struct {
 	nopRedialer
 }
 
-func (datagramImpl) Read(tr *transport, trc *trConn, buf []byte) (n int, e error) {
-	return trc.conn.Read(buf)
+func (datagramImpl) Read(tr *transport, buf []byte) (n int, e error) {
+	return tr.conn.Read(buf)
 }
 
 type pipeImpl struct {

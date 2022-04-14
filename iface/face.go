@@ -344,16 +344,15 @@ func (f *face) EnableInputDemuxes() {
 
 func (f *face) SetDown(isDown bool) {
 	id, c := f.id, f.ptr()
-	if IsDown(id) == isDown {
-		return
-	}
-	if isDown {
+	switch {
+	case isDown && c.state == StateUp:
 		c.state = StateDown
 		emitter.Emit(evtFaceDown, id)
-	} else {
+	case !isDown && c.state == StateDown:
 		c.state = StateUp
 		emitter.Emit(evtFaceUp, id)
 	}
+	// don't change state if face is closing/removed
 }
 
 // IsDown returns true if the face does not exist or is down.

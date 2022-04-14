@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/sethvargo/go-retry"
@@ -79,122 +80,87 @@ func New(conn net.Conn, cfg Config) (Transport, error) {
 	cfg.applyDefaults()
 
 	tr := &transport{
-		impl: impl,
-		err:  make(chan error, 1), // 1-item buffer allows rxLoop to send its error after redialLoop exits
-		// closing: make(chan struct{}),
+		impl:    impl,
+		conn:    conn,
 		backoff: retry.WithCappedDuration(cfg.RedialBackoffMaximum, retry.NewExponential(cfg.RedialBackoffInitial)),
 	}
 	tr.TransportBase, tr.p = l3.NewTransportBase(l3.TransportBaseConfig{
 		MTU: cfg.MTU,
 	})
 	tr.ctx, tr.cancel = context.WithCancel(context.Background())
-
-	tr.setConn(conn)
-	go tr.redialLoop()
 	return tr, nil
-}
-
-type trConn struct {
-	conn net.Conn
-	rx   any
 }
 
 type transport struct {
 	*l3.TransportBase
-	p       *l3.TransportBasePriv
-	impl    impl
-	conn    atomic.Value // *trConn
-	cnt     Counters
-	err     chan error
-	backoff retry.Backoff
-	ctx     context.Context
-	cancel  context.CancelFunc
+	p          *l3.TransportBasePriv
+	impl       impl
+	nRedials   atomic.Int32
+	redialLock sync.Mutex
+	conn       net.Conn
+	rxBuffer   any
+	backoff    retry.Backoff
+	ctx        context.Context
+	cancel     context.CancelFunc
 }
 
 func (tr *transport) Conn() net.Conn {
-	if tr.ctx.Err() != nil {
-		return nil
-	}
-	return tr.conn.Load().(*trConn).conn
-}
-
-func (tr *transport) setConn(conn net.Conn) {
-	tr.conn.Store(&trConn{conn, nil})
+	return tr.conn
 }
 
 func (tr *transport) Counters() (cnt Counters) {
-	return tr.cnt
+	cnt.NRedials = int(tr.nRedials.Load())
+	return
 }
 
 func (tr *transport) Read(buf []byte) (n int, e error) {
-	if tr.ctx.Err() != nil {
-		return 0, io.ErrClosedPipe
-	}
-
-	trc := tr.conn.Load().(*trConn)
-	n, e = tr.impl.Read(tr, trc, buf)
-	if e != nil {
-		tr.err <- e
-	}
-	return n, nil
+	return tr.doRW(func() (n int, e error) {
+		return tr.impl.Read(tr, buf)
+	})
 }
 
 func (tr *transport) Write(buf []byte) (n int, e error) {
-	conn := tr.Conn()
-	if conn == nil {
-		return 0, io.ErrClosedPipe
-	}
-
-	n, e = conn.Write(buf)
-	if e != nil {
-		tr.err <- e
-	}
-	return n, nil
+	return tr.doRW(func() (n int, e error) {
+		return tr.conn.Write(buf)
+	})
 }
 
 func (tr *transport) Close() error {
 	tr.cancel()
+	tr.p.SetState(l3.TransportClosed)
+	tr.conn.Close()
 	return nil
 }
 
-func (tr *transport) redialLoop() {
-CLOSING:
-	for {
-		select {
-		case <-tr.ctx.Done():
-			break CLOSING
-		case e := <-tr.err:
-			tr.handleError(e)
-		}
+func (tr *transport) doRW(f func() (n int, e error)) (n int, e error) {
+	if tr.ctx.Err() != nil {
+		return 0, io.ErrClosedPipe
 	}
 
-	tr.p.SetState(l3.TransportClosed)
-	tr.conn.Load().(*trConn).conn.Close()
-	tr.drainErrors()
-}
-
-func (tr *transport) drainErrors() {
-	for {
-		select {
-		case <-tr.err:
-		default:
-			return
-		}
+	nRedialsEnter := tr.nRedials.Load()
+	if n, e = f(); e == nil {
+		return n, e
 	}
-}
 
-func (tr *transport) handleError(e error) {
-	tr.p.SetState(l3.TransportDown)
+	tr.redialLock.Lock()
+	defer tr.redialLock.Unlock()
+	if !tr.nRedials.CAS(nRedialsEnter, nRedialsEnter+1) { // another goroutine performed redial
+		return 0, nil
+	}
 
-	retry.Do(tr.ctx, tr.backoff, func(ctx context.Context) error {
-		conn, e := tr.impl.Redial(tr.Conn())
-		tr.cnt.NRedials++
-		if e == nil {
-			tr.setConn(conn)
-			tr.drainErrors()
-			tr.p.SetState(l3.TransportUp)
-			return nil
+	e = retry.Do(tr.ctx, tr.backoff, func(ctx context.Context) error {
+		tr.p.SetState(l3.TransportDown)
+		conn, e := tr.impl.Redial(tr.conn)
+		if e != nil {
+			return retry.RetryableError(e)
 		}
-		return retry.RetryableError(e)
+
+		tr.conn, tr.rxBuffer = conn, nil
+		tr.p.SetState(l3.TransportUp)
+		return nil
 	})
+	if e != nil { // transport closed
+		return 0, io.ErrClosedPipe
+	}
+	return 0, nil
 }

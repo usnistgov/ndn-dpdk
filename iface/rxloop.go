@@ -119,7 +119,7 @@ func (rxl *rxLoop) Add(rxg RxGroup) {
 	mapRxgRxl[rxg] = rxl
 	rxl.nRxgs++
 
-	logEntry.Info("adding RxGroup to RxLoop")
+	logEntry.Debug("adding RxGroup to RxLoop")
 	C.cds_hlist_add_head_rcu(&rxgC.rxlNode, &rxl.c.head)
 }
 
@@ -139,7 +139,7 @@ func (rxl *rxLoop) Remove(rxg RxGroup) {
 	delete(mapRxgRxl, rxg)
 	rxl.nRxgs--
 
-	logEntry.Info("removing RxGroup from RxLoop")
+	logEntry.Debug("removing RxGroup from RxLoop")
 	C.cds_hlist_del_rcu(&rxgC.rxlNode)
 	urcu.Barrier()
 }

@@ -24,11 +24,6 @@ import (
 type Config struct {
 	iface.Config
 
-	// RxGroupCapacity is the ring buffer capacity of the RX group shared among all socket faces.
-	// Minimum is MinRxGroupCapacity. Default is DefaultRxGroupCapacity.
-	// This can be changed only if no socket face is present, otherwise this is ignored.
-	RxGroupCapacity int `json:"rxGroupCapacity,omitempty"`
-
 	// sockettransport.Config fields.
 	// See ndn-dpdk/ndn/sockettransport package for their semantics and defaults.
 	RedialBackoffInitial nnduration.Milliseconds `json:"redialBackoffInitial,omitempty"`
@@ -74,11 +69,11 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 			}, nil
 		},
 		Start: func() error {
-			face.transport.OnStateChange(func(st l3.TransportState) {
+			face.cancelStateChangeHandler = face.transport.OnStateChange(func(st l3.TransportState) {
 				face.SetDown(st != l3.TransportUp)
 			})
 
-			if e := rxg.addFace(cfg.RxGroupCapacity); e != nil {
+			if e := rxg.addFace(); e != nil {
 				return e
 			}
 			go face.rxLoop()
@@ -98,6 +93,9 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 			return loc
 		},
 		Stop: func() error {
+			if face.cancelStateChangeHandler != nil {
+				face.cancelStateChangeHandler()
+			}
 			rxg.removeFace()
 			iface.DeactivateTxFace(face)
 			return nil
@@ -117,6 +115,8 @@ type socketFace struct {
 	iface.Face
 	transport sockettransport.Transport
 	rxMempool *pktmbuf.Pool
+
+	cancelStateChangeHandler func()
 }
 
 func (face *socketFace) rxLoop() {

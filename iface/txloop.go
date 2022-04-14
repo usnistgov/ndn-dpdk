@@ -92,7 +92,7 @@ func (txl *txLoop) Add(face Face) {
 	mapFaceTxl[id] = txl
 	txl.nFaces++
 
-	logEntry.Info("adding face to TxLoop")
+	logEntry.Debug("adding face to TxLoop")
 	faceC := (*C.Face)(face.Ptr())
 	C.cds_hlist_add_head_rcu(&faceC.txlNode, &txl.c.head)
 }
@@ -111,7 +111,7 @@ func (txl *txLoop) Remove(face Face) {
 	delete(mapFaceTxl, id)
 	txl.nFaces--
 
-	logEntry.Info("removing face from TxLoop")
+	logEntry.Debug("removing face from TxLoop")
 	faceC := (*C.Face)(face.Ptr())
 	C.cds_hlist_del_rcu(&faceC.txlNode)
 	urcu.Barrier()

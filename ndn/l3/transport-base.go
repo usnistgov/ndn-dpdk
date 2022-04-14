@@ -2,6 +2,7 @@ package l3
 
 import (
 	"github.com/usnistgov/ndn-dpdk/core/events"
+	"go.uber.org/atomic"
 )
 
 const (
@@ -16,7 +17,7 @@ type TransportBaseConfig struct {
 // TransportBase is an optional helper for implementing Transport.
 type TransportBase struct {
 	mtu     int
-	state   TransportState
+	state   atomic.Int32
 	emitter *events.Emitter
 }
 
@@ -27,7 +28,7 @@ func (b *TransportBase) MTU() int {
 
 // State implements Transport interface.
 func (b *TransportBase) State() TransportState {
-	return b.state
+	return TransportState(b.state.Load())
 }
 
 // OnStateChange implements Transport interface.
@@ -42,10 +43,9 @@ type TransportBasePriv struct {
 
 // SetState changes transport state.
 func (p *TransportBasePriv) SetState(st TransportState) {
-	if p.b.state == st {
+	if p.b.state.Swap(int32(st)) == int32(st) {
 		return
 	}
-	p.b.state = st
 	p.b.emitter.Emit(evtStateChange, st)
 }
 
@@ -53,9 +53,9 @@ func (p *TransportBasePriv) SetState(st TransportState) {
 func NewTransportBase(cfg TransportBaseConfig) (b *TransportBase, p *TransportBasePriv) {
 	b = &TransportBase{
 		mtu:     cfg.MTU,
-		state:   TransportUp,
 		emitter: events.NewEmitter(),
 	}
+	b.state.Store(int32(TransportUp))
 	p = &TransportBasePriv{
 		b: b,
 	}

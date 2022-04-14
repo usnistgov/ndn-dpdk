@@ -39,7 +39,7 @@ func (loc Locator) Validate() error {
 		}
 		if loc.Local != "" && loc.Local != "@" {
 			if _, e := net.ResolveUnixAddr(loc.Network, loc.Local); e != nil {
-				return fmt.Errorf("remote %w", e)
+				return fmt.Errorf("local %w", e)
 			}
 		}
 		return nil

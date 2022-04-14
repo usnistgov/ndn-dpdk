@@ -8,11 +8,10 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
-	"go4.org/must"
 )
 
 func TestTxBurst(t *testing.T) {
-	assert, _ := makeAR(t)
+	assert, require := makeAR(t)
 
 	face := intface.MustNew()
 	collect := intface.Collect(face)
@@ -29,7 +28,7 @@ func TestTxBurst(t *testing.T) {
 	iface.TxBurst(id, pkts)
 	time.Sleep(100 * time.Millisecond)
 
-	must.Close(face.D)
+	require.NoError(face.D.Close())
 	pkts = make([]*ndni.Packet, 1)
 	pkts[0] = ndnitestenv.MakeInterest("/A")
 	iface.TxBurst(id, pkts)
@@ -39,7 +38,7 @@ func TestTxBurst(t *testing.T) {
 }
 
 func TestEvents(t *testing.T) {
-	assert, _ := makeAR(t)
+	assert, require := makeAR(t)
 
 	var faceNewEvts []iface.ID
 	var faceUpEvts []iface.ID
@@ -86,8 +85,8 @@ func TestEvents(t *testing.T) {
 		assert.Equal(id1, faceUpEvts[0])
 	}
 
-	must.Close(face2.D)
-	must.Close(face1.D)
+	require.NoError(face2.D.Close())
+	require.NoError(face1.D.Close())
 	if assert.Len(faceClosedEvts, 2) {
 		assert.Equal(id2, faceClosedEvts[0])
 		assert.Equal(id1, faceClosedEvts[1])

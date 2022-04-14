@@ -14,15 +14,12 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
-// Limits of RxGroupCapacity.
-const (
-	MinRxGroupCapacity     = 256
-	DefaultRxGroupCapacity = 4096
-)
+const rxGroupCapacity = 4096
 
 type rxGroup struct {
-	mutex  sync.Mutex
-	nFaces int
+	startOnce sync.Once
+	cmd       chan func()
+	nFaces    int
 
 	socket eal.NumaSocket
 	ring   *ringbuffer.Ring
@@ -40,44 +37,66 @@ func (rxg *rxGroup) RxGroup() (ptr unsafe.Pointer, desc string) {
 	return unsafe.Pointer(rxg.c), "SocketRxGroup"
 }
 
-func (rxg *rxGroup) addFace(capacity int) (e error) {
-	rxg.mutex.Lock()
-	defer rxg.mutex.Unlock()
+func (rxg *rxGroup) loop() {
+	for f := range rxg.cmd {
+		f()
+	}
+}
 
-	if rxg.nFaces == 0 {
-		rxg.socket = eal.RandomSocket()
-		capacity = ringbuffer.AlignCapacity(capacity, MinRxGroupCapacity, DefaultRxGroupCapacity)
-		if rxg.ring, e = ringbuffer.New(capacity, rxg.socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle); e != nil {
-			return e
-		}
-
-		rxg.c = eal.Zmalloc[C.SocketRxGroup]("SocketRxGroup", C.sizeof_SocketRxGroup, rxg.socket)
-		rxg.c.base.rxBurst = C.RxGroup_RxBurstFunc(C.SocketRxGroup_RxBurst)
-		rxg.c.ring = (*C.struct_rte_ring)(rxg.ring.Ptr())
-
-		iface.ActivateRxGroup(rxg)
+func (rxg *rxGroup) activate() (e error) {
+	rxg.socket = eal.RandomSocket()
+	if rxg.ring, e = ringbuffer.New(rxGroupCapacity, rxg.socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle); e != nil {
+		return e
 	}
 
-	rxg.nFaces++
+	rxg.c = eal.Zmalloc[C.SocketRxGroup]("SocketRxGroup", C.sizeof_SocketRxGroup, rxg.socket)
+	rxg.c.base.rxBurst = C.RxGroup_RxBurstFunc(C.SocketRxGroup_RxBurst)
+	rxg.c.ring = (*C.struct_rte_ring)(rxg.ring.Ptr())
+
+	iface.ActivateRxGroup(rxg)
 	return nil
 }
 
-func (rxg *rxGroup) removeFace() {
-	rxg.mutex.Lock()
-	defer rxg.mutex.Unlock()
-
-	rxg.nFaces--
-	if rxg.nFaces > 0 {
-		return
-	}
-
+func (rxg *rxGroup) deactivate() {
 	iface.DeactivateRxGroup(rxg)
 	eal.Free(rxg.c)
 	rxg.ring.Close()
 	rxg.c, rxg.ring = nil, nil
 }
 
+func (rxg *rxGroup) addFace() (e error) {
+	rxg.startOnce.Do(func() {
+		rxg.cmd = make(chan func())
+		go rxg.loop()
+	})
+
+	done := make(chan struct{})
+	rxg.cmd <- func() {
+		defer close(done)
+		rxg.nFaces++
+		if rxg.nFaces == 1 {
+			e = rxg.activate()
+		}
+	}
+	<-done
+	return
+}
+
+func (rxg *rxGroup) removeFace() {
+	rxg.cmd <- func() {
+		rxg.nFaces--
+		if rxg.nFaces == 0 {
+			rxg.deactivate()
+		}
+	}
+}
+
 func (rxg *rxGroup) rx(vec pktmbuf.Vector) {
-	nEnq := ringbuffer.Enqueue(rxg.ring, vec)
-	vec[nEnq:].Close()
+	rxg.cmd <- func() {
+		var nEnq int
+		if rxg.ring != nil {
+			nEnq = ringbuffer.Enqueue(rxg.ring, vec)
+		}
+		vec[nEnq:].Close()
+	}
 }
