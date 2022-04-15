@@ -8,8 +8,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
-
-	"github.com/hashicorp/golang-lru/simplelru"
+	"github.com/zyedidia/generic/cache"
 )
 
 func lpIsCritical(typ uint32) bool {
@@ -149,7 +148,7 @@ func NewLpFragmenter(mtu int) *LpFragmenter {
 
 // LpReassembler reassembles fragments.
 type LpReassembler struct {
-	pms *simplelru.LRU
+	pms *cache.Cache[uint64, *lpPartialPacket]
 }
 
 // Accept processes a fragment.
@@ -160,10 +159,10 @@ func (reass *LpReassembler) Accept(pkt *Packet) (full *Packet, e error) {
 	pp, _ := reass.pms.Get(seq0)
 	if pp == nil {
 		pp = &lpPartialPacket{}
-		reass.pms.Add(seq0, pp)
+		reass.pms.Put(seq0, pp)
 	}
 
-	full, discard, e := pp.(*lpPartialPacket).Accept(pkt)
+	full, discard, e := pp.Accept(pkt)
 	if discard {
 		reass.pms.Remove(seq0)
 	}
@@ -173,8 +172,9 @@ func (reass *LpReassembler) Accept(pkt *Packet) (full *Packet, e error) {
 
 // NewLpReassembler creates a LpReassembler.
 func NewLpReassembler(capacity int) *LpReassembler {
-	lru, _ := simplelru.NewLRU(capacity, nil)
-	return &LpReassembler{pms: lru}
+	return &LpReassembler{
+		pms: cache.New[uint64, *lpPartialPacket](capacity),
+	}
 }
 
 type lpPartialPacket struct {
