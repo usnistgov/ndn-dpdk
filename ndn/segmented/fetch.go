@@ -267,7 +267,7 @@ func (f *fetcher) Chunks(ctx context.Context, chunks chan<- []byte) error {
 }
 
 func (f *fetcher) Pipe(ctx context.Context, w io.Writer) error {
-	ctx, cancel := context.WithCancel(context.TODO())
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	chunks := make(chan []byte)

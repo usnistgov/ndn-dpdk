@@ -57,10 +57,10 @@ func openUplink(c *cli.Context) (e error) {
 	return nil
 }
 
-func onInterrupt(cancel func()) {
+func onInterrupt(cb func()) {
 	go func() {
 		<-interrupt
-		cancel()
+		cb()
 	}()
 }
 
