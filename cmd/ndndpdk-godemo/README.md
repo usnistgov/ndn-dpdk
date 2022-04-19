@@ -37,7 +37,7 @@ sudo ndndpdk-godemo pingserver --name /pingdemo
 sudo ndndpdk-godemo pingclient --name /pingdemo
 
 # with optional flags
-sudo ndndpdk-godemo --mtu 9000 pingserver --name /pingdemo --payload 8000 --signed
+sudo ndndpdk-godemo --mtu 9000 --logging=false pingserver --name /pingdemo --payload 8000 --signed
 sudo ndndpdk-godemo --mtu 9000 pingclient --name /pingdemo --interval 100ms --lifetime 1000ms --verified
 ```
 
@@ -45,6 +45,9 @@ sudo ndndpdk-godemo --mtu 9000 pingclient --name /pingdemo --interval 100ms --li
   * Unlike [ndnping from ndn-tools](https://github.com/named-data/ndn-tools/tree/ndn-tools-22.02/tools/ping), this program does not automatically append a `ping` component.
 * `--mtu` flag specifies the MTU of memif interface between this program and the local NDN-DPDK forwarder.
   * This flag must appear between 'ndndpdk-godemo' and the subcommand name.
+* `--logging=false` flag disables logging to improve performance.
+  * This flag must appear between 'ndndpdk-godemo' and the subcommand name.
+  * With logging disabled, you can understand application activities through forwarder counters.
 * `--payload` flag (pingserver only) specifies Content payload length in octets.
   * It's recommended to keep Data packet size (Name, Content, and other fields) under the MTU.
     Otherwise, NDNLPv2 fragmentation will be used.

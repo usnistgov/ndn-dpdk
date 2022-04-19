@@ -2,6 +2,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"math/rand"
 	"os"
@@ -19,18 +20,18 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt/gqlmgmt"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt/nfdmgmt"
-	"go4.org/must"
 )
 
 var (
+	gqlserver string
+	mtuFlag   int
+	useNfd    bool
+	enableLog bool
+
 	interrupt = make(chan os.Signal, 1)
 	client    mgmt.Client
 	face      mgmt.Face
 	fwFace    l3.FwFace
-
-	gqlserver string
-	mtuFlag   int
-	useNfd    bool
 )
 
 func openUplink(c *cli.Context) (e error) {
@@ -84,8 +85,17 @@ var app = &cli.App{
 			Usage:       "connect to NFD or YaNFD (set FaceUri in NDN_CLIENT_TRANSPORT environment variable)",
 			Destination: &useNfd,
 		},
+		&cli.BoolFlag{
+			Name:        "logging",
+			Usage:       "whether to enable logging",
+			Value:       true,
+			Destination: &enableLog,
+		},
 	},
 	Before: func(c *cli.Context) (e error) {
+		if !enableLog {
+			log.SetOutput(io.Discard)
+		}
 		signal.Notify(interrupt, syscall.SIGINT)
 		if useNfd {
 			client, e = nfdmgmt.New()
@@ -99,8 +109,7 @@ var app = &cli.App{
 	},
 	After: func(c *cli.Context) (e error) {
 		if face != nil {
-			must.Close(face)
-			log.Print("uplink closed")
+			log.Printf("uplink closed, %v", face.Close())
 		}
 		return client.Close()
 	},
