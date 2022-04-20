@@ -3,7 +3,6 @@
 
 /** @file */
 
-#include "../iface/face.h"
 #include "../iface/rxloop.h"
 #include "locator.h"
 

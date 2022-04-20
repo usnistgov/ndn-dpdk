@@ -8,7 +8,7 @@ STATIC_ASSERT_FUNC_TYPE(Face_TxBurstFunc, go_SocketFace_TxBurst);
 */
 import "C"
 import (
-	"runtime"
+	"time"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
@@ -18,6 +18,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/atomic"
 )
 
 // Config contains socket face configuration.
@@ -68,14 +69,11 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 				TxBurst: C.go_SocketFace_TxBurst,
 			}, nil
 		},
-		Start: func() error {
+		Start: func() (e error) {
 			face.cancelStateChangeHandler = face.transport.OnStateChange(func(st l3.TransportState) {
 				face.SetDown(st != l3.TransportUp)
 			})
-
-			if e := rxg.addFace(); e != nil {
-				return e
-			}
+			enableRxConns(4096, eal.NumaSocket{})
 			go face.rxLoop()
 			iface.ActivateTxFace(face)
 			return nil
@@ -96,12 +94,12 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 			if face.cancelStateChangeHandler != nil {
 				face.cancelStateChangeHandler()
 			}
-			rxg.removeFace()
+			face.transport.Close()
+			face.stopped.Store(true)
 			iface.DeactivateTxFace(face)
 			return nil
 		},
 		Close: func() error {
-			face.transport.Close()
 			return nil
 		},
 		ExCounters: func() any {
@@ -113,21 +111,21 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 // socketFace is a face using socket as transport.
 type socketFace struct {
 	iface.Face
-	transport sockettransport.Transport
-	rxMempool *pktmbuf.Pool
-
+	transport                sockettransport.Transport
+	rxMempool                *pktmbuf.Pool
+	stopped                  atomic.Bool
 	cancelStateChangeHandler func()
 }
 
 func (face *socketFace) rxLoop() {
-	for {
+	defer disableRxConns()
+	for !face.stopped.Load() {
 		vec, e := face.rxMempool.Alloc(1)
-		if e != nil { // ignore alloc error
-			runtime.Gosched()
+		if e != nil { // alloc error, try again later
+			time.Sleep(time.Millisecond)
 			continue
 		}
 		pkt := vec[0]
-		pkt.SetPort(uint16(face.ID()))
 		pkt.SetHeadroom(0)
 
 		for {
@@ -141,8 +139,9 @@ func (face *socketFace) rxLoop() {
 			}
 		}
 
+		pkt.SetPort(uint16(face.ID()))
 		pkt.SetTimestamp(eal.TscNow())
-		rxg.rx(vec)
+		rxConnsInstance.Load().(*rxConns).enqueue(pkt)
 	}
 }
 
