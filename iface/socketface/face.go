@@ -2,34 +2,27 @@
 package socketface
 
 /*
-#include "../../csrc/iface/face.h"
+#include "../../csrc/socketface/face.h"
 extern uint16_t go_SocketFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPkts);
 STATIC_ASSERT_FUNC_TYPE(Face_TxBurstFunc, go_SocketFace_TxBurst);
 */
 import "C"
 import (
-	"time"
+	"errors"
+	"fmt"
+	"net"
+	"syscall"
 	"unsafe"
 
-	"github.com/usnistgov/ndn-dpdk/core/nnduration"
-	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
-	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/atomic"
+	"go.uber.org/zap"
 )
 
-// Config contains socket face configuration.
-type Config struct {
-	iface.Config
-
-	// sockettransport.Config fields.
-	// See ndn-dpdk/ndn/sockettransport package for their semantics and defaults.
-	RedialBackoffInitial nnduration.Milliseconds `json:"redialBackoffInitial,omitempty"`
-	RedialBackoffMaximum nnduration.Milliseconds `json:"redialBackoffMaximum,omitempty"`
-}
+var logger = logging.New("socketface")
 
 // New creates a socket face.
 func New(loc Locator) (iface.Face, error) {
@@ -56,26 +49,59 @@ func New(loc Locator) (iface.Face, error) {
 
 // Wrap wraps a sockettransport.Transport to a socket face.
 func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
+	_, isUDP := transport.Conn().(*net.UDPConn)
 	face := &socketFace{
 		transport: transport,
-		rxMempool: ndni.PacketMempool.Get(eal.NumaSocket{}),
 	}
 	return iface.New(iface.NewParams{
-		Config: cfg.Config,
-		Init: func(f iface.Face) (iface.InitResult, error) {
+		Config:     cfg.Config,
+		SizeofPriv: C.sizeof_SocketFacePriv,
+		Init: func(f iface.Face) (res iface.InitResult, e error) {
 			face.Face = f
-			return iface.InitResult{
-				Face:    face,
-				TxBurst: C.go_SocketFace_TxBurst,
-			}, nil
+			id, faceC := face.ID(), (*C.Face)(face.Ptr())
+			face.logger = logger.With(id.ZapField("id"))
+
+			face.priv = (*C.SocketFacePriv)(C.Face_GetPriv(faceC))
+			*face.priv = C.SocketFacePriv{
+				fd: -1,
+			}
+
+			res.Face = face
+			if isUDP {
+				res.TxBurst = C.SocketFace_DgramTxBurst
+			} else {
+				res.TxBurst = C.go_SocketFace_TxBurst
+			}
+			return
 		},
 		Start: func() (e error) {
+			defer func() {
+				if e != nil {
+					face.transport.Close()
+				}
+			}()
+
+			if isUDP {
+				e = rxEpollImpl.start(face)
+			} else if !gCfg.RxConns.Disabled {
+				e = rxConnsImpl.start(face)
+			} else {
+				e = errors.New("both RxConns and RxEpoll are disabled, cannot start socket face")
+			}
+			if e != nil {
+				return
+			}
+
+			if isUDP {
+				if e = face.obtainTxFd(); e != nil {
+					return
+				}
+			}
+			iface.ActivateTxFace(face)
+
 			face.cancelStateChangeHandler = face.transport.OnStateChange(func(st l3.TransportState) {
 				face.SetDown(st != l3.TransportUp)
 			})
-			enableRxConns(4096, eal.NumaSocket{})
-			go face.rxLoop()
-			iface.ActivateTxFace(face)
 			return nil
 		},
 		Locator: func() iface.Locator {
@@ -91,11 +117,8 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 			return loc
 		},
 		Stop: func() error {
-			if face.cancelStateChangeHandler != nil {
-				face.cancelStateChangeHandler()
-			}
+			face.cancelStateChangeHandler()
 			face.transport.Close()
-			face.stopped.Store(true)
 			iface.DeactivateTxFace(face)
 			return nil
 		},
@@ -112,37 +135,29 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 type socketFace struct {
 	iface.Face
 	transport                sockettransport.Transport
-	rxMempool                *pktmbuf.Pool
-	stopped                  atomic.Bool
+	logger                   *zap.Logger
+	priv                     *C.SocketFacePriv
 	cancelStateChangeHandler func()
 }
 
-func (face *socketFace) rxLoop() {
-	defer disableRxConns()
-	for !face.stopped.Load() {
-		vec, e := face.rxMempool.Alloc(1)
-		if e != nil { // alloc error, try again later
-			time.Sleep(time.Millisecond)
-			continue
-		}
-		pkt := vec[0]
-		pkt.SetHeadroom(0)
-
-		for {
-			n, e := pkt.ReadFrom(face.transport)
-			if e != nil {
-				vec.Close()
-				return
-			}
-			if n > 0 {
-				break
-			}
-		}
-
-		pkt.SetPort(uint16(face.ID()))
-		pkt.SetTimestamp(eal.TscNow())
-		rxConnsInstance.Load().(*rxConns).enqueue(pkt)
+func (face *socketFace) obtainTxFd() error {
+	raw, e := face.transport.Conn().(syscall.Conn).SyscallConn()
+	if e != nil {
+		return fmt.Errorf("SyscallConn: %w", e)
 	}
+
+	ready := make(chan struct{})
+	go raw.Control(func(fd uintptr) {
+		logEntry := face.logger.With(zap.Uintptr("fd", fd))
+		logEntry.Debug("file descriptor acquired for socket TX")
+		defer logEntry.Debug("file descriptor released for socket TX")
+		face.priv.fd = C.int(fd)
+		close(ready)
+		<-face.transport.Context().Done()
+		face.priv.fd = -1
+	})
+	<-ready
+	return nil
 }
 
 //export go_SocketFace_TxBurst

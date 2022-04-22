@@ -5,22 +5,23 @@ package socketface
 */
 import "C"
 import (
+	"time"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"go.uber.org/atomic"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/zap"
 )
 
 type rxConns struct {
-	c      *C.SocketRxConns
-	ring   *ringbuffer.Ring
 	socket eal.NumaSocket
+	ring   *ringbuffer.Ring
+	mp     *pktmbuf.Pool
+	c      *C.SocketRxConns
 }
-
-var _ iface.RxGroup = (*rxConns)(nil)
 
 func (rxc *rxConns) NumaSocket() eal.NumaSocket {
 	return rxc.socket
@@ -30,56 +31,70 @@ func (rxc *rxConns) RxGroup() (ptr unsafe.Pointer, desc string) {
 	return unsafe.Pointer(rxc.c), "SocketRxConns"
 }
 
-func (rxc *rxConns) Close() {
+func (rxc *rxConns) close() {
 	iface.DeactivateRxGroup(rxc)
 	eal.Free(rxc.c)
 	rxc.ring.Close()
 	rxc.c, rxc.ring = nil, nil
+	logger.Debug("RxConns closed")
 }
 
-func (rxc *rxConns) enqueue(pkt *pktmbuf.Packet) {
-	if ringbuffer.Enqueue(rxc.ring, pktmbuf.Vector{pkt}) == 0 {
-		pkt.Close()
+func (rxc *rxConns) run(face *socketFace) error {
+	face.logger.Debug("face is using RxConns")
+	id, ctx := face.ID(), face.transport.Context()
+	for ctx.Err() == nil {
+		vec, e := rxc.mp.Alloc(1)
+		if e != nil { // alloc error, try again later
+			time.Sleep(time.Millisecond)
+			continue
+		}
+		pkt := vec[0]
+		pkt.SetHeadroom(0)
+
+		for {
+			n, e := pkt.ReadFrom(face.transport)
+			if e != nil {
+				vec.Close()
+				return e
+			}
+			if n > 0 {
+				break
+			}
+		}
+
+		pkt.SetPort(uint16(id))
+		pkt.SetTimestamp(eal.TscNow())
+		if ringbuffer.Enqueue(rxc.ring, pktmbuf.Vector{pkt}) == 0 {
+			pkt.Close()
+		}
 	}
+	return nil
 }
 
 func newRxConns(ringCapacity int, socket eal.NumaSocket) (rxc *rxConns, e error) {
 	rxc = &rxConns{
 		socket: eal.RewriteAnyNumaSocketFirst.Rewrite(socket),
 	}
-	if rxc.ring, e = ringbuffer.New(4096, rxc.socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle); e != nil {
+	if rxc.ring, e = ringbuffer.New(ringCapacity, rxc.socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle); e != nil {
 		return nil, e
 	}
+	rxc.mp = ndni.PacketMempool.Get(rxc.socket)
 
 	rxc.c = eal.Zmalloc[C.SocketRxConns]("SocketRxConns", C.sizeof_SocketRxConns, rxc.socket)
 	rxc.c.base.rxBurst = C.RxGroup_RxBurstFunc(C.SocketRxConns_RxBurst)
 	rxc.c.ring = (*C.struct_rte_ring)(rxc.ring.Ptr())
 
+	logger.Debug("RxConns created",
+		zap.Int("ring-capacity", rxc.ring.Capacity()),
+		rxc.socket.ZapField("socket"),
+	)
 	iface.ActivateRxGroup(rxc)
 	return rxc, nil
 }
 
-// rxConns singleton.
-var (
-	rxConnsInstance atomic.Value
-	rxConnsFaces    atomic.Int32
-)
-
-func enableRxConns(ringCapacity int, socket eal.NumaSocket) error {
-	if rxConnsFaces.Inc() == 1 {
-		rxc, e := newRxConns(ringCapacity, socket)
-		if e != nil {
-			return e
-		}
-		rxConnsInstance.Store(rxc)
-	}
-	return nil
-}
-
-func disableRxConns() {
-	if rxConnsFaces.Dec() > 0 {
-		return
-	}
-	rxc := rxConnsInstance.Swap((*rxConns)(nil)).(*rxConns)
-	rxc.Close()
+var rxConnsImpl = rxImpl{
+	nilValue: (*rxConns)(nil),
+	create: func() (rxGroup, error) {
+		return newRxConns(gCfg.RxConns.RingCapacity, gCfg.RxConns.Socket)
+	},
 }

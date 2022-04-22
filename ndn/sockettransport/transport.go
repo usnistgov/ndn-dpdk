@@ -61,6 +61,9 @@ func (cnt Counters) String() string {
 type Transport interface {
 	l3.Transport
 
+	// Context returns a Context that is canceled when the transport is closed.
+	Context() context.Context
+
 	// Conn returns the underlying socket.
 	// Caller may gather information from this socket, but should not close or send/receive on it.
 	// The socket may be replaced during redialing.
@@ -102,6 +105,10 @@ type transport struct {
 	backoff    retry.Backoff
 	ctx        context.Context
 	cancel     context.CancelFunc
+}
+
+func (tr *transport) Context() context.Context {
+	return tr.ctx
 }
 
 func (tr *transport) Conn() net.Conn {

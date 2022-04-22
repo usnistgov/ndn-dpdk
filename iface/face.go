@@ -124,7 +124,6 @@ type NewParams struct {
 
 	// Start callback is invoked after data structure initialization.
 	// It should activate the face in RxLoop and TxLoop.
-	// It returns a 'subclass' Face interface implementation to make available via Get(id).
 	// This is always invoked on the main thread.
 	Start func() error
 

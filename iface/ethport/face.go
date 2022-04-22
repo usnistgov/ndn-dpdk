@@ -16,7 +16,7 @@ import (
 )
 
 // FaceConfig contains additional face configuration.
-// They appear as input-only fields of EtherLocator.
+// They appear as input-only fields of ethface.EtherLocator.
 type FaceConfig struct {
 	iface.Config
 
@@ -117,8 +117,7 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			}
 
 			face.Face = f
-			faceC := (*C.Face)(face.Ptr())
-			id := f.ID()
+			id, faceC := face.ID(), (*C.Face)(face.Ptr())
 			face.logger = face.logger.With(id.ZapField("id"))
 
 			face.priv = (*C.EthFacePriv)(C.Face_GetPriv(faceC))
@@ -135,8 +134,8 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 
 			return iface.InitResult{
 				Face:        face,
-				TxBurst:     C.EthFace_TxBurst,
 				TxLinearize: !useTxMultiSegOffload,
+				TxBurst:     C.EthFace_TxBurst,
 			}, nil
 		},
 		Start: func() error {

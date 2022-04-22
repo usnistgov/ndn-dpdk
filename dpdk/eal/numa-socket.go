@@ -19,14 +19,10 @@ type NumaSocket struct {
 	v int // socket ID + 1
 }
 
-// NumaSocketFromID converts socket ID to NumaSocket.
-func NumaSocketFromID(id int) (socket NumaSocket) {
-	if id < 0 || id >= C.RTE_MAX_NUMA_NODES {
-		return socket
-	}
-	socket.v = id + 1
-	return socket
-}
+var (
+	_ json.Marshaler   = NumaSocket{}
+	_ json.Unmarshaler = (*NumaSocket)(nil)
+)
 
 // ID returns NUMA socket ID.
 func (socket NumaSocket) ID() int {
@@ -59,6 +55,22 @@ func (socket NumaSocket) MarshalJSON() ([]byte, error) {
 	return json.Marshal(socket.ID())
 }
 
+// UnmarshalJSON decodes NUMA socket as number.
+// null is interpreted as Any.
+func (socket *NumaSocket) UnmarshalJSON(p []byte) error {
+	if string(p) == "null" {
+		*socket = NumaSocket{}
+		return nil
+	}
+
+	id, e := strconv.ParseInt(string(p), 10, 64)
+	if e != nil {
+		return e
+	}
+	*socket = NumaSocketFromID(int(id))
+	return nil
+}
+
 // ZapField returns a zap.Field for logging.
 func (socket NumaSocket) ZapField(key string) zap.Field {
 	if socket.IsAny() {
@@ -69,6 +81,15 @@ func (socket NumaSocket) ZapField(key string) zap.Field {
 
 // NumaSocket implements WithNumaSocket.
 func (socket NumaSocket) NumaSocket() NumaSocket {
+	return socket
+}
+
+// NumaSocketFromID converts socket ID to NumaSocket.
+func NumaSocketFromID(id int) (socket NumaSocket) {
+	if id < 0 || id >= C.RTE_MAX_NUMA_NODES {
+		return socket
+	}
+	socket.v = id + 1
 	return socket
 }
 
