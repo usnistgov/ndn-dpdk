@@ -27,6 +27,7 @@ type fieldType uint8
 const (
 	fieldTypeEmpty fieldType = iota
 	fieldTypeError
+	fieldTypeFunc
 	fieldTypeBytes
 	fieldTypeNNI
 	fieldTypeTLVFields
@@ -49,6 +50,8 @@ func (f Field) Encode(b []byte) ([]byte, error) {
 		return b, nil
 	case fieldTypeError:
 		return nil, f.object.(error)
+	case fieldTypeFunc:
+		return f.object.(func([]byte) ([]byte, error))(b)
 	case fieldTypeBytes:
 		return append(b, f.object.([]byte)...), nil
 	case fieldTypeNNI:
@@ -119,6 +122,14 @@ func FieldError(e error) Field {
 	return Field{
 		typ:    fieldTypeError,
 		object: e,
+	}
+}
+
+// FieldFunc creates a Field that calls a function to append to a slice.
+func FieldFunc(f func([]byte) ([]byte, error)) Field {
+	return Field{
+		typ:    fieldTypeFunc,
+		object: f,
 	}
 }
 

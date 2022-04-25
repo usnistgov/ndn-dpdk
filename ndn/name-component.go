@@ -71,28 +71,27 @@ func (comp *NameComponent) UnmarshalTLV(typ uint32, value []byte) error {
 
 // String returns URI representation of this component.
 func (comp NameComponent) String() string {
-	var w strings.Builder
-	comp.writeStringTo(&w)
-	return w.String()
+	return string(comp.appendStringTo(make([]byte, 0, 6+3*comp.Length())))
 }
 
-func (comp NameComponent) writeStringTo(w *strings.Builder) {
-	w.WriteString(strconv.Itoa(int(comp.Type)))
-	w.WriteByte('=')
+func (comp NameComponent) appendStringTo(b []byte) []byte {
+	b = strconv.AppendUint(b, uint64(comp.Type), 10)
+	b = append(b, '=')
 
 	allPeriods := true
-	for _, b := range comp.Value {
-		if bytes.IndexByte(unescapedChars, b) >= 0 {
-			w.WriteByte(b)
+	for _, ch := range comp.Value {
+		if bytes.IndexByte(unescapedChars, ch) >= 0 {
+			b = append(b, ch)
 		} else {
-			w.Write([]byte{'%', hexChars[b>>4], hexChars[b&0x0F]})
+			b = append(b, '%', hexChars[ch>>4], hexChars[ch&0x0F])
 		}
-		allPeriods = allPeriods && (b == '.')
+		allPeriods = allPeriods && (ch == '.')
 	}
 
 	if allPeriods {
-		w.WriteString("...")
+		b = append(b, '.', '.', '.')
 	}
+	return b
 }
 
 // MakeNameComponent constructs a NameComponent from TLV-TYPE and TLV-VALUE.
@@ -117,7 +116,7 @@ func NameComponentFrom(typ uint32, value tlv.Fielder) NameComponent {
 	return MakeNameComponent(typ, v)
 }
 
-// ParseNameComponent parses URI representation of name component.
+// ParseNameComponent parses canonical URI representation of name component.
 // It uses best effort and can accept any input.
 func ParseNameComponent(input string) (comp NameComponent) {
 	comp.Type = an.TtGenericNameComponent
@@ -140,8 +139,7 @@ func ParseNameComponent(input string) (comp NameComponent) {
 	for i := 0; i < len(input); {
 		ch := input[i]
 		if ch == '%' && i+2 < len(input) {
-			b, e := strconv.ParseUint(input[i+1:i+3], 16, 8)
-			if e == nil {
+			if b, e := strconv.ParseUint(input[i+1:i+3], 16, 8); e == nil {
 				value.WriteByte(byte(b))
 				i += 3
 				continue

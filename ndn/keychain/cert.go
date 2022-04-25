@@ -13,8 +13,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
-const validityPeriodTimeFormat = "20060102T150405"
-
 // Error conditions for certificate.
 var (
 	ErrCertContentType = errors.New("bad certificate ContentType")
@@ -137,10 +135,14 @@ func (opts *MakeCertOptions) applyDefaults() {
 func MakeCert(pub PublicKey, signer ndn.Signer, opts MakeCertOptions) (cert *Certificate, e error) {
 	opts.applyDefaults()
 
-	name := pub.Name().Append(opts.IssuerID, opts.Version)
+	data := ndn.Data{
+		Name:        pub.Name().Append(opts.IssuerID, opts.Version),
+		ContentType: an.ContentKey,
+		Freshness:   opts.Freshness,
+		SigInfo:     &ndn.SigInfo{},
+	}
 
-	spki, e := pub.SPKI()
-	if e != nil {
+	if data.Content, e = pub.SPKI(); e != nil {
 		return nil, e
 	}
 
@@ -149,10 +151,8 @@ func MakeCert(pub PublicKey, signer ndn.Signer, opts MakeCertOptions) (cert *Cer
 	if e = tlv.Decode(vpWire, &vp); e != nil {
 		return nil, e
 	}
+	data.SigInfo.Extensions = []tlv.Element{vp}
 
-	data := ndn.MakeData(name, ndn.ContentType(an.ContentKey), opts.Freshness, spki)
-	data.SigInfo = &ndn.SigInfo{}
-	data.SigInfo.Extensions = append(data.SigInfo.Extensions, vp)
 	if e = signer.Sign(&data); e != nil {
 		return nil, e
 	}
@@ -190,8 +190,8 @@ func (vp ValidityPeriod) Field() tlv.Field {
 		return tlv.FieldError(ErrValidityPeriod)
 	}
 	return tlv.TLV(an.TtValidityPeriod,
-		tlv.TLVBytes(an.TtNotBefore, []byte(vp.NotBefore.Format(validityPeriodTimeFormat))),
-		tlv.TLVBytes(an.TtNotAfter, []byte(vp.NotAfter.Format(validityPeriodTimeFormat))),
+		tlv.TLV(an.TtNotBefore, encodeValidityPeriodTime(vp.NotBefore)),
+		tlv.TLV(an.TtNotAfter, encodeValidityPeriodTime(vp.NotAfter)),
 	)
 }
 
@@ -217,12 +217,20 @@ func (vp *ValidityPeriod) UnmarshalBinary(wire []byte) (e error) {
 	return d.ErrUnlessEOF()
 }
 
+const validityPeriodTimeFormat = "20060102T150405"
+
 func parseValidityPeriodTime(value []byte) time.Time {
-	t, e := time.Parse(validityPeriodTimeFormat, string(value))
+	t, e := time.ParseInLocation(validityPeriodTimeFormat, string(value), time.UTC)
 	if e != nil {
 		return time.Time{}
 	}
 	return t
+}
+
+func encodeValidityPeriodTime(t time.Time) tlv.Field {
+	return tlv.FieldFunc(func(b []byte) ([]byte, error) {
+		return t.UTC().AppendFormat(b, validityPeriodTimeFormat), nil
+	})
 }
 
 func init() {

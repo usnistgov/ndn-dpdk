@@ -60,7 +60,7 @@ func ToKeyName(input ndn.Name) ndn.Name {
 
 // ToCertName extracts or builds certificate name from subject name, key name, or certificate name.
 // If the input is a subject name, the keyID component is randomly generated.
-// If the input is a subject name or key name, the issuerID is set to 'ndn-dpdk.go', and the version component is randomly generated.
+// If the input is a subject name or key name, the issuerID is set to 'NDNgo', and the version component is derived from current time.
 func ToCertName(input ndn.Name) ndn.Name {
 	switch {
 	case IsCertName(input):

@@ -161,15 +161,15 @@ func (name Name) String() string {
 	if len(name) == 0 {
 		return "/"
 	}
-	var w strings.Builder
+	var b []byte
 	for _, comp := range name {
-		w.WriteByte('/')
-		comp.writeStringTo(&w)
+		b = append(b, '/')
+		b = comp.appendStringTo(b)
 	}
-	return w.String()
+	return string(b)
 }
 
-// ParseName parses URI representation of name.
+// ParseName parses canonical URI representation of name.
 // It uses best effort and can accept any input.
 func ParseName(input string) (name Name) {
 	input = strings.TrimPrefix(input, "ndn:")
