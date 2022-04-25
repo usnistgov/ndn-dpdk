@@ -11,7 +11,7 @@
   "types": "js/mod.ts",
   "packageManager": "pnpm@6.32.9",
   "dependencies": {
-    "tslib": "^2.3.1"
+    "tslib": "^2.4.0"
   },
   "devDependencies": {
     "@yoursunny/xo-config": "0.48.1",
@@ -22,6 +22,6 @@
     "typescript": "~4.6.3"
   },
   "engines": {
-    "node": "17.x"
+    "node": "16.x"
   }
 }

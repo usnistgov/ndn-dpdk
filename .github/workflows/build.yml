@@ -19,14 +19,14 @@ jobs:
     env:
       CC: ${{ matrix.compiler }}
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
         with:
           go-version: ^1.18
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: 17
+          node-version: 16
       - id: compilers
-        name: install compilers and tools
+        name: Install compilers and tools
         run: |
           wget https://apt.llvm.org/llvm.sh
           sudo bash ./llvm.sh 11
@@ -40,7 +40,7 @@ jobs:
           sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
           pip install meson
           echo '::set-output name=meson::'$(meson --version)
-      - name: install uBPF
+      - name: Install uBPF
         run: |
           mkdir -p $HOME/ubpf
           cd $HOME/ubpf
@@ -49,8 +49,8 @@ jobs:
           make
           sudo make install
         env:
-          UBPFCOMMIT: 0dd334daf4849137fa40d2b7676d2bf920d5c81d
-      - name: install liburing
+          UBPFCOMMIT: 83eed7211febb74d7490c1fea2c7343cef816624
+      - name: Install liburing
         run: |
           mkdir -p $HOME/liburing
           cd $HOME/liburing
@@ -61,8 +61,8 @@ jobs:
         env:
           CXX: false
           URINGVER: liburing-2.1
-      - name: cache DPDK and SPDK
-        uses: actions/cache@v2
+      - name: Cache DPDK and SPDK
+        uses: actions/cache@v3
         with:
           path: ~/setup-dpdk
           key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20220331
@@ -71,8 +71,8 @@ jobs:
           dpdk-version: '22.03'
           spdk-version: '22.01'
           target-arch: haswell
-      - uses: actions/checkout@v2
-      - name: build NDN-DPDK in debug mode
+      - uses: actions/checkout@v3
+      - name: Build NDN-DPDK in debug mode
         run: |
           corepack pnpm install
           make
@@ -85,23 +85,23 @@ jobs:
           sudo make uninstall
         env:
           NDNDPDK_MK_THREADSLEEP: 1
-      - name: run unit tests
+      - name: Run unit tests
         run: |
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/ d" make test
           MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/! d" make test || true
         env:
           TEST_ACCEPTABLE_FAILURES: bdev|disk|ethface|fetch|fileserver|fwdp|memiftransport|tgconsumer|tgproducer
           NDNDPDK_MK_THREADSLEEP: 1
-      - name: check code style
+      - name: Check code style
         run: |
           make lint
           git diff --exit-code
-      - name: build docs
+      - name: Build docs
         run: make doxygen
-      - name: build docs site
+      - name: Build docs site
         run: mk/netlify.sh
         if: ${{ matrix.compiler == 'gcc-7' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
-      - name: deploy docs site
+      - name: Deploy docs site
         uses: South-Paw/action-netlify-deploy@v1.2.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -112,45 +112,45 @@ jobs:
   docker:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: docker/build-push-action@v2
         with:
           tags: ndn-dpdk
           context: .  # don't use git context: it won't download .git directory into build context
           build-args: |
             MAKE_ENV=NDNDPDK_MK_RELEASE=1
-      - name: show image size
+      - name: Show image size
         run: docker image inspect -f '{{.Size}}' ndn-dpdk
-      - name: list files in image
+      - name: List files in image
         run: docker run --rm ndn-dpdk find /usr/local
   library:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
         with:
           go-version: ^1.18
-      - name: install TinyGo
+      - name: Install TinyGo
         run: |
           wget https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo_${TINYGO_VERSION}_amd64.deb
           sudo dpkg -i tinygo_${TINYGO_VERSION}_amd64.deb
         working-directory: /tmp
         env:
           TINYGO_VERSION: "0.22.0"
-      - uses: actions/checkout@v2
-      - name: build for Linux without cgo
+      - uses: actions/checkout@v3
+      - name: Build for Linux without cgo
         run: |
           go build -v -o /dev/null ./ndn/...
           go build -v -o /dev/null ./cmd/ndndpdk-ctrl
           go build -v -o /dev/null ./cmd/ndndpdk-godemo
         env:
           CGO_ENABLED: 0
-      - name: build for Windows without cgo
+      - name: Build for Windows without cgo
         run: |
           go build -v -o /dev/null ./ndn/...
         env:
           CGO_ENABLED: 0
           GOOS: windows
-      - name: build with TinyGo
+      - name: Build with TinyGo
         run: |
           tinygo build -o /dev/null -target=wasm ./ndn/ndntestenv/tiny
         continue-on-error: true  # https://github.com/tinygo-org/tinygo/issues/2718

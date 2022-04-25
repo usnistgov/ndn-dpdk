@@ -1,8 +1,8 @@
-FROM golang:1.17-bullseye AS build
+FROM golang:1.18-bullseye AS build
 RUN apt-get -y -qq update && \
     apt-get -y -qq install --no-install-recommends ca-certificates wget && \
     rm -rf /var/lib/apt/lists/*
-RUN wget -q -O /dasel https://github.com/TomWright/dasel/releases/download/v1.21.1/dasel_linux_amd64 && \
+RUN wget -q -O /dasel https://github.com/TomWright/dasel/releases/download/v1.24.3/dasel_linux_amd64 && \
     chmod +x /dasel
 RUN git clone https://github.com/named-data/YaNFD.git /app && \
     cd /app && \

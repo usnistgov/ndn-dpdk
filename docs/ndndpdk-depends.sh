@@ -11,7 +11,7 @@ MISSING_BINARIES=()
 SUDO=
 SUDOPKG=
 APTINSTALL='apt install --no-install-recommends'
-if [[ -z $SKIPROOTCHECK ]]; then
+if [[ -z ${SKIPROOTCHECK:-} ]]; then
   NEEDED_BINARIES+=(sudo)
   SUDO=sudo
   SUDOPKG=sudo
@@ -35,10 +35,10 @@ if [[ ${#MISSING_BINARIES[@]} -gt 0 ]] ; then
 fi
 
 DFLT_CODEROOT=$HOME/code
-DFLT_NODEVER=17.x
+DFLT_NODEVER=16.x
 DFLT_GOVER=latest
 DFLT_UBPFVER=83eed7211febb74d7490c1fea2c7343cef816624
-DFLT_XDPTOOLSVER=94c859879f9188299ddb649d322f70cc04e5130d
+DFLT_XDPTOOLSVER=8858c814d039340f1789a12412e995da5d7e909c
 DFLT_LIBBPFVER=v0.7.0
 DFLT_URINGVER=liburing-2.1
 DFLT_DPDKVER=v22.03
@@ -323,6 +323,7 @@ if [[ $UBPFVER != 0 ]]; then
   cd "ubpf-${UBPFVER}/vm"
   make -j${NJOBS}
   $SUDO make install
+  $SUDO rm -f /usr/local/lib/libubpf.a
 fi
 
 if [[ $LIBBPFVER != 0 ]]; then
