@@ -268,14 +268,7 @@ func (data *Data) decodeMetaInfo(value []byte) (e error) {
 			}
 			data.Freshness *= time.Millisecond
 		case an.TtFinalBlock:
-			d1 := tlv.DecodingBuffer(de.Value)
-			if e = d1.Decode(&data.FinalBlock); e != nil {
-				return e
-			}
-			if !data.FinalBlock.Valid() {
-				return ErrComponentType
-			}
-			if e = d1.ErrUnlessEOF(); e != nil {
+			if data.FinalBlock, e = DecodeFinalBlock(de); e != nil {
 				return e
 			}
 		default:
@@ -333,3 +326,14 @@ type tFinalBlockFlag bool
 
 // FinalBlockFlag enables MakeData to set FinalBlock to the last name component.
 const FinalBlockFlag = tFinalBlockFlag(true)
+
+// DecodeFinalBlock decodes FinalBlock name component from FinalBlock TLV element.
+func DecodeFinalBlock(de tlv.DecodingElement) (finalBlock NameComponent, e error) {
+	if e = tlv.Decode(de.Value, &finalBlock); e != nil {
+		return NameComponent{}, e
+	}
+	if !finalBlock.Valid() {
+		return NameComponent{}, ErrComponentType
+	}
+	return finalBlock, nil
+}

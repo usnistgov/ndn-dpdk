@@ -13,7 +13,6 @@ type Element struct {
 
 var (
 	_ Fielder     = Element{}
-	_ Decoder     = (*Element)(nil)
 	_ Unmarshaler = (*Element)(nil)
 )
 
@@ -26,31 +25,6 @@ func (element Element) Size() int {
 // Length returns TLV-LENGTH.
 func (element Element) Length() int {
 	return len(element.Value)
-}
-
-// Decode extracts an element from the buffer.
-func (element *Element) Decode(wire []byte) (rest []byte, e error) {
-	d := DecodingBuffer(wire)
-	var typ, length VarNum
-
-	if e = d.Decode(&typ); e != nil {
-		return nil, e
-	}
-	if typ < minType || typ > maxType {
-		return nil, ErrType
-	}
-
-	if e = d.Decode(&length); e != nil {
-		return nil, e
-	}
-
-	valueRest := d.Rest()
-	if len(valueRest) < int(length) {
-		return nil, ErrIncomplete
-	}
-	element.Type = uint32(typ)
-	element.Value = valueRest[:length]
-	return valueRest[length:], nil
 }
 
 // Field implements Fielder interface.

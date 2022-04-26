@@ -2,12 +2,6 @@ package tlv
 
 import "encoding"
 
-// Decoder is the interface implemented by an object that can decode itself from bytes.
-type Decoder interface {
-	// Decode decodes to the object and returns rest bytes.
-	Decode(b []byte) (rest []byte, e error)
-}
-
 // Unmarshaler is the interface implemented by an object that can decode an TLV element representation of itself.
 type Unmarshaler interface {
 	UnmarshalTLV(typ uint32, value []byte) error
@@ -34,25 +28,31 @@ func (d DecodingBuffer) ErrUnlessEOF() error {
 	return ErrTail
 }
 
-// Decode extracts one item from the buffer.
-func (d *DecodingBuffer) Decode(item Decoder) error {
-	rest, e := item.Decode(*d)
-	if e != nil {
-		return e
-	}
-	*d = rest
-	return nil
-}
-
 // Element recognizes one TLV element from the buffer.
 func (d *DecodingBuffer) Element() (de DecodingElement, e error) {
-	wireAfter := *d
-	if e = d.Decode(&de); e != nil {
-		return DecodingElement{}, e
+	var typ, length VarNum
+
+	afterTyp, e := typ.Decode(*d)
+	if e != nil {
+		return de, e
+	}
+	if typ < minType || typ > maxType {
+		return de, ErrType
 	}
 
-	de.Wire = wireAfter[:len(wireAfter)-len(*d)]
-	de.After = *d
+	afterLen, e := length.Decode(afterTyp)
+	if e != nil {
+		return de, e
+	}
+	if len(afterLen) < int(length) {
+		return de, ErrIncomplete
+	}
+
+	de.Type = uint32(typ)
+	de.Value = afterLen[:length]
+	de.After = afterLen[length:]
+	de.Wire = (*d)[:len(*d)-len(de.After)]
+	*d = de.After
 	return de, nil
 }
 

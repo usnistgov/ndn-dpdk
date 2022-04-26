@@ -89,14 +89,8 @@ func (m Metadata) MarshalBinary() (value []byte, e error) {
 func (m *Metadata) UnmarshalBinary(value []byte) (e error) {
 	return m.Metadata.Decode(value, rdr.MetadataDecoderMap{
 		an.TtFinalBlock: func(de tlv.DecodingElement) error {
-			d := tlv.DecodingBuffer(de.Value)
-			if e = d.Decode(&m.FinalBlock); e != nil {
-				return e
-			}
-			if !m.FinalBlock.Valid() {
-				return ndn.ErrComponentType
-			}
-			return d.ErrUnlessEOF()
+			m.FinalBlock, e = ndn.DecodeFinalBlock(de)
+			return e
 		},
 		TtSegmentSize: func(de tlv.DecodingElement) (e error) {
 			m.SegmentSize = int(de.UnmarshalNNI(math.MaxUint16, &e, tlv.ErrRange))

@@ -13,13 +13,12 @@ func TestElement(t *testing.T) {
 	for _, tt := range ndntestvector.TlvElementTests {
 		input := bytesFromHex(tt.Input)
 		var element tlv.Element
-		rest, e := element.Decode(input)
+		e := tlv.Decode(input, &element)
 
 		if tt.Bad {
 			assert.Error(e, tt.Input)
 		} else if assert.NoError(e, tt.Input) {
 			assert.Equal(len(input), element.Size(), tt.Input)
-			assert.Len(rest, 0, tt.Input)
 
 			assert.Equal(tt.Type, element.Type, tt.Input)
 			value := bytesFromHex(tt.Value)
