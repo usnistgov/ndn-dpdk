@@ -214,12 +214,12 @@ func LoadFile(name, filename string) (sc *Strategy, e error) {
 func MakeEmpty(name string) *Strategy {
 	filename, e := bpf.Strategy.Find("empty")
 	if e != nil {
-		logger.Panic("MakePanic error", zap.Error(e))
+		logger.Panic("MakeEmpty error", zap.Error(e))
 	}
 
 	sc, e := LoadFile(name, filename)
 	if e != nil {
-		logger.Panic("MakePanic error", zap.Error(e))
+		logger.Panic("MakeEmpty error", zap.Error(e))
 	}
 
 	return sc

@@ -38,8 +38,7 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt)
   *lph = (const LpHeader){ 0 };
   lph->l2.fragCount = 1;
 
-  TlvDecoder d;
-  TlvDecoder_Init(&d, pkt);
+  TlvDecoder d = TlvDecoder_Init(pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   pkt->pkt_len = pkt->data_len = d.offset + length0; // strip Ethernet trailer, if any
   d.length = length0;
@@ -88,8 +87,7 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt)
         break;
       }
       case TtNack: {
-        TlvDecoder vd;
-        TlvDecoder_MakeValueDecoder(&d, length, &vd);
+        TlvDecoder vd = TlvDecoder_MakeValueDecoder(&d, length);
         if (unlikely(!LpHeader_ParseNack(lph, &vd))) {
           return false;
         }

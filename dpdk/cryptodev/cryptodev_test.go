@@ -33,7 +33,7 @@ func TestCryptoDev(t *testing.T) {
 	assert.Len(ops1, 1)
 	assert.True(ops1[0].IsNew())
 
-	outPtr := eal.Zmalloc[byte]("cryptodev", 3*32, eal.NumaSocket{})
+	outPtr := eal.Zmalloc[byte]("", 3*32, eal.NumaSocket{})
 	defer eal.Free(outPtr)
 	outSlice := unsafe.Slice(outPtr, 3*32)
 	out0, out1, out2 := outSlice[0*32:1*32], outSlice[1*32:2*32], outSlice[2*32:3*32]

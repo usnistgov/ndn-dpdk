@@ -57,8 +57,7 @@ PData_Parse(PData* data, struct rte_mbuf* pkt)
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
   *data = (const PData){ 0 };
 
-  TlvDecoder d;
-  TlvDecoder_Init(&d, pkt);
+  TlvDecoder d = TlvDecoder_Init(pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   NDNDPDK_ASSERT(type0 == TtData);
 
@@ -76,8 +75,7 @@ PData_Parse(PData* data, struct rte_mbuf* pkt)
         break;
       }
       case TtMetaInfo: {
-        TlvDecoder vd;
-        TlvDecoder_MakeValueDecoder(&d, length, &vd);
+        TlvDecoder vd = TlvDecoder_MakeValueDecoder(&d, length);
         if (unlikely(!PData_ParseMetaInfo(data, &vd))) {
           return false;
         }
@@ -294,8 +292,7 @@ Encode_Linear(DataGen* gen, LName prefix, PacketMempools* mp, uint16_t fragmentP
   }
   TlvEncoder_PrependTL(frames[0], TtName, prefix.length + gen->suffixL);
 
-  TlvDecoder d;
-  TlvDecoder_Init(&d, gen->tpl);
+  TlvDecoder d = TlvDecoder_Init(gen->tpl);
   TlvDecoder_Fragment(&d, d.length, frames, &fragIndex, fragCount, fragmentPayloadSize,
                       RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom);
 

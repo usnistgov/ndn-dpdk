@@ -91,8 +91,7 @@ Clone_Linear(Packet* npkt, PacketMempools* mp, PacketTxAlign align)
     return NULL;
   }
 
-  TlvDecoder d;
-  TlvDecoder_Init(&d, pkt);
+  TlvDecoder d = TlvDecoder_Init(pkt);
   uint32_t fragIndex = 0;
   frames[fragIndex]->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
   TlvDecoder_Fragment(&d, d.length, frames, &fragIndex, fragCount, align.fragmentPayloadSize,

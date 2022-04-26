@@ -43,8 +43,7 @@ PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt)
   interest->hopLimit = UINT8_MAX;
   interest->activeFwHint = -1;
 
-  TlvDecoder d;
-  TlvDecoder_Init(&d, pkt);
+  TlvDecoder d = TlvDecoder_Init(pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   NDNDPDK_ASSERT(type0 == TtInterest);
 
@@ -73,8 +72,7 @@ PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt)
         break;
       }
       case TtForwardingHint: {
-        TlvDecoder vd;
-        TlvDecoder_MakeValueDecoder(&d, length, &vd);
+        TlvDecoder vd = TlvDecoder_MakeValueDecoder(&d, length);
         if (unlikely(!PInterest_ParseFwHint(interest, &vd))) {
           return false;
         }
@@ -180,8 +178,7 @@ ModifyGuiders_Linear(Packet* npkt, InterestGuiders guiders, PacketMempools* mp,
 {
   PInterest* interest = Packet_GetInterestHdr(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  TlvDecoder d;
-  TlvDecoder_Init(&d, pkt);
+  TlvDecoder d = TlvDecoder_Init(pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   NDNDPDK_ASSERT(type0 == TtInterest);
 
@@ -223,8 +220,7 @@ ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMempools* mp)
   segs[2] = segs[1];
 
   PInterest* interest = Packet_GetInterestHdr(npkt);
-  TlvDecoder d;
-  TlvDecoder_Init(&d, Packet_ToMbuf(npkt));
+  TlvDecoder d = TlvDecoder_Init(Packet_ToMbuf(npkt));
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   NDNDPDK_ASSERT(type0 == TtInterest);
 

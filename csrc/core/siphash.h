@@ -10,10 +10,13 @@
 /** @brief A key for SipHash. */
 typedef struct sipkey SipHashKey;
 
-#define SIPHASHKEY_SIZE SIP_KEYLEN
+enum
+{
+  SipHashKeyLength = SIP_KEYLEN,
+};
 
 __attribute__((nonnull)) static inline void
-SipHashKey_FromBuffer(SipHashKey* key, const uint8_t buf[SIPHASHKEY_SIZE])
+SipHashKey_FromBuffer(SipHashKey* key, const uint8_t buf[SipHashKeyLength])
 {
   sip_tokey(key, buf);
 }

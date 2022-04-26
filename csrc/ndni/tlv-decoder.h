@@ -22,13 +22,14 @@ typedef struct TlvDecoder
 } TlvDecoder;
 
 /** @brief Create a TlvDecoder. */
-__attribute__((nonnull)) static inline void
-TlvDecoder_Init(TlvDecoder* d, struct rte_mbuf* p)
+__attribute__((nonnull)) static inline TlvDecoder
+TlvDecoder_Init(struct rte_mbuf* p)
 {
-  d->p = p;
-  d->m = p;
-  d->offset = 0;
-  d->length = p->pkt_len;
+  return (TlvDecoder){
+    .p = p,
+    .m = p,
+    .length = p->pkt_len,
+  };
 }
 
 /**
@@ -124,14 +125,14 @@ TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
 /**
  * @brief Copy next @p count octets to fragments.
  * @param frames vector of fragments. They should not be chained.
- * @param fragIndex pointer to first FragIndex.
+ * @param[inout] fragIndex pointer to first FragIndex, updated as last FragIndex.
  * @param fragCount correctly calculated FragCount.
  * @param fragSize maximum fragment payload size.
  * @param headroom headroom for subsequent fragments.
  * @pre Each segment has at least @c headroom+fragSize dataroom.
- * @pre First fragment has initialized headroom, and may contain payload.
+ * @pre First fragment @c frames[*fragIndex] has initialized headroom and may contain payload.
  * @pre Subsequent fragments are empty.
- * @post First fragment is appended up to headroom+fragSize offset.
+ * @post First fragment is appended up to @c headroom+fragSize offset.
  */
 __attribute__((nonnull)) void
 TlvDecoder_Fragment(TlvDecoder* d, uint32_t count, struct rte_mbuf* frames[], uint32_t* fragIndex,
@@ -236,7 +237,7 @@ TlvDecoder_ReadTL(TlvDecoder* d, uint32_t* length)
  * TlvDecoder_EachTL (&decoder, type, length) {
  *   // type is the TLV-TYPE
  *   // length is the TLV-LENGTH
- *   TlvDecoder_Skip(&decoder, length); // must advance over the length
+ *   TlvDecoder_Skip(&decoder, length); // must advance after TLV-VALUE
  * }
  * @endcode
  */
@@ -248,16 +249,16 @@ TlvDecoder_ReadTL(TlvDecoder* d, uint32_t* length)
  * @brief Read TLV-VALUE by creating a sub decoder.
  * @param d parent decoder.
  * @param length TLV-LENGTH of current element.
- * @param vd value decoder.
- * @return whether success.
+ * @return value decoder.
  * @post Parent decoder is advanced after the TLV-VALUE.
  */
-__attribute__((nonnull)) static inline void
-TlvDecoder_MakeValueDecoder(TlvDecoder* restrict d, uint32_t length, TlvDecoder* restrict vd)
+__attribute__((nonnull)) static inline TlvDecoder
+TlvDecoder_MakeValueDecoder(TlvDecoder* d, uint32_t length)
 {
-  *vd = *d;
-  vd->length = length;
+  TlvDecoder vd = *d;
+  vd.length = length;
   TlvDecoder_Skip(d, length);
+  return vd;
 }
 
 /**

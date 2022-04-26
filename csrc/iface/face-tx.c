@@ -90,8 +90,7 @@ FaceTx_ChainedFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* fram
   LpL3* l3 = Packet_GetLpL3Hdr(npkt);
   TscTime timestamp = Mbuf_GetTimestamp(pkt);
   PktType framePktType = PktType_ToSlim(Packet_GetType(npkt));
-  TlvDecoder d;
-  TlvDecoder_Init(&d, pkt);
+  TlvDecoder d = TlvDecoder_Init(pkt);
 
   for (l2.fragIndex = 0; l2.fragIndex < l2.fragCount; ++l2.fragIndex) {
     struct rte_mbuf* frame = frames[l2.fragIndex];

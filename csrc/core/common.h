@@ -69,6 +69,6 @@
   } while (false)
 #endif
 
-#define CLAMP(x, min, max) RTE_MAX((min), RTE_MIN((x), (max)))
+#define CLAMP(x, lo, hi) RTE_MAX((lo), RTE_MIN((hi), (x)))
 
 #endif // NDNDPDK_CORE_COMMON_H

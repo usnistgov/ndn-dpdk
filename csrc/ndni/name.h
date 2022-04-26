@@ -19,7 +19,7 @@ typedef struct LName
   uint16_t length;
 } LName;
 
-static __rte_always_inline bool
+__attribute__((nonnull)) static __rte_always_inline bool
 LName_ParseVarNum_(LName name, uint16_t* restrict pos, uint16_t* restrict n, uint16_t minTail)
 {
   if (unlikely(*pos + 1 + minTail > name.length)) {
@@ -51,7 +51,7 @@ LName_ParseVarNum_(LName name, uint16_t* restrict pos, uint16_t* restrict n, uin
  * }
  * @endcode
  */
-static inline bool
+__attribute__((nonnull)) static inline bool
 LName_Component(LName name, uint16_t* restrict pos, uint16_t* restrict type,
                 uint16_t* restrict length)
 {
@@ -88,7 +88,7 @@ LName_SliceByte_(LName name, uint16_t start, uint16_t end)
 }
 
 /**
- * @brief Get a sub name of @c [start:end-1] byte range.
+ * @brief Get a sub name of @c [start:end) byte range.
  * @param start first byte offset (inclusive).
  * @param end last byte offset (exclusive).
  */
@@ -122,7 +122,7 @@ LName_Slice_(LName name, uint16_t start, uint16_t end)
 }
 
 /**
- * @brief Get a sub name of @c [start:end-1] components.
+ * @brief Get a sub name of @c [start:end) components.
  * @param start first component index (inclusive).
  * @param end last component index (exclusive).
  */

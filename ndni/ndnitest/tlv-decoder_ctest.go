@@ -30,7 +30,7 @@ func ctestTlvDecoderReadSkip(t *testing.T) {
 
 	p := makePacket("B0B1B2B3", "B4B5B6B7", "C0C1C2C3C4C5C6C7")
 	defer p.Close()
-	C.TlvDecoder_Init(&d, p.mbuf)
+	d = C.TlvDecoder_Init(p.mbuf)
 	assert.EqualValues(16, d.length)
 	assert.EqualValues(0, d.offset)
 
@@ -67,8 +67,7 @@ func ctestTlvDecoderClone(t *testing.T) {
 
 	for offset := 0; offset <= pktlen; offset++ {
 		for count := 1; count < pktlen-offset; count++ {
-			var d C.TlvDecoder
-			C.TlvDecoder_Init(&d, p.mbuf)
+			d := C.TlvDecoder_Init(p.mbuf)
 			C.TlvDecoder_Skip(&d, C.uint32_t(offset))
 
 			clone := C.TlvDecoder_Clone(&d, C.uint32_t(count), (*C.struct_rte_mempool)(indirectMp.Ptr()), nil)
@@ -95,7 +94,7 @@ func ctestTlvDecoderLinearize(t *testing.T) {
 
 	p := makePacket("B0B1B2B3", "B4B5B6B7", "C0C1C2C3C4C5C6C7")
 	defer p.Close()
-	C.TlvDecoder_Init(&d, p.mbuf)
+	d = C.TlvDecoder_Init(p.mbuf)
 	C.TlvDecoder_Skip(&d, 1)
 
 	// contiguous
@@ -116,7 +115,7 @@ func ctestTlvDecoderLinearize(t *testing.T) {
 
 	p = makePacket(mbuftestenv.Headroom(directDataroom-5), "B0B1B2B3", "C0C1C2C3")
 	defer p.Close()
-	C.TlvDecoder_Init(&d, p.mbuf)
+	d = C.TlvDecoder_Init(p.mbuf)
 	C.TlvDecoder_Skip(&d, 1)
 
 	// move to first with memmove
@@ -131,7 +130,7 @@ func ctestTlvDecoderLinearize(t *testing.T) {
 
 	p = makePacket(mbuftestenv.Headroom(0), bytes.Repeat([]byte{0xA0}, directDataroom), bytes.Repeat([]byte{0xA1}, directDataroom))
 	defer p.Close()
-	C.TlvDecoder_Init(&d, p.mbuf)
+	d = C.TlvDecoder_Init(p.mbuf)
 	C.TlvDecoder_Skip(&d, 2)
 
 	// copy to new
@@ -152,8 +151,7 @@ func ctestTlvDecoderTL(t *testing.T) {
 	for _, tt := range ndntestvector.TlvElementTests {
 		p := makePacket(tt.Input)
 		defer p.Close()
-		var d C.TlvDecoder
-		C.TlvDecoder_Init(&d, p.mbuf)
+		d := C.TlvDecoder_Init(p.mbuf)
 
 		var length C.uint32_t
 		typ := C.TlvDecoder_ReadTL(&d, &length)
@@ -181,13 +179,13 @@ func ctestTlvDecoderTL(t *testing.T) {
 func ctestTlvDecoderValueDecoder(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	var d, vd C.TlvDecoder
-	C.TlvDecoder_MakeValueDecoder(&d, 0, &vd)
+	var d C.TlvDecoder
+	vd := C.TlvDecoder_MakeValueDecoder(&d, 0)
 	assert.EqualValues(0, vd.length)
 
 	p := makePacket("07 04 C0C1", "C2C3")
 	defer p.Close()
-	C.TlvDecoder_Init(&d, p.mbuf)
+	d = C.TlvDecoder_Init(p.mbuf)
 
 	var length C.uint32_t
 	typ := C.TlvDecoder_ReadTL(&d, &length)
@@ -196,7 +194,7 @@ func ctestTlvDecoderValueDecoder(t *testing.T) {
 	assert.EqualValues(2, d.offset)
 	assert.EqualValues(4, d.length)
 
-	C.TlvDecoder_MakeValueDecoder(&d, length, &vd)
+	vd = C.TlvDecoder_MakeValueDecoder(&d, length)
 	assert.EqualValues(2, vd.offset)
 	assert.EqualValues(4, vd.length)
 	assert.EqualValues(0, d.length)

@@ -21,8 +21,8 @@ RTE_INIT(InitLNameHash)
   // seed with time, because rte_rand() is unavailable before EAL init
   pcg32_srandom_r(&rng, rte_get_tsc_cycles(), 0);
 
-  uint8_t key[SIPHASHKEY_SIZE];
-  for (uint8_t* k = key; k != key + SIPHASHKEY_SIZE; ++k) {
+  uint8_t key[SipHashKeyLength];
+  for (uint8_t* k = key; k != key + SipHashKeyLength; ++k) {
     *k = (uint8_t)pcg32_random_r(&rng);
   }
   SipHashKey_FromBuffer(&LName_HashKey_, key);
@@ -49,7 +49,7 @@ PName_Parse(PName* p, LName l)
   *p = (const PName){ .value = l.value, .length = l.length, .firstNonGeneric = -1 };
 
   uint16_t pos = 0, end = 0, type = 0, length = 0;
-  while (likely(LName_Component(PName_ToLName(p), &pos, &type, &length))) {
+  while (likely(LName_Component(l, &pos, &type, &length))) {
     end = (pos += length);
     if (likely(p->nComps < PNameCachedComponents)) {
       p->comp_[p->nComps] = pos;

@@ -30,8 +30,7 @@ Pdump_ExtractNameL3_(TlvDecoder* d)
 __attribute__((nonnull)) static inline LName
 Pdump_ExtractName(struct rte_mbuf* pkt)
 {
-  TlvDecoder d;
-  TlvDecoder_Init(&d, pkt);
+  TlvDecoder d = TlvDecoder_Init(pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   switch (type0) {
     case TtInterest:

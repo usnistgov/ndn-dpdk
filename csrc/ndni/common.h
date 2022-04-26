@@ -33,10 +33,10 @@ typedef struct PacketMempools
  */
 typedef struct PacketTxAlign
 {
-  /** @brief max payload size per fragment. */
+  /** @brief Max payload size per fragment. */
   uint16_t fragmentPayloadSize;
 
-  /** @brief whether mbuf must be linearized into consecutive mbuf. */
+  /** @brief Whether packet must be linearized into contiguous mbufs. */
   bool linearize;
 } PacketTxAlign;
 
