@@ -48,7 +48,7 @@ func ToUint64(a net.HardwareAddr) uint64 {
 // MakeRandom generates a random MAC-48 address.
 func MakeRandom(multicast bool) (a net.HardwareAddr) {
 	a = make(net.HardwareAddr, 6)
-	rand.Read([]byte(a))
+	rand.Read(a)
 	a[0] |= 0x02
 	if multicast {
 		a[0] |= 0x01

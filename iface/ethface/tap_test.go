@@ -22,7 +22,7 @@ import (
 	"go4.org/must"
 )
 
-func createTUN(t testing.TB) *water.Interface {
+func createTAP(t testing.TB) *water.Interface {
 	_, require := makeAR(t)
 
 	cfg := water.Config{DeviceType: water.TAP}
@@ -38,18 +38,12 @@ func createTUN(t testing.TB) *water.Interface {
 	return intf
 }
 
-func TestXDPSimple(t *testing.T) {
+func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Config) {
 	assert, require := makeAR(t)
-	xdpProgram, e := bpf.XDP.Find("redir")
-	require.NoError(e)
-	tun := createTUN(t)
+	tap := createTAP(t)
 
 	port, e := ethport.New(ethport.Config{
-		Config: ethnetif.Config{
-			Driver:     ethnetif.DriverXDP,
-			Netif:      tun.Name(),
-			XDPProgram: xdpProgram,
-		},
+		Config: makeNetifConfig(tap.Name()),
 	})
 	require.NoError(e)
 	t.Cleanup(func() { must.Close(port) })
@@ -96,47 +90,47 @@ func TestXDPSimple(t *testing.T) {
 		interest := ndn.MakeInterest(fmt.Sprintf("/I/%d", i))
 		wire, _ := tlv.EncodeFrom(interest)
 
-		_, e = tun.Write(packetFromLayers(
+		_, e = writeToFromLayers(tap,
 			&layers.Ethernet{SrcMAC: locEther.Remote.HardwareAddr, DstMAC: locEther.Local.HardwareAddr, EthernetType: layers.EthernetTypeDot1Q},
 			&layers.Dot1Q{VLANIdentifier: uint16(locEther.VLAN), Type: an.EtherTypeNDN},
 			gopacket.Payload(wire),
-		))
+		)
 		assert.NoError(e)
 
-		_, e = tun.Write(packetFromLayers(
+		_, e = writeToFromLayers(tap,
 			&layers.Ethernet{SrcMAC: locUDP4.Remote.HardwareAddr, DstMAC: locUDP4.Local.HardwareAddr, EthernetType: layers.EthernetTypeDot1Q},
-			&layers.Dot1Q{Priority: 1, VLANIdentifier: uint16(locUDP4.VLAN), Type: layers.EthernetTypeIPv4},
+			&layers.Dot1Q{VLANIdentifier: uint16(locUDP4.VLAN), Type: layers.EthernetTypeIPv4},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locUDP4.RemoteIP.AsSlice()), DstIP: net.IP(locUDP4.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP4.RemoteUDP), DstPort: layers.UDPPort(locUDP4.LocalUDP)},
 			gopacket.Payload(wire),
-		))
+		)
 		assert.NoError(e)
 
-		_, e = tun.Write(packetFromLayers(
+		_, e = writeToFromLayers(tap,
 			&layers.Ethernet{SrcMAC: locUDP4p1.Remote.HardwareAddr, DstMAC: locUDP4p1.Local.HardwareAddr, EthernetType: layers.EthernetTypeDot1Q},
-			&layers.Dot1Q{VLANIdentifier: uint16(locUDP4p1.VLAN), Type: layers.EthernetTypeIPv4},
+			&layers.Dot1Q{Priority: 1, VLANIdentifier: uint16(locUDP4p1.VLAN), Type: layers.EthernetTypeIPv4},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locUDP4p1.RemoteIP.AsSlice()), DstIP: net.IP(locUDP4p1.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP4p1.RemoteUDP), DstPort: layers.UDPPort(locUDP4p1.LocalUDP)},
 			gopacket.Payload(wire),
-		))
+		)
 		assert.NoError(e)
 
-		_, e = tun.Write(packetFromLayers(
+		_, e = writeToFromLayers(tap,
 			&layers.Ethernet{SrcMAC: locUDP6.Remote.HardwareAddr, DstMAC: locUDP6.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv6},
 			&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: net.IP(locUDP6.RemoteIP.AsSlice()), DstIP: net.IP(locUDP6.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP6.RemoteUDP), DstPort: layers.UDPPort(locUDP6.LocalUDP)},
 			gopacket.Payload(wire),
-		))
+		)
 		assert.NoError(e)
 
-		_, e = tun.Write(packetFromLayers(
+		_, e = writeToFromLayers(tap,
 			&layers.Ethernet{SrcMAC: locVX.Remote.HardwareAddr, DstMAC: locVX.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv6},
 			&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: net.IP(locVX.RemoteIP.AsSlice()), DstIP: net.IP(locVX.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(65535 - i), DstPort: 4789},
 			&layers.VXLAN{ValidIDFlag: true, VNI: uint32(locVX.VXLAN)},
 			&layers.Ethernet{SrcMAC: locVX.InnerRemote.HardwareAddr, DstMAC: locVX.InnerLocal.HardwareAddr, EthernetType: an.EtherTypeNDN},
 			gopacket.Payload(wire),
-		))
+		)
 		assert.NoError(e)
 	}
 
@@ -145,4 +139,27 @@ func TestXDPSimple(t *testing.T) {
 	assert.EqualValues(500, faceUDP4p1.Counters().RxInterests)
 	assert.EqualValues(500, faceUDP6.Counters().RxInterests)
 	assert.EqualValues(500, faceVX.Counters().RxInterests)
+}
+
+func TestXDP(t *testing.T) {
+	_, require := makeAR(t)
+	xdpProgram, e := bpf.XDP.Find("redir")
+	require.NoError(e)
+
+	testPortTAP(t, func(tunName string) ethnetif.Config {
+		return ethnetif.Config{
+			Driver:     ethnetif.DriverXDP,
+			Netif:      tunName,
+			XDPProgram: xdpProgram,
+		}
+	})
+}
+
+func TestAfPacket(t *testing.T) {
+	testPortTAP(t, func(tunName string) ethnetif.Config {
+		return ethnetif.Config{
+			Driver: ethnetif.DriverAfPacket,
+			Netif:  tunName,
+		}
+	})
 }

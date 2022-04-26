@@ -64,7 +64,7 @@ func (rxc *rxConns) run(face *socketFace) error {
 
 		pkt.SetPort(uint16(id))
 		pkt.SetTimestamp(eal.TscNow())
-		if ringbuffer.Enqueue(rxc.ring, pktmbuf.Vector{pkt}) == 0 {
+		if ringbuffer.Enqueue(rxc.ring, vec) == 0 {
 			pkt.Close()
 		}
 	}

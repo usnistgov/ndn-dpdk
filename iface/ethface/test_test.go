@@ -1,6 +1,7 @@
 package ethface_test
 
 import (
+	"io"
 	"sync"
 	"testing"
 
@@ -79,7 +80,7 @@ var serializeBufferPool = sync.Pool{
 	New: func() any { return gopacket.NewSerializeBuffer() },
 }
 
-func packetFromLayers(hdrs ...gopacket.SerializableLayer) []byte {
+func packetFromLayers(hdrs ...gopacket.SerializableLayer) (b []byte, discard func()) {
 	type TransportLayer interface {
 		SetNetworkLayerForChecksum(l gopacket.NetworkLayer) error
 	}
@@ -96,22 +97,26 @@ func packetFromLayers(hdrs ...gopacket.SerializableLayer) []byte {
 	}
 
 	buf := serializeBufferPool.Get().(gopacket.SerializeBuffer)
-	defer func() {
-		buf.Clear()
-		serializeBufferPool.Put(buf)
-	}()
-
-	e := gopacket.SerializeLayers(buf, gopacket.SerializeOptions{
+	if e := gopacket.SerializeLayers(buf, gopacket.SerializeOptions{
 		FixLengths:       true,
 		ComputeChecksums: true,
-	}, hdrs...)
-	if e != nil {
+	}, hdrs...); e != nil {
 		panic(e)
 	}
-	return buf.Bytes()
+	return buf.Bytes(), func() {
+		buf.Clear()
+		serializeBufferPool.Put(buf)
+	}
+}
+
+func writeToFromLayers(w io.Writer, hdrs ...gopacket.SerializableLayer) (n int, e error) {
+	b, discard := packetFromLayers(hdrs...)
+	defer discard()
+	return w.Write(b)
 }
 
 func pktmbufFromLayers(hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {
-	buf := packetFromLayers(hdrs...)
-	return makePacket(mbuftestenv.Headroom(0), buf)
+	b, discard := packetFromLayers(hdrs...)
+	defer discard()
+	return makePacket(mbuftestenv.Headroom(0), b)
 }
