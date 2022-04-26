@@ -136,11 +136,15 @@ Bdev_WritePacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, Bde
   for (struct rte_mbuf* seg = pkt; seg != NULL; seg = seg->next) {
     if (bd->dwordAlign) {
       uint16_t headLen = sp->headTail[iovcnt] >> 4;
-      req->iov_[iovcnt].iov_base = RTE_PTR_SUB(rte_pktmbuf_mtod(seg, void*), headLen);
-      req->iov_[iovcnt].iov_len = sp->saveLen[iovcnt];
+      req->iov_[iovcnt] = (struct iovec){
+        .iov_base = rte_pktmbuf_mtod_offset(seg, void*, -headLen),
+        .iov_len = sp->saveLen[iovcnt],
+      };
     } else {
-      req->iov_[iovcnt].iov_base = rte_pktmbuf_mtod(seg, void*);
-      req->iov_[iovcnt].iov_len = seg->data_len;
+      req->iov_[iovcnt] = (struct iovec){
+        .iov_base = rte_pktmbuf_mtod(seg, void*),
+        .iov_len = seg->data_len,
+      };
     }
     ++iovcnt;
     lastSeg = seg;

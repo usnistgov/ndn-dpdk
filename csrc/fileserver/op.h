@@ -93,7 +93,7 @@ FileServerOp_AppendIov(FileServerOp* op, struct rte_mbuf* payload, uint16_t payl
 {
   NDNDPDK_ASSERT(op->nIov < FileServerMaxIovecs);
   op->iov[op->nIov] = (struct iovec){
-    .iov_base = rte_pktmbuf_mtod(payload, uint8_t*),
+    .iov_base = rte_pktmbuf_mtod(payload, void*),
     .iov_len = payloadLen,
   };
   FileServerOpMbufs_Set(&op->mbufs, op->nIov, payload, interest);

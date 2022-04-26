@@ -29,19 +29,6 @@ Mbuf_SetTimestamp(struct rte_mbuf* m, TscTime timestamp)
 }
 
 /**
- * @brief Copy contents of mbuf to a buffer.
- * @param[out] dst destination buffer, must have sufficient size.
- */
-__attribute__((nonnull)) static inline void
-Mbuf_CopyTo(struct rte_mbuf* m, void* dst)
-{
-  for (struct rte_mbuf* s = m; s != NULL; s = s->next) {
-    rte_memcpy(dst, rte_pktmbuf_mtod(s, const void*), s->data_len);
-    dst = RTE_PTR_ADD(dst, s->data_len);
-  }
-}
-
-/**
  * @brief Chain @p tail onto @p head.
  * @param lastSeg must be rte_pktmbuf_lastseg(head)
  * @return whether success.

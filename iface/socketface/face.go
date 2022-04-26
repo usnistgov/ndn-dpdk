@@ -8,6 +8,7 @@ STATIC_ASSERT_FUNC_TYPE(Face_TxBurstFunc, go_SocketFace_TxBurst);
 */
 import "C"
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net"
@@ -166,7 +167,12 @@ func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint
 	vec := pktmbuf.VectorFromPtr(unsafe.Pointer(pkts), int(nPkts))
 	defer vec.Close()
 	for _, pkt := range vec {
-		face.transport.Write(pkt.ZeroCopyBytes())
+		segs := pkt.SegmentBytes()
+		if len(segs) == 1 {
+			face.transport.Write(segs[0])
+		} else {
+			face.transport.Write(bytes.Join(segs, nil))
+		}
 	}
 	return nPkts
 }

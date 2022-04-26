@@ -40,18 +40,18 @@ func TestDataGen(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	testDataGen(t, 0, func(m *pktmbuf.Packet) {
-		segs := m.SegmentLengths()
+		segs := m.SegmentBytes()
 		assert.Len(segs, 2)
-		assert.Less(segs[0], 500)
+		assert.Less(len(segs[0]), 500)
 	})
 
 	testDataGen(t, 3000, func(m *pktmbuf.Packet) {
-		assert.Len(m.SegmentLengths(), 1)
+		assert.Len(m.SegmentBytes(), 1)
 	})
 
 	testDataGen(t, 1000, func(m *pktmbuf.Packet) {
-		segs := m.SegmentLengths()
+		segs := m.SegmentBytes()
 		assert.Len(segs, 2)
-		assert.Greater(segs[0], 500)
+		assert.Greater(len(segs[0]), 500)
 	})
 }

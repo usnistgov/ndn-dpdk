@@ -7,6 +7,7 @@ enum { c_offsetof_Mbuf_PacketType = offsetof(struct rte_mbuf, packet_type) };
 */
 import "C"
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -78,35 +79,20 @@ func (pkt *Packet) SetType32(packetType uint32) {
 	*pkt.ptrType32() = packetType
 }
 
-// SegmentLengths returns lengths of segments in this packet.
-func (pkt *Packet) SegmentLengths() (list []int) {
+// SegmentBytes returns the data in each segment.
+// Each []byte aliases the mbuf.
+func (pkt *Packet) SegmentBytes() (list [][]byte) {
+	list = make([][]byte, 0, pkt.nb_segs)
 	for m := pkt.ptr(); m != nil; m = m.next {
-		list = append(list, int(m.data_len))
+		buf := unsafe.Slice((*byte)(m.buf_addr), m.buf_len)
+		list = append(list, buf[m.data_off:m.data_off+m.data_len])
 	}
 	return list
 }
 
-// DataPtr returns void* pointer to data in first segment.
-func (pkt *Packet) DataPtr() unsafe.Pointer {
-	return unsafe.Add(pkt.buf_addr, pkt.data_off)
-}
-
 // Bytes returns a []byte that contains a copy of the data in this packet.
 func (pkt *Packet) Bytes() []byte {
-	b := make([]byte, pkt.Len())
-	if len(b) > 0 {
-		C.Mbuf_CopyTo(pkt.ptr(), unsafe.Pointer(&b[0]))
-	}
-	return b
-}
-
-// ZeroCopyBytes returns a the data in this packet.
-// It may alias the mbuf if it only has one segment.
-func (pkt *Packet) ZeroCopyBytes() []byte {
-	if pkt.nb_segs == 1 {
-		return unsafe.Slice((*byte)(pkt.DataPtr()), pkt.Len())
-	}
-	return pkt.Bytes()
+	return bytes.Join(pkt.SegmentBytes(), nil)
 }
 
 // Headroom returns headroom of the first segment.
@@ -138,10 +124,11 @@ func (pkt *Packet) Tailroom() int {
 // ReadFrom reads once from the reader into the dataroom of this packet.
 // It can only be used on an empty packet.
 func (pkt *Packet) ReadFrom(r io.Reader) (n int64, e error) {
-	if pkt.Len() > 0 {
+	bufs := pkt.SegmentBytes()
+	if len(bufs) > 1 || len(bufs[0]) > 0 {
 		return 0, errors.New("cannot ReadFrom on non-empty packet")
 	}
-	room := unsafe.Slice((*byte)(pkt.DataPtr()), pkt.Tailroom())
+	room := bufs[0][:cap(bufs[0])]
 	ni, e := r.Read(room)
 	if ni > 0 {
 		pkt.pkt_len = C.uint32_t(ni)

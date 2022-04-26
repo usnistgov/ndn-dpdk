@@ -2,10 +2,10 @@ package cryptodev_test
 
 import (
 	"testing"
+	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"go4.org/must"
 )
 
@@ -33,18 +33,14 @@ func TestCryptoDev(t *testing.T) {
 	assert.Len(ops1, 1)
 	assert.True(ops1[0].IsNew())
 
-	allocOutBuf := func() (out *pktmbuf.Packet) {
-		out = directMp.MustAlloc(1)[0]
-		out.Append(make([]byte, 32))
-		return out
-	}
+	outPtr := eal.Zmalloc[byte]("cryptodev", 3*32, eal.NumaSocket{})
+	defer eal.Free(outPtr)
+	outSlice := unsafe.Slice(outPtr, 3*32)
+	out0, out1, out2 := outSlice[0*32:1*32], outSlice[1*32:2*32], outSlice[2*32:3*32]
 
-	out0 := allocOutBuf()
-	ops0[0].PrepareSha256Digest(makePacket("A0A1A2A3"), 0, 4, out0.DataPtr())
-	out1 := allocOutBuf()
-	ops0[1].PrepareSha256Digest(makePacket("B0B1B2B3"), 0, 4, out1.DataPtr())
-	out2 := allocOutBuf()
-	ops1[0].PrepareSha256Digest(makePacket("C0C1C2C3"), 0, 4, out2.DataPtr())
+	ops0[0].PrepareSha256Digest(makePacket("A0A1A2A3"), 0, 4, unsafe.Pointer(&out0[0]))
+	ops0[1].PrepareSha256Digest(makePacket("B0B1B2B3"), 0, 4, unsafe.Pointer(&out1[0]))
+	ops1[0].PrepareSha256Digest(makePacket("C0C1C2C3"), 0, 4, unsafe.Pointer(&out2[0]))
 
 	assert.Equal(2, qp[0].EnqueueBurst(ops0))
 	assert.Equal(1, qp[1].EnqueueBurst(ops1))
@@ -52,16 +48,13 @@ func TestCryptoDev(t *testing.T) {
 	ops := make(cryptodev.OpVector, 2)
 	assert.Equal(1, qp[1].DequeueBurst(ops))
 	assert.True(ops[0].IsSuccess())
-	assert.Equal(bytesFromHex("72D2A70D03005439DE209BBE9FFC050FAFD891082E9F3150F05A61054D25990F"),
-		out2.Bytes())
+	assert.Equal(bytesFromHex("72D2A70D03005439DE209BBE9FFC050FAFD891082E9F3150F05A61054D25990F"), out2)
 
 	assert.Equal(2, qp[0].DequeueBurst(ops))
 	assert.True(ops[0].IsSuccess())
-	assert.Equal(bytesFromHex("73B92B68882B199971462A2614C6691CBA581DA958740466030A64CE7DE66ED3"),
-		out0.Bytes())
+	assert.Equal(bytesFromHex("73B92B68882B199971462A2614C6691CBA581DA958740466030A64CE7DE66ED3"), out0)
 	assert.True(ops[1].IsSuccess())
-	assert.Equal(bytesFromHex("A6662B764A4468DF70CA2CAD1B17DA26C62E53439DA8E4E8A80D9B91E59D09BA"),
-		out1.Bytes())
+	assert.Equal(bytesFromHex("A6662B764A4468DF70CA2CAD1B17DA26C62E53439DA8E4E8A80D9B91E59D09BA"), out1)
 	assert.Equal(0, qp[0].DequeueBurst(ops))
 
 	assert.Equal(3, mp.CountInUse())

@@ -63,7 +63,7 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b)
     return a->localUDP != b->localUDP || a->remoteUDP != b->remoteUDP;
   }
   if (a->localUDP != b->localUDP && a->remoteUDP != b->remoteUDP) {
-    // UDP face and VXLAN face -or- two UDP faces can coexist if both port numbers differ
+    // UDP face and VXLAN face -or- two VXLAN faces can coexist if both port numbers differ
     return true;
   }
   if (ac.vxlan != bc.vxlan) {
