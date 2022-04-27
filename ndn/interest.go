@@ -202,7 +202,7 @@ func (interest Interest) Field() tlv.Field {
 		if lifetime < MinInterestLifetime {
 			return tlv.FieldError(ErrLifetime)
 		}
-		fields = append(fields, tlv.TLVNNI(an.TtInterestLifetime, uint64(lifetime/time.Millisecond)))
+		fields = append(fields, tlv.TLVNNI(an.TtInterestLifetime, lifetime/time.Millisecond))
 	}
 	if interest.HopLimit != 0 {
 		fields = append(fields, interest.HopLimit)
@@ -402,7 +402,7 @@ var (
 
 // Field implements tlv.Fielder interface.
 func (hl HopLimit) Field() tlv.Field {
-	return tlv.TLVNNI(an.TtHopLimit, uint64(hl))
+	return tlv.TLVNNI(an.TtHopLimit, hl)
 }
 
 // UnmarshalBinary decodes from wire encoding.

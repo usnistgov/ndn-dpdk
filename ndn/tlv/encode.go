@@ -1,6 +1,10 @@
 package tlv
 
-import "math"
+import (
+	"math"
+
+	"golang.org/x/exp/constraints"
+)
 
 // EncodingBuffer is an encoding buffer.
 // Zero value is an empty buffer.
@@ -171,7 +175,10 @@ func TLVBytes(typ uint32, value []byte) Field {
 }
 
 // TLVNNI creates a Field that encodes to TLV element from TLV-TYPE and TLV-VALUE NonNegativeInteger.
-func TLVNNI(typ uint32, v uint64) Field {
+func TLVNNI[V constraints.Integer](typ uint32, v V) Field {
+	if v < 0 {
+		return FieldError(ErrRange)
+	}
 	return TLVFrom(typ, NNI(v))
 }
 

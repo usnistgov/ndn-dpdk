@@ -288,7 +288,7 @@ func (data Data) encodeSignedPortion() (wire []byte, e error) {
 		metaFields = append(metaFields, data.ContentType.Field())
 	}
 	if data.Freshness > 0 {
-		metaFields = append(metaFields, tlv.TLVNNI(an.TtFreshnessPeriod, uint64(data.Freshness/time.Millisecond)))
+		metaFields = append(metaFields, tlv.TLVNNI(an.TtFreshnessPeriod, data.Freshness/time.Millisecond))
 	}
 	if data.FinalBlock.Valid() {
 		metaFields = append(metaFields, tlv.TLVFrom(an.TtFinalBlock, data.FinalBlock))
@@ -308,7 +308,7 @@ func (data Data) encodeSignedPortion() (wire []byte, e error) {
 type ContentType uint64
 
 func (ct ContentType) Field() tlv.Field {
-	return tlv.TLVNNI(an.TtContentType, uint64(ct))
+	return tlv.TLVNNI(an.TtContentType, ct)
 }
 
 // UnmarshalBinary decodes from wire encoding.

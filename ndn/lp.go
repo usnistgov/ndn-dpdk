@@ -44,10 +44,10 @@ func (lph LpL3) encode() (fields []tlv.Field) {
 	case an.NackUnspecified:
 		fields = append(fields, tlv.TLV(an.TtNack))
 	default:
-		fields = append(fields, tlv.TLV(an.TtNack, tlv.TLVNNI(an.TtNackReason, uint64(lph.NackReason))))
+		fields = append(fields, tlv.TLV(an.TtNack, tlv.TLVNNI(an.TtNackReason, lph.NackReason)))
 	}
 	if lph.CongMark != 0 {
-		fields = append(fields, tlv.TLVNNI(an.TtCongestionMark, uint64(lph.CongMark)))
+		fields = append(fields, tlv.TLVNNI(an.TtCongestionMark, lph.CongMark))
 	}
 	return fields
 }
@@ -81,8 +81,8 @@ func (frag LpFragment) Field() tlv.Field {
 	binary.BigEndian.PutUint64(seqNum, frag.SeqNum)
 	return tlv.TLV(an.TtLpPacket,
 		tlv.TLVBytes(an.TtLpSeqNum, seqNum),
-		tlv.TLVNNI(an.TtFragIndex, uint64(frag.FragIndex)),
-		tlv.TLVNNI(an.TtFragCount, uint64(frag.FragCount)),
+		tlv.TLVNNI(an.TtFragIndex, frag.FragIndex),
+		tlv.TLVNNI(an.TtFragCount, frag.FragCount),
 		tlv.Bytes(frag.header),
 		tlv.TLVBytes(an.TtLpPayload, frag.payload))
 }

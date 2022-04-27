@@ -66,21 +66,21 @@ func (m Metadata) MarshalBinary() (value []byte, e error) {
 		extensions = append(extensions, tlv.TLVFrom(an.TtFinalBlock, m.FinalBlock))
 	}
 	if m.SegmentSize > 0 {
-		extensions = append(extensions, tlv.TLVNNI(TtSegmentSize, uint64(m.SegmentSize)))
-		extensions = append(extensions, tlv.TLVNNI(TtSize, uint64(m.Size)))
+		extensions = append(extensions, tlv.TLVNNI(TtSegmentSize, m.SegmentSize))
+		extensions = append(extensions, tlv.TLVNNI(TtSize, m.Size))
 	}
-	extensions = append(extensions, tlv.TLVNNI(TtMode, uint64(m.Mode)))
+	extensions = append(extensions, tlv.TLVNNI(TtMode, m.Mode))
 	if !m.Atime.IsZero() {
-		extensions = append(extensions, tlv.TLVNNI(TtAtime, uint64(m.Atime.UnixNano())))
+		extensions = append(extensions, tlv.TLVNNI(TtAtime, m.Atime.UnixNano()))
 	}
 	if !m.Btime.IsZero() {
-		extensions = append(extensions, tlv.TLVNNI(TtBtime, uint64(m.Btime.UnixNano())))
+		extensions = append(extensions, tlv.TLVNNI(TtBtime, m.Btime.UnixNano()))
 	}
 	if !m.Ctime.IsZero() {
-		extensions = append(extensions, tlv.TLVNNI(TtCtime, uint64(m.Ctime.UnixNano())))
+		extensions = append(extensions, tlv.TLVNNI(TtCtime, m.Ctime.UnixNano()))
 	}
 	if !m.Mtime.IsZero() {
-		extensions = append(extensions, tlv.TLVNNI(TtMtime, uint64(m.Mtime.UnixNano())))
+		extensions = append(extensions, tlv.TLVNNI(TtMtime, m.Mtime.UnixNano()))
 	}
 	return m.Encode(extensions...)
 }

@@ -149,7 +149,7 @@ func (sim sigInfoFielder) Field() tlv.Field {
 	if si := sim.si; si == nil {
 		fields = append(fields, tlv.TLVNNI(an.TtSigType, an.SigNull))
 	} else {
-		fields = append(fields, tlv.TLVNNI(an.TtSigType, uint64(si.Type)))
+		fields = append(fields, tlv.TLVNNI(an.TtSigType, si.Type))
 		if !si.KeyLocator.Empty() {
 			fields = append(fields, si.KeyLocator)
 		}

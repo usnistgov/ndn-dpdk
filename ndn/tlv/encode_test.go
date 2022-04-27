@@ -37,6 +37,14 @@ func TestEncode(t *testing.T) {
 		0x04, 0x06, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00,
 	}, wire)
 
+	wire, e = tlv.EncodeValueOnly(tlv.TLVBytes(5, []byte{0xF4}))
+	assert.NoError(e)
+	assert.Equal([]byte{0xF4}, wire)
+
 	_, e = tlv.Encode(testEncodeMarshaler(-1).Field())
+	assert.Error(e)
+	_, e = tlv.Encode(tlv.TLVNNI(10, -1))
+	assert.Error(e)
+	_, e = tlv.EncodeValueOnly(tlv.TLVNNI(11, -1))
 	assert.Error(e)
 }
