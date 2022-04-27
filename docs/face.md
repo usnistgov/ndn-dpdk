@@ -14,7 +14,7 @@ After activating NDN-DPDK service, each role offers a different API that accepts
 * [file server](fileserver.md): `activate` mutation or `ndndpdk-ctrl activate-fileserver` command.
 
 In any role, you can retrieve a list of faces with `ndndpdk-ctrl list-face` command or programmatically via GraphQL `faces` query.
-The return value would contain the locator of each existing face.
+The response contains the locator of each existing face.
 
 ## Ethernet-based Face
 
@@ -198,7 +198,7 @@ See [package ethface](../iface/ethface) "UDP and VXLAN tunnel face" section for 
 
 ## Memif Face
 
-A memif face communicates with a local application via [shared memory packet interface (memif)](https://docs.fd.io/vpp/21.10/dc/dea/libmemif_doc.html).
+A memif face communicates with a local application via [shared memory packet interface (memif)](https://s3-docs.fd.io/vpp/22.02/interfacing/libmemif/).
 Its implementation is in [package memifface](../iface/memifface).
 Although memif is implemented as an Ethernet device, you do not need to create an Ethernet port for the memif device.
 
@@ -212,7 +212,6 @@ Locator of a memif face has the following fields:
 * *id* is the interface identifier in the range 0x00000000-0xFFFFFFFF.
 * *socketOwner* may be set to a tuple `[uid,gid]` to change owner uid:gid of the control socket.
   It would allow applications to connect to NDN-DPDK without running as root.
-  This currently works with libmemif but not gomemif, so that NDNgo still needs to run as root.
 
 ## Socket Face
 
@@ -225,6 +224,9 @@ Locator of a socket face has the following fields:
 * *scheme* is one of "udp", "tcp", "unix".
 * *remote* is an address string acceptable to Go [net.Dial](https://pkg.go.dev/net#Dial) function.
 * *local* (optional) has the same format as *remote*, and is accepted only with "udp" scheme.
+
+Currently, NDN-DPDK only supports outgoing connections.
+It cannot open a listening socket and accept incoming connections.
 
 You may have noticed that UDP is supported both as an Ethernet-based face and as a socket face.
 The differences are:
@@ -322,7 +324,6 @@ General steps to troubleshoot this issue is:
 
    * Mismatched face locator.
    * Incorrect MTU configuration, such as MTU larger than what the link supports.
-   * Driver issue/limitation, such as trying to use VXLAN on an Ethernet port with XDP driver.
    * Insufficient DIRECT mempool capacity: if the DIRECT mempool is full, DPDK silently drops all incoming packets.
      See [performance tuning](tuning.md) "memory usage insights" for how to see mempool utilization.
    * Packet corruption along the network link.

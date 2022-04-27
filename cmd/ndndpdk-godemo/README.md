@@ -12,11 +12,10 @@ ndndpdk-godemo -h
 ndndpdk-godemo pingserver -h
 ```
 
-All subcommands require sudo privilege in order to use AF\_PACKET socket or memif interface.
-
 ## L3 Face API
 
 [dump.go](dump.go) implements a traffic dump tool using [l3.Face API](../../ndn/l3).
+This subcommand require sudo privilege in order to use AF\_PACKET socket.
 This example does not need a local forwarder.
 
 ```bash
@@ -33,12 +32,12 @@ This example requires a local forwarder.
 
 ```bash
 # minimal
-sudo ndndpdk-godemo pingserver --name /pingdemo
-sudo ndndpdk-godemo pingclient --name /pingdemo
+ndndpdk-godemo pingserver --name /pingdemo
+ndndpdk-godemo pingclient --name /pingdemo
 
 # with optional flags
-sudo ndndpdk-godemo --mtu 9000 --logging=false pingserver --name /pingdemo --payload 8000 --signed
-sudo ndndpdk-godemo --mtu 9000 pingclient --name /pingdemo --interval 100ms --lifetime 1000ms --verified
+ndndpdk-godemo --mtu 9000 --logging=false pingserver --name /pingdemo --payload 8000 --signed
+ndndpdk-godemo --mtu 9000 pingclient --name /pingdemo --interval 100ms --lifetime 1000ms --verified
 ```
 
 * `--name` flag (required) specifies the NDN name prefix.
@@ -67,8 +66,8 @@ dd if=/dev/urandom of=/tmp/1GB.bin bs=1M count=1024
 openssl sha256 /tmp/1GB.bin
 
 # start producer
-sudo ndndpdk-godemo --mtu 6000 put --name /segmented/1GB.bin --file /tmp/1GB.bin --chunk-size 4096
+ndndpdk-godemo --mtu 6000 put --name /segmented/1GB.bin --file /tmp/1GB.bin --chunk-size 4096
 
 # (on another console) run consumer and compute downloaded digest
-sudo ndndpdk-godemo --mtu 6000 get --name /segmented/1GB.bin | openssl sha256
+ndndpdk-godemo --mtu 6000 get --name /segmented/1GB.bin | openssl sha256
 ```

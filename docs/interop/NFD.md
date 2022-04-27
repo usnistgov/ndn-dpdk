@@ -83,7 +83,7 @@ A_FACEID=$(ndndpdk-ctrl create-ether-face --local $A_HWADDR --remote $B_HWADDR |
 A_FIBID=$(ndndpdk-ctrl insert-fib --name $B_NAME --nh $A_FACEID | tee /dev/stderr | jq -r .id)
 
 # start the producer
-sudo ndndpdk-godemo pingserver --name $A_NAME --payload 512
+ndndpdk-godemo pingserver --name $A_NAME --payload 512
 ```
 
 On node B, start NFD and producer:
@@ -127,7 +127,7 @@ On node A, start a consumer:
 
 ```bash
 # run the consumer
-sudo ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
+ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
 ```
 
 On node B, start a consumer:
@@ -204,7 +204,7 @@ A_FACEID=$(jq -n '{
 A_FIBID=$(ndndpdk-ctrl insert-fib --name $B_NAME --nh $A_FACEID | tee /dev/stderr | jq -r .id)
 
 # run the consumer
-sudo ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
+ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
 # press CTRL+C to stop the consumer
 
 # erase FIB entry and destroy face

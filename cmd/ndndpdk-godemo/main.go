@@ -100,9 +100,6 @@ var app = &cli.App{
 		if useNfd {
 			client, e = nfdmgmt.New()
 		} else {
-			if os.Getuid() != 0 {
-				log.Print("running as non-root, some features will not work")
-			}
 			client, e = gqlmgmt.New(gqlclient.Config{HTTPUri: gqlserver})
 		}
 		return e

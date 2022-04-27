@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/FDio/vpp/extras/gomemif/memif"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
@@ -67,7 +68,7 @@ func newHandle(loc Locator, setState func(l3.TransportState)) (hdl *handle, e er
 	handleCoexist.Add(loc)
 	hdl.sock.StartPolling(hdl.memifError)
 	if !hdl.intf.IsMaster() {
-		hdl.intf.RequestConnection()
+		go hdl.reconnectLoop()
 	}
 	return hdl, nil
 }
@@ -87,6 +88,27 @@ type handle struct {
 }
 
 var _ io.ReadWriteCloser = &handle{}
+
+func (hdl *handle) reconnectLoop() {
+	for {
+		if e := hdl.reconnect(); e == io.ErrClosedPipe {
+			return
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+}
+
+func (hdl *handle) reconnect() error {
+	hdl.mutex.Lock()
+	defer hdl.mutex.Unlock()
+	if hdl.closed {
+		return io.ErrClosedPipe
+	}
+	if hdl.rxq != nil {
+		return nil
+	}
+	return hdl.intf.RequestConnection()
+}
 
 func (hdl *handle) memifConnected(intf *memif.Interface) error {
 	hdl.mutex.Lock()

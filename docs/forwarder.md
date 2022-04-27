@@ -157,7 +157,7 @@ Its demo program, [command ndndpdk-godemo](../cmd/ndndpdk-godemo), contains a si
 You can start the producer and the consumer as follows:
 
 ```shell
-B $ sudo ndndpdk-godemo pingserver --name /example/P
+B $ ndndpdk-godemo pingserver --name /example/P
 2021/08/18 19:06:27 uplink opened
 2021/08/18 19:06:28 /8=A/8=D7515293C179BDDE[F]
 2021/08/18 19:06:29 /8=A/8=D7515293C179BDDF[F]
@@ -165,7 +165,7 @@ B $ sudo ndndpdk-godemo pingserver --name /example/P
 2021/08/18 19:06:29 /8=A/8=D7515293C179BDE1[F]
 2021/08/18 19:06:31 uplink closed
 
-A $ sudo ndndpdk-godemo pingclient --name /example/P
+A $ ndndpdk-godemo pingclient --name /example/P
 2021/08/18 19:06:28 uplink opened
 2021/08/18 19:06:29 100.00% D D7515293C179BDDE    615us
 2021/08/18 19:06:29 100.00% D D7515293C179BDDF    622us
