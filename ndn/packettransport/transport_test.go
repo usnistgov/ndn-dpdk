@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/gopacket"
+	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
@@ -16,13 +17,19 @@ var (
 	makeAR = testenv.MakeAR
 )
 
+func TestAddress(t *testing.T) {
+	assert, _ := makeAR(t)
+	assert.True(macaddr.IsMulticast(packettransport.MulticastAddressNDN))
+}
+
 type pipePacketDataHandle struct {
 	buffer []byte
 	rx     net.Conn
 	tx     net.Conn
+	closed bool
 }
 
-func newPipePacketDataHandle(rx, tx net.Conn) packettransport.PacketDataHandle {
+func newPipePacketDataHandle(rx, tx net.Conn) *pipePacketDataHandle {
 	return &pipePacketDataHandle{
 		buffer: make([]byte, 4096),
 		rx:     rx,
@@ -48,10 +55,11 @@ func (h *pipePacketDataHandle) WritePacketData(pkt []byte) error {
 func (h *pipePacketDataHandle) Close() {
 	must.Close(h.rx)
 	must.Close(h.tx)
+	h.closed = true
 }
 
 func TestPipe(t *testing.T) {
-	_, require := makeAR(t)
+	assert, require := makeAR(t)
 
 	var cfgA packettransport.Config
 	cfgA.MTU = 4096
@@ -63,11 +71,16 @@ func TestPipe(t *testing.T) {
 	rxA, txB := net.Pipe()
 	rxB, txA := net.Pipe()
 
-	trA, e := packettransport.New(newPipePacketDataHandle(rxA, txA), cfgA)
+	hA := newPipePacketDataHandle(rxA, txA)
+	hB := newPipePacketDataHandle(rxB, txB)
+	trA, e := packettransport.New(hA, cfgA)
 	require.NoError(e)
-	trB, e := packettransport.New(newPipePacketDataHandle(rxB, txB), cfgB)
+	trB, e := packettransport.New(hB, cfgB)
 	require.NoError(e)
 
 	var c ndntestenv.L3FaceTester
 	c.CheckTransport(t, trA, trB)
+
+	assert.True(hA.closed)
+	assert.True(hB.closed)
 }

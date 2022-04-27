@@ -19,6 +19,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 	"go4.org/must"
 )
 
@@ -34,8 +35,9 @@ func TestMain(m *testing.M) {
 }
 
 var (
-	makeAR     = testenv.MakeAR
-	makePacket = mbuftestenv.MakePacket
+	makeAR       = testenv.MakeAR
+	makePacket   = mbuftestenv.MakePacket
+	makeInterest = ndnitestenv.MakeInterest
 )
 
 // createVNet creates a VNet from config template, and schedules its cleanup.

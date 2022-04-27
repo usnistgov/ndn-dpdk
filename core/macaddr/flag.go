@@ -1,6 +1,8 @@
 package macaddr
 
 import (
+	"encoding"
+	"flag"
 	"net"
 )
 
@@ -8,6 +10,12 @@ import (
 type Flag struct {
 	net.HardwareAddr
 }
+
+var (
+	_ flag.Getter              = (*Flag)(nil)
+	_ encoding.TextMarshaler   = Flag{}
+	_ encoding.TextUnmarshaler = (*Flag)(nil)
+)
 
 // Empty returns true if the HardwareAddr is unset.
 func (f Flag) Empty() bool {
