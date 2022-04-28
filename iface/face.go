@@ -203,7 +203,7 @@ func newFace(p NewParams) (Face, error) {
 	if initResult.Face.ID() != f.id {
 		panic("initResult.Face should embed base Face")
 	}
-	logEntry = logEntry.With(LocatorZapField("locator", f.Locator()))
+	logEntry = logEntry.With(zap.Reflect("locator", LocatorWrapper{f.Locator()}))
 
 	c.txAlign = C.PacketTxAlign{
 		linearize:           C.bool(initResult.TxLinearize),

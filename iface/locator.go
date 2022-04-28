@@ -12,7 +12,7 @@ import (
 // Locator identifies the endpoints of a face.
 type Locator interface {
 	// Scheme returns a string that identifies the type of this Locator.
-	// Possible values must be registered through RegisterLocatorType().
+	// Possible values must be registered through RegisterLocatorScheme().
 	Scheme() string
 
 	// Validate checks whether Locator fields are correct according to the chosen scheme.
@@ -30,13 +30,12 @@ type locatorWithSchemeField interface {
 
 var locatorTypes = map[string]reflect.Type{}
 
-// RegisterLocatorType registers Locator schemes.
-func RegisterLocatorType(loc Locator, schemes ...string) {
+// RegisterLocatorScheme registers Locator schemes.
+func RegisterLocatorScheme[T Locator](schemes ...string) {
+	var loc T
 	typ := reflect.TypeOf(loc)
 	if typ.Kind() != reflect.Struct {
-		logger.Panic("Locator must be a struct",
-			zap.Stringer("type", typ),
-		)
+		logger.Panic("Locator must be a struct", zap.Stringer("type", typ))
 	}
 	for _, scheme := range schemes {
 		locatorTypes[scheme] = typ
@@ -96,10 +95,4 @@ func LocatorString(loc Locator) string {
 	locw := LocatorWrapper{Locator: loc}
 	j, _ := json.Marshal(locw)
 	return string(j)
-}
-
-// LocatorZapField converts a locator to a zap.Field for logging.
-func LocatorZapField(key string, loc Locator) zap.Field {
-	locw := LocatorWrapper{Locator: loc}
-	return zap.Any(key, locw)
 }

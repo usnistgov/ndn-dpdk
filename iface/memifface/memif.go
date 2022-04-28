@@ -60,5 +60,5 @@ func (loc Locator) CreateFace() (iface.Face, error) {
 }
 
 func init() {
-	iface.RegisterLocatorType(Locator{}, schemeMemif)
+	iface.RegisterLocatorScheme[Locator](schemeMemif)
 }

@@ -64,7 +64,7 @@ func (cfg *FaceConfig) HideFaceConfigFromJSON() {
 	*cfg = FaceConfig{privFaceConfig: &copy}
 }
 
-// FindPort finds an existing Port as cfg.EthDev, cfg.Port, or local MAC address.
+// FindPort finds an existing Port from cfg.EthDev, cfg.Port, or local MAC address.
 func (cfg FaceConfig) FindPort(local net.HardwareAddr) (port *Port, e error) {
 	dev := cfg.EthDev
 	switch {

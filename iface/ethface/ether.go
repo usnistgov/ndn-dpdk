@@ -42,5 +42,5 @@ func (loc EtherLocator) CreateFace() (face iface.Face, e error) {
 }
 
 func init() {
-	iface.RegisterLocatorType(EtherLocator{}, schemeEther)
+	iface.RegisterLocatorScheme[EtherLocator](schemeEther)
 }

@@ -7,11 +7,10 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
-// Locator.Network values.
 const (
-	NetworkUnix = "unix"
-	NetworkUDP  = "udp"
-	NetworkTCP  = "tcp"
+	schemeUnix = "unix"
+	schemeUDP  = "udp"
+	schemeTCP  = "tcp"
 )
 
 // Locator describes network and addresses of a socket.
@@ -33,7 +32,7 @@ func (Locator) WithSchemeField() {}
 // Validate checks the addresses.
 func (loc Locator) Validate() error {
 	switch loc.Network {
-	case NetworkUnix:
+	case schemeUnix:
 		if _, e := net.ResolveUnixAddr(loc.Network, loc.Remote); e != nil {
 			return fmt.Errorf("remote %w", e)
 		}
@@ -43,7 +42,7 @@ func (loc Locator) Validate() error {
 			}
 		}
 		return nil
-	case NetworkUDP:
+	case schemeUDP:
 		if _, e := net.ResolveUDPAddr(loc.Network, loc.Remote); e != nil {
 			return fmt.Errorf("remote %w", e)
 		}
@@ -53,7 +52,7 @@ func (loc Locator) Validate() error {
 			}
 		}
 		return nil
-	case NetworkTCP:
+	case schemeTCP:
 		if _, e := net.ResolveTCPAddr(loc.Network, loc.Remote); e != nil {
 			return fmt.Errorf("remote %w", e)
 		}
@@ -73,5 +72,5 @@ func (loc Locator) CreateFace() (iface.Face, error) {
 }
 
 func init() {
-	iface.RegisterLocatorType(Locator{}, NetworkUnix, NetworkUDP, NetworkTCP)
+	iface.RegisterLocatorScheme[Locator](schemeUnix, schemeUDP, schemeTCP)
 }

@@ -115,5 +115,5 @@ func (loc UDPLocator) CreateFace() (face iface.Face, e error) {
 }
 
 func init() {
-	iface.RegisterLocatorType(UDPLocator{}, schemeUDP)
+	iface.RegisterLocatorScheme[UDPLocator](schemeUDP)
 }

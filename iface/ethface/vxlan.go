@@ -85,5 +85,5 @@ func (loc VxlanLocator) CreateFace() (face iface.Face, e error) {
 }
 
 func init() {
-	iface.RegisterLocatorType(VxlanLocator{}, schemeVxlan)
+	iface.RegisterLocatorScheme[VxlanLocator](schemeVxlan)
 }
