@@ -2,11 +2,11 @@
 
 import "dotenv/config"; // eslint-disable-line import/no-unassigned-import
 
+import FastifyExpress from "@fastify/express";
+import FastifyProxy from "@fastify/http-proxy";
+import FastifyStatic from "@fastify/static";
 import Environment from "@strattadb/environment";
 import Fastify from "fastify";
-import FastifyExpress from "fastify-express";
-import FastifyProxy from "fastify-http-proxy";
-import FastifyStatic from "fastify-static";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import webpack from "webpack";
@@ -79,24 +79,27 @@ const compiler = webpack({
 const fastify = Fastify();
 
 await fastify.register(FastifyExpress);
-await fastify.use(devMiddleware(compiler));
+fastify.use(devMiddleware(compiler));
 
 await fastify.register(FastifyStatic, { root: publicDir });
 
-/** @type {Omit<import("fastify-http-proxy").FastifyHttpProxyOptions, "upstream"|"prefix">} */
-const proxyOpts = {
-  rewritePrefix: "/",
-  http: {
-    requestOptions: {
-      timeout: 600000,
+for (const u of [
+  { upstream: env.F_GQLSERVER, prefix: "/F" },
+  { upstream: env.G_GQLSERVER, prefix: "/G" },
+]) {
+  await fastify.register(FastifyProxy, {
+    ...u,
+    rewritePrefix: "/",
+    http: {
+      requestOptions: {
+        timeout: 600000,
+      },
     },
-  },
-  websocket: true,
-};
-await fastify.register(FastifyProxy, { upstream: env.F_GQLSERVER, prefix: "/F", ...proxyOpts });
-await fastify.register(FastifyProxy, { upstream: env.G_GQLSERVER, prefix: "/G", ...proxyOpts });
+    websocket: true,
+  });
+}
 
-await fastify.get("/env.json", async (request, reply) => {
+fastify.get("/env.json", async (request, reply) => {
   reply.send({
     ...env,
     F_GQLSERVER: "/F",

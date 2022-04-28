@@ -9,7 +9,7 @@
   "type": "commonjs",
   "main": "build/js/mod.js",
   "types": "js/mod.ts",
-  "packageManager": "pnpm@6.32.9",
+  "packageManager": "pnpm@6.32.11",
   "dependencies": {
     "tslib": "^2.4.0"
   },
