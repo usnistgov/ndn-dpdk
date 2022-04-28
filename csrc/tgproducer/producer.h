@@ -19,18 +19,16 @@ typedef struct TgpReply
   uint8_t nackReason;
 } TgpReply;
 
-/** @brief Per-prefix information in traffic generator server. */
+/** @brief Per-prefix information in traffic generator producer. */
 typedef struct TgpPattern
 {
-  LName prefix;
   uint32_t nWeights;
   uint8_t nReplies;
   TgpReplyID weight[TgpMaxSumWeight];
   TgpReply reply[TgpMaxReplies];
-  uint8_t prefixBuffer[NameMaxLength];
 } TgpPattern;
 
-/** @brief Traffic generator server. */
+/** @brief Traffic generator producer. */
 typedef struct Tgp
 {
   ThreadCtrl ctrl;
@@ -43,6 +41,8 @@ typedef struct Tgp
   uint64_t nAllocError;
   pcg32_random_t replyRng;
 
+  uint16_t prefixL[TgpMaxPatterns];
+  uint8_t prefixV[TgpMaxPatterns * NameMaxLength];
   TgpPattern pattern[TgpMaxPatterns];
 } Tgp;
 

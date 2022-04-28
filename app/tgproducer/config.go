@@ -63,7 +63,7 @@ func (cfg *Config) Validate() error {
 			return ErrTooManyWeights
 		}
 		nDataGen += nData
-		if len(pattern.prefixV) > ndni.NameMaxLength {
+		if pattern.Prefix.Length() > ndni.NameMaxLength {
 			return ErrPrefixTooLong
 		}
 		patterns = append(patterns, pattern)
@@ -77,12 +77,9 @@ func (cfg *Config) Validate() error {
 type Pattern struct {
 	Prefix  ndn.Name `json:"prefix"`
 	Replies []Reply  `json:"replies"` // if empty, reply with Data FreshnessPeriod=1
-
-	prefixV []byte
 }
 
 func (pattern *Pattern) applyDefaults() (sumWeight, nDataGen int) {
-	pattern.prefixV, _ = pattern.Prefix.MarshalBinary()
 	if len(pattern.Replies) == 0 {
 		pattern.Replies = []Reply{
 			{

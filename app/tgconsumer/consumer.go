@@ -83,7 +83,7 @@ func (c *Consumer) initPatterns() (e error) {
 	c.txC.nWeights = C.uint32_t(c.cfg.nWeights)
 	w := 0
 	for i, pattern := range c.cfg.Patterns {
-		c.assignPattern(i, pattern, dataGenVec)
+		c.assignPattern(i, pattern, dataGenVec.Take)
 
 		for j := 0; j < pattern.Weight; j++ {
 			c.txC.weight[w] = C.uint8_t(i)
@@ -95,7 +95,7 @@ func (c *Consumer) initPatterns() (e error) {
 	return nil
 }
 
-func (c *Consumer) assignPattern(i int, pattern Pattern, dataGenVec pktmbuf.Vector) {
+func (c *Consumer) assignPattern(i int, pattern Pattern, takeDataGenMbuf func() *pktmbuf.Packet) {
 	rxP := &c.rxC.pattern[i]
 	*rxP = C.TgcRxPattern{
 		prefixLen: C.uint16_t(pattern.Prefix.Length()),
@@ -113,7 +113,7 @@ func (c *Consumer) assignPattern(i int, pattern Pattern, dataGenVec pktmbuf.Vect
 
 	switch {
 	case pattern.Digest != nil:
-		c.assignDigestPattern(pattern, txP, dataGenVec)
+		c.assignDigestPattern(pattern, txP, takeDataGenMbuf)
 	case pattern.SeqNumOffset != 0:
 		txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Offset)
 		*(*C.uint64_t)(unsafe.Add(unsafe.Pointer(txP), C.c_offsetof_TgcTxPattern_DigestSeqNumOffset)) = C.uint64_t(pattern.SeqNumOffset)
@@ -122,7 +122,7 @@ func (c *Consumer) assignPattern(i int, pattern Pattern, dataGenVec pktmbuf.Vect
 	}
 }
 
-func (c *Consumer) assignDigestPattern(pattern Pattern, txP *C.TgcTxPattern, dataGenVec pktmbuf.Vector) {
+func (c *Consumer) assignDigestPattern(pattern Pattern, txP *C.TgcTxPattern, takeDataGenMbuf func() *pktmbuf.Packet) {
 	txP.makeSuffix = C.TgcTxPattern_MakeSuffix(C.TgcTxPattern_MakeSuffix_Digest)
 
 	seqNumV := make([]byte, 8)
@@ -136,7 +136,7 @@ func (c *Consumer) assignDigestPattern(pattern Pattern, txP *C.TgcTxPattern, dat
 	c.digestCrypto.QueuePairs()[d].CopyToC(unsafe.Pointer(&dp.cqp))
 
 	dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&dp.dataGen))
-	pattern.Digest.Apply(dataGen, dataGenVec[d])
+	pattern.Digest.Apply(dataGen, takeDataGenMbuf())
 
 	nameVC := unsafe.Add(unsafe.Pointer(dp), C.sizeof_TgcTxDigestPattern)
 	copy(unsafe.Slice((*byte)(nameVC), len(nameV)), nameV)

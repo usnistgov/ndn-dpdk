@@ -25,6 +25,17 @@ func (vec Vector) Close() error {
 	return nil
 }
 
+// Take returns the first mbuf and removes it from the vector.
+// Panics if the vector is empty.
+func (vec *Vector) Take() (pkt *Packet) {
+	if len(*vec) == 0 {
+		logger.Panic("cannot Take from empty Vector")
+	}
+	pkt = (*vec)[0]
+	*vec = (*vec)[1:]
+	return pkt
+}
+
 // VectorFromPtr constructs Vector from **C.struct_rte_mbuf and count.
 func VectorFromPtr(ptr unsafe.Pointer, count int) Vector {
 	return Vector(unsafe.Slice((**Packet)(ptr), count))

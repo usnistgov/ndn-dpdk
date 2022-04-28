@@ -45,39 +45,17 @@ func (w worker) rxQueue() *iface.PktQueue {
 	return iface.PktQueueFromPtr(unsafe.Pointer(&w.c.rxQueue))
 }
 
-func (w *worker) setPatterns(patterns []Pattern, dataGenVec *pktmbuf.Vector) {
+func (w *worker) setPatterns(patterns []Pattern, takeDataGenMbuf func() *pktmbuf.Packet) {
 	w.freeDataGen()
 
 	w.c.nPatterns = C.uint8_t(len(patterns))
+	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&w.c.prefixL), unsafe.Sizeof(w.c.prefixL),
+		unsafe.Pointer(&w.c.prefixV), unsafe.Sizeof(w.c.prefixV))
 	for i, pattern := range patterns {
-		c := &w.c.pattern[i]
-		*c = C.TgpPattern{
-			nReplies: C.uint8_t(len(pattern.Replies)),
+		if e := prefixes.Append(pattern.Prefix); e != nil {
+			panic(e)
 		}
-		prefixL := copy(cptr.AsByteSlice(c.prefixBuffer[:]), pattern.prefixV)
-		c.prefix.value = &c.prefixBuffer[0]
-		c.prefix.length = C.uint16_t(prefixL)
-
-		w := 0
-		for k, reply := range pattern.Replies {
-			r := &c.reply[k]
-			kind := reply.Kind()
-			r.kind = C.uint8_t(kind)
-			switch kind {
-			case ReplyNack:
-				r.nackReason = C.uint8_t(reply.Nack)
-			case ReplyData:
-				dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&r.dataGen))
-				reply.DataGenConfig.Apply(dataGen, (*dataGenVec)[0])
-				*dataGenVec = (*dataGenVec)[1:]
-			}
-
-			for j := 0; j < reply.Weight; j++ {
-				c.weight[w] = C.TgpReplyID(k)
-				w++
-			}
-		}
-		c.nWeights = C.uint32_t(w)
+		pattern.assign(&w.c.pattern[i], takeDataGenMbuf)
 	}
 }
 
@@ -102,8 +80,7 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, rxqCfg iface.PktQueueConf
 		c: eal.Zmalloc[C.Tgp]("Tgp", C.sizeof_Tgp, socket),
 	}
 
-	rxQueue := iface.PktQueueFromPtr(unsafe.Pointer(&w.c.rxQueue))
-	if e := rxQueue.Init(rxqCfg, socket); e != nil {
+	if e := w.rxQueue().Init(rxqCfg, socket); e != nil {
 		eal.Free(w.c)
 		return nil, e
 	}
@@ -113,8 +90,39 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, rxqCfg iface.PktQueueConf
 	(*ndni.Mempools)(unsafe.Pointer(&w.c.mp)).Assign(socket, ndni.DataMempool)
 
 	w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
-		cptr.Func0.C(unsafe.Pointer(C.Tgp_Run), w.c),
+		cptr.Func0.C(C.Tgp_Run, w.c),
 		unsafe.Pointer(&w.c.ctrl),
 	)
 	return w, nil
+}
+
+func (pattern Pattern) assign(c *C.TgpPattern, takeDataGenMbuf func() *pktmbuf.Packet) {
+	*c = C.TgpPattern{
+		nReplies: C.uint8_t(len(pattern.Replies)),
+	}
+
+	w := 0
+	for k, reply := range pattern.Replies {
+		reply.assign(&c.reply[k], takeDataGenMbuf)
+
+		for j := 0; j < reply.Weight; j++ {
+			c.weight[w] = C.TgpReplyID(k)
+			w++
+		}
+	}
+	c.nWeights = C.uint32_t(w)
+}
+
+func (reply Reply) assign(c *C.TgpReply, takeDataGenMbuf func() *pktmbuf.Packet) {
+	kind := reply.Kind()
+	*c = C.TgpReply{
+		kind: C.uint8_t(kind),
+	}
+	switch kind {
+	case ReplyNack:
+		c.nackReason = C.uint8_t(reply.Nack)
+	case ReplyData:
+		dataGen := ndni.DataGenFromPtr(unsafe.Pointer(&c.dataGen))
+		reply.DataGenConfig.Apply(dataGen, takeDataGenMbuf())
+	}
 }

@@ -33,7 +33,7 @@ func (p *Producer) initPatterns() error {
 	}
 
 	for _, w := range p.workers {
-		w.setPatterns(p.cfg.Patterns, &dataGenVec)
+		w.setPatterns(p.cfg.Patterns, dataGenVec.Take)
 	}
 	return nil
 }
