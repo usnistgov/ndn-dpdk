@@ -12,7 +12,7 @@ It reuses the functionality implemented in [socketransport](../../ndn/sockettran
 That includes receiving and sending packets, and redialing failed stream-oriented sockets.
 
 RX logic is implemented in **rxConns** type.
-Each face has a goroutine that reads one packet at a time from the `sockettransport.Transport`, into the dataroom of a DPDK mbuf.
+Each face has a goroutine that reads one packet at a time from the `sockettransport.Transport` into the dataroom of a DPDK mbuf.
 Upon successfully receiving a packet, the mbuf is enqueued to a ring buffer, which is shared among all socket faces.
 The RxLoop thread calls C `SocketRxConns_RxBurst` function to dequeue from this ring buffer.
 

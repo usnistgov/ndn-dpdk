@@ -1,12 +1,14 @@
 import type { EalConfig, LCoreAllocConfig, PktmbufPoolTemplateUpdates } from "../dpdk";
 import type { FwdpConfig } from "../fwdp";
-import type { FaceLocator } from "../iface";
+import type { FaceLocator, SocketFaceGlobalConfig } from "../iface";
 import type { FileServerConfig } from "../tg/mod";
 
 export interface ActivateArgsCommon<Roles extends string = never> {
   eal?: EalConfig;
 
   lcoreAlloc?: LCoreAllocConfig<Roles | "HRLOG" | "PDUMP">;
+
+  socketFace?: SocketFaceGlobalConfig;
 }
 
 /**

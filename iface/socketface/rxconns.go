@@ -36,7 +36,7 @@ func (rxc *rxConns) close() {
 	eal.Free(rxc.c)
 	rxc.ring.Close()
 	rxc.c, rxc.ring = nil, nil
-	logger.Debug("RxConns closed")
+	logger.Info("RxConns closed")
 }
 
 func (rxc *rxConns) run(face *socketFace) error {
@@ -73,7 +73,7 @@ func (rxc *rxConns) run(face *socketFace) error {
 
 func newRxConns(ringCapacity int, socket eal.NumaSocket) (rxc *rxConns, e error) {
 	rxc = &rxConns{
-		socket: eal.RewriteAnyNumaSocketFirst.Rewrite(socket),
+		socket: socket,
 	}
 	if rxc.ring, e = ringbuffer.New(ringCapacity, rxc.socket, ringbuffer.ProducerMulti, ringbuffer.ConsumerSingle); e != nil {
 		return nil, e
@@ -84,7 +84,7 @@ func newRxConns(ringCapacity int, socket eal.NumaSocket) (rxc *rxConns, e error)
 	rxc.c.base.rxBurst = C.RxGroup_RxBurstFunc(C.SocketRxConns_RxBurst)
 	rxc.c.ring = (*C.struct_rte_ring)(rxc.ring.Ptr())
 
-	logger.Debug("RxConns created",
+	logger.Info("RxConns created",
 		zap.Int("ring-capacity", rxc.ring.Capacity()),
 		rxc.socket.ZapField("socket"),
 	)
@@ -93,8 +93,9 @@ func newRxConns(ringCapacity int, socket eal.NumaSocket) (rxc *rxConns, e error)
 }
 
 var rxConnsImpl = rxImpl{
+	describe: "RxConns",
 	nilValue: (*rxConns)(nil),
 	create: func() (rxGroup, error) {
-		return newRxConns(gCfg.RxConns.RingCapacity, gCfg.RxConns.Socket)
+		return newRxConns(gCfg.RxConns.RingCapacity, gCfg.numaSocket())
 	},
 }

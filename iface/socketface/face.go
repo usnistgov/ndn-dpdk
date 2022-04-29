@@ -3,23 +3,22 @@ package socketface
 
 /*
 #include "../../csrc/socketface/face.h"
-extern uint16_t go_SocketFace_TxBurst(Face* faceC, struct rte_mbuf** pkts, uint16_t nPkts);
-STATIC_ASSERT_FUNC_TYPE(Face_TxBurstFunc, go_SocketFace_TxBurst);
 */
 import "C"
 import (
-	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"net"
 	"syscall"
-	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
+	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
@@ -34,6 +33,9 @@ func New(loc Locator) (iface.Face, error) {
 	var cfg Config
 	if loc.Config != nil {
 		cfg = *loc.Config
+	}
+	if cfg.MTU > 0 && ndni.PacketMempool.Config().Dataroom < pktmbuf.DefaultHeadroom+cfg.MTU {
+		return nil, errors.New("PacketMempool dataroom is too small for requested MTU")
 	}
 
 	var dialer sockettransport.Dialer
@@ -51,11 +53,21 @@ func New(loc Locator) (iface.Face, error) {
 // Wrap wraps a sockettransport.Transport to a socket face.
 func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 	_, isUDP := transport.Conn().(*net.UDPConn)
+	rxi := &rxConnsImpl
+	if isUDP && !gCfg.RxEpoll.Disabled {
+		rxi = &rxEpollImpl
+	}
+	txi := &txConnImpl
+	if isUDP && !gCfg.TxSyscall.Disabled {
+		txi = &txSyscallImpl
+	}
+
 	face := &socketFace{
 		transport: transport,
 	}
 	return iface.New(iface.NewParams{
-		Config:     cfg.Config,
+		Config:     cfg.Config.WithMaxMTU(ndni.PacketMempool.Config().Dataroom - pktmbuf.DefaultHeadroom),
+		Socket:     gCfg.numaSocket(),
 		SizeofPriv: C.sizeof_SocketFacePriv,
 		Init: func(f iface.Face) (res iface.InitResult, e error) {
 			face.Face = f
@@ -68,41 +80,25 @@ func Wrap(transport sockettransport.Transport, cfg Config) (iface.Face, error) {
 			}
 
 			res.Face = face
-			if isUDP {
-				res.TxBurst = C.SocketFace_DgramTxBurst
-			} else {
-				res.TxBurst = C.go_SocketFace_TxBurst
-			}
+			res.TxBurst = txi.txBurst
 			return
 		},
-		Start: func() (e error) {
-			defer func() {
-				if e != nil {
-					face.transport.Close()
-				}
-			}()
-
-			if isUDP {
-				e = rxEpollImpl.start(face)
-			} else if !gCfg.RxConns.Disabled {
-				e = rxConnsImpl.start(face)
-			} else {
-				e = errors.New("both RxConns and RxEpoll are disabled, cannot start socket face")
-			}
-			if e != nil {
-				return
+		Start: func() error {
+			if e := rxi.start(face); e != nil {
+				face.transport.Close()
+				return e
 			}
 
-			if isUDP {
-				if e = face.obtainTxFd(); e != nil {
-					return
-				}
+			if txi.start != nil {
+				txi.start(face)
 			}
 			iface.ActivateTxFace(face)
 
 			face.cancelStateChangeHandler = face.transport.OnStateChange(func(st l3.TransportState) {
 				face.SetDown(st != l3.TransportUp)
 			})
+
+			face.logger.Info("face started", zap.Stringer("rx-impl", rxi), zap.Stringer("tx-impl", txi))
 			return nil
 		},
 		Locator: func() iface.Locator {
@@ -141,38 +137,15 @@ type socketFace struct {
 	cancelStateChangeHandler func()
 }
 
-func (face *socketFace) obtainTxFd() error {
+func (face *socketFace) rawControl(cb func(ctx context.Context, fd int) error) error {
 	raw, e := face.transport.Conn().(syscall.Conn).SyscallConn()
 	if e != nil {
 		return fmt.Errorf("SyscallConn: %w", e)
 	}
 
-	ready := make(chan struct{})
-	go raw.Control(func(fd uintptr) {
-		logEntry := face.logger.With(zap.Uintptr("fd", fd))
-		logEntry.Debug("file descriptor acquired for socket TX")
-		defer logEntry.Debug("file descriptor released for socket TX")
-		face.priv.fd = C.int(fd)
-		close(ready)
-		<-face.transport.Context().Done()
-		face.priv.fd = -1
+	var e1 error
+	e0 := raw.Control(func(fd uintptr) {
+		e1 = cb(face.transport.Context(), int(fd))
 	})
-	<-ready
-	return nil
-}
-
-//export go_SocketFace_TxBurst
-func go_SocketFace_TxBurst(faceC *C.Face, pkts **C.struct_rte_mbuf, nPkts C.uint16_t) C.uint16_t {
-	face := iface.Get(iface.ID(faceC.id)).(*socketFace)
-	vec := pktmbuf.VectorFromPtr(unsafe.Pointer(pkts), int(nPkts))
-	defer vec.Close()
-	for _, pkt := range vec {
-		segs := pkt.SegmentBytes()
-		if len(segs) == 1 {
-			face.transport.Write(segs[0])
-		} else {
-			face.transport.Write(bytes.Join(segs, nil))
-		}
-	}
-	return nPkts
+	return multierr.Append(e0, e1)
 }

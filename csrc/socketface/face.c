@@ -16,7 +16,7 @@ SocketFace_HandleError_(Face* face, int err)
 __attribute__((nonnull)) ssize_t
 SocketFace_DgramTx(SocketFacePriv* priv, struct rte_mbuf* m)
 {
-  if (unlikely(m->nb_segs > LpMaxFragments)) {
+  if (unlikely(m->nb_segs > LpMaxFragments || priv->fd < 0)) {
     return 0;
   }
   struct iovec iov[LpMaxFragments];

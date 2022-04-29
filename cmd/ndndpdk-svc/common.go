@@ -13,11 +13,11 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethnetif"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/iface/socketface"
 	"go.uber.org/zap"
 
 	_ "github.com/usnistgov/ndn-dpdk/iface/ethface"
 	_ "github.com/usnistgov/ndn-dpdk/iface/memifface"
-	_ "github.com/usnistgov/ndn-dpdk/iface/socketface"
 )
 
 // CommonArgs contains arguments shared between forwarder and traffic generator.
@@ -25,6 +25,7 @@ type CommonArgs struct {
 	Eal        ealconfig.Config        `json:"eal,omitempty"`
 	Mempool    pktmbuf.TemplateUpdates `json:"mempool,omitempty"`
 	LCoreAlloc ealthread.Config        `json:"lcoreAlloc,omitempty"`
+	SocketFace socketface.GlobalConfig `json:"socketFace,omitempty"`
 }
 
 func (a *CommonArgs) apply() error {
@@ -52,6 +53,8 @@ func (a *CommonArgs) apply() error {
 	if lc := alloc[pdump.Role]; len(lc) > 0 {
 		pdump.GqlLCore = lc[0]
 	}
+
+	a.SocketFace.Apply()
 	return nil
 }
 
@@ -78,6 +81,6 @@ func delayedShutdown(then func()) {
 		})
 		time.Sleep(100 * time.Millisecond)
 		then()
-		panic("delayedShutdown then() must not return")
+		logger.Panic("delayedShutdown then() must not return")
 	}()
 }

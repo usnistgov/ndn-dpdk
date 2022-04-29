@@ -20,29 +20,44 @@ type Config struct {
 
 // GlobalConfig contains global options applied to all socket faces.
 type GlobalConfig struct {
+	// Socket chooses a NUMA socket to create RX/TX threads for socket faces.
+	// Default is the first NUMA socket.
+	// If the specified NUMA socket does not exist, it uses the default.
+	Socket eal.NumaSocket `json:"socket"`
+
+	// RxConns configures net.Conn RX implementation.
 	RxConns struct {
-		Disabled     bool           `json:"disabled"`
-		RingCapacity int            `json:"ringCapacity"`
-		Socket       eal.NumaSocket `json:"socket"`
+		// RingCapacity is the capacity of a ring buffer for packets that are received from net.Conn
+		// but have not been picked up by C code.
+		RingCapacity int `json:"ringCapacity"`
 	} `json:"rxConns"`
+
+	// RxEpoll configures epoll RX implementation, available for UDP sockets only.
+	// If this is disabled, UDP sockets will use net.Conn RX implementation.
 	RxEpoll struct {
-		Disabled bool           `json:"disabled"`
-		Socket   eal.NumaSocket `json:"socket"`
+		Disabled bool `json:"disabled"`
 	} `json:"rxEpoll"`
+
+	// TxSyscall configures syscall TX implementation, available for UDP sockets only.
+	// If this is disabled, UDP sockets will use net.Conn TX implementation.
+	TxSyscall struct {
+		Disabled bool `json:"disabled"`
+	} `json:"txSyscall"`
+}
+
+func (cfg GlobalConfig) Apply() {
+	if !slices.Contains(eal.Sockets, cfg.Socket) {
+		cfg.Socket = eal.NumaSocket{}
+	}
+	cfg.RxConns.RingCapacity = ringbuffer.AlignCapacity(cfg.RxConns.RingCapacity, 64, 4096, 65536)
+	gCfg = cfg
+}
+
+func (cfg GlobalConfig) numaSocket() eal.NumaSocket {
+	return eal.RewriteAnyNumaSocketFirst.Rewrite(cfg.Socket)
 }
 
 var gCfg GlobalConfig
-
-func (cfg GlobalConfig) Apply() {
-	cfg.RxConns.RingCapacity = ringbuffer.AlignCapacity(cfg.RxConns.RingCapacity, 64, 4096, 65536)
-	if !slices.Contains(eal.Sockets, cfg.RxConns.Socket) {
-		cfg.RxConns.Socket = eal.NumaSocket{}
-	}
-	if !slices.Contains(eal.Sockets, cfg.RxEpoll.Socket) {
-		cfg.RxEpoll.Socket = eal.NumaSocket{}
-	}
-	gCfg = cfg
-}
 
 func init() {
 	GlobalConfig{}.Apply()

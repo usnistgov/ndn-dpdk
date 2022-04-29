@@ -171,6 +171,28 @@ export interface MemifLocator {
 }
 
 /**
+ * Socket face global options.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/socketface#GlobalConfig>
+ */
+export interface SocketFaceGlobalConfig {
+  socket?: Uint;
+  rxConns?: {
+    /**
+     * @minimum 64
+     * @maximum 65536
+     * @default 4096
+     */
+    ringCapacity?: Uint;
+  };
+  rxEpoll?: {
+    disabled?: boolean;
+  };
+  txSyscall?: {
+    disabled?: boolean;
+  };
+}
+
+/**
  * Socket face configuration.
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/socketface#Config>
  */
@@ -178,7 +200,6 @@ export interface SocketFaceConfig extends FaceConfig {
   /**
    * @minimum 960
    * @maximum 65000
-   * @default 1280
    */
   mtu?: Uint;
 

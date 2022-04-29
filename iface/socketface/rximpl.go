@@ -13,10 +13,15 @@ type rxGroup interface {
 }
 
 type rxImpl struct {
+	describe string
 	nilValue any
 	instance atomic.Value
 	nFaces   atomic.Int32
 	create   func() (rxGroup, error)
+}
+
+func (impl *rxImpl) String() string {
+	return impl.describe
 }
 
 func (impl *rxImpl) start(face *socketFace) error {

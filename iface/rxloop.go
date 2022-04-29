@@ -134,7 +134,7 @@ func (rxl *rxLoop) Remove(rxg RxGroup) {
 
 	rxgC := (*C.RxGroup)(rxgPtr)
 	if mapRxgRxl[rxg] != rxl {
-		logger.Panic("RxGroup is not in this RxLoop")
+		logEntry.Panic("RxGroup is not in this RxLoop")
 	}
 	delete(mapRxgRxl, rxg)
 	rxl.nRxgs--
