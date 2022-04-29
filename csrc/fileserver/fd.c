@@ -96,8 +96,8 @@ FileServerFd_PrepapeMeta(FileServer* p, FileServerFd* entry)
   segment[1] = Nni_Encode(&segment[2], entry->lastSeg);
   entry->segmentL = (nameL += 2 + segment[1]);
 
-  DataEnc_MustPrepareMetaInfo(&entry->meta, ContentBlob, 0,
-                              ((LName){ .length = 2 + segment[1], .value = segment }));
+  DataEnc_PrepareMetaInfo(&entry->meta, ContentBlob, 0,
+                          ((LName){ .length = 2 + segment[1], .value = segment }));
 }
 
 __attribute__((nonnull)) static inline FileServerFd*

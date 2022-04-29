@@ -62,8 +62,8 @@ Reassembler_Drop_(Reassembler* reass, LpL2* pm, hash_sig_t hash)
 __attribute__((nonnull)) static inline void
 Reassembler_Insert_(Reassembler* reass, Packet* fragment, LpL2* pm, hash_sig_t hash)
 {
-  pm->reassBitmap = (1 << pm->fragCount) - 1;
-  pm->reassBitmap &= ~(1 << pm->fragIndex);
+  pm->reassBitmap = RTE_BIT32(pm->fragCount) - 1;
+  pm->reassBitmap &= ~RTE_BIT32(pm->fragIndex);
   pm->reassFrags[pm->fragIndex] = fragment;
 
   if (unlikely(reass->count >= reass->capacity)) {
@@ -115,7 +115,7 @@ Reassembler_Accept(Reassembler* reass, Packet* fragment)
     goto DROP_PKT;
   }
 
-  uint32_t indexBit = 1 << l2->fragIndex;
+  uint32_t indexBit = RTE_BIT32(l2->fragIndex);
   if (unlikely((pm->reassBitmap & indexBit) == 0)) { // duplicate FragIndex
     goto DROP_PKT;
   }

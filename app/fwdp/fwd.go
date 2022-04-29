@@ -48,7 +48,7 @@ func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN ifac
 	fwd.c = eal.Zmalloc[C.FwFwd]("FwFwd", C.sizeof_FwFwd, socket)
 	fwd.c.id = C.uint8_t(fwd.id)
 	fwd.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
-		cptr.Func0.C(unsafe.Pointer(C.FwFwd_Run), fwd.c),
+		cptr.Func0.C(C.FwFwd_Run, fwd.c),
 		unsafe.Pointer(&fwd.c.ctrl),
 	)
 	fwd.SetLCore(lc)

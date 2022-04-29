@@ -15,7 +15,7 @@ typedef struct LpL2
   /**
    * @brief A bitmap of fragment arrival status.
    *
-   * The bit (1 << i) indicates whether the i-th fragment has arrived.
+   * RTE_BIT32(i) indicates whether the i-th fragment has arrived.
    * 0 means it has arrived, 1 means it is still missing.
    * Bits of non-existent fragments are initialized to 0.
    * Thus, when this variable becomes zero, all the fragments have arrived.
@@ -25,6 +25,7 @@ typedef struct LpL2
   Packet* reassFrags[LpMaxFragments];
 } LpL2;
 static_assert(LpMaxFragments <= UINT8_MAX, "");
+static_assert(LpMaxFragments < CHAR_BIT * RTE_SIZEOF_FIELD(LpL2, reassBitmap), "");
 
 static __rte_always_inline uint64_t
 LpL2_GetSeqNum(const LpL2* l2)
@@ -37,12 +38,6 @@ typedef struct LpPitToken
   uint8_t length;
   uint8_t value[32];
 } __rte_packed LpPitToken;
-
-__attribute__((nonnull)) static __rte_always_inline bool
-LpPitToken_Equal(const LpPitToken* a, const LpPitToken* b)
-{
-  return memcmp(a, b, sizeof(*a)) == 0;
-}
 
 __attribute__((nonnull)) static __rte_always_inline void
 LpPitToken_Set(LpPitToken* token, uint8_t length, const uint8_t* value)

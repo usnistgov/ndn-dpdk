@@ -75,27 +75,20 @@ DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt);
     static_assert(capacity == 0 || (capacity - 2 < 0xFD && capacity % 8 == 7), "");                \
   }
 
-__attribute__((nonnull)) bool
+__attribute__((nonnull)) void
 DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_t freshness,
                          LName finalBlock);
 
 /**
  * @brief Prepare Data MetaInfo.
- * @param metaBuf pointer to DataEnc_MetaInfoBuffer.
+ * @param metaBuf pointer to DataEnc_MetaInfoBuffer; must have enough capacity.
  * @param ct ContentType numeric value.
  * @param freshness FreshnessPeriod numeric value.
  * @param finalBlock FinalBlockId TLV-VALUE.
- * @return whether success.
  * @post @c metaBuf->value contains MetaInfo TLV.
  */
 #define DataEnc_PrepareMetaInfo(metaBuf, ct, freshness, finalBlock)                                \
   DataEnc_PrepareMetaInfo_((metaBuf), sizeof((metaBuf)->value), (ct), (freshness), (finalBlock))
-
-#define DataEnc_MustPrepareMetaInfo(...)                                                           \
-  do {                                                                                             \
-    bool ok = DataEnc_PrepareMetaInfo(__VA_ARGS__);                                                \
-    NDNDPDK_ASSERT(ok);                                                                            \
-  } while (false)
 
 /**
  * @brief Encode Data with payload.

@@ -98,7 +98,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 		w.c.interestMp = interestMp
 		ndni.InitNonceGen(unsafe.Pointer(&w.c.nonceGen))
 		w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
-			cptr.Func0.C(unsafe.Pointer(C.FetchThread_Run), w.c),
+			cptr.Func0.C(C.FetchThread_Run, w.c),
 			unsafe.Pointer(&w.c.ctrl),
 		)
 		fetcher.workers[i] = w

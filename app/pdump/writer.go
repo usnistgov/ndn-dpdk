@@ -193,7 +193,7 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 	}
 
 	w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
-		cptr.Func0.C(unsafe.Pointer(C.PdumpWriter_Run), w.c),
+		cptr.Func0.C(C.PdumpWriter_Run, w.c),
 		unsafe.Pointer(&w.c.ctrl),
 	)
 	defer func() {

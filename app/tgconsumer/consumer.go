@@ -262,13 +262,13 @@ func New(face iface.Face, cfg Config) (c *Consumer, e error) {
 
 	c.rx = &worker{
 		ThreadWithCtrl: ealthread.NewThreadWithCtrl(
-			cptr.Func0.C(unsafe.Pointer(C.TgcRx_Run), c.rxC),
+			cptr.Func0.C(C.TgcRx_Run, c.rxC),
 			unsafe.Pointer(&c.rxC.ctrl),
 		),
 	}
 	c.tx = &worker{
 		ThreadWithCtrl: ealthread.NewThreadWithCtrl(
-			cptr.Func0.C(unsafe.Pointer(C.TgcTx_Run), c.txC),
+			cptr.Func0.C(C.TgcTx_Run, c.txC),
 			unsafe.Pointer(&c.txC.ctrl),
 		),
 	}

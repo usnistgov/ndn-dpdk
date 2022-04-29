@@ -109,7 +109,7 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 	w.c.count = C.int64_t(cfg.Count)
 
 	w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
-		cptr.Func0.C(unsafe.Pointer(C.HrlogWriter_Run), w.c),
+		cptr.Func0.C(C.HrlogWriter_Run, w.c),
 		unsafe.Pointer(&w.c.ctrl),
 	)
 	defer func() {

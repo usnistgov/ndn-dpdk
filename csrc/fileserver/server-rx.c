@@ -16,11 +16,9 @@ RTE_INIT(InitMetaInfo)
 {
   uint8_t segment0[] = { TtSegmentNameComponent, 1, 0 };
   LName finalBlock = (LName){ .length = sizeof(segment0), .value = segment0 };
-  DataEnc_MustPrepareMetaInfo(&MetaInfo_Metadata, ContentBlob, FileServerMetadataFreshness,
-                              finalBlock);
-  DataEnc_MustPrepareMetaInfo(&MetaInfo_Ls, ContentBlob, 0, finalBlock);
-  DataEnc_MustPrepareMetaInfo(&MetaInfo_Nack, ContentNack, FileServerMetadataFreshness,
-                              (LName){ 0 });
+  DataEnc_PrepareMetaInfo(&MetaInfo_Metadata, ContentBlob, FileServerMetadataFreshness, finalBlock);
+  DataEnc_PrepareMetaInfo(&MetaInfo_Ls, ContentBlob, 0, finalBlock);
+  DataEnc_PrepareMetaInfo(&MetaInfo_Nack, ContentNack, FileServerMetadataFreshness, (LName){ 0 });
 }
 
 typedef struct RxBurstCtx

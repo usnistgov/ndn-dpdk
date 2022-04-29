@@ -56,7 +56,7 @@ func NewRxLoop(socket eal.NumaSocket) RxLoop {
 		socket: socket,
 	}
 	rxl.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
-		cptr.Func0.C(unsafe.Pointer(C.RxLoop_Run), rxl.c),
+		cptr.Func0.C(C.RxLoop_Run, rxl.c),
 		unsafe.Pointer(&rxl.c.ctrl),
 	)
 	rxLoopThreads[rxl] = true

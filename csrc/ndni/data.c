@@ -170,7 +170,7 @@ DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt)
   return data->hasDigest;
 }
 
-bool
+void
 DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_t freshness,
                          LName finalBlock)
 {
@@ -178,9 +178,7 @@ DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_
   meta->size = 2;
 #define APPEND(ptr, extraLength)                                                                   \
   do {                                                                                             \
-    if (unlikely((size_t)meta->size + sizeof(*ptr) + (extraLength) > capacity)) {                  \
-      return false;                                                                                \
-    }                                                                                              \
+    NDNDPDK_ASSERT((size_t)meta->size + sizeof(*ptr) + (extraLength) <= capacity);                 \
     ptr = RTE_PTR_ADD(meta->value, meta->size);                                                    \
     meta->size += sizeof(*ptr) + (extraLength);                                                    \
   } while (false)
@@ -195,6 +193,7 @@ DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_
     f->contentTypeTL = TlvEncoder_ConstTL1(TtContentType, sizeof(f->contentTypeV));
     f->contentTypeV = ct;
   }
+
   if (freshness > 0) {
     struct FreshnessF
     {
@@ -205,6 +204,7 @@ DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_
     f->freshnessTL = TlvEncoder_ConstTL1(TtFreshnessPeriod, sizeof(f->freshnessV));
     f->freshnessV = rte_cpu_to_be_32(freshness);
   }
+
   if (finalBlock.length > 0) {
     struct FinalBlockF
     {
@@ -217,10 +217,10 @@ DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_
     f->finalBlockL = finalBlock.length;
     rte_memcpy(f->finalBlockV, finalBlock.value, finalBlock.length);
   }
+
+#undef APPEND
   meta->value[0] = TtMetaInfo;
   meta->value[1] = meta->size - 2;
-#undef APPEND
-  return true;
 }
 
 __attribute__((nonnull, returns_nonnull)) static inline Packet*

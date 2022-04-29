@@ -87,7 +87,7 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e
 	}
 
 	w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
-		cptr.Func0.C(unsafe.Pointer(C.FileServer_Run), w.c),
+		cptr.Func0.C(C.FileServer_Run, w.c),
 		unsafe.Pointer(&w.c.ctrl),
 	)
 	return w, nil

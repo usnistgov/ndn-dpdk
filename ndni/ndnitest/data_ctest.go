@@ -6,10 +6,10 @@ package ndnitest
 
 typedef DataEnc_MetaInfoBuffer(23) MetaInfoBuffer23;
 
-bool
+void
 c_DataEnc_PrepareMetaInfo23(MetaInfoBuffer23* metaBuf, ContentType ct, uint32_t freshness, LName finalBlock)
 {
-	return DataEnc_PrepareMetaInfo(metaBuf, ct, freshness, finalBlock);
+	DataEnc_PrepareMetaInfo(metaBuf, ct, freshness, finalBlock);
 }
 */
 import "C"
@@ -90,8 +90,7 @@ func ctestDataEncMinimal(t *testing.T) {
 	assert, require := makeAR(t)
 
 	var meta C.MetaInfoBuffer23
-	ok := C.c_DataEnc_PrepareMetaInfo23(&meta, an.ContentBlob, 0, C.LName{})
-	require.True(bool(ok))
+	C.c_DataEnc_PrepareMetaInfo23(&meta, an.ContentBlob, 0, C.LName{})
 
 	nameP := ndni.NewPName(ndn.ParseName("/DataEnc/minimal"))
 	defer nameP.Free()
@@ -118,8 +117,7 @@ func ctestDataEncFull(t *testing.T) {
 	finalBlock := ndn.NameComponentFrom(an.TtSegmentNameComponent, tlv.NNI(math.MaxUint32+1))
 	finalBlockP := ndni.NewPName(ndn.Name{finalBlock})
 	defer finalBlockP.Free()
-	ok := C.c_DataEnc_PrepareMetaInfo23(&meta, an.ContentKey, 3600_000, *(*C.LName)(finalBlockP.Ptr()))
-	require.True(bool(ok))
+	C.c_DataEnc_PrepareMetaInfo23(&meta, an.ContentKey, 3600_000, *(*C.LName)(finalBlockP.Ptr()))
 
 	nameP := ndni.NewPName(ndn.ParseName("/DataEnc/full"))
 	defer nameP.Free()
