@@ -135,28 +135,28 @@ PData_CanSatisfy(PData* data, PInterest* interest)
 }
 
 struct rte_crypto_op*
-DataDigest_Prepare(Packet* npkt)
+DataDigest_Prepare(CryptoQueuePair* cqp, Packet* npkt)
 {
   PData* data = Packet_GetDataHdr(npkt);
   static_assert(sizeof(struct rte_crypto_op) + sizeof(struct rte_crypto_sym_op) <=
                   sizeof(data->helperScratch),
                 "");
   struct rte_crypto_op* op = (void*)data->helperScratch;
-  __rte_crypto_op_reset(op, RTE_CRYPTO_OP_TYPE_SYMMETRIC);
   op->mempool = NULL;
+  op->phys_addr = 0;
 
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  CryptoOp_PrepareSha256Digest(op, pkt, 0, pkt->pkt_len, data->digest);
+  struct rte_mbuf* m = Packet_ToMbuf(npkt);
+  CryptoQueuePair_PrepareSha256(cqp, op, m, 0, m->pkt_len, data->digest);
   return op;
 }
 
 uint16_t
-DataDigest_Enqueue(CryptoQueuePair cqp, struct rte_crypto_op** ops, uint16_t count)
+DataDigest_Enqueue(CryptoQueuePair* cqp, struct rte_crypto_op** ops, uint16_t count)
 {
   if (unlikely(count == 0)) {
     return 0;
   }
-  uint16_t nEnq = rte_cryptodev_enqueue_burst(cqp.dev, cqp.qp, ops, count);
+  uint16_t nEnq = rte_cryptodev_enqueue_burst(cqp->dev, cqp->qp, ops, count);
   return count - nEnq;
 }
 

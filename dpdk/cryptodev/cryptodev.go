@@ -48,57 +48,6 @@ type CryptoDev struct {
 	queuePairs  []*QueuePair
 }
 
-// New initializes a crypto device.
-func New(dev device, cfg Config) (cd *CryptoDev, e error) {
-	cfg.applyDefaults()
-	nameC := C.CString(dev.Name())
-	defer C.free(unsafe.Pointer(nameC))
-	socketC := C.int(dev.NumaSocket().ID())
-
-	id := C.rte_cryptodev_get_dev_id(nameC)
-	if id < 0 {
-		return nil, fmt.Errorf("cryptodev %s not found", dev.Name())
-	}
-
-	cd = &CryptoDev{
-		dev:        dev,
-		id:         C.uint8_t(id),
-		queuePairs: make([]*QueuePair, cfg.NQueuePairs),
-	}
-
-	mpNameC := C.CString(eal.AllocObjectID("cryptodev.SymSessionPool"))
-	defer C.free(unsafe.Pointer(mpNameC))
-	mpC := C.rte_cryptodev_sym_session_pool_create(mpNameC, C.uint32_t(cfg.MaxSessions*2),
-		C.uint32_t(C.rte_cryptodev_sym_get_private_session_size(cd.id)), 0, 0, socketC)
-	if mpC == nil {
-		return nil, errors.New("rte_cryptodev_sym_session_pool_create error")
-	}
-	cd.sessionPool = mempool.FromPtr(unsafe.Pointer(mpC))
-
-	var devConf C.struct_rte_cryptodev_config
-	devConf.socket_id = socketC
-	devConf.nb_queue_pairs = C.uint16_t(cfg.NQueuePairs)
-	if res := C.rte_cryptodev_configure(cd.id, &devConf); res < 0 {
-		return nil, fmt.Errorf("rte_cryptodev_configure error %d", res)
-	}
-
-	var qpConf C.struct_rte_cryptodev_qp_conf
-	qpConf.nb_descriptors = C.uint32_t(cfg.NQueueDescriptors)
-	qpConf.mp_session = mpC
-	qpConf.mp_session_private = mpC
-	for i := range cd.queuePairs {
-		cd.queuePairs[i] = &QueuePair{cd, C.uint16_t(i)}
-		if res := C.rte_cryptodev_queue_pair_setup(cd.id, C.uint16_t(i), &qpConf, socketC); res < 0 {
-			return nil, fmt.Errorf("rte_cryptodev_queue_pair_setup(%d) error %d", i, res)
-		}
-	}
-
-	if res := C.rte_cryptodev_start(cd.id); res < 0 {
-		return nil, fmt.Errorf("rte_cryptodev_start error %d", res)
-	}
-	return cd, nil
-}
-
 // Close releases a crypto device.
 func (cd *CryptoDev) Close() error {
 	defer cd.sessionPool.Close()
@@ -123,4 +72,71 @@ func (cd *CryptoDev) Name() string {
 // QueuePairs returns a list of queue pair.
 func (cd *CryptoDev) QueuePairs() []*QueuePair {
 	return cd.queuePairs
+}
+
+// New initializes a crypto device.
+func New(dev device, cfg Config) (cd *CryptoDev, e error) {
+	cfg.applyDefaults()
+	nameC := C.CString(dev.Name())
+	defer C.free(unsafe.Pointer(nameC))
+	socketC := C.int(dev.NumaSocket().ID())
+
+	id := C.rte_cryptodev_get_dev_id(nameC)
+	if id < 0 {
+		return nil, fmt.Errorf("cryptodev %s not found", dev.Name())
+	}
+
+	cd = &CryptoDev{
+		dev:        dev,
+		id:         C.uint8_t(id),
+		queuePairs: make([]*QueuePair, cfg.NQueuePairs),
+	}
+	defer func() {
+		if e != nil {
+			cd.Close()
+		}
+	}()
+
+	mpNameC := C.CString(eal.AllocObjectID("cryptodev.SymSessionPool"))
+	defer C.free(unsafe.Pointer(mpNameC))
+	mpC := C.rte_cryptodev_sym_session_pool_create(mpNameC, C.uint32_t(cfg.MaxSessions*2),
+		C.uint32_t(C.rte_cryptodev_sym_get_private_session_size(cd.id)), 0, 0, socketC)
+	if mpC == nil {
+		return nil, errors.New("rte_cryptodev_sym_session_pool_create error")
+	}
+	cd.sessionPool = mempool.FromPtr(unsafe.Pointer(mpC))
+
+	var devConf C.struct_rte_cryptodev_config
+	devConf.socket_id = socketC
+	devConf.nb_queue_pairs = C.uint16_t(cfg.NQueuePairs)
+	if res := C.rte_cryptodev_configure(cd.id, &devConf); res < 0 {
+		return nil, fmt.Errorf("rte_cryptodev_configure error %d", res)
+	}
+
+	var qpConf C.struct_rte_cryptodev_qp_conf
+	qpConf.nb_descriptors = C.uint32_t(cfg.NQueueDescriptors)
+	qpConf.mp_session = mpC
+	qpConf.mp_session_private = mpC
+	for i := range cd.queuePairs {
+		if res := C.rte_cryptodev_queue_pair_setup(cd.id, C.uint16_t(i), &qpConf, socketC); res < 0 {
+			return nil, fmt.Errorf("rte_cryptodev_queue_pair_setup(%d) error %w", i, eal.MakeErrno(res))
+		}
+		sha256sess := C.CryptoDev_NewSha256DigestSession(mpC, cd.id)
+		if sha256sess == nil {
+			return nil, fmt.Errorf("CryptoDev_NewSha256DigestSession(%d) error %w", i, eal.GetErrno())
+		}
+		cd.queuePairs[i] = &QueuePair{
+			c: C.CryptoQueuePair{
+				sha256: sha256sess,
+				dev:    cd.id,
+				qp:     C.uint16_t(i),
+			},
+			dev: cd,
+		}
+	}
+
+	if res := C.rte_cryptodev_start(cd.id); res < 0 {
+		return nil, fmt.Errorf("rte_cryptodev_start error %d", res)
+	}
+	return cd, nil
 }

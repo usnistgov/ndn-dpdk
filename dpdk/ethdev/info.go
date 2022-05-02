@@ -55,7 +55,7 @@ func (info DevInfo) canIgnoreSetMTUError() bool {
 	return false
 }
 
-// canIgnoreSetMTUError determines whether enable/disable promiscuous mode error should be ignored.
+// canIgnorePromiscError determines whether enable/disable promiscuous mode error should be ignored.
 func (info DevInfo) canIgnorePromiscError() bool {
 	switch info.DriverName() {
 	case DriverMemif, DriverRing:

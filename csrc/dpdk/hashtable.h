@@ -1,5 +1,5 @@
-#ifndef NDNDPDK_DPDK_HASH_H
-#define NDNDPDK_DPDK_HASH_H
+#ifndef NDNDPDK_DPDK_HASHTABLE_H
+#define NDNDPDK_DPDK_HASHTABLE_H
 
 /** @file */
 
@@ -17,4 +17,4 @@
 struct rte_hash*
 HashTable_New(struct rte_hash_parameters params);
 
-#endif // NDNDPDK_DPDK_HASH_H
+#endif // NDNDPDK_DPDK_HASHTABLE_H

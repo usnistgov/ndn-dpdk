@@ -3,86 +3,52 @@ package cryptodev
 /*
 #include "../../csrc/dpdk/cryptodev.h"
 
-enum { c_offsetof_Op_status = offsetof(struct rte_crypto_op, status) };
+enum {
+	c_offsetof_Op_status = offsetof(struct rte_crypto_op, status),
+	c_sizeof_Op_sym = sizeof(struct rte_crypto_sym_op),
+	c_sizeof_Op_asym = sizeof(struct rte_crypto_asym_op),
+	c_sizeof_Op_sym_asym = c_sizeof_Op_sym > c_sizeof_Op_asym ? c_sizeof_Op_sym : c_sizeof_Op_asym,
+};
 */
 import "C"
 import (
-	"errors"
 	"fmt"
-	"strconv"
 	"unsafe"
-
-	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 )
 
-// OpType represents a crypto operation type.
-type OpType int
+// OpStatus indicates crypto operation status.
+type OpStatus C.enum_rte_crypto_op_status
 
+// OpStatus values.
 const (
-	// OpSymmetric indicates symmetric crypto operation type.
-	OpSymmetric OpType = C.RTE_CRYPTO_OP_TYPE_SYMMETRIC
+	OpStatusNew     = C.RTE_CRYPTO_OP_STATUS_NOT_PROCESSED
+	OpStatusSuccess = C.RTE_CRYPTO_OP_STATUS_SUCCESS
 )
 
-func (t OpType) String() string {
-	switch t {
-	case OpSymmetric:
-		return "symmetric"
-	}
-	return strconv.Itoa(int(t))
+// Op represents a crypto operation.
+type Op struct {
+	op  C.struct_rte_crypto_op
+	buf [C.c_sizeof_Op_sym_asym]byte
 }
-
-// Op holds a pointer to a crypto operation structure.
-type Op C.struct_rte_crypto_op
 
 // Ptr returns *C.struct_rte_crypto_op pointer.
 func (op *Op) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(op)
 }
 
-func (op *Op) ptr() *C.struct_rte_crypto_op {
-	return (*C.struct_rte_crypto_op)(op)
-}
-
-func (op *Op) status() C.enum_rte_crypto_op_status {
-	return C.enum_rte_crypto_op_status(*(*C.uint8_t)(unsafe.Add(unsafe.Pointer(op), C.c_offsetof_Op_status)))
-}
-
-// IsNew returns true if this operation has not been processed.
-func (op *Op) IsNew() bool {
-	return op.status() == C.RTE_CRYPTO_OP_STATUS_NOT_PROCESSED
-}
-
-// IsSuccess returns true if this operation has completed successfully.
-func (op *Op) IsSuccess() bool {
-	return op.status() == C.RTE_CRYPTO_OP_STATUS_SUCCESS
+// Status returns operation status.
+func (op *Op) Status() OpStatus {
+	return OpStatus(*(*C.uint8_t)(unsafe.Add(unsafe.Pointer(op), C.c_offsetof_Op_status)))
 }
 
 // Error returns an error if this operation has failed, otherwise returns nil.
 func (op *Op) Error() error {
-	switch {
-	case op.IsNew(), op.IsSuccess():
+	s := op.Status()
+	switch s {
+	case OpStatusNew, OpStatusSuccess:
 		return nil
 	}
-	return fmt.Errorf("CryptoOpStatus %d", op.status())
-}
-
-// PrepareSha256Digest prepares a SHA256 digest generation operation.
-// The input is from the given offset and length in the packet.
-// The output must have 32 bytes in C memory.
-func (op *Op) PrepareSha256Digest(input *pktmbuf.Packet, offset, length int, output unsafe.Pointer) error {
-	if offset < 0 || length < 0 || offset+length > input.Len() {
-		return errors.New("offset+length exceeds packet boundary")
-	}
-
-	C.CryptoOp_PrepareSha256Digest(op.ptr(), (*C.struct_rte_mbuf)(input.Ptr()),
-		C.uint32_t(offset), C.uint32_t(length), (*C.uint8_t)(output))
-	return nil
-}
-
-// Close discards this instance.
-func (op *Op) Close() error {
-	C.rte_crypto_op_free(op.ptr())
-	return nil
+	return fmt.Errorf("CryptoOpStatus %d", s)
 }
 
 // OpVector represents a vector of crypto operations.

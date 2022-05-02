@@ -17,13 +17,13 @@ Nni_Decode(uint32_t length, const uint8_t* value, uint64_t* n)
       *n = value[0];
       return true;
     case 2:
-      *n = rte_be_to_cpu_16(*(unaligned_uint16_t*)(value));
+      *n = rte_be_to_cpu_16(*(unaligned_uint16_t*)value);
       return true;
     case 4:
-      *n = rte_be_to_cpu_32(*(unaligned_uint32_t*)(value));
+      *n = rte_be_to_cpu_32(*(unaligned_uint32_t*)value);
       return true;
     case 8:
-      *n = rte_be_to_cpu_64(*(unaligned_uint64_t*)(value));
+      *n = rte_be_to_cpu_64(*(unaligned_uint64_t*)value);
       return true;
     default:
       *n = 0;

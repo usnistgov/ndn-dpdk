@@ -75,7 +75,7 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc);
 __attribute__((nonnull)) static inline bool
 EthRxMatch_Match(const EthRxMatch* match, struct rte_mbuf* m)
 {
-  if (m->data_len >= match->len && (match->f)(match, m)) {
+  if (m->data_len >= match->len && match->f(match, m)) {
     rte_pktmbuf_adj(m, match->len);
     return true;
   }
@@ -136,7 +136,7 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
 __attribute__((nonnull)) static inline void
 EthTxHdr_Prepend(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
 {
-  (hdr->f)(hdr, m, newBurst);
+  hdr->f(hdr, m, newBurst);
 }
 
 #endif // NDNDPDK_ETHFACE_LOCATOR_H

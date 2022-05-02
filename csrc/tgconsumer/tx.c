@@ -29,10 +29,10 @@ TgcTxDigestPattern_Fill(TgcTxPattern* pattern)
     bool ok = Packet_ParseL3(npkt);
     NDNDPDK_ASSERT(ok && Packet_GetType(npkt) == PktData);
     npkts[i] = npkt;
-    ops[i] = DataDigest_Prepare(npkt);
+    ops[i] = DataDigest_Prepare(&dp->cqp, npkt);
   }
 
-  uint16_t nRej = DataDigest_Enqueue(dp->cqp, ops, TgcDigestBurstSize);
+  uint16_t nRej = DataDigest_Enqueue(&dp->cqp, ops, TgcDigestBurstSize);
   if (unlikely(nRej > 0)) {
     N_LOGW("digest-fill error=enqueue-reject count=%" PRIu16 " nRej=%" PRIu16, TgcDigestBurstSize,
            nRej);

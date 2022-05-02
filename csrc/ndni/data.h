@@ -35,14 +35,14 @@ PData_CanSatisfy(PData* data, PInterest* interest);
  * @return rte_crypto_op placed in PData.helperScratch.
  */
 __attribute__((nonnull, returns_nonnull)) struct rte_crypto_op*
-DataDigest_Prepare(Packet* npkt);
+DataDigest_Prepare(CryptoQueuePair* cqp, Packet* npkt);
 
 /**
  * @brief Enqueue crypto_ops for Data digest computation.
  * @return number of rejected packets; they should be freed by caller.
  */
 __attribute__((nonnull)) uint16_t
-DataDigest_Enqueue(CryptoQueuePair cqp, struct rte_crypto_op** ops, uint16_t count);
+DataDigest_Enqueue(CryptoQueuePair* cqp, struct rte_crypto_op** ops, uint16_t count);
 
 /**
  * @brief Finish Data digest computation.

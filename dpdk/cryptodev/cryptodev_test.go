@@ -1,12 +1,13 @@
 package cryptodev_test
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
 	"testing"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"go4.org/must"
 )
 
 func TestCryptoDev(t *testing.T) {
@@ -18,46 +19,45 @@ func TestCryptoDev(t *testing.T) {
 	require.NoError(e)
 	defer cd.Close()
 
-	qp := cd.QueuePairs()
-	require.Len(qp, 2)
+	qps := cd.QueuePairs()
+	require.Len(qps, 2)
 
-	mp, e := cryptodev.NewOpPool(cryptodev.OpPoolConfig{Capacity: 255}, eal.NumaSocket{})
-	require.NoError(e)
-	defer mp.Close()
+	inputs := make([][]byte, 3)
+	inputs[0] = make([]byte, 31)
+	inputs[1] = make([]byte, 128)
+	inputs[2] = make([]byte, 257)
 
-	ops0, e := mp.Alloc(cryptodev.OpSymmetric, 2)
-	require.NoError(e)
-	assert.Len(ops0, 2)
-	ops1, e := mp.Alloc(cryptodev.OpSymmetric, 1)
-	require.NoError(e)
-	assert.Len(ops1, 1)
-	assert.True(ops1[0].IsNew())
+	expects := make([][sha256.Size]byte, len(inputs))
+	outputs := make([]*byte, len(inputs))
+	ops := make([]*cryptodev.Op, len(inputs))
 
-	outPtr := eal.Zmalloc[byte]("", 3*32, eal.NumaSocket{})
-	defer eal.Free(outPtr)
-	outSlice := unsafe.Slice(outPtr, 3*32)
-	out0, out1, out2 := outSlice[0*32:1*32], outSlice[1*32:2*32], outSlice[2*32:3*32]
+	for i := range inputs {
+		rand.Read(inputs[i])
+		expects[i] = sha256.Sum256(inputs[i])
+		outputs[i] = eal.Zmalloc[byte]("", sha256.Size, eal.NumaSocket{})
+		defer eal.Free(outputs[i])
+		ops[i] = eal.Zmalloc[cryptodev.Op]("CryptoOp", unsafe.Sizeof(cryptodev.Op{}), eal.NumaSocket{})
+		defer eal.Free(ops[i])
+		qp := qps[0]
+		if i == 2 {
+			qp = qps[1]
+		}
+		qp.PrepareSha256(ops[i], makePacket(inputs[i]), 0, len(inputs[i]), unsafe.Pointer(outputs[i]))
+		assert.EqualValues(cryptodev.OpStatusNew, ops[i].Status())
+	}
 
-	ops0[0].PrepareSha256Digest(makePacket("A0A1A2A3"), 0, 4, unsafe.Pointer(&out0[0]))
-	ops0[1].PrepareSha256Digest(makePacket("B0B1B2B3"), 0, 4, unsafe.Pointer(&out1[0]))
-	ops1[0].PrepareSha256Digest(makePacket("C0C1C2C3"), 0, 4, unsafe.Pointer(&out2[0]))
+	assert.Equal(2, qps[0].EnqueueBurst(ops[:2]))
+	assert.Equal(1, qps[1].EnqueueBurst(ops[2:]))
 
-	assert.Equal(2, qp[0].EnqueueBurst(ops0))
-	assert.Equal(1, qp[1].EnqueueBurst(ops1))
+	ops = make(cryptodev.OpVector, 2)
+	require.Equal(1, qps[1].DequeueBurst(ops))
+	assert.EqualValues(cryptodev.OpStatusSuccess, ops[0].Status())
+	assert.Equal(expects[2][:], unsafe.Slice(outputs[2], sha256.Size))
 
-	ops := make(cryptodev.OpVector, 2)
-	assert.Equal(1, qp[1].DequeueBurst(ops))
-	assert.True(ops[0].IsSuccess())
-	assert.Equal(bytesFromHex("72D2A70D03005439DE209BBE9FFC050FAFD891082E9F3150F05A61054D25990F"), out2)
-
-	assert.Equal(2, qp[0].DequeueBurst(ops))
-	assert.True(ops[0].IsSuccess())
-	assert.Equal(bytesFromHex("73B92B68882B199971462A2614C6691CBA581DA958740466030A64CE7DE66ED3"), out0)
-	assert.True(ops[1].IsSuccess())
-	assert.Equal(bytesFromHex("A6662B764A4468DF70CA2CAD1B17DA26C62E53439DA8E4E8A80D9B91E59D09BA"), out1)
-	assert.Equal(0, qp[0].DequeueBurst(ops))
-
-	assert.Equal(3, mp.CountInUse())
-	must.Close(ops0[0])
-	assert.Equal(2, mp.CountInUse())
+	require.Equal(2, qps[0].DequeueBurst(ops))
+	assert.EqualValues(cryptodev.OpStatusSuccess, ops[0].Status())
+	assert.Equal(expects[0][:], unsafe.Slice(outputs[0], sha256.Size))
+	assert.EqualValues(cryptodev.OpStatusSuccess, ops[1].Status())
+	assert.Equal(expects[1][:], unsafe.Slice(outputs[1], sha256.Size))
+	assert.Equal(0, qps[0].DequeueBurst(ops))
 }

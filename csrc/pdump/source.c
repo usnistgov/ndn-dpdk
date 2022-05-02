@@ -9,7 +9,7 @@ PdumpSource_Process(PdumpSource* s, struct rte_mbuf** pkts, uint16_t count)
 
   for (uint16_t i = 0; i < count; ++i) {
     struct rte_mbuf* pkt = pkts[i];
-    if (s->filter != NULL && !(s->filter)(s, pkt)) {
+    if (s->filter != NULL && !s->filter(s, pkt)) {
       continue;
     }
 

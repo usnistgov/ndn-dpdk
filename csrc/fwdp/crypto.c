@@ -18,10 +18,10 @@ FwCrypto_Input(FwCrypto* fwc)
   struct rte_crypto_op* ops[FW_CRYPTO_BURST_SIZE];
   for (uint16_t i = 0; i < nDeq; ++i) {
     Packet* npkt = npkts[i];
-    ops[i] = DataDigest_Prepare(npkt);
+    ops[i] = DataDigest_Prepare(&fwc->cqp, npkt);
   }
 
-  uint16_t nRej = DataDigest_Enqueue(fwc->cqp, ops, nDeq);
+  uint16_t nRej = DataDigest_Enqueue(&fwc->cqp, ops, nDeq);
   if (unlikely(nRej > 0)) {
     fwc->nDrops += nRej;
     rte_pktmbuf_free_bulk((struct rte_mbuf**)&npkts[nDeq - nRej], nRej);
