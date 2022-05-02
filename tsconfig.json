@@ -16,7 +16,7 @@
     "rootDir": "js",
     "skipLibCheck": true,
     "strict": true,
-    "target": "es2021"
+    "target": "ES2022"
   },
   "include": [
     "js/**/*.ts"

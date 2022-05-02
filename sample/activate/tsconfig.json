@@ -13,7 +13,7 @@
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "strict": true,
-    "target": "ES2021"
+    "target": "ES2022"
   },
   "include": [
     "**/*.ts"

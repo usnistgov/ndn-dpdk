@@ -18,7 +18,7 @@ fi
 
 # TypeScript
 if [[ -z $LANG ]] || [[ $LANG == ts ]]; then
-  node_modules/.bin/xo --fix
+  node_modules/.bin/xo-yoursunny --fix
 fi
 
 # YAML

@@ -9,17 +9,17 @@
   "type": "commonjs",
   "main": "build/js/mod.js",
   "types": "js/mod.ts",
-  "packageManager": "pnpm@6.32.11",
+  "packageManager": "pnpm@7.0.0",
   "dependencies": {
     "tslib": "^2.4.0"
   },
   "devDependencies": {
-    "@yoursunny/xo-config": "0.48.1",
+    "@yoursunny/xo-config": "0.48.4",
     "dockerfilelint": "^1.8.0",
     "json-stable-stringify": "^1.0.1",
     "markdownlint-cli": "^0.31.1",
     "ts-json-schema-generator": "^1.0.0",
-    "typescript": "~4.6.3"
+    "typescript": "~4.6.4"
   },
   "engines": {
     "node": "16.x"
