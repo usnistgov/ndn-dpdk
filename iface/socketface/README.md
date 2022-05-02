@@ -28,6 +28,6 @@ Receiving and sending packets are implemented in C.
 RX logic is implemented in **rxEpoll** type.
 It maintains an [epoll](https://man7.org/linux/man-pages/man7/epoll.7.html) instance that waits for any of the socket file descriptors of all socket faces to become readable or have an error.
 The RxLoop thread calls `SocketRxEpoll_RxBurst` function, which checks for epoll events.
-Upon notified by epoll, packets are received from the socket into mbufs, and any socket errors are ignored.
+Upon notified by epoll, packets are received from the socket into mbufs via `recvmmsg` syscall, and any socket errors are ignored.
 
-TX logic is implemented in `SocketFace_DgramTxBurst` function, which transmits the packet via `sendmsg` syscall.
+TX logic is implemented in `SocketFace_DgramTxBurst` function, which transmits the packet via `sendmmsg` syscall.

@@ -33,7 +33,7 @@ func (rxe *rxEpoll) RxGroup() (ptr unsafe.Pointer, desc string) {
 
 func (rxe *rxEpoll) close() {
 	iface.DeactivateRxGroup(rxe)
-	pktmbuf.VectorFromPtr(unsafe.Pointer(&rxe.c.mbufs), int(rxe.c.nUnusedMbufs)).Close()
+	pktmbuf.VectorFromPtr(unsafe.Pointer(&rxe.c.mbufs), len(rxe.c.msgs))[rxe.c.msgIndex:].Close()
 	unix.Close(rxe.epfd)
 	eal.Free(rxe.c)
 	rxe.c, rxe.epfd = nil, -1
@@ -75,6 +75,7 @@ func newRxEpoll(socket eal.NumaSocket) (rxe *rxEpoll, e error) {
 	rxe.c.base.rxBurst = C.RxGroup_RxBurstFunc(C.SocketRxEpoll_RxBurst)
 	rxe.c.directMp = (*C.struct_rte_mempool)(ndni.PacketMempool.Get(rxe.socket).Ptr())
 	rxe.c.epfd = C.int(epfd)
+	rxe.c.msgIndex = C.uint16_t(len(rxe.c.msgs))
 
 	logger.Info("RxEpoll created",
 		zap.Int("epfd", rxe.epfd),

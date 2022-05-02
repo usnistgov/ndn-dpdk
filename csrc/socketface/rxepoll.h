@@ -13,8 +13,10 @@ typedef struct SocketRxEpoll
   struct rte_mempool* directMp;
   uint64_t nTruncated;
   int epfd;
-  uint16_t nUnusedMbufs;
+  uint16_t msgIndex;
   struct rte_mbuf* mbufs[2 * MaxBurstSize];
+  struct iovec iov[2 * MaxBurstSize];
+  struct mmsghdr msgs[2 * MaxBurstSize];
 } SocketRxEpoll;
 
 __attribute__((nonnull)) void
