@@ -9,8 +9,8 @@ InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason)
 {
   FaceID face = Packet_ToMbuf(npkt)->port;
   const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
-  N_LOGD("Drop(%s) %s-from=%" PRI_FaceID " npkt=%p token=" PRI_LpPitToken, reason,
-         PktType_ToString(Packet_GetType(npkt)), face, npkt, LpPitToken_Fmt(token));
+  N_LOGD("Drop(%s) %s-from=%" PRI_FaceID " npkt=%p token=%s", reason,
+         PktType_ToString(Packet_GetType(npkt)), face, npkt, LpPitToken_ToString(token));
 
   ++demux->nDrops;
   return false;
@@ -27,8 +27,8 @@ InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   FaceID face = pkt->port;
   const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
-  N_LOGD("PassTo %s-from=%" PRI_FaceID " npkt=%p token=" PRI_LpPitToken " dest-index=%" PRIu8,
-         PktType_ToString(Packet_GetType(npkt)), face, npkt, LpPitToken_Fmt(token), index);
+  N_LOGD("PassTo %s-from=%" PRI_FaceID " npkt=%p token=%s dest-index=%" PRIu8,
+         PktType_ToString(Packet_GetType(npkt)), face, npkt, LpPitToken_ToString(token), index);
 
   uint32_t nRej = PktQueue_PushPlain(dest->queue, &pkt, 1);
   if (unlikely(nRej > 0)) {

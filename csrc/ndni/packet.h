@@ -6,8 +6,13 @@
 #include "data.h"
 #include "nack.h"
 
-const char*
-PktType_ToString(PktType t);
+extern const char* PktType_Strings_[];
+
+__attribute__((returns_nonnull)) static inline const char*
+PktType_ToString(PktType t)
+{
+  return PktType_Strings_[t];
+}
 
 /** @brief Convert to parsed packet type. */
 static __rte_always_inline PktType

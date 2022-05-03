@@ -1,6 +1,23 @@
 #include "lp.h"
+#include "../core/base16.h"
 #include "tlv-decoder.h"
 #include "tlv-encoder.h"
+
+static RTE_DEFINE_PER_LCORE(
+  struct { char buffer[Base16_BufferSize(RTE_SIZEOF_FIELD(LpPitToken, value))]; },
+  LpPitTokenStringBuffer);
+
+const char*
+LpPitToken_ToString(const LpPitToken* token)
+{
+  if (unlikely(token->length == 0)) {
+    return "(empty)";
+  }
+#define buffer (RTE_PER_LCORE(LpPitTokenStringBuffer).buffer)
+  Base16_Encode(buffer, sizeof(buffer), token->value, token->length);
+  return buffer;
+#undef buffer
+}
 
 static __rte_always_inline bool
 LpHeader_IsCriticalType(uint32_t type)

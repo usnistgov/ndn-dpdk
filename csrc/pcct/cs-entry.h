@@ -7,8 +7,13 @@
 #include "../ndni/packet.h"
 #include "cs-struct.h"
 
-__attribute__((returns_nonnull)) const char*
-CsEntryKind_ToString(CsEntryKind kind);
+extern const char* CsEntryKind_Strings_[];
+
+__attribute__((returns_nonnull)) static inline const char*
+CsEntryKind_ToString(CsEntryKind kind)
+{
+  return CsEntryKind_Strings_[kind];
+}
 
 /**
  * @brief A CS entry.

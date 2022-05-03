@@ -1,11 +1,12 @@
 #include "pcc-key.h"
+#include "../core/base16.h"
 #include "pcc-entry.h"
 
 static_assert(sizeof(PccKeyExt) <= sizeof(PccEntry), "");
 
 enum
 {
-  PccSearchDebugStringLength = 2 * NameHexBufferLength + 32,
+  PccSearchDebugStringLength = 2 * Base16_BufferSize(NameMaxLength) + 32,
 };
 static RTE_DEFINE_PER_LCORE(
   struct { char buffer[PccSearchDebugStringLength]; }, PccSearchDebugStringBuffer);
@@ -13,25 +14,26 @@ static RTE_DEFINE_PER_LCORE(
 const char*
 PccSearch_ToDebugString(const PccSearch* search)
 {
-  const char* buffer = RTE_PER_LCORE(PccSearchDebugStringBuffer).buffer;
   int pos = 0;
-#define APPEND(...)                                                                                \
+#define buffer (RTE_PER_LCORE(PccSearchDebugStringBuffer).buffer)
+#define append(fn, ...)                                                                            \
   do {                                                                                             \
-    pos += snprintf(RTE_PTR_ADD(buffer, pos), PccSearchDebugStringLength - pos, __VA_ARGS__);      \
+    pos += fn(RTE_PTR_ADD(buffer, pos), sizeof(buffer) - pos, __VA_ARGS__);                        \
   } while (false)
 
-  pos += LName_PrintHex(search->name, RTE_PTR_ADD(buffer, pos));
+  append(Base16_Encode, search->name.value, search->name.length);
 
-  APPEND(" ");
+  append(snprintf, ",");
   if (search->fh.length == 0) {
-    APPEND("(no-fh)");
+    append(snprintf, "(no-fh)");
   } else {
-    pos += LName_PrintHex(search->fh, RTE_PTR_ADD(buffer, pos));
+    append(Base16_Encode, search->fh.value, search->fh.length);
   }
 
-#undef APPEND
   NDNDPDK_ASSERT(pos + 1 <= PccSearchDebugStringLength);
   return buffer;
+#undef buffer
+#undef append
 }
 
 bool

@@ -75,13 +75,13 @@ __attribute__((nonnull, returns_nonnull)) static inline const uint8_t*
 TlvDecoder_Read_Contiguous_(TlvDecoder* d, uint16_t count)
 {
   uint16_t here = d->m->data_len - d->offset;
-  NDNDPDK_ASSERT(count <= here);
   const uint8_t* output = rte_pktmbuf_mtod_offset(d->m, const uint8_t*, d->offset);
 
   d->length -= count;
   if (likely(count < here)) {
     d->offset += count;
   } else {
+    NDNDPDK_ASSERT(count == here);
     d->m = d->m->next;
     d->offset = 0;
   }

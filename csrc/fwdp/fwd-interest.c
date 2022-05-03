@@ -94,8 +94,8 @@ __attribute__((nonnull)) static void
 FwFwd_InterestHitCsMemory(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
 {
   Packet* outNpkt = Packet_Clone(csEntry->data, &fwd->mp, Face_PacketTxAlign(ctx->rxFace));
-  N_LOGD("^ cs-entry-memory=%p data-to=%" PRI_FaceID " npkt=%p dn-token=" PRI_LpPitToken, csEntry,
-         ctx->rxFace, outNpkt, LpPitToken_Fmt(&ctx->rxToken));
+  N_LOGD("^ cs-entry-memory=%p data-to=%" PRI_FaceID " npkt=%p dn-token=%s", csEntry, ctx->rxFace,
+         outNpkt, LpPitToken_ToString(&ctx->rxToken));
   if (likely(outNpkt != NULL)) {
     struct rte_mbuf* outPkt = Packet_ToMbuf(outNpkt);
     outPkt->port = RTE_MBUF_PORT_INVALID;
@@ -131,8 +131,8 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
   PInterest* interest = Packet_GetInterestHdr(ctx->npkt);
   NDNDPDK_ASSERT(interest->hopLimit > 0);
 
-  N_LOGD("RxInterest interest-from=%" PRI_FaceID " npkt=%p dn-token=" PRI_LpPitToken, ctx->rxFace,
-         ctx->npkt, LpPitToken_Fmt(&ctx->rxToken));
+  N_LOGD("RxInterest interest-from=%" PRI_FaceID " npkt=%p dn-token=%s", ctx->rxFace, ctx->npkt,
+         LpPitToken_ToString(&ctx->rxToken));
 
   if (unlikely(fwd->cryptoHelper == NULL && interest->name.hasDigestComp)) {
     N_LOGD("^ drop=no-crypto-helper");
@@ -237,8 +237,8 @@ SgForwardInterest(SgCtx* ctx0, FaceID nh)
   FwToken_Set(outToken, fwd->id, PitEntry_GetToken(ctx->pitEntry));
   Mbuf_SetTimestamp(Packet_ToMbuf(outNpkt), ctx->rxTime); // for latency stats
 
-  N_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=" PRI_LpPitToken,
-         nh, outNpkt, InterestGuiders_Fmt(guiders), LpPitToken_Fmt(outToken));
+  N_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=%s", nh, outNpkt,
+         InterestGuiders_Fmt(guiders), LpPitToken_ToString(outToken));
   Face_Tx(nh, outNpkt);
   ++ctx->fibEntryDyn->nTxInterests;
 

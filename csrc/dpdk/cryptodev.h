@@ -20,7 +20,7 @@ typedef struct CryptoQueuePair
 /**
  * @brief Reset and prepare a crypto operation for SHA256 digest.
  * @param cqp crypto queue pair where this operation is to be submitted.
- * @param [inout] op crypto operation, must have room for rte_crypto_sym_op.
+ * @param[inout] op crypto operation, must have room for rte_crypto_sym_op.
  * @param m input mbuf.
  * @param offset offset within input mbuf.
  * @param length length of input.

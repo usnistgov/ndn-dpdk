@@ -1,25 +1,11 @@
 #include "packet.h"
 #include "tlv-decoder.h"
 
-const char*
-PktType_ToString(PktType t)
-{
-  switch (t) {
-    case PktFragment:
-      return "fragment";
-    case PktInterest:
-    case PktSInterest:
-      return "interest";
-    case PktData:
-    case PktSData:
-      return "data";
-    case PktNack:
-    case PktSNack:
-      return "nack";
-    default:
-      return "bad-PktType";
-  }
-}
+const char* PktType_Strings_[] = {
+  [PktFragment] = "fragment", [PktInterest] = "interest", [PktSInterest] = "interest",
+  [PktData] = "data",         [PktSData] = "data",        [PktNack] = "nack",
+  [PktSNack] = "nack",
+};
 
 bool
 Packet_Parse(Packet* npkt)

@@ -72,8 +72,8 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
     }
 
     Packet* outNpkt = Packet_Clone(ctx->npkt, &fwd->mp, Face_PacketTxAlign(dn->face));
-    N_LOGD("^ data-to=%" PRI_FaceID " npkt=%p dn-token=" PRI_LpPitToken, dn->face, outNpkt,
-           LpPitToken_Fmt(&dn->token));
+    N_LOGD("^ data-to=%" PRI_FaceID " npkt=%p dn-token=%s", dn->face, outNpkt,
+           LpPitToken_ToString(&dn->token));
     if (unlikely(outNpkt == NULL)) {
       continue;
     }
@@ -96,8 +96,8 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 void
 FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx)
 {
-  N_LOGD("RxData data-from=%" PRI_FaceID " npkt=%p up-token=" PRI_LpPitToken, ctx->rxFace,
-         ctx->npkt, LpPitToken_Fmt(&ctx->rxToken));
+  N_LOGD("RxData data-from=%" PRI_FaceID " npkt=%p up-token=%s", ctx->rxFace, ctx->npkt,
+         LpPitToken_ToString(&ctx->rxToken));
   if (unlikely(ctx->rxToken.length != FwTokenLength)) {
     N_LOGD("^ drop=bad-token-length");
     FwFwdCtx_FreePkt(ctx);

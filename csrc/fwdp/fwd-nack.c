@@ -40,9 +40,8 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
                    NULL); // cannot fail because Interest_ModifyGuiders result is already aligned
 
     Packet_GetLpL3Hdr(output)->pitToken = dn->token;
-    N_LOGD("^ nack-to=%" PRI_FaceID " reason=%s npkt=%p nonce=%08" PRIx32
-           " dn-token=" PRI_LpPitToken,
-           dn->face, NackReason_ToString(reason), output, dn->nonce, LpPitToken_Fmt(&dn->token));
+    N_LOGD("^ nack-to=%" PRI_FaceID " reason=%s npkt=%p nonce=%08" PRIx32 " dn-token=%s", dn->face,
+           NackReason_ToString(reason), output, dn->nonce, LpPitToken_ToString(&dn->token));
     Face_Tx(dn->face, output);
   }
 }
@@ -84,8 +83,8 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
   FwToken_Set(outToken, fwd->id, PitEntry_GetToken(ctx->pitEntry));
   Mbuf_SetTimestamp(Packet_ToMbuf(outNpkt), Mbuf_GetTimestamp(ctx->pkt)); // for latency stats
 
-  N_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=" PRI_LpPitToken,
-         up->face, outNpkt, InterestGuiders_Fmt(guiders), LpPitToken_Fmt(outToken));
+  N_LOGD("^ interest-to=%" PRI_FaceID " npkt=%p " PRI_InterestGuiders " up-token=%s", up->face,
+         outNpkt, InterestGuiders_Fmt(guiders), LpPitToken_ToString(outToken));
   Face_Tx(up->face, outNpkt);
   if (ctx->fibEntryDyn != NULL) {
     ++ctx->fibEntryDyn->nTxInterests;
@@ -102,8 +101,8 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
   NackReason reason = nack->lpl3.nackReason;
   uint8_t nackHopLimit = nack->interest.hopLimit;
 
-  N_LOGD("RxNack nack-from=%" PRI_FaceID " npkt=%p up-token=" PRI_LpPitToken " reason=%" PRIu8,
-         ctx->rxFace, ctx->npkt, LpPitToken_Fmt(&ctx->rxToken), reason);
+  N_LOGD("RxNack nack-from=%" PRI_FaceID " npkt=%p up-token=%s reason=%" PRIu8, ctx->rxFace,
+         ctx->npkt, LpPitToken_ToString(&ctx->rxToken), reason);
   if (unlikely(ctx->rxToken.length != FwTokenLength)) {
     N_LOGD("^ drop=bad-token-length");
     return;

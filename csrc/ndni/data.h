@@ -47,14 +47,14 @@ DataDigest_Enqueue(CryptoQueuePair* cqp, struct rte_crypto_op** ops, uint16_t co
 /**
  * @brief Finish Data digest computation.
  * @param op a dequeued crypto_op; will be freed.
- * @param [out] npkt the Data packet; DataDigest releases ownership.
+ * @param[out] npkt the Data packet; DataDigest releases ownership.
  * @return whether success.
  */
 __attribute__((nonnull)) bool
 DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt);
 
 /**
- * @brief Declare a buffer from preparing Data MetaInfo.
+ * @brief Declare a buffer for preparing Data MetaInfo.
  * @param capacity maximum MetaInfo TLV-LENGTH.
  *
  * Specified @p capacity must have room for:
@@ -64,6 +64,7 @@ DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt);
  * @li FinalBlockId TLV, 2 octets + maximum @c finalBlock.length .
  *
  * Additional requirements for @p capacity :
+ * @li @p capacity may be zero, which allow arbitrary size. Otherwise the following applies.
  * @li @c capacity+1 must be a multiple of 8, for alignment.
  * @li @c capacity-2 must be less than 0xFD, because MetaInfo TLV-LENGTH is assumed as 1-octet.
  */

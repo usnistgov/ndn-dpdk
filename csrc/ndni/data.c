@@ -248,7 +248,7 @@ DataEnc_EncodePayload(LName prefix, LName suffix, const void* metaBuf, struct rt
   uint16_t sizeofHeadroom = 1 + sizeofNameL + nameL + meta->size + 1 + sizeofContentL;
 
   uint8_t* sig = (uint8_t*)rte_pktmbuf_append(m, sizeof(NullSig));
-  if (unlikely(sig == NULL || rte_pktmbuf_headroom(m) < 4 + sizeofHeadroom)) {
+  if (unlikely(sig == NULL || rte_pktmbuf_headroom(m) < L3TypeLengthHeadroom + sizeofHeadroom)) {
     return NULL;
   }
   rte_memcpy(sig, &NullSig, sizeof(NullSig));

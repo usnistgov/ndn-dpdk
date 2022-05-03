@@ -5,11 +5,6 @@
 
 #include "common.h"
 
-enum
-{
-  NameHexBufferLength = 2 * NameMaxLength + 1,
-};
-
 extern uint64_t LName_EmptyHash_;
 
 /** @brief Name in linear buffer. */
@@ -138,13 +133,6 @@ LName_Slice(LName name, uint16_t start, uint16_t end)
 /** @brief Compute hash for a name. */
 uint64_t
 LName_ComputeHash(LName name);
-
-/**
- * @brief Print name in hexadecimal format.
- * @return number of characters written, excluding trailing null character.
- */
-__attribute__((nonnull)) int
-LName_PrintHex(LName name, char buffer[NameHexBufferLength]);
 
 /**
  * @brief Find a matching prefix of @p name .

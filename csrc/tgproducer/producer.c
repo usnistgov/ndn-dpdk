@@ -83,7 +83,7 @@ Tgp_ProcessInterest(Tgp* p, TgpBurstCtx* ctx, uint16_t i)
                                          TgpMaxPatterns, p->prefixL, p->prefixV);
   if (unlikely(patternID < 0)) {
     const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
-    N_LOGD(">I dn-token=" PRI_LpPitToken " no-pattern", LpPitToken_Fmt(token));
+    N_LOGD(">I dn-token=%s no-pattern", LpPitToken_ToString(token));
     ++p->nNoMatch;
     TgpBurstCtx_Discard(ctx, i);
     return;
@@ -93,8 +93,7 @@ Tgp_ProcessInterest(Tgp* p, TgpBurstCtx* ctx, uint16_t i)
   TgpReply* reply = &pattern->reply[replyID];
 
   const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
-  N_LOGD(">I dn-token=" PRI_LpPitToken " pattern=%d reply=%" PRIu8, LpPitToken_Fmt(token),
-         patternID, replyID);
+  N_LOGD(">I dn-token=%s pattern=%d reply=%" PRIu8, LpPitToken_ToString(token), patternID, replyID);
   ++reply->nInterests;
   Tgp_RespondJmp[reply->kind](ctx, i, reply);
 }
