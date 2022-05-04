@@ -93,8 +93,8 @@ func (dev ethDev) NumaSocket() (socket eal.NumaSocket) {
 }
 
 func (dev ethDev) DevInfo() (info DevInfo) {
-	C.rte_eth_dev_info_get(dev.cID(), (*C.struct_rte_eth_dev_info)(unsafe.Pointer(&info)))
-	return info
+	C.rte_eth_dev_info_get(dev.cID(), (*C.struct_rte_eth_dev_info)(unsafe.Pointer(&info.DevInfoC)))
+	return
 }
 
 func (dev ethDev) HardwareAddr() (a net.HardwareAddr) {
@@ -233,6 +233,22 @@ func (dev ethDev) stop(close bool) error {
 
 func (dev ethDev) Close() error {
 	return dev.stop(true)
+}
+
+func (port ethDev) RxQueues() (list []RxQueue) {
+	id, info := uint16(port.ID()), port.DevInfo()
+	for queue := uint16(0); queue < info.Nb_rx_queues; queue++ {
+		list = append(list, RxQueue{id, queue})
+	}
+	return list
+}
+
+func (port ethDev) TxQueues() (list []TxQueue) {
+	id, info := uint16(port.ID()), port.DevInfo()
+	for queue := uint16(0); queue < info.Nb_tx_queues; queue++ {
+		list = append(list, TxQueue{id, queue})
+	}
+	return list
 }
 
 func (dev ethDev) Stats() (stats Stats) {

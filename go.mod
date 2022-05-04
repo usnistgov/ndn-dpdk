@@ -18,6 +18,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
 	github.com/machinebox/graphql v0.2.2
+	github.com/pascaldekloe/name v1.0.1
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rickb777/plural v1.4.1
 	github.com/safchain/ethtool v0.2.0

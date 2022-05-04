@@ -27,6 +27,23 @@ const (
 	txOffloadChecksum  = C.RTE_ETH_TX_OFFLOAD_IPV4_CKSUM | C.RTE_ETH_TX_OFFLOAD_UDP_CKSUM
 )
 
+func infoJSON(info, infoC any) ([]byte, error) {
+	var m map[string]any
+	if e := jsonhelper.Roundtrip(infoC, &m); e != nil {
+		return nil, e
+	}
+
+	typ, val := reflect.TypeOf(info), []reflect.Value{reflect.ValueOf(info)}
+	for i, n := 0, typ.NumMethod(); i < n; i++ {
+		method := typ.Method(i)
+		if method.IsExported() && method.Type.NumIn() == 1 && method.Type.NumOut() == 1 {
+			m[method.Name] = method.Func.Call(val)[0].Interface()
+		}
+	}
+
+	return json.Marshal(jsonhelper.CleanCgoStruct(m))
+}
+
 // DevInfo provides contextual information of an Ethernet port.
 type DevInfo struct {
 	DevInfoC
@@ -84,18 +101,7 @@ func (info DevInfo) HasTxChecksumOffload() bool {
 
 // MarshalJSON implements json.Marshaler interface.
 func (info DevInfo) MarshalJSON() ([]byte, error) {
-	var m map[string]any
-	if e := jsonhelper.Roundtrip(info.DevInfoC, &m); e != nil {
-		return nil, e
-	}
-	typ, val := reflect.TypeOf(info), []reflect.Value{reflect.ValueOf(info)}
-	for i, n := 0, typ.NumMethod(); i < n; i++ {
-		method := typ.Method(i)
-		if method.IsExported() && method.Type.NumIn() == 1 && method.Type.NumOut() == 1 {
-			m[method.Name] = method.Func.Call(val)[0].Interface()
-		}
-	}
-	return json.Marshal(m)
+	return infoJSON(info, info.DevInfoC)
 }
 
 // adjustQueueCapacity adjust RX/TX queue capacity to satisfy driver requirements.

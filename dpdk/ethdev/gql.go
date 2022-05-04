@@ -49,6 +49,32 @@ func init() {
 					return port.DevInfo(), nil
 				},
 			},
+			"rxqInfo": &graphql.Field{
+				Type:        gqlserver.JSON,
+				Description: "DPDK RX queues information.",
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					port := p.Source.(EthDev)
+					queues := port.RxQueues()
+					list := make([]RxqInfo, len(queues))
+					for i, q := range queues {
+						list[i] = q.Info()
+					}
+					return list, nil
+				},
+			},
+			"txqInfo": &graphql.Field{
+				Type:        gqlserver.JSON,
+				Description: "DPDK TX queues information.",
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					port := p.Source.(EthDev)
+					queues := port.TxQueues()
+					list := make([]TxqInfo, len(queues))
+					for i, q := range queues {
+						list[i] = q.Info()
+					}
+					return list, nil
+				},
+			},
 			"macAddr": &graphql.Field{
 				Type:        gqlserver.NonNullString,
 				Description: "MAC address.",

@@ -4,6 +4,9 @@ package jsonhelper
 import (
 	"bytes"
 	"encoding/json"
+	"strings"
+
+	"github.com/pascaldekloe/name"
 )
 
 // Option sets an option on json.Decoder.
@@ -29,4 +32,28 @@ func Roundtrip(input, ptr any, options ...Option) error {
 		return e
 	}
 	return nil
+}
+
+// CleanCgoStruct cleans roundtripped object from a cgo-generated structure.
+// It deletes padding and reserved fields, then converts object keys to lowerCamalCase.
+func CleanCgoStruct(input any) any {
+	switch input := input.(type) {
+	case map[string]any:
+		m := map[string]any{}
+		for k, v := range input {
+			if strings.HasPrefix(k, "Pad_cgo_") || strings.HasPrefix(k, "Reserved_") {
+				continue
+			}
+			m[name.CamelCase(k, false)] = CleanCgoStruct(v)
+		}
+		return m
+	case []any:
+		a := make([]any, len(input))
+		for i, v := range input {
+			a[i] = CleanCgoStruct(v)
+		}
+		return a
+	default:
+		return input
+	}
 }
