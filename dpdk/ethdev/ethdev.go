@@ -253,11 +253,12 @@ func (port ethDev) TxQueues() (list []TxQueue) {
 
 func (dev ethDev) Stats() (stats Stats) {
 	C.rte_eth_stats_get(dev.cID(), (*C.struct_rte_eth_stats)(unsafe.Pointer(&stats)))
+	stats.dev = dev
 	return
 }
 
 func (dev ethDev) ResetStats() error {
-	res := C.rte_eth_stats_reset(dev.cID())
+	res := C.rte_eth_xstats_reset(dev.cID())
 	return eal.MakeErrno(res)
 }
 

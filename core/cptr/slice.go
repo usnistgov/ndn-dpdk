@@ -2,6 +2,7 @@
 package cptr
 
 import (
+	"bytes"
 	"unsafe"
 
 	_ "github.com/ianlancetaylor/cgosymbolizer"
@@ -13,6 +14,16 @@ func AsByteSlice[T ~uint8 | ~int8, A ~[]T](value A) (b []byte) {
 		return nil
 	}
 	return unsafe.Slice((*byte)(unsafe.Pointer(&value[0])), len(value))
+}
+
+// GetString interprets []byte as nil-terminated string.
+func GetString[T ~uint8 | ~int8, A ~[]T](value A) string {
+	b := AsByteSlice(value)
+	i := bytes.IndexByte(b, 0)
+	if i < 0 {
+		return string(b)
+	}
+	return string(b[:i])
 }
 
 // FirstPtr returns a pointer to the first element of a slice, or nil if the slice is empty.

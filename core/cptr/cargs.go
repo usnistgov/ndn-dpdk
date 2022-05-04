@@ -20,22 +20,22 @@ func (a *CArgs) Close() error {
 	for _, strMem := range a.strMems {
 		C.free(strMem)
 	}
-	C.free(unsafe.Pointer(a.Argv))
+	C.free(a.Argv)
 	return nil
 }
 
 // NewCArgs constructs CArgs.
 func NewCArgs(args []string) (a *CArgs) {
-	ptrSize := int(unsafe.Sizeof((*C.char)(nil)))
 	a = &CArgs{
 		Argc: len(args),
-		Argv: C.malloc(C.size_t(ptrSize) * C.size_t(len(args))),
+		Argv: C.calloc(C.size_t(len(args)), C.size_t(unsafe.Sizeof((*C.char)(nil)))),
 	}
+	argv := unsafe.Slice((**C.char)(a.Argv), len(args))
 
 	for i, arg := range args {
-		argvEle := (**C.char)(unsafe.Add(a.Argv, i*ptrSize))
-		*argvEle = C.CString(arg)
-		a.strMems = append(a.strMems, unsafe.Pointer(*argvEle))
+		s := C.CString(arg)
+		argv[i] = s
+		a.strMems = append(a.strMems, unsafe.Pointer(s))
 	}
 	return a
 }

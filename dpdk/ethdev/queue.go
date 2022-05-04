@@ -102,7 +102,7 @@ type BurstModeInfo struct {
 func burstModeInfoFromC(res C.int, bm C.struct_rte_eth_burst_mode) (info BurstModeInfo) {
 	if res == 0 {
 		info.Flags = uint64(bm.flags)
-		info.Info = C.GoString(&bm.info[0])
+		info.Info = cptr.GetString(bm.info[:])
 	} else {
 		info.Info = fmt.Sprint("ERROR: ", eal.MakeErrno(res))
 	}

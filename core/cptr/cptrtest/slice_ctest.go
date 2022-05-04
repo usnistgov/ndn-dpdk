@@ -37,6 +37,20 @@ func ctestByteSlice(t *testing.T) {
 	assert.EqualValues(0x41, uint8Slice[3])
 }
 
+func ctestGetString(t *testing.T) {
+	assert, _ := makeAR(t)
+
+	var charArray [2]C.char
+	assert.Equal(cptr.GetString(charArray[:0]), "")
+
+	charArray[0] = 'A'
+	charArray[1] = 'B'
+	assert.Equal(cptr.GetString(charArray[:]), "AB")
+
+	charArray[1] = 0
+	assert.Equal(cptr.GetString(charArray[:]), "A")
+}
+
 func ctestFirstPtr(t *testing.T) {
 	assert, require := makeAR(t)
 

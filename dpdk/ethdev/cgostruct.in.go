@@ -22,5 +22,5 @@ type TxConfC C.struct_rte_eth_txconf
 
 type TxqInfoC C.struct_rte_eth_txq_info
 
-// Stats contains statistics for an Ethernet port.
-type Stats C.struct_rte_eth_stats
+// StatsBasic contains basic statistics for an Ethernet port.
+type StatsBasic C.struct_rte_eth_stats

@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/zyedidia/generic"
 )
@@ -33,11 +34,14 @@ func infoJSON(info, infoC any) ([]byte, error) {
 		return nil, e
 	}
 
-	typ, val := reflect.TypeOf(info), []reflect.Value{reflect.ValueOf(info)}
-	for i, n := 0, typ.NumMethod(); i < n; i++ {
-		method := typ.Method(i)
-		if method.IsExported() && method.Type.NumIn() == 1 && method.Type.NumOut() == 1 {
-			m[method.Name] = method.Func.Call(val)[0].Interface()
+	if info != nil {
+		typ, val := reflect.TypeOf(info), []reflect.Value{reflect.ValueOf(info)}
+		for i, n := 0, typ.NumMethod(); i < n; i++ {
+			method := typ.Method(i)
+			if method.IsExported() && method.Name != "String" &&
+				method.Type.NumIn() == 1 && method.Type.NumOut() == 1 {
+				m[method.Name] = method.Func.Call(val)[0].Interface()
+			}
 		}
 	}
 
@@ -108,6 +112,38 @@ func (info DevInfo) MarshalJSON() ([]byte, error) {
 func (lim DescLim) adjustQueueCapacity(capacity int) int {
 	capacity -= capacity % int(lim.Align)
 	return generic.Clamp(capacity, int(lim.Min), int(lim.Max))
+}
+
+// Stats contains statistics for an Ethernet port.
+type Stats struct {
+	StatsBasic
+	dev ethDev
+}
+
+// X retrieves extended statistics.
+func (stats Stats) X() (m map[string]any) {
+	n := C.rte_eth_xstats_get_names(stats.dev.cID(), nil, 0)
+	if n <= 0 {
+		return nil
+	}
+	names, xstats := make([]C.struct_rte_eth_xstat_name, n), make([]C.struct_rte_eth_xstat, n)
+	if res := C.rte_eth_xstats_get_names(stats.dev.cID(), &names[0], C.unsigned(n)); res != n {
+		return nil
+	}
+	if res := C.rte_eth_xstats_get(stats.dev.cID(), &xstats[0], C.unsigned(n)); res != n {
+		return nil
+	}
+
+	m = map[string]any{}
+	for i, name := range names {
+		m[cptr.GetString(name.name[:])] = uint64(xstats[i].value)
+	}
+	return m
+}
+
+// MarshalJSON implements json.Marshaler interface.
+func (stats Stats) MarshalJSON() ([]byte, error) {
+	return infoJSON(stats, stats.StatsBasic)
 }
 
 func (stats Stats) String() string {

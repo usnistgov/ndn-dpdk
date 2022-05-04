@@ -86,13 +86,11 @@ func initEal(args []string) error {
 	if e != nil {
 		exe = os.Args[0]
 	}
-	argv := append([]string{exe}, args...)
-	a := cptr.NewCArgs(argv)
+	a := cptr.NewCArgs(append([]string{exe}, args...))
 	defer a.Close()
 
 	C.rte_mp_disable()
-	res := C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv))
-	if res < 0 {
+	if res := C.rte_eal_init(C.int(a.Argc), (**C.char)(a.Argv)); res < 0 {
 		return fmt.Errorf("rte_eal_init %w", eal.GetErrno())
 	}
 
