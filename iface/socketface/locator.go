@@ -1,10 +1,9 @@
 package socketface
 
 import (
-	"fmt"
-	"net"
-
+	"github.com/gogf/greuse"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"go.uber.org/multierr"
 )
 
 const (
@@ -31,39 +30,12 @@ func (Locator) WithSchemeField() {}
 
 // Validate checks the addresses.
 func (loc Locator) Validate() error {
-	switch loc.Network {
-	case schemeUnix:
-		if _, e := net.ResolveUnixAddr(loc.Network, loc.Remote); e != nil {
-			return fmt.Errorf("remote %w", e)
-		}
-		if loc.Local != "" && loc.Local != "@" {
-			if _, e := net.ResolveUnixAddr(loc.Network, loc.Local); e != nil {
-				return fmt.Errorf("local %w", e)
-			}
-		}
-		return nil
-	case schemeUDP:
-		if _, e := net.ResolveUDPAddr(loc.Network, loc.Remote); e != nil {
-			return fmt.Errorf("remote %w", e)
-		}
-		if loc.Local != "" {
-			if _, e := net.ResolveUDPAddr(loc.Network, loc.Local); e != nil {
-				return fmt.Errorf("local %w", e)
-			}
-		}
-		return nil
-	case schemeTCP:
-		if _, e := net.ResolveTCPAddr(loc.Network, loc.Remote); e != nil {
-			return fmt.Errorf("remote %w", e)
-		}
-		if loc.Local != "" {
-			if _, e := net.ResolveTCPAddr(loc.Network, loc.Local); e != nil {
-				return fmt.Errorf("local %w", e)
-			}
-		}
-		return nil
+	_, eR := greuse.ResolveAddr(loc.Network, loc.Remote)
+	var eL error
+	if loc.Local != "" && !(loc.Network == schemeUnix && loc.Local == "@") {
+		_, eL = greuse.ResolveAddr(loc.Network, loc.Local)
 	}
-	return fmt.Errorf("unknown scheme %s", loc.Network)
+	return multierr.Append(eR, eL)
 }
 
 // CreateFace creates a face from this Locator.

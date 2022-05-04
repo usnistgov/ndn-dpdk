@@ -240,7 +240,7 @@ The differences are:
 
 ### Error during Ethernet Port Creation or Face Creation
 
-If the command or GraphQL mutation for creating an Ethernet port or a face returns an error, you can view detailed error messages from NDN-DPDK service logs.
+If the command or GraphQL mutation for creating an Ethernet port or a face returns an error, detailed error messages are often available in NDN-DPDK service logs.
 See [installation guide](INSTALL.md) "usage" section and [Docker container](Docker.md) "control the service container" section for how to access NDN-DPDK service logs.
 
 Common mistakes include:

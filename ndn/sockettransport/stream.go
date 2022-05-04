@@ -23,7 +23,8 @@ func (streamReader) Read(tr *transport, buf []byte) (n int, e error) {
 	}
 
 	if mtu := tr.MTU(); cap(received) < mtu {
-		received = append(make([]byte, 0, 2*mtu), received...)
+		// don't use slices.Grow() because it would cause the underlying buffer to grow indefinitely
+		received = append(make([]byte, 0, 4*mtu), received...)
 	}
 	r, e := tr.conn.Read(received[len(received):cap(received)])
 	if e != nil {

@@ -1,6 +1,10 @@
 package sockettransport
 
-import "net"
+import (
+	"net"
+
+	"github.com/gogf/greuse"
+)
 
 type impl interface {
 	// Dial the socket.
@@ -19,7 +23,10 @@ var implByNetwork = map[string]impl{}
 type noLocalAddrDialer struct{}
 
 func (noLocalAddrDialer) Dial(network, local, remote string) (net.Conn, error) {
-	return net.Dial(network, remote)
+	dialer := net.Dialer{
+		Control: greuse.Control,
+	}
+	return dialer.Dial(network, remote)
 }
 
 // localAddrRedialer redials reusing local addr.
@@ -28,7 +35,11 @@ type localAddrRedialer struct{}
 func (localAddrRedialer) Redial(oldConn net.Conn) (net.Conn, error) {
 	local, remote := oldConn.LocalAddr(), oldConn.RemoteAddr()
 	oldConn.Close() // ignore error
-	dialer := net.Dialer{LocalAddr: local}
+
+	dialer := net.Dialer{
+		LocalAddr: local,
+		Control:   greuse.Control,
+	}
 	return dialer.Dial(remote.Network(), remote.String())
 }
 
@@ -38,7 +49,11 @@ type noLocalAddrRedialer struct{}
 func (noLocalAddrRedialer) Redial(oldConn net.Conn) (net.Conn, error) {
 	remote := oldConn.RemoteAddr()
 	oldConn.Close() // ignore error
-	return net.Dial(remote.Network(), remote.String())
+
+	dialer := net.Dialer{
+		Control: greuse.Control,
+	}
+	return dialer.Dial(remote.Network(), remote.String())
 }
 
 // nopRedialer redials by doing nothing.

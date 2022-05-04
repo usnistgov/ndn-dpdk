@@ -32,13 +32,13 @@ require (
 	github.com/urfave/cli/v2 v2.5.1
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
-	github.com/zyedidia/generic v0.2.1-0.20220424203152-e63b282f39ba
+	github.com/zyedidia/generic v1.0.0
 	go.uber.org/atomic v1.9.0
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/exp v0.0.0-20220426173459-3bcf042a4bf5
-	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150
+	golang.org/x/exp v0.0.0-20220428152302-39d4317da171
+	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6
 )
 
 require (
