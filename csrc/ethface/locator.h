@@ -70,16 +70,11 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc);
 /**
  * @brief Determine whether a received frame matches the locator.
  * @param match EthRxMatch prepared by @c EthRxMatch_Prepare .
- * @post if matching, the header is stripped.
  */
 __attribute__((nonnull)) static inline bool
 EthRxMatch_Match(const EthRxMatch* match, struct rte_mbuf* m)
 {
-  if (m->data_len >= match->len && match->f(match, m)) {
-    rte_pktmbuf_adj(m, match->len);
-    return true;
-  }
-  return false;
+  return m->data_len >= match->len && match->f(match, m);
 }
 
 /** @brief Prepare XDP locator from locator. */

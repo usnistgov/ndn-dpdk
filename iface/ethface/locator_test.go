@@ -9,6 +9,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"golang.org/x/exp/slices"
 )
 
 func TestLocatorCoexist(t *testing.T) {
@@ -182,7 +183,7 @@ func TestLocatorRxMatch(t *testing.T) {
 	payload := make(gopacket.Payload, 200)
 	rand.Read([]byte(payload))
 	onlyMatch := func(matcherKey string, headers ...gopacket.SerializableLayer) {
-		pkt := pktmbufFromLayers(append(append([]gopacket.SerializableLayer{}, headers...), payload)...)
+		pkt := pktmbufFromLayers(append(slices.Clone(headers), payload)...)
 		defer pkt.Close()
 
 		pktLen := pkt.Len()
@@ -195,8 +196,9 @@ func TestLocatorRxMatch(t *testing.T) {
 		}
 
 		if matcherKey != "" {
-			assert.True(matchers[matcherKey].Match(pkt))
-			assert.Equal([]byte(payload), pkt.Bytes())
+			m := matchers[matcherKey]
+			assert.True(m.Match(pkt))
+			assert.Equal([]byte(payload), pkt.SegmentBytes()[0][m.HdrLen():])
 		}
 	}
 

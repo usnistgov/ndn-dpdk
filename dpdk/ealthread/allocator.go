@@ -78,7 +78,7 @@ func AllocRequest(requests ...AllocReq) (list []eal.LCore, e error) {
 		}
 	}
 
-	sockets := append([]eal.NumaSocket{}, eal.Sockets...)
+	sockets := slices.Clone(eal.Sockets)
 	for _, i := range reqAny {
 		slices.SortFunc(sockets, func(a, b eal.NumaSocket) bool { return len(workersBySocket[a]) > len(workersBySocket[b]) })
 		list[i] = take(sockets[0]) // pick from least occupied NUMA socket

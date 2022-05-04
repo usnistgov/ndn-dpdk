@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
+	"golang.org/x/exp/slices"
 )
 
 const gqlFaceCounters = "rxFrames rxInterests rxData rxNacks txFrames txInterests txData txNacks"
@@ -181,7 +182,7 @@ func init() {
 		Category: "face",
 		Name:     "create-udp-face",
 		Usage:    "Create a UDP face (using EthDev)",
-		Flags: append(append([]cli.Flag{}, ethFlags...),
+		Flags: append(slices.Clone(ethFlags),
 			&cli.StringFlag{
 				Name:     "udp-local",
 				Usage:    "local UDP `host:port`",
@@ -218,7 +219,7 @@ func init() {
 		Category: "face",
 		Name:     "create-vxlan-face",
 		Usage:    "Create a VXLAN face",
-		Flags: append(append([]cli.Flag{}, ethFlags...),
+		Flags: append(slices.Clone(ethFlags),
 			&cli.StringFlag{
 				Name:     "ip-local",
 				Usage:    "local IP `host`",

@@ -10,6 +10,7 @@ EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m)
   cds_hlist_for_each_entry_rcu (priv, pos, &rxt->head, rxtNode) {
     if (EthRxMatch_Match(&priv->rxMatch, m)) {
       m->port = priv->faceID;
+      rte_pktmbuf_adj(m, priv->rxMatch.len);
       return true;
     }
   }
@@ -56,10 +57,10 @@ EthRxTable_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx)
     bounceBufs[nBounceBufs++] = m;
   }
 
-  if (pdumpUnmatched != NULL && nUnmatch > 0) {
+  if (unlikely(pdumpUnmatched != NULL && nUnmatch > 0)) {
     PdumpSource_Process(pdumpUnmatched, unmatch, nUnmatch);
   }
-  if (nBounceBufs > 0) {
+  if (unlikely(nBounceBufs > 0)) {
     rte_pktmbuf_free_bulk(bounceBufs, nBounceBufs);
   }
 }

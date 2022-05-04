@@ -4,36 +4,35 @@
 
 N_LOG_INIT(EthFace);
 
-__attribute__((nonnull)) static void
-EthRxFlow_RxBurst_Unchecked(RxGroup* rxg, RxGroupBurstCtx* ctx)
+__attribute__((nonnull)) static __rte_always_inline void
+EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool skipCheck)
 {
   EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
   ctx->nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, RTE_DIM(ctx->pkts));
   uint64_t now = rte_get_tsc_cycles();
+
   for (uint16_t i = 0; i < ctx->nRx; ++i) {
     struct rte_mbuf* m = ctx->pkts[i];
-    Mbuf_SetTimestamp(m, now);
-    m->port = rxf->faceID;
-    rte_pktmbuf_adj(m, rxf->hdrLen);
+    if (skipCheck || likely(EthRxMatch_Match(rxf->rxMatch, m))) {
+      Mbuf_SetTimestamp(m, now);
+      m->port = rxf->faceID;
+      rte_pktmbuf_adj(m, rxf->hdrLen);
+    } else {
+      RxGroupBurstCtx_Drop(ctx, i);
+    }
   }
+}
+
+__attribute__((nonnull)) static void
+EthRxFlow_RxBurst_Unchecked(RxGroup* rxg, RxGroupBurstCtx* ctx)
+{
+  EthRxFlow_RxBurst(rxg, ctx, true);
 }
 
 __attribute__((nonnull)) static void
 EthRxFlow_RxBurst_Checked(RxGroup* rxg, RxGroupBurstCtx* ctx)
 {
-  EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
-  ctx->nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, RTE_DIM(ctx->pkts));
-  uint64_t now = rte_get_tsc_cycles();
-
-  for (uint16_t i = 0; i < ctx->nRx; ++i) {
-    struct rte_mbuf* m = ctx->pkts[i];
-    if (likely(EthRxMatch_Match(rxf->rxMatch, m))) {
-      Mbuf_SetTimestamp(m, now);
-      m->port = rxf->faceID;
-    } else {
-      RxGroupBurstCtx_Drop(ctx, i);
-    }
-  }
+  EthRxFlow_RxBurst(rxg, ctx, false);
 }
 
 struct rte_flow*
@@ -83,7 +82,7 @@ EthFace_SetupFlow(EthFacePriv* priv, uint16_t queues[], int nQueues, const EthLo
     rxf->faceID = priv->faceID;
     rxf->port = priv->port;
     rxf->queue = queues[i];
-    rxf->hdrLen = priv->rxMatch.len;
+    rxf->hdrLen = priv->rxMatch.len; // don't access priv->rxMatch in unchecked mode
     rxf->rxMatch = &priv->rxMatch;
   }
   return flow;

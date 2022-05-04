@@ -58,9 +58,13 @@ func (match RxMatch) copyToC(c *C.EthRxMatch) {
 }
 
 // Match determines whether an incoming packet matches the locator.
-// Headers are stripped after a successful match.
 func (match RxMatch) Match(pkt *pktmbuf.Packet) bool {
 	return bool(C.EthRxMatch_Match((*C.EthRxMatch)(&match), (*C.struct_rte_mbuf)(pkt.Ptr())))
+}
+
+// HdrLen returns header length.
+func (match RxMatch) HdrLen() int {
+	return int(match.len)
 }
 
 // NewRxMatch creates RxMatch from a locator.
