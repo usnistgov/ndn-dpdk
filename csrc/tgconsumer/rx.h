@@ -13,7 +13,7 @@
 typedef struct TgcRxPattern
 {
   uint64_t nNacks;
-  RunningStat rtt;
+  RunningStatI rtt;
   uint16_t prefixLen;
 } TgcRxPattern;
 

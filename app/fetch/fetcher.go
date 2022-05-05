@@ -12,6 +12,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/pcg32"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -96,7 +97,7 @@ func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
 		}
 		w.c.face = (C.FaceID)(faceID)
 		w.c.interestMp = interestMp
-		ndni.InitNonceGen(unsafe.Pointer(&w.c.nonceGen))
+		pcg32.Init(unsafe.Pointer(&w.c.nonceRng))
 		w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 			cptr.Func0.C(C.FetchThread_Run, w.c),
 			unsafe.Pointer(&w.c.ctrl),

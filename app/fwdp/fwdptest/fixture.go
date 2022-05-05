@@ -61,8 +61,7 @@ func NewFixture(t testing.TB, modifyConfig ...func(cfg *fwdp.Config)) (f *Fixtur
 	cfg.Pcct.CsMemoryCapacity = 16384
 	cfg.Pcct.CsIndirectCapacity = 16384
 
-	latencySampleFreq := 0
-	cfg.LatencySampleFreq = &latencySampleFreq
+	cfg.LatencySampleInterval = 1
 
 	for _, m := range modifyConfig {
 		m(&cfg)

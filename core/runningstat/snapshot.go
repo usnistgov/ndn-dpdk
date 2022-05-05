@@ -1,172 +1,97 @@
 package runningstat
 
 import (
-	"encoding/json"
 	"math"
 
+	"github.com/graphql-go/graphql"
+	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/zyedidia/generic"
 )
 
+func combineMinMax(f func(a, b uint64) uint64, a, b *uint64) (uint64, bool) {
+	if a == nil || b == nil {
+		return 0, false
+	}
+	return f(*a, *b), true
+}
+
+func scaleMinMax(x *uint64, ratio float64) (uint64, bool) {
+	if x == nil {
+		return 0, false
+	}
+	return uint64(float64(*x) * ratio), true
+}
+
 // Snapshot contains a snapshot of RunningStat reading.
 type Snapshot struct {
-	v runningStat
-}
-
-var (
-	_ json.Marshaler   = Snapshot{}
-	_ json.Unmarshaler = (*Snapshot)(nil)
-)
-
-// Count returns number of inputs.
-func (s Snapshot) Count() uint64 {
-	return s.v.I
-}
-
-// Len returns number of samples.
-func (s Snapshot) Len() uint64 {
-	return s.v.N
-}
-
-// Min returns minimum value, if enabled.
-func (s Snapshot) Min() float64 {
-	if s.v.N == 0 {
-		return math.NaN()
-	}
-	return s.v.Min
-}
-
-// Max returns maximum value, if enabled.
-func (s Snapshot) Max() float64 {
-	if s.v.N == 0 {
-		return math.NaN()
-	}
-	return s.v.Max
-}
-
-// Mean returns mean value.
-func (s Snapshot) Mean() float64 {
-	if s.v.N == 0 {
-		return math.NaN()
-	}
-	return s.v.M1
-}
-
-// Variance returns variance of samples.
-func (s Snapshot) Variance() float64 {
-	if s.v.N <= 1 {
-		return math.NaN()
-	}
-	return s.v.M2 / float64(s.v.N-1)
-}
-
-// Stdev returns standard deviation of samples.
-func (s Snapshot) Stdev() float64 {
-	return math.Sqrt(s.Variance())
-}
-
-// M1 returns internal variable m1.
-func (s Snapshot) M1() float64 {
-	return s.v.M1
-}
-
-// M2 returns internal variable m1.
-func (s Snapshot) M2() float64 {
-	return s.v.M2
+	Count    uint64  `json:"count" gqldesc:"Number of input values."`
+	Len      uint64  `json:"len" gqldesc:"Number of collected samples."`
+	Mean     float64 `json:"mean" gqldesc:"Mean value. Valid if count>0."`
+	Variance float64 `json:"variance" gqldesc:"Variance of samples. Valid if count>1."`
+	Stdev    float64 `json:"stdev" gqldesc:"Standard deviation of samples. Valid if count>1."`
+	M1       float64 `json:"m1"`
+	M2       float64 `json:"m2"`
+	Min      *uint64 `json:"min" gqldesc:"Minimum value. Valid if count>0."`
+	Max      *uint64 `json:"max" gqldesc:"Maximum value. Valid if count>0."`
 }
 
 // Add combines stats with another instance.
-func (s Snapshot) Add(o Snapshot) (sum Snapshot) {
-	if s.v.I == 0 {
+func (s Snapshot) Add(o Snapshot) Snapshot {
+	if s.Count == 0 {
 		return o
-	} else if o.v.I == 0 {
+	} else if o.Count == 0 {
 		return s
 	}
-	sum.v.I = s.v.I + o.v.I
-	sum.v.N = s.v.N + o.v.N
-	sum.v.Min = generic.Min(s.v.Min, o.v.Min)
-	sum.v.Max = generic.Max(s.v.Max, o.v.Max)
-	aN := float64(s.v.N)
-	bN := float64(o.v.N)
-	cN := float64(sum.v.N)
-	delta := o.v.M1 - s.v.M1
+	i := s.Count + o.Count
+	n := s.Len + o.Len
+	aN, bN, cN := float64(s.Len), float64(o.Len), float64(n)
+	delta := o.M1 - s.M1
 	delta2 := delta * delta
-	sum.v.M1 = (aN*s.v.M1 + bN*o.v.M1) / cN
-	sum.v.M2 = s.v.M2 + o.v.M2 + delta2*aN*bN/cN
-	return
+	m1 := (aN*s.M1 + bN*o.M1) / cN
+	m2 := s.M2 + o.M2 + delta2*aN*bN/cN
+	min, hasMin := combineMinMax(generic.Min[uint64], s.Min, o.Min)
+	max, hasMax := combineMinMax(generic.Max[uint64], s.Max, o.Max)
+	return newSnapshot(i, n, m1, m2, hasMin && hasMax, min, max)
 }
 
 // Sub computes numerical difference.
-func (s Snapshot) Sub(o Snapshot) (diff Snapshot) {
-	diff.v.I = s.v.I - o.v.I
-	diff.v.N = s.v.N - o.v.N
-	diff.v.Min = math.NaN()
-	diff.v.Max = math.NaN()
-	cN := float64(s.v.N)
-	aN := float64(o.v.N)
-	bN := float64(diff.v.N)
-	diff.v.M1 = (cN*s.v.M1 - aN*o.v.M1) / bN
-	delta := o.v.M1 - diff.v.M1
+func (s Snapshot) Sub(o Snapshot) Snapshot {
+	i := s.Count - o.Count
+	n := s.Len - o.Len
+	cN, aN, bN := float64(s.Len), float64(o.Len), float64(n)
+	m1 := (cN*s.M1 - aN*o.M1) / bN
+	delta := o.M1 - m1
 	delta2 := delta * delta
-	diff.v.M2 = s.v.M2 - o.v.M2 - delta2*aN*bN/cN
-	return diff
+	m2 := s.M2 - o.M2 - delta2*aN*bN/cN
+	return newSnapshot(i, n, m1, m2, false, 0, 0)
 }
 
 // Scale multiplies every number by a ratio.
-func (s Snapshot) Scale(ratio float64) (o Snapshot) {
-	o = s
-	o.v.Min *= ratio
-	o.v.Max *= ratio
-	o.v.M1 *= ratio
-	o.v.M2 *= ratio * ratio
-	return o
+func (s Snapshot) Scale(ratio float64) Snapshot {
+	m1, m2 := s.M1*ratio, s.M2*ratio*ratio
+	min, hasMin := scaleMinMax(s.Min, ratio)
+	max, hasMax := scaleMinMax(s.Max, ratio)
+	return newSnapshot(s.Count, s.Len, m1, m2, hasMin && hasMax, min, max)
 }
 
-// MarshalJSON implements json.Marshaler interface.
-func (s Snapshot) MarshalJSON() ([]byte, error) {
-	m := map[string]any{}
-	m["count"] = s.Count()
-	m["len"] = s.Len()
-	m["m1"] = s.v.M1
-	m["m2"] = s.v.M2
-
-	addUnlessNaN := func(key string, value float64) {
-		if !math.IsNaN(value) {
-			m[key] = value
-		}
+func newSnapshot(i, n uint64, m1, m2 float64, hasMinMax bool, min, max uint64) (s Snapshot) {
+	s.Count, s.Len = i, n
+	s.M1, s.M2 = m1, m2
+	if n > 0 {
+		s.Mean = m1
 	}
-	addUnlessNaN("min", s.Min())
-	addUnlessNaN("max", s.Max())
-	addUnlessNaN("mean", s.Mean())
-	addUnlessNaN("variance", s.Variance())
-	addUnlessNaN("stdev", s.Stdev())
-	return json.Marshal(m)
+	if n > 1 {
+		s.Variance = m2 / float64(n-1)
+		s.Stdev = math.Sqrt(s.Variance)
+	}
+	if n > 0 && hasMinMax {
+		s.Min, s.Max = &min, &max
+	}
+	return
 }
 
-// UnmarshalJSON implements json.Unmarshaler interface.
-func (s *Snapshot) UnmarshalJSON(p []byte) (e error) {
-	v := struct {
-		I   uint64   `json:"count"`
-		N   uint64   `json:"len"`
-		Min *float64 `json:"min"`
-		Max *float64 `json:"max"`
-		M1  *float64 `json:"m1"`
-		M2  *float64 `json:"m2"`
-	}{}
-	if e = json.Unmarshal(p, &v); e != nil {
-		return e
-	}
-
-	readNum := func(x *float64) float64 {
-		if x == nil {
-			return math.NaN()
-		}
-		return *x
-	}
-	s.v.I = v.I
-	s.v.N = v.N
-	s.v.Min = readNum(v.Min)
-	s.v.Max = readNum(v.Max)
-	s.v.M1 = readNum(v.M1)
-	s.v.M2 = readNum(v.M2)
-	return nil
-}
+// GqlSnapshotType is the GraphQL type for Snapshot.
+var GqlSnapshotType = graphql.NewObject(graphql.ObjectConfig{
+	Name:   "RunningStatSnapshot",
+	Fields: gqlserver.BindFields[Snapshot](nil),
+})

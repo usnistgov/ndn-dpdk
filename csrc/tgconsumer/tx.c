@@ -114,7 +114,7 @@ TgcTx_MakeInterest(TgcTx* ct, struct rte_mbuf* pkt, TscTime now)
   }
 
   LName suffix = (LName){ .length = suffixL, .value = &pattern->seqNumT };
-  uint32_t nonce = NonceGen_Next(&ct->nonceGen);
+  uint32_t nonce = pcg32_random_r(&ct->nonceRng);
   Packet* npkt = InterestTemplate_Encode(&pattern->tpl, pkt, suffix, nonce);
   TgcToken_Set(&Packet_GetLpL3Hdr(npkt)->pitToken, id, ct->runNum, now);
   N_LOGD("<I pattern=%" PRIu8 " seq=%" PRIx64, id, pattern->seqNumV);

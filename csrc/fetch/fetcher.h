@@ -24,7 +24,7 @@ typedef struct FetchThread
   ThreadCtrl ctrl;
   struct rte_mempool* interestMp;
   struct cds_hlist_head head;
-  NonceGen nonceGen;
+  pcg32_random_t nonceRng;
   FaceID face;
 } FetchThread;
 

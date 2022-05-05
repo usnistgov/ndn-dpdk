@@ -48,7 +48,6 @@ RttValue_Push(RttValue* rttv, TscDuration rtt)
   }
 }
 
-extern TscDuration RttEstTscInitRto;
 extern TscDuration RttEstTscMinRto;
 extern TscDuration RttEstTscMaxRto;
 

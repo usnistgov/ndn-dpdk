@@ -5,11 +5,11 @@ package tgproducer
 */
 import "C"
 import (
-	"math/rand"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/pcg32"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -86,7 +86,7 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, rxqCfg iface.PktQueueConf
 	}
 
 	w.c.face = (C.FaceID)(faceID)
-	C.pcg32_srandom_r(&w.c.replyRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
+	pcg32.Init(unsafe.Pointer(&w.c.replyRng))
 	(*ndni.Mempools)(unsafe.Pointer(&w.c.mp)).Assign(socket, ndni.DataMempool)
 
 	w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(

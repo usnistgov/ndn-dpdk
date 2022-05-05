@@ -4,7 +4,7 @@ static_assert(RttEstMinRto > 0, "");
 static_assert(RttEstInitRto > RttEstMinRto, "");
 static_assert(RttEstMaxRto > RttEstInitRto, "");
 
-TscDuration RttEstTscInitRto = 0;
+static TscDuration RttEstTscInitRto = 0;
 TscDuration RttEstTscMinRto = 0;
 TscDuration RttEstTscMaxRto = 0;
 

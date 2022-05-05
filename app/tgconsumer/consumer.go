@@ -19,6 +19,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
+	"github.com/usnistgov/ndn-dpdk/core/pcg32"
 	"github.com/usnistgov/ndn-dpdk/dpdk/cryptodev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -257,8 +258,8 @@ func New(face iface.Face, cfg Config) (c *Consumer, e error) {
 
 	c.txC.face = (C.FaceID)(face.ID())
 	c.txC.interestMp = (*C.struct_rte_mempool)(ndni.InterestMempool.Get(socket).Ptr())
-	C.pcg32_srandom_r(&c.txC.trafficRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
-	ndni.InitNonceGen(unsafe.Pointer(&c.txC.nonceGen))
+	pcg32.Init(unsafe.Pointer(&c.txC.trafficRng))
+	pcg32.Init(unsafe.Pointer(&c.txC.nonceRng))
 
 	c.rx = &worker{
 		ThreadWithCtrl: ealthread.NewThreadWithCtrl(
@@ -279,5 +280,7 @@ func New(face iface.Face, cfg Config) (c *Consumer, e error) {
 		must.Close(c)
 		return nil, fmt.Errorf("error setting patterns %w", e)
 	}
+
+	c.ClearCounters()
 	return c, nil
 }

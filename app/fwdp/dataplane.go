@@ -40,12 +40,12 @@ type Config struct {
 	Pcct     pcct.Config        `json:"pcct,omitempty"`
 	Suppress pit.SuppressConfig `json:"suppress,omitempty"`
 
-	Crypto            CryptoConfig         `json:"crypto,omitempty"`
-	Disk              DiskConfig           `json:"disk,omitempty"`
-	FwdInterestQueue  iface.PktQueueConfig `json:"fwdInterestQueue,omitempty"`
-	FwdDataQueue      iface.PktQueueConfig `json:"fwdDataQueue,omitempty"`
-	FwdNackQueue      iface.PktQueueConfig `json:"fwdNackQueue,omitempty"`
-	LatencySampleFreq *int                 `json:"latencySampleFreq,omitempty"` // latency sample frequency, between 0 and 30
+	Crypto                CryptoConfig         `json:"crypto,omitempty"`
+	Disk                  DiskConfig           `json:"disk,omitempty"`
+	FwdInterestQueue      iface.PktQueueConfig `json:"fwdInterestQueue,omitempty"`
+	FwdDataQueue          iface.PktQueueConfig `json:"fwdDataQueue,omitempty"`
+	FwdNackQueue          iface.PktQueueConfig `json:"fwdNackQueue,omitempty"`
+	LatencySampleInterval int                  `json:"latencySampleInterval,omitempty"`
 }
 
 func (cfg *Config) validate() error {
@@ -64,13 +64,9 @@ func (cfg *Config) validate() error {
 	if cfg.FwdInterestQueue.DequeueBurstSize <= 0 {
 		cfg.FwdInterestQueue.DequeueBurstSize = generic.Max(cfg.FwdDataQueue.DequeueBurstSize/2, 1)
 	}
-
-	latencySampleFreq := 16
-	if cfg.LatencySampleFreq != nil {
-		latencySampleFreq = generic.Clamp(*cfg.LatencySampleFreq, 0, 30)
+	if cfg.LatencySampleInterval <= 0 {
+		cfg.LatencySampleInterval = 1 << 16
 	}
-	cfg.LatencySampleFreq = &latencySampleFreq
-
 	return nil
 }
 
@@ -171,7 +167,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 	for i, lc := range lcFwd {
 		fwd := newFwd(i)
 		if e = fwd.Init(lc, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
-			*cfg.LatencySampleFreq, cfg.Suppress); e != nil {
+			cfg.LatencySampleInterval, cfg.Suppress); e != nil {
 			must.Close(dp)
 			return nil, fmt.Errorf("Fwd[%d].Init(): %w", i, e)
 		}

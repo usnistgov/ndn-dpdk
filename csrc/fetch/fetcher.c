@@ -13,7 +13,7 @@ FetchProc_Encode(FetchProc* fp, FetchThread* fth, struct rte_mbuf* pkt, uint64_t
   suffix[1] = Nni_Encode(RTE_PTR_ADD(suffix, 2), segNum);
   LName nameSuffix = { .length = suffix[1] + 2, .value = suffix };
 
-  uint32_t nonce = NonceGen_Next(&fth->nonceGen);
+  uint32_t nonce = pcg32_random_r(&fth->nonceRng);
   Packet* npkt = InterestTemplate_Encode(&fp->tpl, pkt, nameSuffix, nonce);
   LpPitToken_Set(&Packet_GetLpL3Hdr(npkt)->pitToken, sizeof(fp->pitToken), &fp->pitToken);
 }

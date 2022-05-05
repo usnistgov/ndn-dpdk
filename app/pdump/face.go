@@ -10,12 +10,12 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"math/rand"
 	"sync"
 	"unsafe"
 
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcapgo"
+	"github.com/usnistgov/ndn-dpdk/core/pcg32"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
@@ -187,7 +187,7 @@ func NewFaceSource(cfg FaceConfig) (s *FaceSource, e error) {
 		mbufPort: C.uint16_t(s.Face.ID()),
 		mbufCopy: true,
 	}
-	C.pcg32_srandom_r(&s.c.rng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
+	pcg32.Init(unsafe.Pointer(&s.c.rng))
 
 	// sort by decending name length for longest prefix match
 	slices.SortFunc(s.Names, func(a, b NameFilterEntry) bool { return len(a.Name) > len(b.Name) })

@@ -3,20 +3,7 @@
 
 /** @file */
 
-#include "../vendor/pcg_basic.h"
 #include "name.h"
-
-/** @brief Random nonce generator. */
-typedef struct NonceGen
-{
-  pcg32_random_t rng;
-} NonceGen;
-
-__attribute__((nonnull)) static __rte_always_inline uint32_t
-NonceGen_Next(NonceGen* g)
-{
-  return pcg32_random_r(&g->rng);
-}
 
 /** @brief Parsed Interest packet. */
 typedef struct PInterest

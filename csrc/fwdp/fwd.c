@@ -42,7 +42,7 @@ FwFwd_RxBurst(FwFwd* fwd, PktType pktType, PktQueue* q, RxFunc process)
     ctx.rxToken = Packet_GetLpL3Hdr(ctx.npkt)->pitToken;
 
     TscDuration timeSinceRx = now - ctx.rxTime;
-    RunningStat_Push1(&fwd->latencyStat, timeSinceRx);
+    RunningStat_Push(&fwd->latencyStat, timeSinceRx);
 
     process(fwd, &ctx);
   }

@@ -20,7 +20,7 @@ export interface FwdpConfig {
   fwdInterestQueue?: PktQueueConfig;
   fwdDataQueue?: PktQueueConfig;
   fwdNackQueue?: PktQueueConfig;
-  latencySampleFreq?: number;
+  latencySampleInterval?: Uint;
 }
 
 export interface FwdpCryptoConfig {

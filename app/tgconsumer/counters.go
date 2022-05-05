@@ -2,6 +2,7 @@ package tgconsumer
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 	"unsafe"
 
@@ -39,8 +40,15 @@ type RttCounters struct {
 }
 
 func (cnt RttCounters) String() string {
-	ms := cnt.Scale(1.0 / float64(time.Millisecond))
-	return fmt.Sprintf("%0.3f/%0.3f/%0.3f/%0.3fms(%dsamp)", ms.Min(), ms.Mean(), ms.Max(), ms.Stdev(), ms.Len())
+	const ratio = 1.0 / float64(time.Millisecond)
+	formatMinMax := func(v *uint64) string {
+		if v == nil {
+			return "none"
+		}
+		return strconv.FormatFloat(float64(*v)*ratio, 'f', 3, 64)
+	}
+	ms := cnt.Scale(ratio)
+	return fmt.Sprintf("%s/%0.3f/%s/%0.3fms(%dsamp)", formatMinMax(ms.Min), ms.Mean, formatMinMax(ms.Max), ms.Stdev, ms.Len)
 }
 
 // PatternCounters contains per-pattern counters.
@@ -70,15 +78,15 @@ func (cnt Counters) String() string {
 }
 
 // Counters retrieves counters.
-func (consumer *Consumer) Counters() (cnt Counters) {
-	for i := 0; i < int(consumer.rxC.nPatterns); i++ {
-		crP := consumer.rxC.pattern[i]
-		ctP := consumer.txC.pattern[i]
-		rtt := runningstat.FromPtr(unsafe.Pointer(&crP.rtt)).Read().Scale(eal.TscNanos)
+func (c *Consumer) Counters() (cnt Counters) {
+	for i := 0; i < int(c.rxC.nPatterns); i++ {
+		crP := c.rxC.pattern[i]
+		ctP := c.txC.pattern[i]
+		rtt := c.rttStat(i).Read().Scale(eal.TscNanos)
 
 		var pcnt PatternCounters
 		pcnt.NInterests = uint64(ctP.nInterests)
-		pcnt.NData = rtt.Count()
+		pcnt.NData = rtt.Count
 		pcnt.NNacks = uint64(crP.nNacks)
 		pcnt.Rtt.Snapshot = rtt
 		cnt.PerPattern = append(cnt.PerPattern, pcnt)
@@ -89,8 +97,12 @@ func (consumer *Consumer) Counters() (cnt Counters) {
 		cnt.Rtt.Snapshot = cnt.Rtt.Snapshot.Add(rtt)
 	}
 
-	cnt.NAllocError = uint64(consumer.txC.nAllocError)
+	cnt.NAllocError = uint64(c.txC.nAllocError)
 	return cnt
+}
+
+func (c *Consumer) rttStat(index int) *runningstat.IntStat {
+	return runningstat.IntFromPtr(unsafe.Pointer(&c.rxC.pattern[index].rtt))
 }
 
 // ClearCounters clears counters.
@@ -105,7 +117,6 @@ func (c *Consumer) ClearCounters() {
 
 func (c *Consumer) clearCounter(index int) {
 	c.rxC.pattern[index].nNacks = 0
-	rtt := runningstat.FromPtr(unsafe.Pointer(&c.rxC.pattern[index].rtt))
-	rtt.Clear(true)
+	c.rttStat(index).Init(0)
 	c.txC.pattern[index].nInterests = 0
 }

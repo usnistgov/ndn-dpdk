@@ -7,7 +7,6 @@ package fwdp
 import "C"
 import (
 	"fmt"
-	"math/rand"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/cs"
@@ -15,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pit"
 	"github.com/usnistgov/ndn-dpdk/container/strategycode"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/pcg32"
 	"github.com/usnistgov/ndn-dpdk/core/runningstat"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -42,7 +42,7 @@ var (
 // Init initializes the forwarding thread.
 // Excluding FIB.
 func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN iface.PktQueueConfig,
-	latencySampleFreq int, suppressCfg pit.SuppressConfig) (e error) {
+	latencySampleInterval int, suppressCfg pit.SuppressConfig) (e error) {
 	socket := lc.NumaSocket()
 
 	fwd.c = eal.Zmalloc[C.FwFwd]("FwFwd", C.sizeof_FwFwd, socket)
@@ -73,15 +73,10 @@ func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN ifac
 	fwd.c.pit = &pcctC.pit
 	fwd.c.cs = &pcctC.cs
 
-	C.pcg32_srandom_r(&fwd.c.sgRng, C.uint64_t(rand.Uint64()), C.uint64_t(rand.Uint64()))
+	pcg32.Init(unsafe.Pointer(&fwd.c.sgRng))
 	suppressCfg.CopyToC(unsafe.Pointer(&fwd.c.suppressCfg))
-
 	(*ndni.Mempools)(unsafe.Pointer(&fwd.c.mp)).Assign(socket)
-
-	latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
-	latencyStat.Clear(false)
-	latencyStat.SetSampleRate(latencySampleFreq)
-
+	fwd.LatencyStat().Init(latencySampleInterval)
 	return nil
 }
 
@@ -136,6 +131,12 @@ func (fwd *Fwd) Counters() (cnt FwdCounters) {
 	cnt.NSgNoFwd = uint64(fwd.c.nSgNoFwd)
 	cnt.NNackMismatch = uint64(fwd.c.nNackMismatch)
 	return cnt
+}
+
+// LatencyStat returns latency statistics collector.
+// Its reading reflects the latency since packet arrival until forwarding thread starts processing the packet.
+func (fwd *Fwd) LatencyStat() *runningstat.RunningStat {
+	return runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
 }
 
 // PktQueueOf returns PktQueue of specified PktType.

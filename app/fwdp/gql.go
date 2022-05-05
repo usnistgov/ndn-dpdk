@@ -3,7 +3,6 @@ package fwdp
 import (
 	"errors"
 	"fmt"
-	"unsafe"
 
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/container/cs"
@@ -133,8 +132,7 @@ func init() {
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			index := p.Source.(FwdCounters).id
 			fwd := GqlDataPlane.fwds[index]
-			latencyStat := runningstat.FromPtr(unsafe.Pointer(&fwd.c.latencyStat))
-			return latencyStat.Read().Scale(eal.TscNanos), nil
+			return fwd.LatencyStat().Read().Scale(eal.TscNanos), nil
 		},
 	})
 	for t, plural := range map[ndni.PktType]string{ndni.PktInterest: "Interests", ndni.PktData: "Data", ndni.PktNack: "Nacks"} {

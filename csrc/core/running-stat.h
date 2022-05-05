@@ -5,89 +5,55 @@
 
 #include "common.h"
 
-#include <float.h>
-#include <math.h>
-
-/** @brief Facility to compute min, max, mean, and variance. */
+/** @brief Facility to compute mean and variance. */
 typedef struct RunningStat
 {
   uint64_t i;    ///< count of incoming inputs
   uint64_t mask; ///< take sample only if (i & mask) == 0
   uint64_t n;    ///< count of taken samples
-  double min;
-  double max;
   double m1;
   double m2;
 } RunningStat;
-static_assert(sizeof(RunningStat) <= RTE_CACHE_LINE_SIZE, "");
 
-/**
- * @brief Set sample rate to once every 2^q inputs.
- * @param q sample rate, must be between 0 and 30.
- */
-__attribute__((nonnull)) static inline void
-RunningStat_SetSampleRate(RunningStat* s, int q)
+__attribute__((nonnull)) static __rte_always_inline bool
+RunningStat_Push_(RunningStat* s, double x)
 {
-  NDNDPDK_ASSERT(q >= 0 && q <= 30);
-  s->mask = (1 << q) - 1;
-}
-
-/** @brief Clear statistics portion of @p s. */
-__attribute__((nonnull)) static inline void
-RunningStat_Clear(RunningStat* s, bool enableMinMax)
-{
-  s->i = 0;
-  s->n = 0;
-  if (enableMinMax) {
-    s->min = DBL_MAX;
-    s->max = DBL_MIN;
-  } else {
-    s->min = NAN;
-    s->max = NAN;
+  ++s->i;
+  if (likely((s->i & s->mask) != 0)) {
+    return false;
   }
-  s->m1 = 0.0;
-  s->m2 = 0.0;
-}
 
-__attribute__((nonnull)) static inline void
-RunningStat_UpdateMinMax_(RunningStat* s, double x)
-{
-  s->min = RTE_MIN(s->min, x);
-  s->max = RTE_MAX(s->max, x);
-}
-
-__attribute__((nonnull)) static inline void
-RunningStat_UpdateM_(RunningStat* s, double x)
-{
-  uint64_t n1 = s->n;
-  ++s->n;
+  uint64_t n1 = s->n++;
   double delta = x - s->m1;
   double deltaN = delta / s->n;
   s->m1 += deltaN;
   s->m2 += delta * deltaN * n1;
+  return true;
 }
 
-/** @brief Add a sample to RunningStat with min-max update. */
-__attribute__((nonnull)) static __rte_always_inline void
+/** @brief Add a sample. */
+__attribute__((nonnull)) static inline void
 RunningStat_Push(RunningStat* s, double x)
 {
-  ++s->i;
-  if (likely((s->i & s->mask) != 0)) {
-    return;
-  }
-  RunningStat_UpdateMinMax_(s, x);
-  RunningStat_UpdateM_(s, x);
+  RunningStat_Push_(s, x);
 }
 
-/** @brief Add a sample to RunningStat without min-max update. */
-__attribute__((nonnull)) static __rte_always_inline void
-RunningStat_Push1(RunningStat* s, double x)
+/** @brief Facility to compute mean and variance, with integer min and max. */
+typedef struct RunningStatI
 {
-  ++s->i;
-  if (likely((s->i & s->mask) != 0)) {
-    return;
+  RunningStat s;
+  uint64_t min;
+  uint64_t max;
+} RunningStatI;
+
+/** @brief Add a sample. */
+__attribute__((nonnull)) static inline void
+RunningStatI_Push(RunningStatI* s, uint64_t x)
+{
+  if (RunningStat_Push_(&s->s, x)) {
+    s->min = RTE_MIN(s->min, x);
+    s->max = RTE_MAX(s->max, x);
   }
-  RunningStat_UpdateM_(s, x);
 }
 
 #endif // NDNDPDK_CORE_RUNNING_STAT_H

@@ -67,7 +67,7 @@ struct TgcTx
   TscDuration burstInterval; ///< interval between two bursts
 
   pcg32_random_t trafficRng;
-  NonceGen nonceGen;
+  pcg32_random_t nonceRng;
   uint64_t nAllocError;
 
   uint8_t weight[TgcMaxSumWeight];
