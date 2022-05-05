@@ -12,6 +12,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -26,10 +27,16 @@ const (
 	flagCapture  = 2
 )
 
+var (
+	defaultPrefix     = ndn.ParseName("/localhost/nfd")
+	verbRibRegister   = ndn.ParseName("/rib/register")
+	verbRibUnregister = ndn.ParseName("/rib/unregister")
+)
+
 // Client provides access to NFD Management API.
 type Client struct {
 	ConsumerOpts endpoint.ConsumerOptions
-	Prefix       string
+	Prefix       ndn.Name
 	Signer       ndn.Signer
 }
 
@@ -56,14 +63,14 @@ func (c *Client) Close() error {
 	return nil
 }
 
-func (c *Client) invoke(command string, parameters ...tlv.Fielder) (status int, e error) {
-	name := ndn.ParseName(c.Prefix + "/" + command)
+func (c *Client) invoke(command ndn.Name, parameters ...tlv.Fielder) (status int, e error) {
+	name := append(slices.Clone(c.Prefix), command...)
 	name = append(name, ndn.NameComponentFrom(an.TtGenericNameComponent, tlv.TLVFrom(ttControlParameters, parameters...)))
 	interest := ndn.Interest{
 		Name:        name,
 		MustBeFresh: true,
 		SigInfo: &ndn.SigInfo{
-			Nonce: make([]byte, 4),
+			Nonce: make([]byte, 8),
 			Time:  uint64(time.Now().UnixMilli()),
 		},
 	}
@@ -98,7 +105,7 @@ func New() (*Client, error) {
 		ConsumerOpts: endpoint.ConsumerOptions{
 			Retx: endpoint.RetxOptions{Limit: 2},
 		},
-		Prefix: "/localhost/nfd",
+		Prefix: defaultPrefix,
 		Signer: ndn.DigestSigning,
 	}, nil
 }

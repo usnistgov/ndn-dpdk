@@ -29,7 +29,7 @@ func (f *nfdFace) Close() error {
 }
 
 func (f *nfdFace) Advertise(name ndn.Name) error {
-	status, e := f.client.invoke("rib/register",
+	status, e := f.client.invoke(verbRibRegister,
 		name,
 		tlv.TLVNNI(ttOrigin, originClient),
 		tlv.TLVNNI(ttFlags, flagCapture),
@@ -44,7 +44,7 @@ func (f *nfdFace) Advertise(name ndn.Name) error {
 }
 
 func (f *nfdFace) Withdraw(name ndn.Name) error {
-	status, e := f.client.invoke("rib/unregister",
+	status, e := f.client.invoke(verbRibUnregister,
 		name,
 		tlv.TLVNNI(ttOrigin, originClient),
 	)
@@ -73,7 +73,7 @@ func newNfdFace(c *Client) (f *nfdFace, e error) {
 		remote = uri.Path
 	}
 
-	tr, e := sockettransport.Dial(uri.Scheme, "", remote)
+	tr, e := sockettransport.Dial(uri.Scheme, "", remote, sockettransport.Config{MTU: 8800})
 	if e != nil {
 		return nil, e
 	}

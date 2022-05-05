@@ -11,7 +11,8 @@ const (
 
 // TransportBaseConfig contains parameters to NewTransportBase.
 type TransportBaseConfig struct {
-	MTU int
+	MTU          int
+	InitialState TransportState
 }
 
 // TransportBase is an optional helper for implementing Transport.
@@ -55,7 +56,7 @@ func NewTransportBase(cfg TransportBaseConfig) (b *TransportBase, p *TransportBa
 		mtu:     cfg.MTU,
 		emitter: events.NewEmitter(),
 	}
-	b.state.Store(int32(TransportUp))
+	b.state.Store(int32(cfg.InitialState))
 	p = &TransportBasePriv{
 		b: b,
 	}

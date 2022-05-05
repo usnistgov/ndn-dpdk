@@ -5,8 +5,9 @@ package memiftransport
 import (
 	"fmt"
 
+	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/zyedidia/generic"
-	"go4.org/must"
+	"go.uber.org/multierr"
 )
 
 // Bridge bridges two memif interfaces.
@@ -34,13 +35,13 @@ func NewBridge(locA, locB Locator) (bridge *Bridge, e error) {
 	bridge = &Bridge{
 		closing: make(chan struct{}),
 	}
-	bridge.hdlA, e = newHandle(locA, nil)
+	bridge.hdlA, e = newHandle(locA, func(l3.TransportState) {})
 	if e != nil {
 		return nil, fmt.Errorf("newHandleA %w", e)
 	}
-	bridge.hdlB, e = newHandle(locB, nil)
+	bridge.hdlB, e = newHandle(locB, func(l3.TransportState) {})
 	if e != nil {
-		must.Close(bridge.hdlA)
+		bridge.hdlA.Close()
 		return nil, fmt.Errorf("newHandleB %w", e)
 	}
 
@@ -68,7 +69,5 @@ func (bridge *Bridge) transferLoop(src, dst *handle) {
 // Close stops the bridge.
 func (bridge *Bridge) Close() error {
 	close(bridge.closing)
-	must.Close(bridge.hdlA)
-	must.Close(bridge.hdlB)
-	return nil
+	return multierr.Append(bridge.hdlA.Close(), bridge.hdlB.Close())
 }

@@ -76,7 +76,7 @@ func (f *fwFace) rxLoop() {
 func (f *fwFace) AddRoute(name ndn.Name) {
 	nameV, _ := name.MarshalBinary()
 	nameS := string(nameV)
-	f.fw.execute(func() {
+	f.fw.do(func() {
 		f.routes[nameS] = name
 	})
 }
@@ -84,7 +84,7 @@ func (f *fwFace) AddRoute(name ndn.Name) {
 func (f *fwFace) RemoveRoute(name ndn.Name) {
 	nameV, _ := name.MarshalBinary()
 	nameS := string(nameV)
-	f.fw.execute(func() {
+	f.fw.do(func() {
 		delete(f.routes, nameS)
 	})
 }
@@ -101,7 +101,7 @@ func (f *fwFace) lpmRoute(query ndn.Name) int {
 func (f *fwFace) AddAnnouncement(name ndn.Name) {
 	nameV, _ := name.MarshalBinary()
 	nameS := string(nameV)
-	f.fw.execute(func() {
+	f.fw.do(func() {
 		f.announcements[nameS] = name
 
 		if !f.fw.announcements.Has(nameS) {
@@ -116,7 +116,7 @@ func (f *fwFace) AddAnnouncement(name ndn.Name) {
 func (f *fwFace) RemoveAnnouncement(name ndn.Name) {
 	nameV, _ := name.MarshalBinary()
 	nameS := string(nameV)
-	f.fw.execute(func() {
+	f.fw.do(func() {
 		f.removeAnnouncementImpl(name, nameS)
 	})
 }
@@ -133,7 +133,7 @@ func (f *fwFace) removeAnnouncementImpl(name ndn.Name, nameS string) {
 }
 
 func (f *fwFace) Close() error {
-	f.fw.execute(func() {
+	f.fw.do(func() {
 		for nameS, name := range f.announcements {
 			f.removeAnnouncementImpl(name, nameS)
 		}

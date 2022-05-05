@@ -1,6 +1,9 @@
 package l3
 
-import "io"
+import (
+	"io"
+	"strconv"
+)
 
 // Transport represents a communicate channel to send and receive TLV packets.
 type Transport interface {
@@ -31,3 +34,15 @@ const (
 	// It cannot be restarted.
 	TransportClosed
 )
+
+func (st TransportState) String() string {
+	switch st {
+	case TransportUp:
+		return "up"
+	case TransportDown:
+		return "down"
+	case TransportClosed:
+		return "closed"
+	}
+	return strconv.Itoa(int(st))
+}

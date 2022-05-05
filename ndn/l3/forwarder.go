@@ -74,7 +74,7 @@ func (fw *forwarder) AddFace(face Face) (ff FwFace, e error) {
 		announcements: map[string]ndn.Name{},
 	}
 
-	fw.execute(func() {
+	fw.do(func() {
 		if len(fw.faces) >= MaxFwFaces {
 			e = ErrMaxFwFaces
 			f = nil
@@ -95,7 +95,7 @@ func (fw *forwarder) AddFace(face Face) (ff FwFace, e error) {
 }
 
 func (fw *forwarder) AddReadvertiseDestination(dest ReadvertiseDestination) {
-	fw.execute(func() {
+	fw.do(func() {
 		if fw.readvertise[dest] {
 			return
 		}
@@ -104,7 +104,7 @@ func (fw *forwarder) AddReadvertiseDestination(dest ReadvertiseDestination) {
 }
 
 func (fw *forwarder) RemoveReadvertiseDestination(dest ReadvertiseDestination) {
-	fw.execute(func() {
+	fw.do(func() {
 		if !fw.readvertise[dest] {
 			return
 		}
@@ -112,7 +112,7 @@ func (fw *forwarder) RemoveReadvertiseDestination(dest ReadvertiseDestination) {
 	})
 }
 
-func (fw *forwarder) execute(fn func()) {
+func (fw *forwarder) do(fn func()) {
 	done := make(chan struct{})
 	fw.cmd <- func() {
 		defer close(done)

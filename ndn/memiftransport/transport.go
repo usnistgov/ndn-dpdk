@@ -25,7 +25,8 @@ func New(loc Locator) (t Transport, e error) {
 
 	tr := &transport{}
 	tr.TransportBase, tr.p = l3.NewTransportBase(l3.TransportBaseConfig{
-		MTU: loc.Dataroom,
+		MTU:          loc.Dataroom,
+		InitialState: l3.TransportDown,
 	})
 
 	if tr.handle, e = newHandle(loc, tr.p.SetState); e != nil {

@@ -73,6 +73,23 @@ type Transport interface {
 	Counters() Counters
 }
 
+// Dial opens a socket transport, according to the configuration in the Dialer.
+func Dial(network, local, remote string, cfg Config) (Transport, error) {
+	cfg.applyDefaults()
+
+	impl, ok := implByNetwork[network]
+	if !ok {
+		return nil, fmt.Errorf("unknown network %s", network)
+	}
+
+	conn, e := impl.Dial(network, local, remote)
+	if e != nil {
+		return nil, e
+	}
+
+	return New(conn, cfg)
+}
+
 // New creates a socket transport.
 func New(conn net.Conn, cfg Config) (Transport, error) {
 	network := conn.LocalAddr().Network()

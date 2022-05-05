@@ -5,6 +5,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 	"golang.org/x/exp/slices"
 )
 
@@ -16,6 +17,14 @@ type Config struct {
 	// See ndn-dpdk/ndn/sockettransport package for their semantics and defaults.
 	RedialBackoffInitial nnduration.Milliseconds `json:"redialBackoffInitial,omitempty"`
 	RedialBackoffMaximum nnduration.Milliseconds `json:"redialBackoffMaximum,omitempty"`
+}
+
+func (cfg Config) transportConfig() sockettransport.Config {
+	return sockettransport.Config{
+		MTU:                  cfg.MTU,
+		RedialBackoffInitial: cfg.RedialBackoffInitial.Duration(),
+		RedialBackoffMaximum: cfg.RedialBackoffMaximum.Duration(),
+	}
 }
 
 // GlobalConfig contains global options applied to all socket faces.

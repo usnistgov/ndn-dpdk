@@ -158,20 +158,28 @@ You can start the producer and the consumer as follows:
 
 ```shell
 B $ ndndpdk-godemo pingserver --name /example/P
-2021/08/18 19:06:27 uplink opened
-2021/08/18 19:06:28 /8=A/8=D7515293C179BDDE[F]
-2021/08/18 19:06:29 /8=A/8=D7515293C179BDDF[F]
-2021/08/18 19:06:29 /8=A/8=D7515293C179BDE0[F]
-2021/08/18 19:06:29 /8=A/8=D7515293C179BDE1[F]
-2021/08/18 19:06:31 uplink closed
+2022/05/05 14:54:17 uplink opened, state is down
+2022/05/05 14:54:17 uplink state changes to up
+2022/05/05 14:54:18 /8=example/8=P/8=0E0344249FD27C3A[F]
+2022/05/05 14:54:18 /8=example/8=P/8=0E0344249FD27C3B[F]
+2022/05/05 14:54:19 /8=example/8=P/8=0E0344249FD27C3C[F]
+2022/05/05 14:54:19 /8=example/8=P/8=0E0344249FD27C3D[F]
+2022/05/05 14:54:19 /8=example/8=P/8=0E0344249FD27C3E[F]
+2022/05/05 14:54:19 /8=example/8=P/8=0E0344249FD27C3F[F]
+2022/05/05 14:54:40 uplink state changes to down
+2022/05/05 14:54:40 uplink closed, error is <nil>
 
 A $ ndndpdk-godemo pingclient --name /example/P
-2021/08/18 19:06:28 uplink opened
-2021/08/18 19:06:29 100.00% D D7515293C179BDDE    615us
-2021/08/18 19:06:29 100.00% D D7515293C179BDDF    622us
-2021/08/18 19:06:29 100.00% D D7515293C179BDE0    590us
-2021/08/18 19:06:29 100.00% D D7515293C179BDE1    498us
-2021/08/18 19:06:29 uplink closed
+2022/05/05 14:54:18 uplink opened, state is down
+2022/05/05 14:54:18 uplink state changes to up
+2022/05/05 14:54:18 100.00% D 0E0344249FD27C3A   1294us
+2022/05/05 14:54:18 100.00% D 0E0344249FD27C3B   1685us
+2022/05/05 14:54:19 100.00% D 0E0344249FD27C3C    710us
+2022/05/05 14:54:19 100.00% D 0E0344249FD27C3D    643us
+2022/05/05 14:54:19 100.00% D 0E0344249FD27C3E   1182us
+2022/05/05 14:54:19 100.00% D 0E0344249FD27C3F   1975us
+2022/05/05 14:54:19 uplink state changes to down
+2022/05/05 14:54:19 uplink closed, error is <nil>
 ```
 
 The consumer prints, among other fields, the percentage of satisfied Interests and the last round-trip time.

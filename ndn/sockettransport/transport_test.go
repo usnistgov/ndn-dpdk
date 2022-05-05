@@ -23,15 +23,13 @@ func TestPipe(t *testing.T) {
 func TestUDP(t *testing.T) {
 	assert, require := makeAR(t)
 
-	var dialer sockettransport.Dialer
-
-	trA, e := dialer.Dial("udp", "127.0.0.1:7001", "127.0.0.1:7002")
+	trA, e := sockettransport.Dial("udp", "127.0.0.1:7001", "127.0.0.1:7002", sockettransport.Config{})
 	require.NoError(e)
-	trB, e := dialer.Dial("udp", "127.0.0.1:7002", "127.0.0.1:7001")
+	trB, e := sockettransport.Dial("udp", "127.0.0.1:7002", "127.0.0.1:7001", sockettransport.Config{})
 	require.NoError(e)
 
 	// REUSEADDR
-	trC, e := dialer.Dial("udp", "127.0.0.1:7001", "127.0.0.1:7003")
+	trC, e := sockettransport.Dial("udp", "127.0.0.1:7001", "127.0.0.1:7003", sockettransport.Config{})
 	if assert.NoError(e) {
 		trC.Close()
 	}
@@ -70,9 +68,8 @@ func checkStream(t testing.TB, listener net.Listener) {
 
 	go func() {
 		defer wg.Done()
-		var dialer sockettransport.Dialer
 		listenAddr := listener.Addr()
-		tr, e := dialer.Dial(listenAddr.Network(), "", listenAddr.String())
+		tr, e := sockettransport.Dial(listenAddr.Network(), "", listenAddr.String(), sockettransport.Config{})
 		require.NoError(e)
 		trA = tr
 	}()

@@ -28,12 +28,12 @@ type Face interface {
 	Close() error
 
 	// Advertise advertises a prefix announcement.
-	// The connected forwarder should start delivering Interests matching this prefix to this face.
+	// It causes the connected forwarder to start delivering Interests matching this prefix to this face.
 	// Advertising the same name more than once is not an error but has no effect.
 	Advertise(name ndn.Name) error
 
 	// Withdraw removes a route.
-	// The connected forwarder should stop delivering Interests matching this prefix to this face.
+	// It causes the connected forwarder to stop delivering Interests matching this prefix to this face.
 	// Withdrawing an unadvertised name is not an error but has no effect.
 	Withdraw(name ndn.Name) error
 }

@@ -38,11 +38,7 @@ func New(loc Locator) (iface.Face, error) {
 		return nil, errors.New("PacketMempool dataroom is too small for requested MTU")
 	}
 
-	var dialer sockettransport.Dialer
-	dialer.MTU = cfg.MTU
-	dialer.RedialBackoffInitial = cfg.RedialBackoffInitial.Duration()
-	dialer.RedialBackoffMaximum = cfg.RedialBackoffMaximum.Duration()
-	transport, e := dialer.Dial(loc.Network, loc.Local, loc.Remote)
+	transport, e := sockettransport.Dial(loc.Network, loc.Local, loc.Remote, cfg.transportConfig())
 	if e != nil {
 		return nil, e
 	}
