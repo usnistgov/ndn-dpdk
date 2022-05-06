@@ -28,6 +28,7 @@ FibNexthopFilter_Reject(FibNexthopFilter* filter, const FibEntry* entry, FaceID 
       break;
     }
   }
+  static_assert(__builtin_types_compatible_p(typeof(*filter), unsigned int), "");
   return entry->nNexthops - __builtin_popcount(*filter);
 }
 

@@ -15,13 +15,9 @@ func (fl *Logic) ptr() *C.FetchLogic {
 	return (*C.FetchLogic)(fl)
 }
 
-func (fl *Logic) window() *Window {
-	return (*Window)(&fl.win)
-}
-
 // Init initializes the logic and allocates data structures.
 func (fl *Logic) Init(windowCapacity int, socket eal.NumaSocket) {
-	fl.window().Init(windowCapacity, socket)
+	C.FetchWindow_Init(&fl.win, C.uint32_t(windowCapacity), C.int(socket.ID()))
 	C.RttEst_Init(&fl.rtte)
 	C.TcpCubic_Init(&fl.ca)
 	C.FetchLogic_Init_(fl.ptr())
@@ -31,7 +27,7 @@ func (fl *Logic) Init(windowCapacity int, socket eal.NumaSocket) {
 func (fl *Logic) Reset() {
 	C.MinSched_Close(fl.sched)
 	*fl = Logic{win: fl.win}
-	fl.window().Reset()
+	fl.win.loSegNum, fl.win.hiSegNum = 0, 0
 	C.RttEst_Init(&fl.rtte)
 	C.TcpCubic_Init(&fl.ca)
 	C.FetchLogic_Init_(fl.ptr())
@@ -40,7 +36,7 @@ func (fl *Logic) Reset() {
 // Close deallocates data structures.
 func (fl *Logic) Close() error {
 	C.MinSched_Close(fl.sched)
-	fl.window().Close()
+	C.FetchWindow_Free(&fl.win)
 	return nil
 }
 

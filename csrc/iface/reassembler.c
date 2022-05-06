@@ -55,6 +55,7 @@ Reassembler_Drop_(Reassembler* reass, LpL2* pm, hash_sig_t hash)
 {
   Reassembler_Delete_(reass, pm, hash);
 
+  static_assert(__builtin_types_compatible_p(typeof(pm->reassBitmap), unsigned int), "");
   reass->nDropFragments += pm->fragCount - __builtin_popcount(pm->reassBitmap);
   rte_pktmbuf_free_bulk((struct rte_mbuf**)pm->reassFrags, pm->fragCount);
 }
