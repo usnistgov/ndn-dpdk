@@ -1,4 +1,4 @@
-package fetch_test
+package fetchtest
 
 import (
 	"testing"
@@ -11,5 +11,3 @@ func TestMain(m *testing.M) {
 	tgtestenv.Init()
 	testenv.Exit(m.Run())
 }
-
-var makeAR = testenv.MakeAR

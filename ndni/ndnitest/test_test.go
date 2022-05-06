@@ -1,7 +1,5 @@
 package ndnitest
 
-//go:generate bash ../../mk/cgotest.sh
-
 import (
 	"testing"
 

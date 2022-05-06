@@ -1,5 +1,9 @@
 package fetch
 
+/*
+#include "../../csrc/fetch/tcpcubic.h"
+*/
+import "C"
 import (
 	"fmt"
 	"time"
@@ -25,7 +29,7 @@ func (fl *Logic) Counters() (cnt Counters) {
 	cnt.LastRtt = eal.FromTscDuration(int64(fl.rtte.last))
 	cnt.SRtt = eal.FromTscDuration(int64(fl.rtte.rttv.sRtt))
 	cnt.Rto = eal.FromTscDuration(int64(fl.rtte.rto))
-	cnt.Cwnd = fl.Cubic().Cwnd()
+	cnt.Cwnd = int(C.TcpCubic_GetCwnd(&fl.ca))
 	cnt.NInFlight = uint32(fl.nInFlight)
 	cnt.NTxRetx = uint64(fl.nTxRetx)
 	cnt.NRxData = uint64(fl.nRxData)
@@ -36,10 +40,4 @@ func (cnt Counters) String() string {
 	return fmt.Sprintf("rtt=%dms srtt=%dms rto=%dms cwnd=%d %dP %dR %dD",
 		cnt.LastRtt.Milliseconds(), cnt.SRtt.Milliseconds(), cnt.Rto.Milliseconds(),
 		cnt.Cwnd, cnt.NInFlight, cnt.NTxRetx, cnt.NRxData)
-}
-
-// ComputeGoodput returns average number of Data per second.
-func (cnt Counters) ComputeGoodput(prev Counters) float64 {
-	t := cnt.Time.Sub(prev.Time).Seconds()
-	return float64(cnt.NRxData-prev.NRxData) / t
 }

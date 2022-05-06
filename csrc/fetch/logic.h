@@ -62,7 +62,7 @@ typedef struct FetchLogicRxData
 /**
  * @brief Notify Data arrival.
  * @param pkts fields extracted from arrived Data.
- * @param count size of segNums array.
+ * @param count size of @p pkts array.
  */
 __attribute__((nonnull)) void
 FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count);

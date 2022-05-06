@@ -15,21 +15,15 @@ func (fl *Logic) ptr() *C.FetchLogic {
 	return (*C.FetchLogic)(fl)
 }
 
-// Window returns the segment state window.
-func (fl *Logic) Window() *Window {
+func (fl *Logic) window() *Window {
 	return (*Window)(&fl.win)
-}
-
-// Cubic returns the congestion avoidance algorithm.
-func (fl *Logic) Cubic() *Cubic {
-	return (*Cubic)(&fl.ca)
 }
 
 // Init initializes the logic and allocates data structures.
 func (fl *Logic) Init(windowCapacity int, socket eal.NumaSocket) {
-	fl.Window().Init(windowCapacity, socket)
+	fl.window().Init(windowCapacity, socket)
 	C.RttEst_Init(&fl.rtte)
-	fl.Cubic().Init()
+	C.TcpCubic_Init(&fl.ca)
 	C.FetchLogic_Init_(fl.ptr())
 }
 
@@ -37,16 +31,17 @@ func (fl *Logic) Init(windowCapacity int, socket eal.NumaSocket) {
 func (fl *Logic) Reset() {
 	C.MinSched_Close(fl.sched)
 	*fl = Logic{win: fl.win}
-	fl.Window().Reset()
+	fl.window().Reset()
 	C.RttEst_Init(&fl.rtte)
-	fl.Cubic().Init()
+	C.TcpCubic_Init(&fl.ca)
 	C.FetchLogic_Init_(fl.ptr())
 }
 
 // Close deallocates data structures.
 func (fl *Logic) Close() error {
 	C.MinSched_Close(fl.sched)
-	return fl.Window().Close()
+	fl.window().Close()
+	return nil
 }
 
 // SetFinalSegNum assigns (inclusive) final segment number.
@@ -57,26 +52,4 @@ func (fl *Logic) SetFinalSegNum(segNum uint64) {
 // Finished determines if all segments have been fetched.
 func (fl *Logic) Finished() bool {
 	return bool(C.FetchLogic_Finished(fl.ptr()))
-}
-
-// TriggerRtoSched triggers the internal RTO scheduler.
-func (fl *Logic) TriggerRtoSched() {
-	C.MinSched_Trigger(fl.sched)
-}
-
-// TxInterest requests for Interest transmission.
-func (fl *Logic) TxInterest() (need bool, segNum uint64) {
-	var segNumC C.uint64_t
-	n := C.FetchLogic_TxInterestBurst(fl.ptr(), &segNumC, 1)
-	return n > 0, uint64(segNumC)
-}
-
-// RxData notifies about Data arrival.
-func (fl *Logic) RxData(segNum uint64, hasCongMark bool) {
-	var pkt C.FetchLogicRxData
-	pkt.segNum = C.uint64_t(segNum)
-	if hasCongMark {
-		pkt.congMark = 1
-	}
-	C.FetchLogic_RxDataBurst(fl.ptr(), &pkt, 1)
 }

@@ -1,4 +1,4 @@
-package fetch_test
+package fetchtest
 
 import (
 	"math/rand"

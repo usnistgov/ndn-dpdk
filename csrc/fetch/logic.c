@@ -45,7 +45,7 @@ FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit)
   return count;
 }
 
-static inline bool
+__attribute__((nonnull)) static inline bool
 FetchLogic_DecreaseCwnd(FetchLogic* fl, const char* caller, uint64_t segNum, TscTime now)
 {
   if (unlikely(fl->hiDataSegNum <= fl->cwndDecreaseInterestSegNum)) {
@@ -61,7 +61,7 @@ FetchLogic_DecreaseCwnd(FetchLogic* fl, const char* caller, uint64_t segNum, Tsc
   return true;
 }
 
-static inline void
+__attribute__((nonnull)) static inline void
 FetchLogic_RxData(FetchLogic* fl, TscTime now, uint64_t segNum, bool hasCongMark)
 {
   FetchSeg* seg = FetchWindow_Get(&fl->win, segNum);
@@ -104,7 +104,7 @@ FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t coun
   }
 }
 
-static void
+__attribute__((nonnull)) static void
 FetchLogic_RtoTimeout(MinTmr* tmr, uintptr_t flPtr)
 {
   FetchLogic* fl = (FetchLogic*)flPtr;

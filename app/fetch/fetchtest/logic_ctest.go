@@ -1,5 +1,9 @@
-package fetch_test
+package fetchtest
 
+/*
+#include "../../../csrc/fetch/logic.h"
+*/
+import "C"
 import (
 	"math/rand"
 	"testing"
@@ -17,6 +21,7 @@ func TestLogic(t *testing.T) {
 	defer eal.Free(fl)
 	fl.Init(64, eal.NumaSocket{})
 	defer fl.Close()
+	flC := (*C.FetchLogic)(unsafe.Pointer(&fl))
 
 	const FINAL_SEG = 1999
 	const LOSS_RATE = 0.05
@@ -27,23 +32,24 @@ func TestLogic(t *testing.T) {
 	txCounts := map[uint64]int{}
 	for !fl.Finished() {
 		time.Sleep(10 * time.Microsecond)
-		fl.TriggerRtoSched()
+		C.MinSched_Trigger(flC.sched)
 
 	RX:
 		for {
 			select {
 			case rxSegNum := <-rxData:
-				fl.RxData(rxSegNum, false)
+				C.FetchLogic_RxDataBurst(flC, &C.FetchLogicRxData{segNum: C.uint64_t(rxSegNum)}, 1)
 			default:
 				break RX
 			}
 		}
 
 		for {
-			needTx, txSegNum := fl.TxInterest()
-			if !needTx {
+			var txSegNumC C.uint64_t
+			if nTx := C.FetchLogic_TxInterestBurst(flC, &txSegNumC, 1); nTx == 0 {
 				break
 			}
+			txSegNum := uint64(txSegNumC)
 
 			txCounts[txSegNum]++
 			if loss := rand.Float64(); loss < LOSS_RATE {
