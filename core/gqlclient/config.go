@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 
 	gqlws "github.com/korylprince/go-graphql-ws"
@@ -20,7 +19,7 @@ type Config struct {
 	HTTPClient *http.Client
 
 	// WebSocketUri is WebSocket URI for subscription operations.
-	// Default is appending '/subscriptions' to HTTPUri.
+	// Default is same as HTTPURI except changing the scheme.
 	WebSocketUri string
 
 	WebSocketDialer *gqlws.Dialer
@@ -41,7 +40,6 @@ func (cfg *Config) Validate() error {
 		case "https":
 			u.Scheme = "wss"
 		}
-		u.Path = path.Join(u.Path, "subscriptions")
 		cfg.WebSocketUri = u.String()
 	} else {
 		u, e = url.Parse(cfg.WebSocketUri)

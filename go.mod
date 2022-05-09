@@ -18,6 +18,8 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
 	github.com/machinebox/graphql v0.2.2
+	github.com/onichandame/go-utils v0.0.8
+	github.com/onichandame/gql-ws v0.1.0
 	github.com/pascaldekloe/name v1.0.1
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rickb777/plural v1.4.1
@@ -29,7 +31,7 @@ require (
 	github.com/stretchr/testify v1.7.1
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
-	github.com/urfave/cli/v2 v2.5.1
+	github.com/urfave/cli/v2 v2.6.0
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zyedidia/generic v1.0.0

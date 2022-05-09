@@ -6,11 +6,14 @@ import (
 	"context"
 	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/bhoriuchi/graphql-go-tools/handler"
 	"github.com/functionalfoundry/graphqlws"
 	"github.com/graphql-go/graphql"
+	goutils "github.com/onichandame/go-utils"
+	gqlwsserver "github.com/onichandame/gql-ws/server"
 	"github.com/sirupsen/logrus"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/version"
@@ -67,6 +70,21 @@ func AddSubscription(f *graphql.Field) {
 			return p.Info.RootValue, nil
 		}
 	}
+	if subscribe := f.Subscribe; subscribe != nil {
+		f.Subscribe = func(p graphql.ResolveParams) (interface{}, error) {
+			var stop chan interface{}
+			goutils.Try(func() { stop = gqlwsserver.GetSubscriptionStopSig(p.Context) })
+			if stop != nil {
+				ctx, cancel := context.WithCancel(p.Context)
+				go func() {
+					<-stop
+					cancel()
+				}()
+				p.Context = ctx
+			}
+			return subscribe(p)
+		}
+	}
 	Schema.Subscription.AddFieldConfig(f.Name, f)
 }
 
@@ -98,13 +116,30 @@ func Prepare() {
 	Schema = nil
 
 	logrus.SetLevel(logrus.PanicLevel)
-	http.Handle("/subscriptions", graphqlws.NewHandler(graphqlws.HandlerConfig{
+	wsHandler := graphqlws.NewHandler(graphqlws.HandlerConfig{
 		SubscriptionManager: newSubManager(context.Background(), &sch),
-	}))
-
-	http.Handle("/", handler.New(&handler.Config{
+	})
+	twsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gqlwsserver.NewSocket(&gqlwsserver.Config{
+			Response: w,
+			Request:  r,
+			Schema:   &sch,
+		})
+	})
+	httpHandler := handler.New(&handler.Config{
 		Schema:           &sch,
 		Pretty:           true,
 		PlaygroundConfig: handler.NewDefaultPlaygroundConfig(),
-	}))
+	})
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("connection") == "Upgrade" {
+			if strings.Contains(r.Header.Get("sec-websocket-protocol"), "graphql-transport-ws") {
+				twsHandler.ServeHTTP(w, r)
+			} else {
+				wsHandler.ServeHTTP(w, r)
+			}
+		} else {
+			httpHandler.ServeHTTP(w, r)
+		}
+	})
 }
