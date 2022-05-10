@@ -158,6 +158,9 @@ func (cfg CountersConfig) subscribe(p graphql.ResolveParams) (any, error) {
 	if e != nil {
 		return nil, e
 	}
+	if val := reflect.ValueOf(source); !val.IsValid() || val.IsZero() {
+		return nil, nil
+	}
 
 	p.Source = source
 	return PublishInterval(p, cfg.Read, enders...)

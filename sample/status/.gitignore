@@ -1,0 +1,4 @@
+.env
+/pnpm-lock.yaml
+/public/bundle.*
+node_modules

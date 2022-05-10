@@ -52,7 +52,10 @@ func init() {
 					return input.id, nil
 				},
 			},
-			"worker": ealthread.GqlWithWorker(nil),
+			"worker": ealthread.GqlWithWorker(func(p graphql.ResolveParams) ealthread.Thread {
+				input := p.Source.(*Input)
+				return input.rxl
+			}),
 		},
 	}, gqlserver.NodeConfig[*Input]{
 		RetrieveInt: func(id int) *Input {

@@ -18,6 +18,7 @@ module.exports = {
     {
       files: [
         "sample/benchmark/**/*.tsx",
+        "sample/status/**/*.tsx",
       ],
       ...merge(js, ts, web, preact),
     },
@@ -25,5 +26,6 @@ module.exports = {
   ignores: [
     "sample/activate",
     "sample/benchmark",
+    "sample/status",
   ].filter((d) => !fs.statSync(path.resolve(__dirname, d, "node_modules"), { throwIfNoEntry: false })?.isDirectory()),
 };
