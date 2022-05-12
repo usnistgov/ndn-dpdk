@@ -7,6 +7,7 @@ import "C"
 import (
 	"io"
 	"math"
+	"sync"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -45,12 +46,16 @@ type RxLoop interface {
 	io.Closer
 
 	CountRxGroups() int
+	List() []RxGroup
 	Add(rxg RxGroup)
 	Remove(rxg RxGroup)
 }
 
 // NewRxLoop creates an RxLoop.
 func NewRxLoop(socket eal.NumaSocket) RxLoop {
+	rxLoopLock.Lock()
+	defer rxLoopLock.Unlock()
+
 	rxl := &rxLoop{
 		c:      eal.Zmalloc[C.RxLoop]("RxLoop", C.sizeof_RxLoop, socket),
 		socket: socket,
@@ -82,6 +87,9 @@ func (rxl *rxLoop) ThreadRole() string {
 }
 
 func (rxl *rxLoop) Close() error {
+	rxLoopLock.Lock()
+	defer rxLoopLock.Unlock()
+
 	rxl.Stop()
 	delete(rxLoopThreads, rxl)
 	logger.Info("RxLoop closed",
@@ -99,7 +107,23 @@ func (rxl *rxLoop) CountRxGroups() int {
 	return rxl.nRxgs
 }
 
+func (rxl *rxLoop) List() []RxGroup {
+	rxLoopLock.Lock()
+	defer rxLoopLock.Unlock()
+
+	list := []RxGroup{}
+	for rxg, th := range mapRxgRxl {
+		if th == rxl {
+			list = append(list, rxg)
+		}
+	}
+	return list
+}
+
 func (rxl *rxLoop) Add(rxg RxGroup) {
+	rxLoopLock.Lock()
+	defer rxLoopLock.Unlock()
+
 	rxgPtr, rxgDesc := rxg.RxGroup()
 	logEntry := logger.With(
 		zap.Uintptr("rxl-ptr", uintptr(unsafe.Pointer(rxl.c))),
@@ -124,6 +148,9 @@ func (rxl *rxLoop) Add(rxg RxGroup) {
 }
 
 func (rxl *rxLoop) Remove(rxg RxGroup) {
+	rxLoopLock.Lock()
+	defer rxLoopLock.Unlock()
+
 	rxgPtr, rxgDesc := rxg.RxGroup()
 	logEntry := logger.With(
 		zap.Uintptr("rxl-ptr", uintptr(unsafe.Pointer(rxl.c))),
@@ -151,10 +178,14 @@ var (
 
 	rxLoopThreads = map[RxLoop]bool{}
 	mapRxgRxl     = map[RxGroup]RxLoop{}
+	rxLoopLock    sync.Mutex
 )
 
 // ListRxLoops returns a list of RxLoops.
 func ListRxLoops() (list []RxLoop) {
+	rxLoopLock.Lock()
+	defer rxLoopLock.Unlock()
+
 	for rxl := range rxLoopThreads {
 		list = append(list, rxl)
 	}
@@ -202,5 +233,8 @@ func ActivateRxGroup(rxg RxGroup) RxLoop {
 
 // DeactivateRxGroup removes the RxGroup from the owning RxLoop.
 func DeactivateRxGroup(rxg RxGroup) {
-	mapRxgRxl[rxg].Remove(rxg)
+	rxLoopLock.Lock()
+	rxl := mapRxgRxl[rxg]
+	rxLoopLock.Unlock()
+	rxl.Remove(rxg)
 }

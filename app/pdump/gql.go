@@ -108,7 +108,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "pdumpWriters",
 		Description: "List of active packet dump writers.",
-		Type:        gqlserver.NewNonNullList(GqlWriterType.Object),
+		Type:        gqlserver.NewListNonNullBoth(GqlWriterType.Object),
 		Resolve:     gqlWriter.QueryList,
 	})
 
@@ -142,7 +142,7 @@ func init() {
 			},
 			"names": &graphql.Field{
 				Description: "Name filter.",
-				Type:        gqlserver.NewNonNullList(GqlNameFilterEntryType),
+				Type:        gqlserver.NewListNonNullBoth(GqlNameFilterEntryType),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					s := p.Source.(*FaceSource)
 					return s.Names, nil
@@ -186,7 +186,7 @@ func init() {
 			},
 			"names": &graphql.ArgumentConfig{
 				Description: "Name filter.",
-				Type:        gqlserver.NewNonNullList(GqlNameFilterEntryInput),
+				Type:        gqlserver.NewListNonNullBoth(GqlNameFilterEntryInput),
 			},
 		},
 		Type: graphql.NewNonNull(GqlFaceSourceType.Object),
@@ -294,7 +294,7 @@ func init() {
 
 	GqlWriterType.Object.AddFieldConfig("sources", &graphql.Field{
 		Description: "Packet dump sources.",
-		Type:        gqlserver.NewNonNullList(GqlSourceType),
+		Type:        gqlserver.NewListNonNullBoth(GqlSourceType),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			sources := []any{}
 

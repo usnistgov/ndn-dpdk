@@ -24,7 +24,7 @@ func CommonFields(fields graphql.Fields) graphql.Fields {
 
 	fields["workers"] = &graphql.Field{
 		Description: "Worker threads.",
-		Type:        gqlserver.NewNonNullList(ealthread.GqlWorkerType.Object),
+		Type:        gqlserver.NewListNonNullBoth(ealthread.GqlWorkerType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			lcores := []eal.LCore{}
 			for _, w := range p.Source.(withCommonFields).Workers() {

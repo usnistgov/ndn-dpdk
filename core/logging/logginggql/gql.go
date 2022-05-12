@@ -40,7 +40,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "loggers",
 		Description: "Log levels.",
-		Type:        gqlserver.NewNonNullList(GqlLoggerType),
+		Type:        gqlserver.NewListNonNullBoth(GqlLoggerType),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return logging.ListLevels(), nil
 		},

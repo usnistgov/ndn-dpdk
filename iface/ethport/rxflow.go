@@ -37,6 +37,15 @@ func (rxFlow) String() string {
 	return "RxFlow"
 }
 
+func (rxFlow) List(port *Port) (list []iface.RxGroup) {
+	for _, face := range port.faces {
+		for _, rxf := range face.rxf {
+			list = append(list, rxf)
+		}
+	}
+	return
+}
+
 // setIsolate enters or leaves flow isolation mode.
 func (impl *rxFlow) setIsolate(port *Port, enable bool) error {
 	var set C.int

@@ -56,7 +56,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "workers",
 		Description: "Worker LCore allocations.",
-		Type:        gqlserver.NewNonNullList(GqlWorkerType.Object),
+		Type:        gqlserver.NewListNonNullBoth(GqlWorkerType.Object),
 		Args: graphql.FieldConfigArgument{
 			"role": &graphql.ArgumentConfig{
 				Description: "Filter by assigned role. Empty string matches unassigned LCores.",

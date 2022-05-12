@@ -47,7 +47,7 @@ var bindTypesC = map[string]graphql.Type{
 	"float":       graphql.NewNonNull(graphql.Float),
 	"string":      gqlserver.NonNullString,
 	"slice":       graphql.NewList(gqlserver.NonNullInt),
-	"array":       gqlserver.NewNonNullList(graphql.Int),
+	"array":       gqlserver.NewListNonNullBoth(graphql.Int),
 	"requiredB":   graphql.NewNonNull(gqlTypeB),
 	"optionalB":   gqlTypeB,
 }

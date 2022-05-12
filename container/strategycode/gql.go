@@ -42,7 +42,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "strategies",
 		Description: "List of strategies.",
-		Type:        gqlserver.NewNonNullList(GqlStrategyType.Object),
+		Type:        gqlserver.NewListNonNullBoth(GqlStrategyType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return List(), nil
 		},

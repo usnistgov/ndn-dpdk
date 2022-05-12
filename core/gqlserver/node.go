@@ -53,7 +53,6 @@ func parseID(id string) (prefix, suffix string, ok bool) {
 type NodeTypeBase struct {
 	Object      *graphql.Object
 	prefix      string
-	typ         reflect.Type
 	retrieveAny func(suffix string) (node any, e error)
 	deleteByID  func(suffix string) (ok bool, e error)
 }
@@ -75,29 +74,22 @@ func (nt *NodeType[T]) Retrieve(id string) (node T) {
 
 // NewNodeType creates a NodeType.
 func NewNodeType[T any](oc graphql.ObjectConfig, nc NodeConfig[T]) (nt *NodeType[T]) {
-	if oc.Interfaces == nil {
-		oc.Interfaces = []*graphql.Interface{}
-	}
-	oc.Interfaces = append(oc.Interfaces.([]*graphql.Interface), nodeInterface)
-
-	if oc.Fields == nil {
-		oc.Fields = graphql.Fields{}
-	}
-	fields := oc.Fields.(graphql.Fields)
+	fields, _ := oc.Fields.(graphql.Fields)
 	fields["id"] = &graphql.Field{
 		Type:        graphql.NewNonNull(graphql.ID),
 		Description: "Globally unique ID.",
 		Resolve:     nc.makeResolveID(oc.Name, fields),
 	}
+	oc.Fields = fields
 
+	nodeInterface.AppendTo(&oc)
 	obj := graphql.NewObject(oc)
-	Schema.Types = append(Schema.Types, obj)
+	ImplementsInterface[T](obj, nodeInterface)
 
 	nt = &NodeType[T]{
 		NodeTypeBase: NodeTypeBase{
 			Object: obj,
 			prefix: oc.Name,
-			typ:    reflect.TypeOf((*T)(nil)).Elem(),
 		},
 		retrieve: nc.makeRetrieve(),
 	}
@@ -180,28 +172,17 @@ func (nc NodeConfig[T]) makeRetrieve() func(suffix string) T {
 	return nil
 }
 
-var nodeInterface = graphql.NewInterface(graphql.InterfaceConfig{
+var nodeInterface = NewInterface(graphql.InterfaceConfig{
 	Name: "Node",
 	Fields: graphql.Fields{
 		"id": &graphql.Field{
 			Type: NonNullID,
 		},
 	},
-	ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
-		typ := reflect.TypeOf(p.Value)
-		for _, nt := range nodeTypes {
-			if typ.AssignableTo(nt.typ) {
-				return nt.Object
-			}
-		}
-		return nil
-	},
 })
 
 func init() {
-	if _, e := rand.Read(idKey[:]); e != nil {
-		panic(e)
-	}
+	rand.Read(idKey[:])
 
 	AddQuery(&graphql.Field{
 		Name:        "node",
@@ -211,7 +192,7 @@ func init() {
 				Type: NonNullID,
 			},
 		},
-		Type: nodeInterface,
+		Type: nodeInterface.Interface,
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			prefix, suffix, ok := parseID(p.Args["id"].(string))
 			if !ok {

@@ -31,23 +31,19 @@ func toNonNull(ofType graphql.Type) graphql.Type {
 	return graphql.NewNonNull(ofType)
 }
 
-// NewNonNullList constructs a non-null list type.
-// NewNonNullList(T) returns [T!]!.
-// NewNonNullList(T, true) returns [T]!.
-func NewNonNullList(ofType graphql.Type, optionalNullable ...bool) graphql.Type {
-	nullable := false
-	switch len(optionalNullable) {
-	case 0:
-	case 1:
-		nullable = optionalNullable[0]
-	default:
-		panic("NewNonNullList: bad arguments")
-	}
-
-	if !nullable {
-		ofType = toNonNull(ofType)
-	}
+// NewListNonNullList constructs [T]! type.
+func NewListNonNullList(ofType graphql.Type) graphql.Type {
 	return graphql.NewNonNull(graphql.NewList(ofType))
+}
+
+// NewListNonNullElem constructs [T!] type.
+func NewListNonNullElem(ofType graphql.Type) graphql.Type {
+	return graphql.NewList(toNonNull(ofType))
+}
+
+// NewListNonNullBoth constructs [T!]! type.
+func NewListNonNullBoth(ofType graphql.Type) graphql.Type {
+	return graphql.NewNonNull(graphql.NewList(toNonNull(ofType)))
 }
 
 // NewStringEnum constructs an enum type.

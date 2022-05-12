@@ -76,7 +76,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "hrlogWriters",
 		Description: "List of active high resolution log writers.",
-		Type:        gqlserver.NewNonNullList(GqlWriterType.Object),
+		Type:        gqlserver.NewListNonNullBoth(GqlWriterType.Object),
 		Resolve:     gqlWriter.QueryList,
 	})
 }

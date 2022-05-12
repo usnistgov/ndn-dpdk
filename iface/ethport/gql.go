@@ -9,7 +9,85 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 )
 
+// GraphQL types.
+var (
+	GqlRxGroupInterface *gqlserver.Interface
+	GqlRxgFlowType      *graphql.Object
+	GqlRxgTableType     *graphql.Object
+)
+
+func gqlDefineRxGroup[T iface.RxGroup](oc graphql.ObjectConfig) *graphql.Object {
+	iface.GqlRxGroupInterface.AppendTo(&oc)
+	GqlRxGroupInterface.AppendTo(&oc)
+	oc.Fields = GqlRxGroupInterface.CopyFieldsTo(oc.Fields)
+	obj := graphql.NewObject(oc)
+	gqlserver.ImplementsInterface[T](obj, iface.GqlRxGroupInterface)
+	gqlserver.ImplementsInterface[T](obj, GqlRxGroupInterface)
+	return obj
+}
+
 func init() {
+	GqlRxGroupInterface = gqlserver.NewInterface(graphql.InterfaceConfig{
+		Name: "EthRxGroup",
+		Fields: iface.GqlRxGroupInterface.CopyFieldsTo(graphql.Fields{
+			"port": &graphql.Field{
+				Type: graphql.NewNonNull(ethdev.GqlEthDevType.Object),
+			},
+			"queue": &graphql.Field{
+				Type: gqlserver.NonNullInt,
+			},
+		}),
+	})
+
+	GqlRxgFlowType = gqlDefineRxGroup[*rxgFlow](graphql.ObjectConfig{
+		Name: "EthRxgFlow",
+		Fields: graphql.Fields{
+			"faces": &graphql.Field{
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					rxf := p.Source.(*rxgFlow)
+					return []iface.Face{rxf.face}, nil
+				},
+			},
+			"port": &graphql.Field{
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					rxf := p.Source.(*rxgFlow)
+					return rxf.face.port.EthDev(), nil
+				},
+			},
+			"queue": &graphql.Field{
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					rxf := p.Source.(*rxgFlow)
+					return rxf.queue, nil
+				},
+			},
+		},
+	})
+
+	GqlRxgTableType = gqlDefineRxGroup[*rxgTable](graphql.ObjectConfig{
+		Name: "EthRxgTable",
+		Fields: graphql.Fields{
+			"faces": &graphql.Field{
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					rxt := p.Source.(*rxgTable)
+					port := Find(rxt.ethDev())
+					return port.Faces(), nil
+				},
+			},
+			"port": &graphql.Field{
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					rxt := p.Source.(*rxgTable)
+					return rxt.ethDev(), nil
+				},
+			},
+			"queue": &graphql.Field{
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					rxt := p.Source.(*rxgTable)
+					return int(rxt.queue), nil
+				},
+			},
+		},
+	})
+
 	ethdev.GqlEthDevType.Object.AddFieldConfig("rxImpl", &graphql.Field{
 		Description: "Active ethface RX implementation.",
 		Type:        graphql.String,
@@ -21,9 +99,20 @@ func init() {
 			return port.rxImpl.String(), nil
 		},
 	})
+	ethdev.GqlEthDevType.Object.AddFieldConfig("rxGroups", &graphql.Field{
+		Description: "RxGroups on Ethernet device.",
+		Type:        gqlserver.NewListNonNullElem(GqlRxGroupInterface.Interface),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			port := Find(p.Source.(ethdev.EthDev))
+			if port == nil {
+				return nil, nil
+			}
+			return port.rxImpl.List(port), nil
+		},
+	})
 	ethdev.GqlEthDevType.Object.AddFieldConfig("faces", &graphql.Field{
 		Description: "Faces on Ethernet device.",
-		Type:        graphql.NewList(graphql.NewNonNull(iface.GqlFaceType.Object)),
+		Type:        gqlserver.NewListNonNullElem(iface.GqlFaceType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			port := Find(p.Source.(ethdev.EthDev))
 			if port == nil {

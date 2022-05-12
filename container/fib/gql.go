@@ -48,7 +48,7 @@ func init() {
 			},
 			"nexthops": &graphql.Field{
 				Description: "FIB nexthops. null indicates a deleted face.",
-				Type:        gqlserver.NewNonNullList(iface.GqlFaceType.Object, true),
+				Type:        gqlserver.NewListNonNullList(iface.GqlFaceType.Object),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					entry := p.Source.(Entry)
 					var list []iface.Face
@@ -106,7 +106,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "fib",
 		Description: "List of FIB entries.",
-		Type:        gqlserver.NewNonNullList(GqlEntryType.Object),
+		Type:        gqlserver.NewListNonNullBoth(GqlEntryType.Object),
 		Args: graphql.FieldConfigArgument{
 			"name": &graphql.ArgumentConfig{
 				Description: "Filter by exact name.",
@@ -132,7 +132,7 @@ func init() {
 
 	iface.GqlFaceType.Object.AddFieldConfig("fibEntries", &graphql.Field{
 		Description: "FIB entries having this face as nexthop.",
-		Type:        graphql.NewList(graphql.NewNonNull(GqlEntryType.Object)),
+		Type:        gqlserver.NewListNonNullElem(GqlEntryType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlFib == nil {
 				return nil, nil
@@ -152,7 +152,7 @@ func init() {
 
 	strategycode.GqlStrategyType.Object.AddFieldConfig("fibEntries", &graphql.Field{
 		Description: "FIB entries using this strategy.",
-		Type:        graphql.NewList(graphql.NewNonNull(GqlEntryType.Object)),
+		Type:        gqlserver.NewListNonNullElem(GqlEntryType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			if GqlFib == nil {
 				return nil, nil
@@ -180,7 +180,7 @@ func init() {
 			},
 			"nexthops": &graphql.ArgumentConfig{
 				Description: "FIB nexthops.",
-				Type:        gqlserver.NewNonNullList(gqlserver.NonNullID),
+				Type:        gqlserver.NewListNonNullBoth(gqlserver.NonNullID),
 			},
 			"strategy": &graphql.ArgumentConfig{
 				Description: "Forwarding strategy.",

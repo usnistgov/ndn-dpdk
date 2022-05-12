@@ -21,11 +21,12 @@ var (
 
 // GraphQL types.
 var (
-	GqlPktQueueInput  *graphql.InputObject
-	GqlFaceType       *gqlserver.NodeType[Face]
-	GqlRxCountersType *graphql.Object
-	GqlTxCountersType *graphql.Object
-	GqlCountersType   *graphql.Object
+	GqlPktQueueInput    *graphql.InputObject
+	GqlFaceType         *gqlserver.NodeType[Face]
+	GqlRxCountersType   *graphql.Object
+	GqlTxCountersType   *graphql.Object
+	GqlCountersType     *graphql.Object
+	GqlRxGroupInterface *gqlserver.Interface
 )
 
 func init() {
@@ -86,7 +87,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "faces",
 		Description: "List of faces.",
-		Type:        gqlserver.NewNonNullList(GqlFaceType.Object),
+		Type:        gqlserver.NewListNonNullBoth(GqlFaceType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return List(), nil
 		},
@@ -151,4 +152,29 @@ func init() {
 			return face.Counters(), nil
 		},
 	})
+
+	GqlRxGroupInterface = gqlserver.NewInterface(graphql.InterfaceConfig{
+		Name: "RxGroup",
+		Fields: graphql.Fields{
+			"rxLoop": ealthread.GqlWithWorker(func(p graphql.ResolveParams) ealthread.Thread {
+				rxg := p.Source.(RxGroup)
+				return mapRxgRxl[rxg]
+			}),
+			"faces": &graphql.Field{
+				Type: gqlserver.NewListNonNullBoth(GqlFaceType.Object),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					return []Face{}, nil
+				},
+			},
+		},
+	})
+}
+
+// RegisterGqlRxGroupType registers an implementation of GraphQL RxGroup interface.
+func RegisterGqlRxGroupType[T RxGroup](oc graphql.ObjectConfig) (object *graphql.Object) {
+	GqlRxGroupInterface.AppendTo(&oc)
+	oc.Fields = GqlRxGroupInterface.CopyFieldsTo(oc.Fields)
+	object = graphql.NewObject(oc)
+	gqlserver.ImplementsInterface[T](object, GqlRxGroupInterface)
+	return object
 }

@@ -36,7 +36,7 @@ func (m FieldTypes) resolveType(typ reflect.Type) graphql.Type {
 	case reflect.Slice:
 		return graphql.NewList(m.resolveType(typ.Elem()))
 	case reflect.Array:
-		return graphql.NewNonNull(graphql.NewList(m.resolveType(typ.Elem())))
+		return NewListNonNullList(m.resolveType(typ.Elem()))
 	case reflect.Bool:
 		return NonNullBoolean
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,

@@ -17,6 +17,13 @@ func (rxMemif) String() string {
 	return "RxMemif"
 }
 
+func (rxMemif) List(port *Port) (list []iface.RxGroup) {
+	for _, face := range port.faces {
+		list = append(list, face.rxf[0])
+	}
+	return
+}
+
 func (impl *rxMemif) Init(port *Port) error {
 	if port.devInfo.DriverName() != ethdev.DriverMemif {
 		return errors.New("cannot use RxMemif on non-memif port")

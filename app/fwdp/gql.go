@@ -56,6 +56,14 @@ func init() {
 				input := p.Source.(*Input)
 				return input.rxl
 			}),
+			"rxGroups": &graphql.Field{
+				Description: "RX groups.",
+				Type:        gqlserver.NewListNonNullBoth(iface.GqlRxGroupInterface.Interface),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					input := p.Source.(*Input)
+					return input.rxl.List(), nil
+				},
+			},
 		},
 	}, gqlserver.NodeConfig[*Input]{
 		RetrieveInt: func(id int) *Input {
@@ -99,7 +107,7 @@ func init() {
 		Fields: graphql.Fields{
 			"inputs": &graphql.Field{
 				Description: "Input threads.",
-				Type:        gqlserver.NewNonNullList(GqlInputType.Object),
+				Type:        gqlserver.NewListNonNullBoth(GqlInputType.Object),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					dp := p.Source.(*DataPlane)
 					return dp.fwis, nil
@@ -107,7 +115,7 @@ func init() {
 			},
 			"fwds": &graphql.Field{
 				Description: "Forwarding threads.",
-				Type:        gqlserver.NewNonNullList(GqlFwdType.Object),
+				Type:        gqlserver.NewListNonNullBoth(GqlFwdType.Object),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					dp := p.Source.(*DataPlane)
 					return dp.fwds, nil
@@ -256,7 +264,7 @@ func init() {
 	})
 	fib.GqlEntryType.Object.AddFieldConfig("nexthopRtts", &graphql.Field{
 		Description: "FIB nexthops and their RTT measurements in a forwarding thread.",
-		Type:        gqlserver.NewNonNullList(GqlFibNexthopRttType),
+		Type:        gqlserver.NewListNonNullBoth(GqlFibNexthopRttType),
 		Args: graphql.FieldConfigArgument{
 			"fwd": &graphql.ArgumentConfig{
 				Description: "Forwarding thread ID. Default is the result of NDT lookup with FIB entry name.",

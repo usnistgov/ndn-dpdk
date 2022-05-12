@@ -49,7 +49,7 @@ func init() {
 			},
 			"templates": &graphql.ArgumentConfig{
 				Description: "Interest templates.",
-				Type:        gqlserver.NewNonNullList(ndni.GqlInterestTemplateInput),
+				Type:        gqlserver.NewListNonNullBoth(ndni.GqlInterestTemplateInput),
 			},
 			"finalSegNum": &graphql.ArgumentConfig{
 				Description: "Final segment number for each Interest template",

@@ -130,7 +130,7 @@ func init() {
 	gqlserver.AddQuery(&graphql.Field{
 		Name:        "ethDevs",
 		Description: "List of Ethernet devices.",
-		Type:        gqlserver.NewNonNullList(GqlEthDevType.Object),
+		Type:        gqlserver.NewListNonNullBoth(GqlEthDevType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
 			return List(), nil
 		},

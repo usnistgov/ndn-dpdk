@@ -24,6 +24,10 @@ func (rxTable) String() string {
 	return "RxTable"
 }
 
+func (impl *rxTable) List(port *Port) []iface.RxGroup {
+	return []iface.RxGroup{impl.rxt}
+}
+
 func (impl *rxTable) Init(port *Port) error {
 	if e := port.startDev(1, true); e != nil {
 		return e
@@ -55,8 +59,12 @@ type rxgTable C.EthRxTable
 
 var _ iface.RxGroup = &rxgTable{}
 
+func (rxt *rxgTable) ethDev() ethdev.EthDev {
+	return ethdev.FromID(int(rxt.port))
+}
+
 func (rxt *rxgTable) NumaSocket() eal.NumaSocket {
-	return ethdev.FromID(int(rxt.port)).NumaSocket()
+	return rxt.ethDev().NumaSocket()
 }
 
 func (rxt *rxgTable) RxGroup() (ptr unsafe.Pointer, desc string) {
