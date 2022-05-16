@@ -25,7 +25,7 @@ func (rxMemif) List(port *Port) (list []iface.RxGroup) {
 }
 
 func (impl *rxMemif) Init(port *Port) error {
-	if port.devInfo.DriverName() != ethdev.DriverMemif {
+	if port.devInfo.Driver() != ethdev.DriverMemif {
 		return errors.New("cannot use RxMemif on non-memif port")
 	}
 	return nil

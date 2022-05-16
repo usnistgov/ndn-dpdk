@@ -1,7 +1,8 @@
 import type { FaceLocator } from "@usnistgov/ndn-dpdk";
-import { Component, h } from "preact";
+import { h } from "preact";
 
 import { gql, gqlSub } from "./client";
+import { AbortableComponent } from "./refresh-component";
 
 export interface Face {
   id: string;
@@ -19,18 +20,17 @@ interface Counters extends Record<typeof counters[number], number> {
 
 interface Props {
   face: Face;
+  rxQueues?: number[];
 }
 
 interface State {
   cnt: Counters;
 }
 
-export class FaceGrid extends Component<Props, State> {
+export class FaceGrid extends AbortableComponent<Props, State> {
   state: State = {
     cnt: Object.fromEntries(counters.map((k) => [k, 0])) as any,
   };
-
-  private readonly abort = new AbortController();
 
   override async componentDidMount() {
     const { id } = this.props.face;
@@ -45,12 +45,8 @@ export class FaceGrid extends Component<Props, State> {
     }
   }
 
-  override componentWillUnmount() {
-    this.abort.abort();
-  }
-
   override render() {
-    const { id, nid, locator } = this.props.face;
+    const { face: { id, nid, locator }, rxQueues } = this.props;
     const { rxFrames, rxInterests, rxData, rxNacks, rxDecodeErrs, rxReassPackets, rxReassDrops,
       txFrames, txInterests, txData, txNacks, txAllocErrs, txFragGood, txFragBad } = this.state.cnt;
     return (
@@ -59,6 +55,7 @@ export class FaceGrid extends Component<Props, State> {
           {nid}
           <title>{id}</title>
         </text>
+        {rxQueues && <text x="219" y="10" text-anchor="end">{rxQueues.length === 1 ? "RX-queue" : "RX-queues"} {rxQueues.join(",")}</text>}
         <text x="1" y="20">
           {describeFaceLocator(locator)}
           <title>{JSON.stringify(locator, undefined, 2)}</title>

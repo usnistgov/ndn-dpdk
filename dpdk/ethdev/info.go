@@ -53,14 +53,14 @@ type DevInfo struct {
 	DevInfoC
 }
 
-// DriverName returns DPDK net driver name.
-func (info DevInfo) DriverName() string {
+// Driver returns DPDK net driver name.
+func (info DevInfo) Driver() string {
 	return C.GoString((*C.char)(unsafe.Pointer(info.Driver_name)))
 }
 
 // IsVDev determines whether the driver is a virtual device.
 func (info DevInfo) IsVDev() bool {
-	switch info.DriverName() {
+	switch info.Driver() {
 	case DriverAfPacket, DriverXDP, DriverMemif, DriverRing:
 		return true
 	}
@@ -69,7 +69,7 @@ func (info DevInfo) IsVDev() bool {
 
 // canIgnoreSetMTUError determines whether set MTU error should be ignored.
 func (info DevInfo) canIgnoreSetMTUError() bool {
-	switch info.DriverName() {
+	switch info.Driver() {
 	case DriverMemif, DriverRing:
 		return true
 	}
@@ -78,7 +78,7 @@ func (info DevInfo) canIgnoreSetMTUError() bool {
 
 // canIgnorePromiscError determines whether enable/disable promiscuous mode error should be ignored.
 func (info DevInfo) canIgnorePromiscError() bool {
-	switch info.DriverName() {
+	switch info.Driver() {
 	case DriverMemif, DriverRing:
 		return true
 	}
@@ -91,7 +91,7 @@ func (info DevInfo) HasTxMultiSegOffload() bool {
 		return true
 	}
 
-	switch info.DriverName() { // some drivers support multi-segment TX but do not advertise it
+	switch info.Driver() { // some drivers support multi-segment TX but do not advertise it
 	case DriverRing:
 		return true
 	}

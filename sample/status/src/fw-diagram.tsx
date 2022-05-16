@@ -1,8 +1,10 @@
-import { Component, h } from "preact";
+import { h } from "preact";
 
 import { gql, gqlQuery } from "./client";
 import { FwFwd } from "./fw-fwd";
+import { FwInput } from "./fw-input";
 import type { Worker } from "./model";
+import { TimerRefreshComponent } from "./refresh-component";
 import { WorkerShape } from "./worker-shape";
 
 interface FwdpQueryResult {
@@ -25,8 +27,8 @@ interface State {
   fwdp?: FwdpQueryResult;
 }
 
-export class FwDiagram extends Component<{}, State> {
-  override async componentDidMount() {
+export class FwDiagram extends TimerRefreshComponent<{}, State> {
+  protected override async refresh() {
     const fwdp = await gqlQuery<FwdpQueryResult>(gql`
       {
         fwdp {
@@ -36,9 +38,7 @@ export class FwDiagram extends Component<{}, State> {
         workersTX: workers(role: "TX") { id nid numaSocket role }
       }
     `);
-    this.setState({
-      fwdp,
-    });
+    return { fwdp };
   }
 
   override render() {
@@ -50,7 +50,9 @@ export class FwDiagram extends Component<{}, State> {
     return (
       <svg style="background: #ffffff; width: 900px;" viewBox={`0 0 900 ${height}`}>
         {inputs.map(({ id, worker }, i) => (
-          <WorkerShape key={id} role={worker.role} label={`input ${worker.nid}`} x={0} y={100 * i} width={200} height={80}/>
+          <WorkerShape key={id} role={worker.role} label={`input ${worker.nid}`} x={0} y={100 * i} width={200} height={80}>
+            <FwInput id={id}/>
+          </WorkerShape>
         ))}
         {fwds.map(({ id, worker }, i) => (
           <WorkerShape key={id} role={worker.role} label={`fwd ${worker.nid}`} x={300} y={120 * i} width={300} height={100}>

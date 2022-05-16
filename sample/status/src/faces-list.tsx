@@ -1,8 +1,9 @@
 import type { FaceLocator } from "@usnistgov/ndn-dpdk";
-import { Component, Fragment, h } from "preact";
+import { Fragment, h } from "preact";
 
 import { gql, gqlQuery } from "./client";
 import { FaceGrid } from "./face-grid";
+import { TimerRefreshComponent } from "./refresh-component";
 
 interface EthDev {
   id: string;
@@ -13,6 +14,13 @@ interface EthDev {
   mtu: number;
   rxImpl?: string;
   isDown: boolean;
+  devInfo: {
+    driver?: string;
+  };
+  rxGroups: Array<{
+    faces: Array<Pick<Face, "id">>;
+    queue?: number;
+  }>;
 }
 
 interface Face {
@@ -27,20 +35,22 @@ interface State {
   faces: Face[];
 }
 
-export class FacesList extends Component<{}, State> {
+export class FacesList extends TimerRefreshComponent<{}, State> {
   state: State = {
     ethDevs: [],
     faces: [],
   };
 
-  override async componentDidMount() {
-    const result = await gqlQuery<State>(gql`
+  protected override refresh() {
+    return gqlQuery<State>(gql`
       {
-        ethDevs { id nid name numaSocket macAddr mtu rxImpl isDown }
+        ethDevs {
+          id nid name numaSocket macAddr mtu rxImpl isDown devInfo
+          rxGroups { queue faces { id } }
+        }
         faces { ethDev { id } id nid locator }
       }
     `);
-    this.setState(result);
   }
 
   override render() {
@@ -58,10 +68,17 @@ export class FacesList extends Component<{}, State> {
       return undefined;
     }
     return (
-      <section>
-        <h3>{ethDev ? `${ethDev.name} (${ethDev.macAddr} ${ethDev.rxImpl})` : "Non-Ethernet faces"}</h3>
+      <section key={ethDev?.id ?? ""}>
+        <h3>{ethDev ? `${ethDev.name} (${ethDev.macAddr} ${ethDev.devInfo.driver} ${ethDev.rxImpl})` : "Non-Ethernet faces"}</h3>
         <div style="display: flex; flex-direction: row; flex-wrap: wrap;">
-          {faces.map((face) => <FaceGrid key={face.id} face={face}/>)}
+          {faces.map((face) => {
+            const rxQueues = ethDev?.rxGroups.filter(
+              (rxg) => rxg.faces.some(({ id }) => id === face.id) && rxg.queue !== undefined,
+            ).map(({ queue }) => queue!);
+            return (
+              <FaceGrid key={face.id} face={face} rxQueues={rxQueues?.length ? rxQueues : undefined}/>
+            );
+          })}
         </div>
       </section>
     );

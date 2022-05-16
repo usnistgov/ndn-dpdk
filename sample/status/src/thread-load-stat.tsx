@@ -1,6 +1,7 @@
-import { Component, h } from "preact";
+import { h } from "preact";
 
 import { gql, gqlSub } from "./client";
+import { AbortableComponent } from "./refresh-component";
 
 interface Props {
   id: string;
@@ -12,14 +13,12 @@ interface State {
   validPolls: number;
 }
 
-export class ThreadLoadStat extends Component<Props, State> {
+export class ThreadLoadStat extends AbortableComponent<Props, State> {
   state: State = {
     itemsPerPoll: 0,
     emptyPolls: 0,
     validPolls: 0,
   };
-
-  private readonly abort = new AbortController();
 
   override async componentDidMount() {
     const { id } = this.props;
@@ -34,10 +33,6 @@ export class ThreadLoadStat extends Component<Props, State> {
     `, { id }, this.abort)) {
       this.setState(threadLoadStat);
     }
-  }
-
-  override componentWillUnmount() {
-    this.abort.abort();
   }
 
   override render() {

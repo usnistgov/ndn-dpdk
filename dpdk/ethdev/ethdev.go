@@ -129,7 +129,7 @@ func (dev ethDev) Start(cfg Config) error {
 	logEntry := logger.With(
 		zap.Int("id", dev.ID()),
 		zap.String("name", dev.Name()),
-		zap.String("driver", info.DriverName()),
+		zap.String("driver", info.Driver()),
 		mtuField,
 		zap.Int("rxq", len(cfg.RxQueues)),
 		zap.Int("txq", len(cfg.TxQueues)),

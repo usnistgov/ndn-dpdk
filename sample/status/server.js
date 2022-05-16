@@ -44,6 +44,7 @@ const proxy = httpProxy.createProxyServer({
   ws: true,
   ignorePath: true,
 });
+proxy.on("error", (err) => console.warn(err));
 fastify.get("/graphql", (request) => {
   proxy.ws(request.raw, request.socket, request.headers);
 });

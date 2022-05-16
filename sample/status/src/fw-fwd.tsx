@@ -1,6 +1,7 @@
-import { Component, Fragment, h } from "preact";
+import { Fragment, h } from "preact";
 
 import { gql, gqlSub } from "./client";
+import { AbortableComponent } from "./refresh-component";
 
 interface Props {
   id: string;
@@ -25,14 +26,12 @@ interface State {
   cs: Record<typeof csCounters[number], number>;
 }
 
-export class FwFwd extends Component<Props, State> {
+export class FwFwd extends AbortableComponent<Props, State> {
   state: State = {
     fwd: Object.fromEntries(fwdCounters.map((k) => [k, 0])) as any,
     pit: Object.fromEntries(pitCounters.map((k) => [k, 0])) as any,
     cs: Object.fromEntries(csCounters.map((k) => [k, 0])) as any,
   };
-
-  private readonly abort = new AbortController();
 
   override componentDidMount() {
     void this.subscribe("fwd", gql`
@@ -69,10 +68,6 @@ export class FwFwd extends Component<Props, State> {
       prev = result;
       this.setState({ [key]: update });
     }
-  }
-
-  override componentWillUnmount() {
-    this.abort.abort();
   }
 
   override render() {

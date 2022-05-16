@@ -205,7 +205,7 @@ func New(cfg Config) (port *Port, e error) {
 		devInfo: cfg.EthDev.DevInfo(),
 		faces:   map[iface.ID]*Face{},
 	}
-	switch port.devInfo.DriverName() {
+	switch port.devInfo.Driver() {
 	case ethdev.DriverXDP:
 		if port.rxBouncePool, e = pktmbuf.NewPool(pktmbuf.PoolConfig{
 			Capacity: cfg.RxQueueSize + iface.MaxBurstSize,
