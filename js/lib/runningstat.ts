@@ -56,7 +56,7 @@ export class Snapshot {
   }
 
   /** Combine stats instances. */
-  public add(other: Readonly<Snapshot>): Snapshot {
+  public add(this: Readonly<Snapshot>, other: Readonly<Snapshot>): Snapshot {
     if (this.len === 0n) {
       return new Snapshot(other.toJSON());
     }
