@@ -1,6 +1,8 @@
 package socketface
 
 import (
+	"sync"
+
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
@@ -53,4 +55,33 @@ func (impl *rxImpl) stop() {
 	}
 	rxg := impl.instance.Swap(impl.nilValue).(rxGroup)
 	rxg.close()
+}
+
+type rxFaceList struct {
+	set  map[*socketFace]bool
+	lock sync.RWMutex
+}
+
+func (fl *rxFaceList) faceListPut(face *socketFace) func() {
+	fl.lock.Lock()
+	defer fl.lock.Unlock()
+	if fl.set == nil {
+		fl.set = map[*socketFace]bool{}
+	}
+	fl.set[face] = true
+	return func() {
+		fl.lock.Lock()
+		defer fl.lock.Unlock()
+		delete(fl.set, face)
+	}
+}
+
+// Faces implements RxGroup interface.
+func (fl *rxFaceList) Faces() (list []iface.Face) {
+	fl.lock.RLock()
+	defer fl.lock.RUnlock()
+	for face := range fl.set {
+		list = append(list, face)
+	}
+	return list
 }

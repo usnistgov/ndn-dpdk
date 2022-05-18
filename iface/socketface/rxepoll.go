@@ -18,10 +18,13 @@ import (
 )
 
 type rxEpoll struct {
+	rxFaceList
 	socket eal.NumaSocket
 	epfd   int
 	c      *C.SocketRxEpoll
 }
+
+var _ iface.RxGroup = (*rxEpoll)(nil)
 
 func (rxe *rxEpoll) NumaSocket() eal.NumaSocket {
 	return rxe.socket
@@ -41,6 +44,7 @@ func (rxe *rxEpoll) close() {
 }
 
 func (rxe *rxEpoll) run(face *socketFace) error {
+	defer rxe.faceListPut(face)()
 	return face.rawControl(func(ctx context.Context, fd int) error {
 		logEntry := face.logger.With(zap.Int("epfd", rxe.epfd), zap.Int("fd", fd))
 		logEntry.Debug("file descriptor acquired for RxEpoll")

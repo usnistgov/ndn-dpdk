@@ -77,9 +77,8 @@ func NewInterface(ic graphql.InterfaceConfig) (it *Interface) {
 }
 
 // ImplementsInterface records an object implementing an interface.
-// This also appends the object to Schema.Type to ensure that it appears in the schema.
+// This also appends the object to Schema.Types to ensure that it appears in the schema.
 func ImplementsInterface[T any](ot *graphql.Object, it *Interface) {
-	var zero T
-	it.types[reflect.TypeOf(zero)] = ot
+	it.types[reflect.TypeOf((*T)(nil)).Elem()] = ot
 	Schema.Types = append(Schema.Types, ot)
 }

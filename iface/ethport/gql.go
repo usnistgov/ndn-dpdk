@@ -42,12 +42,6 @@ func init() {
 	GqlRxgFlowType = gqlDefineRxGroup[*rxgFlow](graphql.ObjectConfig{
 		Name: "EthRxgFlow",
 		Fields: graphql.Fields{
-			"faces": &graphql.Field{
-				Resolve: func(p graphql.ResolveParams) (any, error) {
-					rxf := p.Source.(*rxgFlow)
-					return []iface.Face{rxf.face}, nil
-				},
-			},
 			"port": &graphql.Field{
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					rxf := p.Source.(*rxgFlow)
@@ -66,13 +60,6 @@ func init() {
 	GqlRxgTableType = gqlDefineRxGroup[*rxgTable](graphql.ObjectConfig{
 		Name: "EthRxgTable",
 		Fields: graphql.Fields{
-			"faces": &graphql.Field{
-				Resolve: func(p graphql.ResolveParams) (any, error) {
-					rxt := p.Source.(*rxgTable)
-					port := Find(rxt.ethDev())
-					return port.Faces(), nil
-				},
-			},
 			"port": &graphql.Field{
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					rxt := p.Source.(*rxgTable)
@@ -88,17 +75,6 @@ func init() {
 		},
 	})
 
-	ethdev.GqlEthDevType.Object.AddFieldConfig("rxImpl", &graphql.Field{
-		Description: "Active ethface RX implementation.",
-		Type:        graphql.String,
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			port := Find(p.Source.(ethdev.EthDev))
-			if port == nil {
-				return nil, nil
-			}
-			return port.rxImpl.String(), nil
-		},
-	})
 	ethdev.GqlEthDevType.Object.AddFieldConfig("rxGroups", &graphql.Field{
 		Description: "RxGroups on Ethernet device.",
 		Type:        gqlserver.NewListNonNullElem(GqlRxGroupInterface.Interface),

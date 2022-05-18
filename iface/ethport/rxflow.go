@@ -203,4 +203,8 @@ func (rxf *rxgFlow) RxGroup() (ptr unsafe.Pointer, desc string) {
 		fmt.Sprintf("EthRxFlow(face=%d,port=%d,queue=%d)", rxf.face.ID(), rxf.face.port.EthDev().ID(), rxf.queue)
 }
 
+func (rxf *rxgFlow) Faces() []iface.Face {
+	return []iface.Face{rxf.face}
+}
+
 func (rxgFlow) RxGroupIsSingleFace() {}

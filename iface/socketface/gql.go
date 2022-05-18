@@ -13,8 +13,6 @@ var (
 )
 
 func init() {
-	// TODO allow listing faces from RxConns and RxEpoll
-
 	ocRxConns := graphql.ObjectConfig{
 		Name:   "SocketRxConns",
 		Fields: iface.GqlRxGroupInterface.CopyFieldsTo(nil),

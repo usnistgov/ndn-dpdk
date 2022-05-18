@@ -28,6 +28,9 @@ type RxGroup interface {
 
 	// RxGroup returns *C.RxGroup pointer and description.
 	RxGroup() (ptr unsafe.Pointer, desc string)
+
+	// Faces returns a list of faces contained in this RxGroup.
+	Faces() []Face
 }
 
 // RxGroupSingleFace indicates this kind of RxGroup can serve at most one face.

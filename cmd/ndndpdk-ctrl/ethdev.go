@@ -6,7 +6,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const gqlEthDevFields = "id name numaSocket macAddr mtu isDown rxImpl"
+const gqlEthDevFields = "id name numaSocket macAddr mtu isDown"
 
 func init() {
 	var withDevInfo, withStats, withFaces bool

@@ -61,6 +61,14 @@ func init() {
 				},
 			},
 			"numaSocket": eal.GqlWithNumaSocket,
+			"isDown": &graphql.Field{
+				Type:        gqlserver.NonNullBoolean,
+				Description: "Whether the face is down.",
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					face := p.Source.(Face)
+					return IsDown(face.ID()), nil
+				},
+			},
 			"txLoop": &graphql.Field{
 				Type:        ealthread.GqlWorkerType.Object,
 				Description: "TxLoop serving this face.",
@@ -163,7 +171,8 @@ func init() {
 			"faces": &graphql.Field{
 				Type: gqlserver.NewListNonNullBoth(GqlFaceType.Object),
 				Resolve: func(p graphql.ResolveParams) (any, error) {
-					return []Face{}, nil
+					rxg := p.Source.(RxGroup)
+					return rxg.Faces(), nil
 				},
 			},
 		},

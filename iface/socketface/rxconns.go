@@ -17,11 +17,14 @@ import (
 )
 
 type rxConns struct {
+	rxFaceList
 	socket eal.NumaSocket
 	ring   *ringbuffer.Ring
 	mp     *pktmbuf.Pool
 	c      *C.SocketRxConns
 }
+
+var _ iface.RxGroup = (*rxConns)(nil)
 
 func (rxc *rxConns) NumaSocket() eal.NumaSocket {
 	return rxc.socket
@@ -40,6 +43,7 @@ func (rxc *rxConns) close() {
 }
 
 func (rxc *rxConns) run(face *socketFace) error {
+	defer rxc.faceListPut(face)()
 	face.logger.Debug("face is using RxConns")
 	id, ctx := face.ID(), face.transport.Context()
 	for ctx.Err() == nil {

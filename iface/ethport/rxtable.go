@@ -72,6 +72,11 @@ func (rxt *rxgTable) RxGroup() (ptr unsafe.Pointer, desc string) {
 		fmt.Sprintf("EthRxTable(port=%d,queue=%d)", rxt.port, rxt.queue)
 }
 
+func (rxt *rxgTable) Faces() []iface.Face {
+	port := Find(rxt.ethDev())
+	return port.Faces()
+}
+
 func (rxt *rxgTable) Close() error {
 	iface.DeactivateRxGroup(rxt)
 	eal.Free(rxt)

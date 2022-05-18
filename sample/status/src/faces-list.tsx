@@ -1,8 +1,7 @@
-import type { FaceLocator } from "@usnistgov/ndn-dpdk";
 import { Fragment, h } from "preact";
 
 import { gql, gqlQuery } from "./client";
-import { FaceGrid } from "./face-grid";
+import { type Face as FaceB, FaceGrid } from "./face-grid";
 import { TimerRefreshComponent } from "./refresh-component";
 
 interface EthDev {
@@ -12,22 +11,19 @@ interface EthDev {
   numaSocket: number;
   macAddr: string;
   mtu: number;
-  rxImpl?: string;
   isDown: boolean;
   devInfo: {
     driver?: string;
   };
   rxGroups: Array<{
+    __typename: string;
     faces: Array<Pick<Face, "id">>;
     queue?: number;
   }>;
 }
 
-interface Face {
+interface Face extends FaceB {
   ethDev?: Pick<EthDev, "id">;
-  id: string;
-  nid: number;
-  locator: FaceLocator;
 }
 
 interface State {
@@ -45,10 +41,10 @@ export class FacesList extends TimerRefreshComponent<{}, State> {
     return gqlQuery<State>(gql`
       {
         ethDevs {
-          id nid name numaSocket macAddr mtu rxImpl isDown devInfo
-          rxGroups { queue faces { id } }
+          id nid name numaSocket macAddr mtu isDown devInfo
+          rxGroups { __typename queue faces { id } }
         }
-        faces { ethDev { id } id nid locator }
+        faces { ethDev { id } id nid locator isDown }
       }
     `);
   }
@@ -69,7 +65,7 @@ export class FacesList extends TimerRefreshComponent<{}, State> {
     }
     return (
       <section key={ethDev?.id ?? ""}>
-        <h3>{ethDev ? `${ethDev.name} (${ethDev.macAddr} ${ethDev.devInfo.driver} ${ethDev.rxImpl})` : "Non-Ethernet faces"}</h3>
+        <h3>{ethDev ? `${ethDev.name} (${ethDev.macAddr} ${ethDev.devInfo.driver} ${ethDev.rxGroups[0]?.__typename})` : "Non-Ethernet faces"}</h3>
         <div style="display: flex; flex-direction: row; flex-wrap: wrap;">
           {faces.map((face) => {
             const rxQueues = ethDev?.rxGroups.filter(

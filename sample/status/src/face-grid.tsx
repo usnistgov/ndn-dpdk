@@ -8,6 +8,7 @@ export interface Face {
   id: string;
   nid: number;
   locator: FaceLocator;
+  isDown: boolean;
 }
 
 const counters = [
@@ -46,7 +47,7 @@ export class FaceGrid extends AbortableComponent<Props, State> {
   }
 
   override render() {
-    const { face: { id, nid, locator }, rxQueues } = this.props;
+    const { face: { id, nid, locator, isDown }, rxQueues } = this.props;
     const { rxFrames, rxInterests, rxData, rxNacks, rxDecodeErrs, rxReassPackets, rxReassDrops,
       txFrames, txInterests, txData, txNacks, txAllocErrs, txFragGood, txFragBad } = this.state.cnt;
     return (
@@ -60,29 +61,32 @@ export class FaceGrid extends AbortableComponent<Props, State> {
           {describeFaceLocator(locator)}
           <title>{JSON.stringify(locator, undefined, 2)}</title>
         </text>
-        {this.renderV(0, 25, "f", "frames", rxFrames, "decode-err", rxDecodeErrs)}
-        {this.renderV(0, 50, "I", "Interests", rxInterests)}
-        {this.renderV(0, 75, "D", "Data", rxData)}
-        {this.renderV(0, 100, "N", "Nacks", rxNacks)}
-        {this.renderV(0, 125, "R", "reass", rxReassPackets, "reassembler dropped", rxReassDrops)}
-        {this.renderV(120, 25, "f", "frames", txFrames, "alloc-err", txAllocErrs)}
-        {this.renderV(120, 50, "I", "Interests", txInterests)}
-        {this.renderV(120, 75, "D", "Data", txData)}
-        {this.renderV(120, 100, "N", "Nacks", txNacks)}
-        {this.renderV(120, 125, "F", "frag", txFragGood, "fragmenter dropped", txFragBad)}
+        {this.renderV(0, 25, "frame", rxFrames, "decode error", rxDecodeErrs)}
+        {this.renderV(0, 50, "Interest", rxInterests)}
+        {this.renderV(0, 75, "Data", rxData)}
+        {this.renderV(0, 100, "Nack", rxNacks)}
+        {this.renderV(0, 125, "reass", rxReassPackets, "reassembler dropped", rxReassDrops)}
+        {this.renderV(120, 25, "frame", txFrames, "alloc error", txAllocErrs)}
+        {this.renderV(120, 50, "Interest", txInterests)}
+        {this.renderV(120, 75, "Data", txData)}
+        {this.renderV(120, 100, "Nack", txNacks)}
+        {this.renderV(120, 125, "frag", txFragGood, "fragmenter dropped", txFragBad)}
+        <path hidden={!isDown} fill="#ff4136" fill-opacity="100" transform="translate(210 0)" d="M -5 0 V 10 H -10 L 0 15 L 10 10 H 5 V 0 Z">
+          <title>face is down</title>
+        </path>
       </svg>
     );
   }
 
-  private renderV(x: number, y: number, short: string, long: string, v: number, warnDesc?: string, warnV?: number) {
+  private renderV(x: number, y: number, desc: string, v: number, warnDesc?: string, warnV?: number) {
     return (
       <g transform={`translate(${x} ${y})`}>
         <rect
           width="100" height="20"
           stroke="#aaaaaa" stroke-width="1" fill="#ffffff"
         />
-        <text x="5" y="15">{short}<title>{long}</title></text>
-        <text x="75" y="15" text-anchor="end">{v}</text>
+        <text x="1" y="15">{desc}</text>
+        <text x="79" y="15" text-anchor="end">{v}</text>
         {warnDesc ? (
           <circle cx="90" cy="10" r="6" fill={warnV === 0 ? "#2ecc40" : "#ff4136"}>
             <title>{warnV} {warnDesc}</title>
@@ -96,7 +100,7 @@ export class FaceGrid extends AbortableComponent<Props, State> {
 function describeFaceLocator(loc: FaceLocator): string {
   switch (loc.scheme) {
     case "ether":
-      return `Ethernet ${loc.remote}`;
+      return `Ethernet ${loc.remote}${loc.vlan && ` VLAN ${loc.vlan}`}`;
     case "udpe":
       return `UDP ${loc.remoteIP}:${loc.remoteUDP}`;
     case "vxlan":

@@ -112,11 +112,11 @@ Example command and output:
 
 ```shell
 A $ ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 9000
-{"id":"1276dc31","macAddr":"02:00:00:00:00:01","name":"0000:04:00.0","numaSocket":1,"rxImpl":"RxTable"}
+{"id":"1276dc31","macAddr":"02:00:00:00:00:01","name":"0000:04:00.0","numaSocket":1}
 # to use '--mtu 9000', .mempool.DIRECT.dataroom in activation parameters should be at least 9146
 
 B $ ndndpdk-ctrl create-eth-port --pci 06:00.0 --mtu 9000
-{"id":"a6a35a10","macAddr":"02:00:00:00:00:02","name":"0000:06:00.0","numaSocket":1,"rxImpl":"RxTable"}
+{"id":"a6a35a10","macAddr":"02:00:00:00:00:02","name":"0000:06:00.0","numaSocket":1}
 
 A $ ndndpdk-ctrl create-ether-face --local 02:00:00:00:00:01 --remote 02:00:00:00:00:02
 {"id":"286d21ff"}
