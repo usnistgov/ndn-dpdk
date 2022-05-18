@@ -1,15 +1,10 @@
 import type { FaceLocator } from "@usnistgov/ndn-dpdk";
-import { h } from "preact";
+import numd from "numd";
+import { Fragment, h } from "preact";
 
 import { gql, gqlSub } from "./client";
+import type { Face } from "./model";
 import { AbortableComponent } from "./refresh-component";
-
-export interface Face {
-  id: string;
-  nid: number;
-  locator: FaceLocator;
-  isDown: boolean;
-}
 
 const counters = [
   "rxFrames", "rxInterests", "rxData", "rxNacks", "rxDecodeErrs", "rxReassPackets", "rxReassDrops",
@@ -56,16 +51,26 @@ export class FaceGrid extends AbortableComponent<Props, State> {
           {nid}
           <title>{id}</title>
         </text>
-        {rxQueues && <text x="219" y="10" text-anchor="end">{rxQueues.length === 1 ? "RX-queue" : "RX-queues"} {rxQueues.join(",")}</text>}
         <text x="1" y="20">
           {describeFaceLocator(locator)}
           <title>{JSON.stringify(locator, undefined, 2)}</title>
+        </text>
+        <text x="1" y="159">
+          {
+            rxQueues ? (
+              <>
+                {`RX (${numd(rxQueues.length, " queue", " queues")})`}
+                <title>{rxQueues.join(", ")}</title>
+              </>
+            ) : "RX"
+          }
         </text>
         {this.renderV(0, 25, "frame", rxFrames, "decode error", rxDecodeErrs)}
         {this.renderV(0, 50, "Interest", rxInterests)}
         {this.renderV(0, 75, "Data", rxData)}
         {this.renderV(0, 100, "Nack", rxNacks)}
         {this.renderV(0, 125, "reass", rxReassPackets, "reassembler dropped", rxReassDrops)}
+        <text x="219" y="159" text-anchor="end">TX</text>
         {this.renderV(120, 25, "frame", txFrames, "alloc error", txAllocErrs)}
         {this.renderV(120, 50, "Interest", txInterests)}
         {this.renderV(120, 75, "Data", txData)}
@@ -102,7 +107,7 @@ function describeFaceLocator(loc: FaceLocator): string {
     case "ether":
       return `Ethernet ${loc.remote}${loc.vlan && ` VLAN ${loc.vlan}`}`;
     case "udpe":
-      return `UDP ${loc.remoteIP}:${loc.remoteUDP}`;
+      return `UDP [${loc.remoteIP}]:${loc.remoteUDP}`;
     case "vxlan":
       return `VXLAN ${loc.remoteIP} ${loc.vxlan}`;
     case "unix":

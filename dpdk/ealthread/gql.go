@@ -96,7 +96,7 @@ func init() {
 		},
 		Find: func(p graphql.ResolveParams) (root any, enders []any, e error) {
 			lc := GqlWorkerType.Retrieve(p.Args["id"].(string))
-			return gqlserver.Optional(lc, lc.Valid()), nil, nil
+			return gqlserver.Optional(lc), nil, nil
 		},
 		Type: GqlLoadStatType,
 		Read: func(p graphql.ResolveParams) (any, error) {
@@ -134,7 +134,7 @@ func GqlWithWorker(get func(p graphql.ResolveParams) Thread) *graphql.Field {
 			}
 
 			lc := thread.LCore()
-			return gqlserver.Optional(lc, lc.Valid()), nil
+			return gqlserver.Optional(lc), nil
 		},
 	}
 }

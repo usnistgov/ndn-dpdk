@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/graphql-go/graphql"
-	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"go.uber.org/zap"
 )
 
@@ -155,6 +154,9 @@ var GqlWithNumaSocket = &graphql.Field{
 	Description: "NUMA socket.",
 	Resolve: func(p graphql.ResolveParams) (any, error) {
 		socket := p.Source.(WithNumaSocket).NumaSocket()
-		return gqlserver.Optional(socket.ID(), !socket.IsAny()), nil
+		if socket.IsAny() {
+			return nil, nil
+		}
+		return socket.ID(), nil
 	},
 }

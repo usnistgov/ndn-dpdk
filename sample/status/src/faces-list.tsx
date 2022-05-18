@@ -1,7 +1,8 @@
 import { Fragment, h } from "preact";
 
 import { gql, gqlQuery } from "./client";
-import { type Face as FaceB, FaceGrid } from "./face-grid";
+import { FaceGrid } from "./face-grid";
+import type { Face as FaceB } from "./model";
 import { TimerRefreshComponent } from "./refresh-component";
 
 interface EthDev {
@@ -65,7 +66,7 @@ export class FacesList extends TimerRefreshComponent<{}, State> {
     }
     return (
       <section key={ethDev?.id ?? ""}>
-        <h3>{ethDev ? `${ethDev.name} (${ethDev.macAddr} ${ethDev.devInfo.driver} ${ethDev.rxGroups[0]?.__typename})` : "Non-Ethernet faces"}</h3>
+        <h3>{ethDev ? `${ethDev.name} (${ethDev.macAddr} ${ethDev.devInfo.driver} MTU=${ethDev.mtu} ${ethDev.rxGroups[0]?.__typename ?? "uninitialized"})` : "Non-Ethernet faces"}</h3>
         <div style="display: flex; flex-direction: row; flex-wrap: wrap;">
           {faces.map((face) => {
             const rxQueues = ethDev?.rxGroups.filter(

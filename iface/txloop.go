@@ -7,6 +7,7 @@ import "C"
 import (
 	"io"
 	"math"
+	"sync"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -65,6 +66,9 @@ func (txl *txLoop) ThreadRole() string {
 }
 
 func (txl *txLoop) Close() error {
+	txLoopLock.Lock()
+	defer txLoopLock.Unlock()
+
 	txl.Stop()
 	delete(txLoopThreads, txl)
 	logger.Info("TxLoop closed",
@@ -79,6 +83,9 @@ func (txl *txLoop) CountFaces() int {
 }
 
 func (txl *txLoop) Add(face Face) {
+	txLoopLock.Lock()
+	defer txLoopLock.Unlock()
+
 	id := face.ID()
 	logEntry := logger.With(
 		zap.Uintptr("txl-ptr", uintptr(unsafe.Pointer(txl.c))),
@@ -98,6 +105,9 @@ func (txl *txLoop) Add(face Face) {
 }
 
 func (txl *txLoop) Remove(face Face) {
+	txLoopLock.Lock()
+	defer txLoopLock.Unlock()
+
 	id := face.ID()
 	logEntry := logger.With(
 		zap.Uintptr("txl-ptr", uintptr(unsafe.Pointer(txl.c))),
@@ -124,10 +134,14 @@ var (
 
 	txLoopThreads = map[TxLoop]bool{}
 	mapFaceTxl    = map[ID]TxLoop{}
+	txLoopLock    sync.Mutex
 )
 
 // ListTxLoops returns a list of TxLoops.
 func ListTxLoops() (list []TxLoop) {
+	txLoopLock.Lock()
+	defer txLoopLock.Unlock()
+
 	for txl := range txLoopThreads {
 		list = append(list, txl)
 	}
@@ -175,5 +189,8 @@ func ActivateTxFace(face Face) TxLoop {
 
 // DeactivateTxFace removes the Face from the owning TxLoop.
 func DeactivateTxFace(face Face) {
-	mapFaceTxl[face.ID()].Remove(face)
+	txLoopLock.Lock()
+	txl := mapFaceTxl[face.ID()]
+	txLoopLock.Unlock()
+	txl.Remove(face)
 }

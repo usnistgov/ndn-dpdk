@@ -73,13 +73,15 @@ func init() {
 				Type:        ealthread.GqlWorkerType.Object,
 				Description: "TxLoop serving this face.",
 				Resolve: func(p graphql.ResolveParams) (any, error) {
+					txLoopLock.Lock()
+					defer txLoopLock.Unlock()
 					face := p.Source.(Face)
 					txl := mapFaceTxl[face.ID()]
 					if txl == nil {
 						return nil, nil
 					}
 					lc := txl.LCore()
-					return gqlserver.Optional(lc, lc.Valid()), nil
+					return gqlserver.Optional(lc), nil
 				},
 			},
 		},
@@ -165,6 +167,8 @@ func init() {
 		Name: "RxGroup",
 		Fields: graphql.Fields{
 			"rxLoop": ealthread.GqlWithWorker(func(p graphql.ResolveParams) ealthread.Thread {
+				rxLoopLock.Lock()
+				defer rxLoopLock.Unlock()
 				rxg := p.Source.(RxGroup)
 				return mapRxgRxl[rxg]
 			}),
@@ -175,6 +179,34 @@ func init() {
 					return rxg.Faces(), nil
 				},
 			},
+		},
+	})
+
+	ealthread.GqlWorkerType.Object.AddFieldConfig("txLoopFaces", &graphql.Field{
+		Description: "Faces on TX thread.",
+		Type:        gqlserver.NewListNonNullElem(GqlFaceType.Object),
+		Resolve: func(p graphql.ResolveParams) (any, error) {
+			txLoopLock.Lock()
+			defer txLoopLock.Unlock()
+
+			lc := p.Source.(eal.LCore)
+			var txl TxLoop
+			for t := range txLoopThreads {
+				if t.LCore() == lc {
+					txl = t
+				}
+			}
+			if txl == nil {
+				return nil, nil
+			}
+
+			list := []Face{}
+			for id, t := range mapFaceTxl {
+				if t == txl {
+					list = append(list, Get(id))
+				}
+			}
+			return list, nil
 		},
 	})
 }

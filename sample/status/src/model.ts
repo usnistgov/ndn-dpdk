@@ -1,3 +1,5 @@
+import type { FaceLocator } from "@usnistgov/ndn-dpdk";
+
 export type WorkerRole = "RX" | "TX" | "CRYPTO" | "DISK" | "FWD" | "CONSUMER" | "PRODUCER";
 
 export interface Worker<Role extends string = WorkerRole> {
@@ -8,3 +10,10 @@ export interface Worker<Role extends string = WorkerRole> {
 }
 
 export type WorkersByRole = Partial<Record<WorkerRole, Worker[]>>;
+
+export interface Face {
+  id: string;
+  nid: number;
+  locator: FaceLocator;
+  isDown: boolean;
+}

@@ -1,11 +1,16 @@
+import numd from "numd";
 import { h } from "preact";
 
 import { gql, gqlQuery } from "./client";
 import { FwFwd } from "./fw-fwd";
 import { FwInput } from "./fw-input";
-import type { Worker } from "./model";
+import type { Face, Worker } from "./model";
 import { TimerRefreshComponent } from "./refresh-component";
 import { WorkerShape } from "./worker-shape";
+
+interface WorkerTX extends Worker<"TX"> {
+  txLoopFaces?: Array<Pick<Face, "id" | "nid">>;
+}
 
 interface FwdpQueryResult {
   fwdp: {
@@ -20,7 +25,7 @@ interface FwdpQueryResult {
       worker: Worker;
     }>;
   };
-  workersTX: Worker[];
+  workersTX: WorkerTX[];
 }
 
 interface State {
@@ -35,7 +40,10 @@ export class FwDiagram extends TimerRefreshComponent<{}, State> {
           inputs { id nid worker { id nid numaSocket role } }
           fwds { id nid worker { id nid numaSocket role } }
         }
-        workersTX: workers(role: "TX") { id nid numaSocket role }
+        workersTX: workers(role: "TX") {
+          id nid numaSocket role
+          txLoopFaces { id nid }
+        }
       }
     `);
     return { fwdp };
@@ -60,7 +68,12 @@ export class FwDiagram extends TimerRefreshComponent<{}, State> {
           </WorkerShape>
         ))}
         {workersTX.map((worker, i) => (
-          <WorkerShape key={worker.id} role={worker.role} label={`output ${worker.nid}`} x={700} y={100 * i} width={200} height={80}/>
+          <WorkerShape key={worker.id} role={worker.role} label={`output ${worker.nid}`} x={700} y={100 * i} width={200} height={80}>
+            <text x="1" y="40" dominant-baseline="hanging">
+              {numd(worker.txLoopFaces?.length ?? 0, "face", "faces")}
+              <title>{worker.txLoopFaces?.map(({ nid }) => nid).join(", ")}</title>
+            </text>
+          </WorkerShape>
         ))}
       </svg>
     );
