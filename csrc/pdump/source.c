@@ -55,6 +55,6 @@ PdumpFaceSource_Filter(PdumpSource* s0, struct rte_mbuf* pkt)
 {
   PdumpFaceSource* s = container_of(s0, PdumpFaceSource, base);
   uint32_t prob = PdumpFaceSource_NameProb(s, pkt);
-  return prob > 0 && // separate `prob>0` to skip pcg32 computation when there's no name match
-         prob > pcg32_random_r(&s->rng);
+  return prob > 0 &&                      // skip pcg32 computation when there's no name match
+         prob >= pcg32_random_r(&s->rng); // '>=' because UINT32_MAX means always
 }

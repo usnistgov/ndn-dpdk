@@ -39,7 +39,7 @@ Pdump_ExtractName(struct rte_mbuf* pkt)
     case TtLpPacket:
       break;
     default:
-      return (LName){ 0 };
+      goto NO_MATCH;
   }
 
   TlvDecoder_EachTL (&d, type1, length1) {
@@ -47,7 +47,7 @@ Pdump_ExtractName(struct rte_mbuf* pkt)
       case TtFragIndex: {
         uint8_t fragIndex = 0;
         if (unlikely(!TlvDecoder_ReadNniTo(&d, length1, &fragIndex)) || fragIndex > 0) {
-          return (LName){ 0 };
+          goto NO_MATCH;
         }
         break;
       }
@@ -59,7 +59,7 @@ Pdump_ExtractName(struct rte_mbuf* pkt)
             return Pdump_ExtractNameL3_(&d);
           }
           default:
-            return (LName){ 0 };
+            goto NO_MATCH;
         }
       }
       default:
@@ -68,6 +68,7 @@ Pdump_ExtractName(struct rte_mbuf* pkt)
     }
   }
 
+NO_MATCH:;
   return (LName){ 0 };
 }
 

@@ -84,7 +84,7 @@ var (
 // The writer cannot be closed until all sources have stopped.
 func (w *Writer) startSource() {
 	if n := w.nSources.Inc(); n <= 0 {
-		panic("attempting to startSource on stopped Writer")
+		logger.Panic("attempting to startSource on stopped Writer")
 	}
 }
 
@@ -92,13 +92,13 @@ func (w *Writer) startSource() {
 // The writer can be closed after all sources have stopped.
 func (w *Writer) stopSource() {
 	if n := w.nSources.Dec(); n < 0 {
-		panic("w.nSources is negative")
+		logger.Panic("w.nSources is negative")
 	}
 }
 
 // defineIntf defines an NgInterface.
 // intf.Name, intf.Description, and intf.LinkType should be set; other fields are ignored.
-// Caller should hold sourcesLock.
+// Caller should hold sourcesMutex.
 func (w *Writer) defineIntf(id int, intf pcapgo.NgInterface) {
 	if w.intfs[id] == intf {
 		return
@@ -123,7 +123,7 @@ func (w *Writer) putBlock(block []byte, blockType uint32, port uint16) {
 	vec[0].SetPort(port)
 	if e := vec[0].Append(block); e != nil {
 		// SHB and IDB should fit in default dataroom of DIRECT mempool
-		panic(e)
+		logger.Panic("block exceeds mbuf dataroom")
 	}
 
 	for ringbuffer.Enqueue(w.queue, vec) != 1 {
@@ -242,13 +242,13 @@ func ngMakeHeader(id int, info pcapgo.NgInterface) (shb, idb []byte) {
 		}
 	}
 	if b.Len() != 0 {
-		panic("NgWriter incomplete block")
+		logger.Panic("NgWriter incomplete block")
 	}
 	if len(shb) == 0 {
-		panic("NgWriter missing SHB")
+		logger.Panic("NgWriter missing SHB")
 	}
 	if len(idb) == 0 {
-		panic("NgWriter missing IDB")
+		logger.Panic("NgWriter missing IDB")
 	}
 	return
 }
