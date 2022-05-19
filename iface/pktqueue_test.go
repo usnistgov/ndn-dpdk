@@ -16,6 +16,13 @@ type PktQueueFixture struct {
 	Q *iface.PktQueue
 }
 
+func (fixture *PktQueueFixture) PushTime(vec pktmbuf.Vector, now eal.TscTime) (nRej int) {
+	for _, pkt := range vec {
+		pkt.SetTimestamp(now)
+	}
+	return fixture.Q.Push(vec)
+}
+
 func (fixture *PktQueueFixture) PopMax(vec pktmbuf.Vector, now eal.TscTime) (count int, drop bool) {
 	for {
 		n, d := fixture.Q.Pop(vec[count:], now)
@@ -58,9 +65,9 @@ func TestPktQueuePlain(t *testing.T) {
 	require.NoError(e)
 	ptrs := gatherMbufPtrs(vec)
 
-	assert.Equal(0, fixture.Q.Push(vec[0:100], eal.TscNow()))
-	assert.Equal(0, fixture.Q.Push(vec[100:200], eal.TscNow()))
-	if assert.Equal(45, fixture.Q.Push(vec[200:300], eal.TscNow())) {
+	assert.Equal(0, fixture.PushTime(vec[0:100], eal.TscNow()))
+	assert.Equal(0, fixture.PushTime(vec[100:200], eal.TscNow()))
+	if assert.Equal(45, fixture.PushTime(vec[200:300], eal.TscNow())) {
 		vec[255:300].Close()
 	}
 
@@ -72,7 +79,7 @@ func TestPktQueuePlain(t *testing.T) {
 	assert.False(drop)
 	deq.Close()
 
-	assert.Equal(0, fixture.Q.Push(vec[300:400], eal.TscNow()))
+	assert.Equal(0, fixture.PushTime(vec[300:400], eal.TscNow()))
 	count, drop = fixture.PopMax(deq, eal.TscNow())
 	if assert.Equal(155, count) {
 		assert.Equal(ptrs[200:255], gatherMbufPtrs(deq[:55]))
@@ -95,7 +102,7 @@ func TestPktQueueDelay(t *testing.T) {
 	ptrs := gatherMbufPtrs(vec)
 
 	t0 := eal.TscNow()
-	assert.Equal(0, fixture.Q.Push(vec, t0))
+	assert.Equal(0, fixture.PushTime(vec, t0))
 
 	deq := make(pktmbuf.Vector, 60)
 	t1 := eal.TscNow()
@@ -124,7 +131,7 @@ func TestPktQueueCoDel(t *testing.T) {
 	enq := func(n int) {
 		vec, e := mbuftestenv.DirectMempool().Alloc(n)
 		require.NoError(e)
-		nRej := fixture.Q.Push(vec, eal.TscNow())
+		nRej := fixture.PushTime(vec, eal.TscNow())
 		nEnq += n - nRej
 		vec[n-nRej:].Close()
 	}

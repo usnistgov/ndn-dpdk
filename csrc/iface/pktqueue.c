@@ -10,13 +10,13 @@ PktQueue_PopFromRing(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
   return res;
 }
 
-PktQueuePopResult
-PktQueue_PopPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
+__attribute__((nonnull)) static PktQueuePopResult
+PktQueue_PopPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, __rte_unused TscTime now)
 {
   return PktQueue_PopFromRing(q, pkts, count);
 }
 
-PktQueuePopResult
+__attribute__((nonnull)) static PktQueuePopResult
 PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 {
   PktQueuePopResult res = PktQueue_PopFromRing(q, pkts, count);
@@ -76,7 +76,7 @@ CoDel_ShouldDrop(PktQueue* q, TscTime timestamp, TscTime now)
   return drop;
 }
 
-PktQueuePopResult
+__attribute__((nonnull)) static PktQueuePopResult
 PktQueue_PopCoDel(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 {
   PktQueuePopResult res = PktQueue_PopFromRing(q, pkts, count);
@@ -110,3 +110,9 @@ PktQueue_PopCoDel(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime 
   }
   return res;
 }
+
+const PktQueue_PopFunc PktQueue_PopJmp[] = {
+  [PktQueuePopActPlain] = PktQueue_PopPlain,
+  [PktQueuePopActDelay] = PktQueue_PopDelay,
+  [PktQueuePopActCoDel] = PktQueue_PopCoDel,
+};

@@ -20,7 +20,7 @@ __attribute__((nonnull)) static __rte_always_inline bool
 InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
 {
   InputDemuxDest* dest = &demux->dest[index];
-  if (unlikely(index >= MaxInputDemuxDest || dest->queue == NULL)) {
+  if (unlikely(index >= RTE_DIM(demux->dest) || dest->queue == NULL)) {
     return InputDemux_Drop(demux, npkt, "no-dest");
   }
 
@@ -30,7 +30,7 @@ InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
   N_LOGD("PassTo %s-from=%" PRI_FaceID " npkt=%p token=%s dest-index=%" PRIu8,
          PktType_ToString(Packet_GetType(npkt)), face, npkt, LpPitToken_ToString(token), index);
 
-  uint32_t nRej = PktQueue_PushPlain(dest->queue, &pkt, 1);
+  uint32_t nRej = PktQueue_Push(dest->queue, &pkt, 1);
   if (unlikely(nRej > 0)) {
     ++dest->nDropped;
     return false;
@@ -65,7 +65,7 @@ InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt)
   return InputDemux_PassTo(demux, npkt, index);
 }
 
-__attribute__((nonnull)) static __rte_always_inline uint64_t
+__attribute__((nonnull)) static inline uint64_t
 InputDemux_ComputeGenericHash(Packet* npkt)
 {
   const PName* name = Packet_GetName(npkt);
@@ -92,13 +92,13 @@ void
 InputDemux_SetDispatchDiv(InputDemux* demux, uint32_t nDest, bool byGenericHash)
 {
   if (nDest <= 1) {
-    demux->dispatch = InputDemuxFuncToFirst;
+    demux->dispatch = InputDemuxActToFirst;
   } else if (rte_is_power_of_2(nDest)) {
     demux->div.mask = nDest - 1;
-    demux->dispatch = byGenericHash ? InputDemuxFuncGenericHashMask : InputDemuxFuncRoundrobinMask;
+    demux->dispatch = byGenericHash ? InputDemuxActGenericHashMask : InputDemuxActRoundrobinMask;
   } else {
     demux->div.n = nDest;
-    demux->dispatch = byGenericHash ? InputDemuxFuncGenericHashDiv : InputDemuxFuncRoundrobinDiv;
+    demux->dispatch = byGenericHash ? InputDemuxActGenericHashDiv : InputDemuxActRoundrobinDiv;
   }
 }
 
@@ -112,7 +112,7 @@ InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt)
 NdtQuerier*
 InputDemux_SetDispatchByNdt(InputDemux* demux)
 {
-  demux->dispatch = InputDemuxFuncByNdt;
+  demux->dispatch = InputDemuxActByNdt;
   return &demux->ndq;
 }
 
@@ -132,16 +132,16 @@ void
 InputDemux_SetDispatchByToken(InputDemux* demux, uint8_t offset)
 {
   demux->byToken.offset = offset;
-  demux->dispatch = InputDemuxFuncByToken;
+  demux->dispatch = InputDemuxActByToken;
 }
 
 const InputDemux_DispatchFunc InputDemux_DispatchJmp[] = {
-  [InputDemuxFuncDrop] = InputDemux_DispatchDrop,
-  [InputDemuxFuncToFirst] = InputDemux_DispatchToFirst,
-  [InputDemuxFuncRoundrobinDiv] = InputDemux_DispatchRoundrobinDiv,
-  [InputDemuxFuncRoundrobinMask] = InputDemux_DispatchRoundrobinMask,
-  [InputDemuxFuncGenericHashDiv] = InputDemux_DispatchGenericHashDiv,
-  [InputDemuxFuncGenericHashMask] = InputDemux_DispatchGenericHashMask,
-  [InputDemuxFuncByNdt] = InputDemux_DispatchByNdt,
-  [InputDemuxFuncByToken] = InputDemux_DispatchByToken,
+  [InputDemuxActDrop] = InputDemux_DispatchDrop,
+  [InputDemuxActToFirst] = InputDemux_DispatchToFirst,
+  [InputDemuxActRoundrobinDiv] = InputDemux_DispatchRoundrobinDiv,
+  [InputDemuxActRoundrobinMask] = InputDemux_DispatchRoundrobinMask,
+  [InputDemuxActGenericHashDiv] = InputDemux_DispatchGenericHashDiv,
+  [InputDemuxActGenericHashMask] = InputDemux_DispatchGenericHashMask,
+  [InputDemuxActByNdt] = InputDemux_DispatchByNdt,
+  [InputDemuxActByToken] = InputDemux_DispatchByToken,
 };

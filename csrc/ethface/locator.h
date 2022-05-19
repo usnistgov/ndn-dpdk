@@ -49,12 +49,10 @@ EthLocator_Classify(const EthLocator* loc);
 
 typedef struct EthRxMatch EthRxMatch;
 
-typedef bool (*EthRxMatchFunc)(const EthRxMatch* match, const struct rte_mbuf* m);
-
 /** @brief EthFace RX matcher. */
 struct EthRxMatch
 {
-  EthRxMatchFunc f;
+  bool (*f)(const EthRxMatch* match, const struct rte_mbuf* m);
   uint8_t len;
   uint8_t l2len;
   uint8_t l3matchOff;
@@ -72,7 +70,7 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc);
  * @param match EthRxMatch prepared by @c EthRxMatch_Prepare .
  */
 __attribute__((nonnull)) static inline bool
-EthRxMatch_Match(const EthRxMatch* match, struct rte_mbuf* m)
+EthRxMatch_Match(const EthRxMatch* match, const struct rte_mbuf* m)
 {
   return m->data_len >= match->len && match->f(match, m);
 }
@@ -107,12 +105,10 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc);
 
 typedef struct EthTxHdr EthTxHdr;
 
-typedef void (*EthTxHdrFunc)(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst);
-
 /** @brief EthFace TX header template. */
 struct EthTxHdr
 {
-  EthTxHdrFunc f;
+  void (*f)(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst);
   uint8_t len;
   uint8_t l2len;
   bool vxlanSrcPort;

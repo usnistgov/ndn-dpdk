@@ -28,7 +28,7 @@ func (demux *InputDemux) ptr() *C.InputDemux {
 
 // InitDrop configures to drop all packets.
 func (demux *InputDemux) InitDrop() {
-	demux.dispatch = C.InputDemuxFuncDrop
+	demux.dispatch = C.InputDemuxActDrop
 }
 
 // InitFirst configures to pass all packets to the first and only destination.

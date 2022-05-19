@@ -54,13 +54,13 @@ func (q *PktQueue) Init(cfg PktQueueConfig, socket eal.NumaSocket) error {
 	capacity := 131072
 	switch {
 	case cfg.Delay > 0:
-		q.pop = C.PktQueue_PopOp(C.PktQueue_PopDelay)
+		q.pop = C.PktQueuePopActDelay
 		q.target = C.TscDuration(eal.ToTscDuration(cfg.Delay.Duration()))
 	case cfg.DisableCoDel:
-		q.pop = C.PktQueue_PopOp(C.PktQueue_PopPlain)
+		q.pop = C.PktQueuePopActPlain
 		capacity = 4096
 	default:
-		q.pop = C.PktQueue_PopOp(C.PktQueue_PopCoDel)
+		q.pop = C.PktQueuePopActCoDel
 		q.target = C.TscDuration(eal.ToTscDuration(cfg.Target.DurationOr(nnduration.Nanoseconds(5 * time.Millisecond))))
 		q.interval = C.TscDuration(eal.ToTscDuration(cfg.Interval.DurationOr(nnduration.Nanoseconds(100 * time.Millisecond))))
 	}
@@ -109,14 +109,15 @@ func (q *PktQueue) Close() error {
 }
 
 // Push enqueues a slice of packets.
+// Timestamps must have been assigned on the packets.
 // Caller must free rejected packets.
-func (q *PktQueue) Push(vec pktmbuf.Vector, now eal.TscTime) (nRej int) {
-	return int(C.PktQueue_Push(q.ptr(), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint(len(vec)), C.TscTime(now)))
+func (q *PktQueue) Push(vec pktmbuf.Vector) (nRej int) {
+	return int(C.PktQueue_Push(q.ptr(), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint32_t(len(vec))))
 }
 
 // Pop dequeues a slice of packets.
 func (q *PktQueue) Pop(vec pktmbuf.Vector, now eal.TscTime) (count int, drop bool) {
-	res := C.PktQueue_Pop(q.ptr(), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint(len(vec)), C.TscTime(now))
+	res := C.PktQueue_Pop(q.ptr(), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint32_t(len(vec)), C.TscTime(now))
 	return int(res.count), bool(res.drop)
 }
 

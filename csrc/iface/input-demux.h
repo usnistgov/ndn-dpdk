@@ -7,6 +7,19 @@
 #include "faceid.h"
 #include "pktqueue.h"
 
+/** @brief Input demultiplexer dispatch method. */
+typedef enum InputDemuxAct
+{
+  InputDemuxActDrop,
+  InputDemuxActToFirst,
+  InputDemuxActRoundrobinDiv,
+  InputDemuxActRoundrobinMask,
+  InputDemuxActGenericHashDiv,
+  InputDemuxActGenericHashMask,
+  InputDemuxActByNdt,
+  InputDemuxActByToken,
+} InputDemuxAct;
+
 /** @brief Destination of input packet demultiplexer. */
 typedef struct InputDemuxDest
 {
@@ -15,23 +28,11 @@ typedef struct InputDemuxDest
   uint64_t nDropped;
 } InputDemuxDest;
 
-typedef enum InputDemuxFunc
-{
-  InputDemuxFuncDrop,
-  InputDemuxFuncToFirst,
-  InputDemuxFuncRoundrobinDiv,
-  InputDemuxFuncRoundrobinMask,
-  InputDemuxFuncGenericHashDiv,
-  InputDemuxFuncGenericHashMask,
-  InputDemuxFuncByNdt,
-  InputDemuxFuncByToken,
-} InputDemuxFunc;
-
 /** @brief Input packet demultiplexer for a single packet type. */
 typedef struct InputDemux
 {
   uint64_t nDrops;
-  InputDemuxFunc dispatch;
+  InputDemuxAct dispatch;
   union
   {
     struct
@@ -67,7 +68,6 @@ InputDemux_SetDispatchByToken(InputDemux* demux, uint8_t offset);
 /**
  * @brief Dispatch a packet.
  * @param npkt parsed L3 packet.
- * @param name packet name.
  * @retval true packet is dispatched.
  * @retval false packet is rejected and should be freed by caller.
  */

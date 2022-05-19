@@ -126,7 +126,7 @@ FetchLogic_RtoTimeout(MinTmr* tmr, uintptr_t flPtr)
 void
 FetchLogic_Init_(FetchLogic* fl)
 {
-  NDNDPDK_ASSERT(RTE_IS_POWER_OF_2(fl->win.capacityMask + 1));
+  NDNDPDK_ASSERT(rte_is_power_of_2(fl->win.capacityMask + 1));
 
   CDS_INIT_LIST_HEAD(&fl->retxQ);
   fl->nTxRetx = 0;

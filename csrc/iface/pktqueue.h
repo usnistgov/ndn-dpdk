@@ -3,26 +3,22 @@
 
 /** @file */
 
-#include "../dpdk/mbuf.h"
 #include "common.h"
 
-/** @brief A packet queue with simplified CoDel algorithm. */
-typedef struct PktQueue PktQueue;
-
-typedef struct PktQueuePopResult
+/** @brief Packet queue dequeue method. */
+typedef enum PktQueuePopAct
 {
-  uint32_t count; ///< number of dequeued packets
-  bool drop;      ///< whether the first packet should be dropped/ECN-marked
-} PktQueuePopResult;
+  PktQueuePopActPlain,
+  PktQueuePopActDelay,
+  PktQueuePopActCoDel,
+} PktQueuePopAct;
 
-typedef PktQueuePopResult (*PktQueue_PopOp)(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count,
-                                            TscTime now);
-
-struct PktQueue
+/** @brief Thread-safe packet queue. */
+typedef struct PktQueue
 {
   struct rte_ring* ring;
 
-  PktQueue_PopOp pop;
+  PktQueuePopAct pop;
   TscDuration target;
   TscDuration interval;
   uint32_t dequeueBurstSize;
@@ -36,46 +32,35 @@ struct PktQueue
   TscDuration sojourn;
 
   uint64_t nDrops;
-};
+} PktQueue;
 
 /**
  * @brief Enqueue a burst of packets.
- * @param pkts packets with timestamp already set.
+ * @param pkts packets with timestamp assigned.
  * @return number of rejected packets; caller must free them.
  */
 __attribute__((nonnull)) static inline uint32_t
-PktQueue_PushPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
+PktQueue_Push(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
 {
   return Mbuf_EnqueueVector(pkts, count, q->ring, false);
 }
 
-/**
- * @brief Set timestamp on a burst of packets and enqueue them.
- * @return number of rejected packets; caller must free them.
- */
-__attribute__((nonnull)) static inline uint32_t
-PktQueue_Push(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
+/** @brief Packet queue pop result. */
+typedef struct PktQueuePopResult
 {
-  for (uint32_t i = 0; i < count; ++i) {
-    Mbuf_SetTimestamp(pkts[i], now);
-  }
-  return PktQueue_PushPlain(q, pkts, count);
-}
+  uint32_t count; ///< number of dequeued packets
+  bool drop;      ///< whether the first packet should be dropped/ECN-marked
+} PktQueuePopResult;
+
+typedef PktQueuePopResult (*PktQueue_PopFunc)(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count,
+                                              TscTime now);
+extern const PktQueue_PopFunc PktQueue_PopJmp[];
 
 /** @brief Dequeue a burst of packets. */
 __attribute__((nonnull)) static inline PktQueuePopResult
 PktQueue_Pop(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
 {
-  return q->pop(q, pkts, count, now);
+  return PktQueue_PopJmp[q->pop](q, pkts, count, now);
 }
-
-__attribute__((nonnull)) PktQueuePopResult
-PktQueue_PopPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now);
-
-__attribute__((nonnull)) PktQueuePopResult
-PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now);
-
-__attribute__((nonnull)) PktQueuePopResult
-PktQueue_PopCoDel(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now);
 
 #endif // NDNDPDK_IFACE_PKTQUEUE_H
