@@ -26,8 +26,8 @@ func ComputeOptimumCapacity(capacity int) int {
 // ComputeCacheSize calculates the appropriate cache size for given mempool capacity.
 func ComputeCacheSize(capacity int) int {
 	max := C.RTE_MEMPOOL_CACHE_MAX_SIZE
-	if capacity/16 < max {
-		return capacity / 16
+	if n := capacity / 16; n < max {
+		return n
 	}
 	min := max / 4
 	for i := max; i >= min; i-- {

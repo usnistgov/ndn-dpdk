@@ -6,6 +6,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
@@ -60,10 +61,10 @@ func (p *Server) Close() error {
 	}
 	p.workers = nil
 	for _, m := range p.mounts {
-		m.closeDirectory()
+		errs = append(errs, m.closeDirectory())
 	}
 	p.mounts = nil
-	return nil
+	return multierr.Combine(errs...)
 }
 
 // New creates a Server.
@@ -71,12 +72,8 @@ func New(face iface.Face, cfg Config) (p *Server, e error) {
 	if e := cfg.Validate(); e != nil {
 		return nil, e
 	}
-	if e := cfg.checkPayloadMempool(cfg.SegmentLen); e != nil {
-		return nil, e
-	}
 
-	faceID := face.ID()
-	socket := face.NumaSocket()
+	faceID, socket := face.ID(), face.NumaSocket()
 
 	p = &Server{}
 	for _, m := range cfg.Mounts {

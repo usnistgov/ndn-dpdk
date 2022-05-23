@@ -66,9 +66,7 @@ bool
 FileServer_ToFilename(const PName* name, int16_t mountComps, char filename[PATH_MAX])
 {
   LName path = PName_Slice(name, mountComps, name->firstNonGeneric);
-  if (unlikely(path.length >= PATH_MAX)) {
-    return false;
-  }
+  static_assert(FileServer_MaxPrefixL < PATH_MAX, "");
 
   char* output = &filename[0];
   uint16_t pos = 0, type = 0, length = 0;

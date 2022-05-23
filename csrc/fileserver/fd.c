@@ -41,14 +41,30 @@ FdHt_Expand_(UT_hash_table* tbl)
          tbl->num_buckets);
 }
 
-enum
-{
-  /// Maximum mount+path TLV-LENGTH to accommodate [32=ls]+version+segment components.
-  FileServer_MaxPrefixL = NameMaxLength - sizeof(FileServer_KeywordLs) - 10 - 10,
-};
-
 static FileServerFd notFound;
 FileServerFd* FileServer_NotFound = &notFound;
+
+/** @brief Reuse FileServerFd.st.stx_ino field as (TscTime)nextUpdate. */
+#define FdStx_NextUpdate stx_ino
+static_assert(RTE_SIZEOF_FIELD(struct statx, FdStx_NextUpdate) == sizeof(TscTime), "");
+
+enum
+{
+  FileServerStatxRequired = STATX_TYPE | STATX_MODE | STATX_MTIME | STATX_SIZE,
+  FileServerStatxOptional = STATX_ATIME | STATX_CTIME | STATX_BTIME,
+};
+
+static __rte_always_inline bool
+FileServerFd_HasStatBit(const FileServerFd* entry, uint32_t bit)
+{
+  return (entry->st.stx_mask & bit) == bit;
+}
+
+static __rte_always_inline uint64_t
+FileServerFd_StatTime(struct statx_timestamp t)
+{
+  return (uint64_t)t.tv_sec * SPDK_SEC_TO_NSEC + (uint64_t)t.tv_nsec;
+}
 
 __attribute__((nonnull)) static inline int
 FileServerFd_UpdateStatx(FileServer* p, FileServerFd* entry, TscTime now, bool* changed)
@@ -68,17 +84,13 @@ FileServerFd_UpdateStatx(FileServer* p, FileServerFd* entry, TscTime now, bool* 
       *changed = oldVersion != entry->version || oldSize != entry->st.stx_size;
     }
   }
-  static_assert(sizeof(entry->st.stx_ino) == sizeof(TscTime), "");
-  entry->st.stx_ino = now + p->statValidity;
+  entry->st.FdStx_NextUpdate = now + p->statValidity;
   return res;
 }
 
 __attribute__((nonnull)) static inline void
-FileServerFd_PrepapeMeta(FileServer* p, FileServerFd* entry)
+FileServerFd_PrepapeVersionedName(FileServer* p, FileServerFd* entry)
 {
-  entry->lastSeg =
-    SPDK_CEIL_DIV(entry->st.stx_size, p->segmentLen) - (uint64_t)(entry->st.stx_size > 0);
-
   uint16_t nameL = entry->prefixL;
   if (unlikely(FileServerFd_IsDir(entry))) {
     rte_memcpy(RTE_PTR_ADD(entry->nameV, nameL), FileServer_KeywordLs,
@@ -90,12 +102,16 @@ FileServerFd_PrepapeMeta(FileServer* p, FileServerFd* entry)
   version[0] = TtVersionNameComponent;
   version[1] = Nni_Encode(&version[2], entry->version);
   entry->versionedL = (nameL += 2 + version[1]);
+}
 
-  uint8_t* segment = RTE_PTR_ADD(entry->nameV, nameL);
+__attribute__((nonnull)) static inline void
+FileServerFd_PrepapeMetaInfo(FileServer* p, FileServerFd* entry, uint64_t size)
+{
+  entry->lastSeg = SPDK_CEIL_DIV(size, p->segmentLen) - (uint64_t)(size > 0);
+
+  uint8_t segment[10];
   segment[0] = TtSegmentNameComponent;
   segment[1] = Nni_Encode(&segment[2], entry->lastSeg);
-  entry->segmentL = (nameL += 2 + segment[1]);
-
   DataEnc_PrepareMetaInfo(&entry->meta, ContentBlob, 0,
                           ((LName){ .length = 2 + segment[1], .value = segment }));
 }
@@ -108,7 +124,7 @@ FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
     --p->fdQCount;
   }
 
-  if (unlikely((TscTime)entry->st.stx_ino < now)) {
+  if (unlikely((TscTime)entry->st.FdStx_NextUpdate < now)) {
     bool changed = false;
     int res = FileServerFd_UpdateStatx(p, entry, now, &changed);
     ++p->cnt.fdUpdateStat;
@@ -121,7 +137,11 @@ FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
     N_LOGD("Ref statx-update fd=%d refcnt=%" PRIu16 " version=%" PRIu64 " size=%" PRIu64
            " changed=%d",
            entry->fd, entry->refcnt, entry->version, (uint64_t)entry->st.stx_size, (int)changed);
-    FileServerFd_PrepapeMeta(p, entry);
+    if (changed) {
+      FileServerFd_PrepapeVersionedName(p, entry);
+      FileServerFd_PrepapeMetaInfo(p, entry, entry->st.stx_size);
+      entry->lsL = UINT32_MAX;
+    }
   }
 
   ++entry->refcnt;
@@ -165,39 +185,39 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
   }
   ++p->cnt.fdNew;
 
-  struct rte_mbuf* mbuf = rte_pktmbuf_alloc(p->payloadMp);
-  if (unlikely(mbuf == NULL)) {
-    N_LOGE("New mbuf-alloc-err" N_LOG_ERROR_BLANK);
-    goto FAIL_FD;
+  FileServerFd* entry = NULL;
+  int res = rte_mempool_get(p->fdMp, (void**)&entry);
+  if (unlikely(res != 0)) {
+    N_LOGE("New fd-alloc-err" N_LOG_ERROR_BLANK);
+    goto FAIL_CLOSE;
   }
-
-  static_assert(RTE_PKTMBUF_HEADROOM >= RTE_CACHE_LINE_SIZE, "");
-  FileServerFd* entry = RTE_PTR_ALIGN_FLOOR(mbuf->buf_addr, RTE_CACHE_LINE_SIZE);
   entry->fd = fd;
 
+  entry->version = 0;
   entry->st.stx_size = 0;
   bool changed_ = false;
-  int res = FileServerFd_UpdateStatx(p, entry, now, &changed_);
+  res = FileServerFd_UpdateStatx(p, entry, now, &changed_);
   if (unlikely(res != 0)) {
     N_LOGD("New mount=%d filename=%s" N_LOG_ERROR("statx-res=%d statx-mask=0x%" PRIx32), mount,
            logFilename, res, entry->st.stx_mask);
-    goto FAIL_MBUF;
+    goto FAIL_ALLOC;
   }
 
-  entry->mbuf = mbuf;
   entry->refcnt = 1;
+  entry->lsL = UINT32_MAX;
   entry->prefixL = prefix.length;
   rte_memcpy(entry->nameV, prefix.value, prefix.length);
-  FileServerFd_PrepapeMeta(p, entry);
+  FileServerFd_PrepapeVersionedName(p, entry);
+  FileServerFd_PrepapeMetaInfo(p, entry, entry->st.stx_size);
 
   HASH_ADD_BYHASHVALUE(hh, p->fdHt, self, 0, hash, entry);
   N_LOGD("New mount=%d filename=%s fd=%d statx-mask=0x%" PRIu32 " size=%" PRIu64, mount,
          logFilename, entry->fd, entry->st.stx_mask, (uint64_t)entry->st.stx_size);
   return entry;
 
-FAIL_MBUF:
-  rte_pktmbuf_free(mbuf);
-FAIL_FD:
+FAIL_ALLOC:
+  rte_mempool_put(p->fdMp, entry);
+FAIL_CLOSE:
   close(fd);
   return NULL;
 }
@@ -231,6 +251,7 @@ FileServerFd_Unref(FileServer* p, FileServerFd* entry)
   N_LOGD("Unref keep fd=%d", entry->fd);
   cds_list_add_tail(&entry->queueNode, &p->fdQ);
   ++p->fdQCount;
+  NULLize(entry);
   if (unlikely(p->fdQCount <= p->fdQCapacity)) {
     return;
   }
@@ -241,7 +262,7 @@ FileServerFd_Unref(FileServer* p, FileServerFd* entry)
   cds_list_del(&evict->queueNode);
   --p->fdQCount;
   close(evict->fd);
-  rte_pktmbuf_free(evict->mbuf);
+  rte_mempool_put(p->fdMp, evict);
   ++p->cnt.fdClose;
 }
 
@@ -253,7 +274,7 @@ FileServerFd_Clear(FileServer* p)
   HASH_ITER (hh, p->fdHt, entry, tmp) {
     N_LOGD("Clear close fd=%d refcnt=%" PRIu16, entry->fd, entry->refcnt);
     close(entry->fd);
-    rte_pktmbuf_free(entry->mbuf);
+    rte_mempool_put(p->fdMp, entry);
   }
   HASH_CLEAR(hh, p->fdHt);
   CDS_INIT_LIST_HEAD(&p->fdQ);
@@ -322,57 +343,84 @@ FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf*
   return true;
 }
 
+__attribute__((nonnull)) static inline int
+FileServerFd_DirentType(FileServerFd* entry, struct dirent64* de)
+{
+  switch (de->d_type) {
+    case DT_UNKNOWN:
+    case DT_LNK:
+      break;
+    default:
+      return de->d_type;
+  }
+
+  struct statx st;
+  int res = syscall(__NR_statx, entry->fd, de->d_name, 0, STATX_TYPE, &st);
+  if (unlikely(res < 0 || (st.stx_mask & STATX_TYPE) == 0)) {
+    return DT_UNKNOWN;
+  }
+
+  if (S_ISREG(st.stx_mode)) {
+    return DT_REG;
+  }
+  if (S_ISDIR(st.stx_mode)) {
+    return DT_DIR;
+  }
+  return DT_UNKNOWN;
+}
+
 bool
-FileServerFd_EncodeLs(FileServer* p, FileServerFd* entry, struct rte_mbuf* payload,
-                      uint16_t segmentLen)
+FileServerFd_PrepareLs(FileServer* p, FileServerFd* entry)
 {
   NDNDPDK_ASSERT(FileServerFd_IsDir(entry));
-  int dfd = dup(entry->fd);
-  if (unlikely(dfd < 0)) {
-    N_LOGD("Ls dup-err fd=%d" N_LOG_ERROR_ERRNO, entry->fd, errno);
+
+  int res = lseek(entry->fd, 0, SEEK_SET);
+  if (unlikely(res < 0)) {
+    N_LOGD("Ls lseek-err fd=%d" N_LOG_ERROR_ERRNO, entry->fd, errno);
     return false;
   }
 
-  DIR* dir = fdopendir(dfd);
-  if (unlikely(dir == NULL)) {
-    N_LOGD("Ls fdopendir-err fd=%d dfd=%d" N_LOG_ERROR_ERRNO, entry->fd, dfd, errno);
-    close(dfd);
+  res = syscall(SYS_getdents64, entry->fd, entry->lsV, sizeof(entry->lsV));
+  if (unlikely(res < 0)) {
+    N_LOGD("Ls getdents64-err fd=%d" N_LOG_ERROR_ERRNO, entry->fd, errno);
     return false;
   }
 
-  char* value = rte_pktmbuf_mtod(payload, char*);
-  size_t off = 0;
-  struct dirent* ent = NULL;
-  while ((ent = readdir(dir)) != NULL) {
+  char* output = entry->lsV;
+  for (int offset = 0; offset < res;) {
+    struct dirent64* de = RTE_PTR_ADD(entry->lsV, offset);
+    offset += de->d_reclen;
+    if (unlikely(de->d_ino == 0)) {
+      continue;
+    }
+
+    uint16_t nameL = strnlen(de->d_name, RTE_DIM(de->d_name));
+    if (unlikely(nameL <= 2 && nameL == strspn(de->d_name, "."))) {
+      continue;
+    }
+
     bool isDir = false;
-    switch (ent->d_type) {
+    switch (FileServerFd_DirentType(entry, de)) {
       case DT_REG:
         break;
       case DT_DIR:
-        isDir = 1;
+        isDir = true;
         break;
       default:
         continue;
     }
 
-    size_t entNameL = strlen(ent->d_name);
-    if (unlikely(entNameL <= 2 && strspn(ent->d_name, ".") == entNameL)) { // . or ..
-      continue;
-    }
-    uint16_t lineL = entNameL + (uint16_t)isDir + 1;
-    if (unlikely(off + lineL > segmentLen)) {
-      break;
-    }
-    rte_memcpy(&value[off], ent->d_name, entNameL);
-    off += entNameL;
+    memmove(output, de->d_name, nameL);
+    output += nameL;
     if (isDir) {
-      value[off++] = '/';
+      *output++ = '/';
     }
-    value[off++] = '\0';
+    *output++ = '\0';
   }
 
-  closedir(dir);
-  const char* room = rte_pktmbuf_append(payload, off);
-  NDNDPDK_ASSERT(room != NULL);
+  entry->lsL = RTE_PTR_DIFF(output, entry->lsV);
+  FileServerFd_PrepapeMetaInfo(p, entry, entry->lsL);
+  N_LOGD("Ref statx-update fd=%d version=%" PRIu64 " length=%" PRIu32, entry->fd, entry->version,
+         entry->lsL);
   return true;
 }

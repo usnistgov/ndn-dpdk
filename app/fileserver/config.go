@@ -24,8 +24,9 @@ import (
 
 // Limits and defaults.
 const (
-	MaxMounts = 8
-	MaxIovecs = 1
+	MaxMounts   = 8
+	MaxIovecs   = 1
+	MaxLsResult = 262144
 
 	MinSegmentLen     = 64
 	MaxSegmentLen     = 16384
@@ -88,9 +89,8 @@ type Config struct {
 	UringWaitThres float64 `json:"uringWaitThres,omitempty" gqldesc:"uring occupancy threshold to start waiting for completions."`
 
 	// OpenFds is the limit of open file descriptors (including KeepFds) per thread.
-	// This is used to calculate data structure sizes; it is not a hard limit.
 	// You must also set `ulimit -n` or systemd `LimitNOFILE=` appropriately.
-	OpenFds int `json:"openFds,omitempty" gqldesc:"Soft limit of open file descriptors per thread."`
+	OpenFds int `json:"openFds,omitempty" gqldesc:"Maximum open file descriptors per thread."`
 
 	// KeepFds is the number of unused file descriptors per thread.
 	// A file descriptor is unused if no I/O operation is ongoing on the file.
@@ -157,6 +157,10 @@ func (cfg *Config) Validate() error {
 		return errors.New("openFds must be greater than keepFds")
 	}
 
+	if e := cfg.checkPayloadMempool(); e != nil {
+		return e
+	}
+
 	return nil
 }
 
@@ -168,7 +172,7 @@ func (cfg Config) adjustUringThres(thres *float64, dflt float64) (lbound int) {
 	return generic.Clamp(lbound, iface.MaxBurstSize, cfg.UringCapacity-iface.MaxBurstSize)
 }
 
-func (cfg *Config) checkPayloadMempool(segmentLen int) error {
+func (cfg *Config) checkPayloadMempool() error {
 	tpl := ndni.PayloadMempool.Config()
 
 	suggestCapacity := cfg.UringCapacity * cfg.NThreads
@@ -180,25 +184,20 @@ func (cfg *Config) checkPayloadMempool(segmentLen int) error {
 		)
 	}
 
-	if tpl.Dataroom-pktmbuf.DefaultHeadroom < int(sizeofFileServerFd) {
-		return fmt.Errorf("PAYLOAD dataroom %d too small for struct FileServerFd; increase PAYLOAD dataroom to %d",
-			tpl.Dataroom, sizeofFileServerFd)
-	}
-
 	suggest := pktmbuf.DefaultHeadroom + ndni.NameMaxLength +
-		generic.Max(segmentLen, ndni.NameMaxLength+EstimatedMetadataSize) + ndni.DataEncNullSigLen + 64
+		generic.Max(cfg.SegmentLen, ndni.NameMaxLength+EstimatedMetadataSize) + ndni.DataEncNullSigLen + 64
 	if tpl.Dataroom < suggest {
 		logger.Warn("PAYLOAD dataroom too small for configured segmentLen, Interests with long names may be dropped",
 			zap.Int("configured-dataroom", tpl.Dataroom),
-			zap.Int("configured-segmentlen", segmentLen),
+			zap.Int("configured-segmentlen", cfg.SegmentLen),
 			zap.Int("suggested-dataroom", suggest),
 		)
 	}
 
-	cfg.payloadHeadroom = tpl.Dataroom - ndni.DataEncNullSigLen - generic.Max(segmentLen, EstimatedMetadataSize)
+	cfg.payloadHeadroom = tpl.Dataroom - ndni.DataEncNullSigLen - generic.Max(cfg.SegmentLen, EstimatedMetadataSize)
 	if cfg.payloadHeadroom < pktmbuf.DefaultHeadroom {
 		return fmt.Errorf("PAYLOAD dataroom %d too small for segmentLen %d; increase PAYLOAD dataroom to %d",
-			tpl.Dataroom, segmentLen, suggest)
+			tpl.Dataroom, cfg.SegmentLen, suggest)
 	}
 	return nil
 }

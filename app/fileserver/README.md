@@ -40,9 +40,23 @@ It is refreshed every few seconds (configurable through `statValidity` option) t
 If the file server is configured to have multiple threads, each thread has its own file descriptor hashtable.
 `InputDemux` for incoming Interests can dispatch Interests based on their name prefixes consisting of only GenericNameComponents, so that requests for the same file go to the same thread, eliminating the overhead of opening the same file in multiple threads.
 
+## Directory Listing
+
+As specified in the [ndn6-file-server protocol](https://github.com/yoursunny/ndn6-tools/blob/main/file-server.md), directory listing is a segmented object that contains a textual payload.
+
+Upon receiving a directory listing request, the file server invokes `getdents64` syscall to gather directory listing, and then transforms the result into the textual format.
+`getdents64` is chosen over `readdir` because the latter often involves dynamic memory allocation.
+During directory listing preparation, the file server uses `dirent64.d_type` field to determine filesystem object type.
+If the underlying filesystem does not support this field or the directory entry is a symbolic link, the file server invokes `statx` syscall, either as a fallback or to resolve the symbolic link.
+
+The directory listing response is stored together with the file descriptor, so that it can be used to satisfy requests for all segments.
+In case file descriptor `statx` refresh detects that the directory has changed, the directory listing response is invalidated.
+
 ## Limitations
 
 The file server does not perform Data signing.
 Each Data packet has a Null signature, which provides no integrity or authenticity protection.
 
-Directory listing is truncated to one Data segment.
+Directory listing response is limited to 256 KiB (`MaxLsResult` constant).
+This limit applies to both `getdents64` result and textual payload.
+Large directories may be truncated.

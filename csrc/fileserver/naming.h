@@ -15,6 +15,16 @@ static const uint8_t FileServer_KeywordMetadata[10] = {
   TtKeywordNameComponent, 8, 0x6D, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61
 };
 
+enum
+{
+  /**
+   * @brief Maximum mount+path TLV-LENGTH to accommodate [32=ls]+[32=metadata]+version+segment
+   *        suffix components.
+   */
+  FileServer_MaxPrefixL =
+    NameMaxLength - sizeof(FileServer_KeywordLs) - sizeof(FileServer_KeywordMetadata) - 10 - 10,
+};
+
 typedef enum FileServerRequestKind
 {
   FileServerRequestNone = 0,

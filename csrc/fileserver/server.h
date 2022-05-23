@@ -29,12 +29,13 @@ typedef struct FileServerCounters
 /** @brief File server. */
 typedef struct FileServer
 {
+  struct io_uring uring;
   ThreadCtrl ctrl;
   PktQueue rxQueue;
   FileServerCounters cnt;
 
   struct rte_mempool* payloadMp;
-  struct io_uring uring;
+  struct rte_mempool* fdMp;
   FileServerFd* fdHt;
   struct cds_list_head fdQ;
   TscDuration statValidity;

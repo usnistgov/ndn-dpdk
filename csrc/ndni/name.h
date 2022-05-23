@@ -31,7 +31,7 @@ LName_ParseVarNum_(LName name, uint16_t* restrict pos, uint16_t* restrict n, uin
     return false;
   }
 
-  *n = rte_cpu_to_be_16(*(unaligned_uint16_t*)&name.value[*pos]);
+  *n = rte_be_to_cpu_16(*(unaligned_uint16_t*)&name.value[*pos]);
   *pos += 2;
   return true;
 }
@@ -94,7 +94,7 @@ LName_SliceByte(LName name, uint16_t start, uint16_t end)
   if (unlikely(start >= end)) {
     return (LName){ 0 };
   }
-  return (LName){ .length = end - start, .value = RTE_PTR_ADD(name.value, start) };
+  return LName_SliceByte_(name, start, end);
 }
 
 static __rte_always_inline LName
@@ -208,7 +208,7 @@ PName_Slice_Uncached_(const PName* p, int16_t start, int16_t end)
  * @param start first component index (inclusive); if negative, count from end.
  * @param end last component index (exclusive); if negative, count from end.
  */
-__attribute__((nonnull)) static inline LName
+__attribute__((nonnull)) static __rte_always_inline LName
 PName_Slice(const PName* p, int16_t start, int16_t end)
 {
   if (unlikely(start < 0)) {
@@ -237,7 +237,7 @@ PName_Slice(const PName* p, int16_t start, int16_t end)
  * @brief Get a prefix of first @p n components.
  * @param n number of components; if negative, count from end.
  */
-__attribute__((nonnull)) static inline LName
+__attribute__((nonnull)) static __rte_always_inline LName
 PName_GetPrefix(const PName* p, int16_t n)
 {
   return PName_Slice(p, 0, n);

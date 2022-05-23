@@ -9,15 +9,14 @@
 N_LOG_INIT(FileServer);
 
 static DataEnc_MetaInfoBuffer(15) MetaInfo_Metadata;
-static DataEnc_MetaInfoBuffer(15) MetaInfo_Ls;
 static DataEnc_MetaInfoBuffer(15) MetaInfo_Nack;
 
 RTE_INIT(InitMetaInfo)
 {
   uint8_t segment0[] = { TtSegmentNameComponent, 1, 0 };
-  LName finalBlock = (LName){ .length = sizeof(segment0), .value = segment0 };
-  DataEnc_PrepareMetaInfo(&MetaInfo_Metadata, ContentBlob, FileServerMetadataFreshness, finalBlock);
-  DataEnc_PrepareMetaInfo(&MetaInfo_Ls, ContentBlob, 0, finalBlock);
+  LName finalBlock0 = (LName){ .length = sizeof(segment0), .value = segment0 };
+  DataEnc_PrepareMetaInfo(&MetaInfo_Metadata, ContentBlob, FileServerMetadataFreshness,
+                          finalBlock0);
   DataEnc_PrepareMetaInfo(&MetaInfo_Nack, ContentNack, FileServerMetadataFreshness, (LName){ 0 });
 }
 
@@ -153,11 +152,6 @@ __attribute__((nonnull)) static __rte_noinline void
 FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
 {
   ++p->cnt.reqLs;
-  if (rn.segment != 0) {
-    N_LOGD("Ls drop=not-segment0");
-    return;
-  }
-
   struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
   Packet* npkt = Packet_FromMbuf(interest);
   PInterest* pi = Packet_GetInterestHdr(npkt);
@@ -174,19 +168,22 @@ FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
   }
   if (unlikely(!FileServerFd_IsDir(fd))) {
     N_LOGD("Ls drop=not-dir");
-    FileServerFd_Unref(p, fd);
-    return;
+    goto UNREF;
+  }
+  if (fd->lsL == UINT32_MAX) {
+    bool ok = FileServerFd_PrepareLs(p, fd);
+    if (unlikely(!ok)) {
+      goto UNREF;
+    }
   }
 
+  uint32_t valueOffset = rn.segment * p->segmentLen;
+  uint32_t valueLen = RTE_MIN(p->segmentLen, fd->lsL - valueOffset);
   struct rte_mbuf* payload = ctx->payload[ctx->payloadIndex];
   payload->data_off = p->payloadHeadroom;
-  bool ok = FileServerFd_EncodeLs(p, fd, payload, p->segmentLen);
-  FileServerFd_Unref(p, fd);
-  if (unlikely(!ok)) {
-    goto ENCERR;
-  }
+  rte_memcpy(rte_pktmbuf_append(payload, valueLen), RTE_PTR_ADD(fd->lsV, valueOffset), valueLen);
 
-  Packet* data = DataEnc_EncodePayload(name, (LName){ 0 }, &MetaInfo_Ls, payload);
+  Packet* data = DataEnc_EncodePayload(name, (LName){ 0 }, &fd->meta, payload);
   if (unlikely(data == NULL)) {
     goto ENCERR;
   }
@@ -195,11 +192,13 @@ FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
   Mbuf_SetTimestamp(payload, ctx->now);
   *Packet_GetLpL3Hdr(data) = *Packet_GetLpL3Hdr(npkt);
   ctx->data[ctx->dataCount++] = data;
-  return;
+  goto UNREF;
 
 ENCERR:
   N_LOGD("Ls drop=dataenc-error");
   rte_pktmbuf_reset(payload);
+UNREF:
+  FileServerFd_Unref(p, fd);
 }
 
 __attribute__((nonnull)) static __rte_noinline void

@@ -13,15 +13,16 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/multierr"
 )
-
-const sizeofFileServerFd = C.sizeof_FileServerFd
 
 type worker struct {
 	ealthread.ThreadWithCtrl
-	c *C.FileServer
+	c    *C.FileServer
+	fdMp *mempool.Mempool
 }
 
 var (
@@ -48,9 +49,15 @@ func (w worker) rxQueue() *iface.PktQueue {
 }
 
 func (w *worker) close() error {
-	e := w.rxQueue().Close()
+	errs := []error{}
+	if w.fdMp != nil {
+		errs = append(errs, w.fdMp.Close())
+		w.fdMp = nil
+	}
+	errs = append(errs, w.rxQueue().Close())
 	eal.Free(w.c)
-	return e
+	w.c = nil
+	return multierr.Combine(errs...)
 }
 
 func (w worker) counters() countersC {
@@ -63,11 +70,23 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e
 	}
 
 	if e := w.rxQueue().Init(cfg.RxQueue, socket); e != nil {
-		eal.Free(w.c)
+		w.close()
+		return nil, e
+	}
+
+	if w.fdMp, e = mempool.New(mempool.Config{
+		Capacity:       cfg.OpenFds,
+		ElementSize:    C.sizeof_FileServerFd,
+		Socket:         socket,
+		SingleProducer: true,
+		SingleConsumer: true,
+	}); e != nil {
+		w.close()
 		return nil, e
 	}
 
 	w.c.payloadMp = (*C.struct_rte_mempool)(ndni.PayloadMempool.Get(socket).Ptr())
+	w.c.fdMp = (*C.struct_rte_mempool)(w.fdMp.Ptr())
 	w.c.statValidity = (C.TscDuration)(cfg.tscStatValidity())
 	w.c.face = (C.FaceID)(faceID)
 	w.c.segmentLen = C.uint16_t(cfg.SegmentLen)
