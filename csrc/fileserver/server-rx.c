@@ -125,6 +125,10 @@ FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     N_LOGD("I drop=mode-not-file");
     goto UNREF;
   }
+  if (unlikely(fd->version != rn.version)) {
+    N_LOGD("I drop=version-changed");
+    goto UNREF;
+  }
   if (unlikely(rn.segment > fd->lastSeg)) {
     N_LOGD("I fd=%d drop=segment-out-of-range segment=%" PRIu64 " lastseg=%" PRIu64, fd->fd,
            rn.segment, fd->lastSeg);
@@ -168,6 +172,10 @@ FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
   }
   if (unlikely(!FileServerFd_IsDir(fd))) {
     N_LOGD("Ls drop=not-dir");
+    goto UNREF;
+  }
+  if (unlikely(fd->version != rn.version)) {
+    N_LOGD("I drop=version-changed");
     goto UNREF;
   }
   if (fd->lsL == UINT32_MAX) {

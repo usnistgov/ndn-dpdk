@@ -3,8 +3,8 @@
 **/cgostruct.go
 build
 csrc/*/*enum.h
+csrc/*/an.h
 csrc/meson.build
-csrc/ndni/an.h
 mk/meson.build
 node_modules
 pnpm-lock.yaml

@@ -76,12 +76,12 @@ FileServerFd_UpdateStatx(FileServer* p, FileServerFd* entry, TscTime now, bool* 
   int res = syscall(__NR_statx, entry->fd, "", AT_EMPTY_PATH,
                     FileServerStatxRequired | FileServerStatxOptional, &entry->st);
   if (likely(res == 0)) {
-    if (unlikely(!FileServerFd_HasStatBit(entry, FileServerStatxRequired) ||
-                 !(FileServerFd_IsFile(entry) || FileServerFd_IsDir(entry)))) {
-      res = EPIPE; // use an "impossible" errno to indicate this condition
-    } else {
+    if (likely(FileServerFd_HasStatBit(entry, FileServerStatxRequired) &&
+               (FileServerFd_IsFile(entry) || FileServerFd_IsDir(entry)))) {
       entry->version = FileServerFd_StatTime(entry->st.stx_mtime);
       *changed = oldVersion != entry->version || oldSize != entry->st.stx_size;
+    } else {
+      res = ETXTBSY; // use an "impossible" errno to indicate statx error condition
     }
   }
   entry->st.FdStx_NextUpdate = now + p->statValidity;
@@ -152,18 +152,20 @@ FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
 __attribute__((nonnull)) static FileServerFd*
 FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, TscTime now)
 {
+  FileServerFd* errEntry = NULL;
   int mount = LNamePrefixFilter_Find(prefix, FileServerMaxMounts, p->mountPrefixL, p->mountPrefixV);
   if (unlikely(mount < 0)) {
     N_LOGD("New bad-name" N_LOG_ERROR("mount-not-matched"));
-    return NULL;
+    goto FAIL_OUT;
   }
 
   char filename[PATH_MAX];
   if (unlikely(!FileServer_ToFilename(name, p->mountPrefixComps[mount], filename))) {
     N_LOGD("New bad-name" N_LOG_ERROR("invalid-filename"));
-    return NULL;
+    goto FAIL_OUT;
   }
 
+  errEntry = FileServer_NotFound;
   int fd = -1;
   const char* logFilename = NULL;
   if (likely(filename[0] != '\0')) {
@@ -172,7 +174,7 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
     if (unlikely(fd < 0)) {
       ++p->cnt.fdNotFound;
       N_LOGD("New openat-err mount=%d filename=%s" N_LOG_ERROR_ERRNO, mount, filename, errno);
-      return FileServer_NotFound;
+      goto FAIL_OUT;
     }
   } else {
     logFilename = "(empty)";
@@ -180,7 +182,8 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
     if (unlikely(fd < 0)) {
       ++p->cnt.fdNotFound;
       N_LOGD("New dup-err mount=%d filename=''" N_LOG_ERROR_ERRNO, mount, errno);
-      return FileServer_NotFound;
+      errEntry = NULL;
+      goto FAIL_OUT;
     }
   }
   ++p->cnt.fdNew;
@@ -189,6 +192,7 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
   int res = rte_mempool_get(p->fdMp, (void**)&entry);
   if (unlikely(res != 0)) {
     N_LOGE("New fd-alloc-err" N_LOG_ERROR_BLANK);
+    errEntry = NULL;
     goto FAIL_CLOSE;
   }
   entry->fd = fd;
@@ -211,15 +215,18 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
   FileServerFd_PrepapeMetaInfo(p, entry, entry->st.stx_size);
 
   HASH_ADD_BYHASHVALUE(hh, p->fdHt, self, 0, hash, entry);
-  N_LOGD("New mount=%d filename=%s fd=%d statx-mask=0x%" PRIu32 " size=%" PRIu64, mount,
-         logFilename, entry->fd, entry->st.stx_mask, (uint64_t)entry->st.stx_size);
+  N_LOGD("New mount=%d filename=%s fd=%d statx-mask=0x%" PRIu32 " version=%" PRIu64
+         " size=%" PRIu64,
+         mount, logFilename, entry->fd, entry->st.stx_mask, entry->version,
+         (uint64_t)entry->st.stx_size);
   return entry;
 
 FAIL_ALLOC:
   rte_mempool_put(p->fdMp, entry);
 FAIL_CLOSE:
   close(fd);
-  return NULL;
+FAIL_OUT:
+  return errEntry;
 }
 
 FileServerFd*
