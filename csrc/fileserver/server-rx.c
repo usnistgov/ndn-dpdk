@@ -171,7 +171,7 @@ FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     goto UNREF;
   }
   if (fd->lsL == UINT32_MAX) {
-    bool ok = FileServerFd_PrepareLs(p, fd);
+    bool ok = FileServerFd_GenerateLs(p, fd);
     if (unlikely(!ok)) {
       goto UNREF;
     }

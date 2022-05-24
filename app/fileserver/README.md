@@ -58,5 +58,4 @@ The file server does not perform Data signing.
 Each Data packet has a Null signature, which provides no integrity or authenticity protection.
 
 Directory listing response is limited to 256 KiB (`MaxLsResult` constant).
-This limit applies to both `getdents64` result and textual payload.
 Large directories may be truncated.

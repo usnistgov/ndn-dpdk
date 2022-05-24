@@ -31,7 +31,7 @@ require (
 	github.com/stretchr/testify v1.7.1
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
-	github.com/urfave/cli/v2 v2.7.1
+	github.com/urfave/cli/v2 v2.8.1
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zyedidia/generic v1.0.1-0.20220516232332-7fb5054cf328
@@ -40,12 +40,11 @@ require (
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/exp v0.0.0-20220518171630-0b5c67f07fdf
-	golang.org/x/sys v0.0.0-20220519141025-dcacdad47464
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
 )
 
 require (
 	github.com/alecthomas/participle/v2 v2.0.0-alpha6 // indirect
-	github.com/antzucaro/matchr v0.0.0-20210222213004-b04723ef80f0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
@@ -66,6 +65,7 @@ require (
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect

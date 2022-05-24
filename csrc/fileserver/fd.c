@@ -370,57 +370,67 @@ FileServerFd_DirentType(FileServerFd* entry, struct dirent64* de)
 }
 
 bool
-FileServerFd_PrepareLs(FileServer* p, FileServerFd* entry)
+FileServerFd_GenerateLs(FileServer* p, FileServerFd* entry)
 {
   NDNDPDK_ASSERT(FileServerFd_IsDir(entry));
 
   int res = lseek(entry->fd, 0, SEEK_SET);
   if (unlikely(res < 0)) {
     N_LOGD("Ls lseek-err fd=%d" N_LOG_ERROR_ERRNO, entry->fd, errno);
-    return false;
+    goto FAIL;
   }
 
-  res = syscall(SYS_getdents64, entry->fd, entry->lsV, sizeof(entry->lsV));
+  entry->lsL = 0;
+  bool isFull = false;
+  uint8_t dents[spdk_min(FileServerMaxLsResult, 1 << 18)];
+  while ((res = syscall(SYS_getdents64, entry->fd, dents, sizeof(dents))) > 0) {
+    for (int offset = 0; offset < res;) {
+      struct dirent64* de = RTE_PTR_ADD(dents, offset);
+      offset += de->d_reclen;
+      if (unlikely(de->d_ino == 0)) {
+        continue;
+      }
+
+      uint16_t nameL = strnlen(de->d_name, RTE_DIM(de->d_name));
+      if (unlikely(entry->lsL + nameL + 2 >= sizeof(entry->lsV))) {
+        isFull = true;
+        goto FULL;
+      }
+      if (unlikely(nameL <= 2 && nameL == strspn(de->d_name, "."))) {
+        continue;
+      }
+
+      bool isDir = false;
+      switch (FileServerFd_DirentType(entry, de)) {
+        case DT_REG:
+          break;
+        case DT_DIR:
+          isDir = true;
+          break;
+        default:
+          continue;
+      }
+
+      rte_memcpy(&entry->lsV[entry->lsL], de->d_name, nameL);
+      entry->lsL += nameL;
+      if (isDir) {
+        entry->lsV[entry->lsL++] = '/';
+      }
+      entry->lsV[entry->lsL++] = '\0';
+    }
+  }
   if (unlikely(res < 0)) {
     N_LOGD("Ls getdents64-err fd=%d" N_LOG_ERROR_ERRNO, entry->fd, errno);
-    return false;
+    goto FAIL;
   }
 
-  char* output = entry->lsV;
-  for (int offset = 0; offset < res;) {
-    struct dirent64* de = RTE_PTR_ADD(entry->lsV, offset);
-    offset += de->d_reclen;
-    if (unlikely(de->d_ino == 0)) {
-      continue;
-    }
-
-    uint16_t nameL = strnlen(de->d_name, RTE_DIM(de->d_name));
-    if (unlikely(nameL <= 2 && nameL == strspn(de->d_name, "."))) {
-      continue;
-    }
-
-    bool isDir = false;
-    switch (FileServerFd_DirentType(entry, de)) {
-      case DT_REG:
-        break;
-      case DT_DIR:
-        isDir = true;
-        break;
-      default:
-        continue;
-    }
-
-    memmove(output, de->d_name, nameL);
-    output += nameL;
-    if (isDir) {
-      *output++ = '/';
-    }
-    *output++ = '\0';
-  }
-
-  entry->lsL = RTE_PTR_DIFF(output, entry->lsV);
+FULL:
   FileServerFd_PrepapeMetaInfo(p, entry, entry->lsL);
-  N_LOGD("Ref statx-update fd=%d version=%" PRIu64 " length=%" PRIu32, entry->fd, entry->version,
-         entry->lsL);
+  N_LOGD("Ls generated fd=%d version=%" PRIu64 " length=%" PRIu32 " full=%d", entry->fd,
+         entry->version, entry->lsL, (int)isFull);
   return true;
+
+FAIL:
+  entry->lsL = UINT32_MAX;
+  return false;
 }

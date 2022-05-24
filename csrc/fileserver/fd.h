@@ -80,6 +80,6 @@ FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf*
  * @post @c entry->lastSeg and @c entry->meta FinalBlock reflects @c entry->lsL size.
  */
 __attribute__((nonnull)) bool
-FileServerFd_PrepareLs(FileServer* p, FileServerFd* entry);
+FileServerFd_GenerateLs(FileServer* p, FileServerFd* entry);
 
 #endif // NDNDPDK_FILESERVER_FD_H

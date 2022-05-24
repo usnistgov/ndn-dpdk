@@ -83,7 +83,7 @@ FileServerOp_Init(FileServerOp* op, FileServerFd* fd, LName prefix, uint64_t seg
 __attribute__((nonnull)) static inline bool
 FileServerOp_Follows(const FileServerOp* op, LName prefix, uint64_t segment)
 {
-  return op->nIov + 1 < FileServerMaxIovecs && LName_Equal(op->prefix, prefix) &&
+  return op->nIov < FileServerMaxIovecs && LName_Equal(op->prefix, prefix) &&
          op->segment + op->nIov == segment;
 }
 
