@@ -42,6 +42,8 @@ const (
 	reLogLineMsg     = 6
 	reLogLineKV      = 7
 	reLogLineError   = 8
+
+	reErrnoErrno = 1
 )
 
 var (
@@ -165,9 +167,7 @@ func processLogLine(line []byte) {
 
 	lvl := dpdk2zapLogLevels[m[reLogLineLevel][0]]
 	if len(m[reLogLineIsNDN]) == 0 {
-		if ce := l.Check(lvl, string(m[reLogLineFullMsg])); ce != nil {
-			ce.Write()
-		}
+		l.Check(lvl, string(m[reLogLineFullMsg])).Write()
 		return
 	}
 
@@ -190,7 +190,7 @@ func processLogLine(line []byte) {
 		if e == "-" {
 			fields = append(fields, zap.Error(errors.New(msg)))
 		} else if em := reErrno.FindStringSubmatch(e); em != nil {
-			errno, _ := strconv.ParseUint(em[1], 10, 64)
+			errno, _ := strconv.ParseUint(em[reErrnoErrno], 10, 64)
 			err := unix.Errno(errno)
 			fields = append(fields,
 				zap.Uint64("errno", errno),

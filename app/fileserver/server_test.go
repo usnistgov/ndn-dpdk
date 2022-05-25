@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"io"
 	iofs "io/fs"
-	"log"
 	"math"
 	"math/rand"
 	"os"
 	"path"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,6 +22,7 @@ import (
 	"github.com/jacobsa/fuse/fuseutil"
 	"github.com/usnistgov/ndn-dpdk/app/fileserver"
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -34,6 +35,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/zyedidia/generic"
 	"go.uber.org/atomic"
+	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 )
 
@@ -48,7 +50,7 @@ type FileServerFixture struct {
 
 func (f *FileServerFixture) RetrieveMetadata(name string) (m ndn6file.Metadata, e error) {
 	return f.RetrieveMetadataOpts(name, endpoint.ConsumerOptions{
-		Retx: endpoint.RetxOptions{Limit: 3},
+		Retx: endpoint.RetxOptions{Limit: 1},
 	})
 }
 
@@ -121,10 +123,9 @@ func newFileServerFixture(t testing.TB, cfg fileserver.Config) (f *FileServerFix
 }
 
 func TestServer(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 
 	cfg := fileserver.Config{
-		NThreads: 2,
 		Mounts: []fileserver.Mount{
 			{Prefix: ndn.ParseName("/usr/bin"), Path: "/usr/bin"},
 			{Prefix: ndn.ParseName("/usr/local-bin"), Path: "/usr/local/bin"},
@@ -132,154 +133,110 @@ func TestServer(t *testing.T) {
 		},
 		SegmentLen:   3000,
 		StatValidity: nnduration.Nanoseconds(100 * time.Millisecond),
-		KeepFds:      4,
+		OpenFds:      200,
+		KeepFds:      100,
 	}
 	f := newFileServerFixture(t, cfg)
 
-	for _, tt := range []struct {
-		Filename      string
-		Name          string
-		SetSegmentEnd bool
-	}{
-		{"/usr/local/bin/dpdk-testpmd", "/usr/local-bin/dpdk-testpmd", true},
-		{"/usr/bin/jq", "/usr/bin/jq", false},
-	} {
-		tt := tt
-		t.Run(tt.Filename, func(t *testing.T) {
-			t.Parallel()
-			assert, require := makeAR(t)
+	t.Run("_", func(t *testing.T) {
+		for _, tt := range []struct {
+			Filename      string
+			Name          string
+			SetSegmentEnd bool
+		}{
+			{"/usr/local/bin/dpdk-testpmd", "/usr/local-bin/dpdk-testpmd", true},
+			{"/usr/bin/jq", "/usr/bin/jq", false},
+		} {
+			tt := tt
+			t.Run(tt.Filename, func(t *testing.T) {
+				t.Parallel()
+				assert, require := makeAR(t)
 
-			content, e := os.ReadFile(tt.Filename)
-			require.NoError(e)
-			digest := sha256.Sum256(content)
+				content, e := os.ReadFile(tt.Filename)
+				require.NoError(e)
+				digest := sha256.Sum256(content)
 
-			m, e := f.RetrieveMetadata(tt.Name)
-			require.NoError(e)
+				m, e := f.RetrieveMetadata(tt.Name)
+				require.NoError(e)
 
-			lastSeg := f.LastSeg(t, m.FinalBlock)
-			assert.EqualValues(cfg.SegmentLen, m.SegmentSize)
-			assert.EqualValues(len(content), m.Size)
-			assert.False(m.Mtime.IsZero())
+				lastSeg := f.LastSeg(t, m.FinalBlock)
+				assert.EqualValues(cfg.SegmentLen, m.SegmentSize)
+				assert.EqualValues(len(content), m.Size)
+				assert.False(m.Mtime.IsZero())
 
-			fetcherLastSeg := &lastSeg
-			if !tt.SetSegmentEnd {
-				fetcherLastSeg = nil
-			}
-			payload, e := f.FetchPayload(m, fetcherLastSeg)
-			require.NoError(e)
-			assert.Len(payload, len(content))
-			assert.Equal(digest, sha256.Sum256(payload))
-		})
-	}
+				fetcherLastSeg := &lastSeg
+				if !tt.SetSegmentEnd {
+					fetcherLastSeg = nil
+				}
+				payload, e := f.FetchPayload(m, fetcherLastSeg)
+				require.NoError(e)
+				assert.Len(payload, len(content))
+				assert.Equal(digest, sha256.Sum256(payload))
+			})
+		}
 
-	for _, tt := range []struct {
-		Dirname string
-		Name    string
-	}{
-		{"/usr/bin", "/usr/bin"},
-		{"/usr/local/bin", "/usr/local-bin/" + ndn6file.KeywordLs.String()},
-	} {
-		tt := tt
-		t.Run(tt.Dirname, func(t *testing.T) {
-			t.Parallel()
-			assert, require := makeAR(t)
+		for _, tt := range []struct {
+			Dirname string
+			Name    string
+		}{
+			{"/usr/bin", "/usr/bin"},
+			{"/usr/local/bin", "/usr/local-bin/" + ndn6file.KeywordLs.String()},
+		} {
+			tt := tt
+			t.Run(tt.Dirname, func(t *testing.T) {
+				t.Parallel()
+				assert, require := makeAR(t)
 
-			dirEntries, e := os.ReadDir(tt.Dirname)
-			require.NoError(e)
-			dirEntryNames := map[string]bool{}
-			for _, dirEntry := range dirEntries {
-				filename, mode := dirEntry.Name(), dirEntry.Type()
-				if mode&os.ModeSymlink != 0 {
-					if info, e := os.Stat(path.Join(tt.Dirname, filename)); e == nil {
-						mode = info.Mode()
+				dirEntries, e := os.ReadDir(tt.Dirname)
+				require.NoError(e)
+				dirEntryNames := map[string]bool{}
+				for _, dirEntry := range dirEntries {
+					filename, mode := dirEntry.Name(), dirEntry.Type()
+					if mode&os.ModeSymlink != 0 {
+						if info, e := os.Stat(path.Join(tt.Dirname, filename)); e == nil {
+							mode = info.Mode()
+						}
+					}
+					switch {
+					case mode.IsRegular():
+						dirEntryNames[filename] = false
+					case mode.IsDir():
+						dirEntryNames[filename] = true
 					}
 				}
-				switch {
-				case mode.IsRegular():
-					dirEntryNames[filename] = false
-				case mode.IsDir():
-					dirEntryNames[filename] = true
+
+				m, e := f.RetrieveMetadata(tt.Name)
+				require.NoError(e)
+				assert.False(m.FinalBlock.Valid())
+				assert.False(m.Mtime.IsZero())
+
+				ls, e := f.ListDirectory(m)
+				require.NoError(e)
+
+				for _, entry := range ls {
+					filename := entry.Name()
+					isDir, ok := dirEntryNames[filename]
+					assert.True(ok, filename)
+					assert.Equal(isDir, entry.IsDir(), filename)
+					delete(dirEntryNames, filename)
 				}
-			}
-
-			m, e := f.RetrieveMetadata(tt.Name)
-			require.NoError(e)
-			assert.False(m.FinalBlock.Valid())
-			assert.False(m.Mtime.IsZero())
-
-			ls, e := f.ListDirectory(m)
-			require.NoError(e)
-
-			for _, entry := range ls {
-				filename := entry.Name()
-				isDir, ok := dirEntryNames[filename]
-				assert.True(ok, filename)
-				assert.Equal(isDir, entry.IsDir(), filename)
-				delete(dirEntryNames, filename)
-			}
-			assert.Empty(dirEntryNames)
-		})
-	}
-
-	assert.NoFileExists("/usr/local/bin/ndndpdk-no-such-program")
-	type notFoundTest struct {
-		Name       string
-		ExpectNack bool
-	}
-	notFoundTests := []notFoundTest{
-		{"/usr/local-bin/ndndpdk-no-such-program", true},
-		{"/no-such-mount/autoexec.bat", false},
-		{"/usr/local-bin/bad/zero%00/filename", false},
-		{"/usr/local-bin/bad/slash%2F/filename", false},
-		{"/usr/local-bin/bad/.../filename", false},
-		{"/usr/local-bin/bad/..../filename", false},
-		{"/usr/local-bin/bad/...../filename", false},
-		{"/usr/local-bin/bad/....../filename", true},
-	}
-	if dirEntries, e := os.ReadDir("/usr/local/lib"); assert.NoError(e) {
-		for _, dirEntry := range dirEntries {
-			if dirEntry.Type().IsRegular() {
-				// cannot get file metadata with 32=ls component, but this opens file descriptor for testing keepFds limit
-				notFoundTests = append(notFoundTests, notFoundTest{
-					Name:       "/usr/local-lib/" + dirEntry.Name() + "/" + ndn6file.KeywordLs.String(),
-					ExpectNack: true,
-				})
-			}
+				assert.Empty(dirEntryNames)
+			})
 		}
-		require.GreaterOrEqual(len(notFoundTests), cfg.NThreads*cfg.KeepFds)
-	}
-
-	for _, tt := range notFoundTests {
-		tt := tt
-		t.Run(tt.Name, func(t *testing.T) {
-			t.Parallel()
-			assert, _ := makeAR(t)
-
-			expectedErr := endpoint.ErrExpire
-			if tt.ExpectNack {
-				expectedErr = ndn.ErrContentType
-			}
-
-			_, e := f.RetrieveMetadata(tt.Name)
-			assert.ErrorIs(e, expectedErr)
-		})
-	}
-
-	t.Cleanup(func() {
-		cnt := f.p.Counters()
-		assert.Greater(cnt.ReqRead, uint64(0))
-		assert.Greater(cnt.ReqLs, uint64(0))
-		assert.Greater(cnt.ReqMetadata, uint64(0))
-		assert.Greater(cnt.FdNew, uint64(0))
-		assert.Greater(cnt.FdNotFound, uint64(0))
-		assert.Greater(cnt.FdClose, uint64(0))
-		assert.LessOrEqual(cnt.FdNew, cnt.FdClose+uint64(cfg.NThreads*cfg.KeepFds))
-		assert.Greater(cnt.UringSubmit, uint64(0))
-		assert.Greater(cnt.UringSubmitNonBlock, uint64(0))
-		assert.Greater(cnt.SqeSubmit, uint64(0))
-		cntJ, _ := json.Marshal(cnt)
-		t.Log(string(cntJ))
 	})
+
+	cnt := f.p.Counters()
+	assert.NotZero(cnt.ReqRead)
+	assert.NotZero(cnt.ReqLs)
+	assert.NotZero(cnt.ReqMetadata)
+	assert.NotZero(cnt.FdNew)
+	assert.Zero(cnt.FdNotFound)
+	assert.Zero(cnt.FdClose)
+	assert.NotZero(cnt.UringSubmit)
+	assert.NotZero(cnt.UringSubmitNonBlock)
+	assert.NotZero(cnt.SqeSubmit)
+	cntJ, _ := json.Marshal(cnt)
+	t.Log(string(cntJ))
 }
 
 const (
@@ -298,6 +255,10 @@ const (
 	fuseInoALo
 	fuseInoAHi = fuseInoALo + 900
 )
+
+func fuseNameA[T ~uint64](ino T) string {
+	return fmt.Sprintf("%064x", ino)
+}
 
 var fuseRootDir = []fuseutil.Dirent{
 	{Offset: 1, Inode: fuseInoDirA, Name: "A", Type: fuseutil.DT_Directory},
@@ -438,7 +399,7 @@ func (fs *fuseFS) dirA(op *fuseops.ReadDirOp) error {
 		n := fuseutil.WriteDirent(op.Dst[op.BytesRead:], fuseutil.Dirent{
 			Offset: fuseops.DirOffset(1 + ino),
 			Inode:  fuseops.InodeID(ino),
-			Name:   fmt.Sprintf("%064x", ino),
+			Name:   fuseNameA(ino),
 			Type:   fuseutil.DT_File,
 		})
 		if n == 0 {
@@ -462,20 +423,20 @@ func (fs *fuseFS) ReadSymlink(ctx context.Context, op *fuseops.ReadSymlinkOp) er
 }
 
 func TestFuse(t *testing.T) {
-	_, require := makeAR(t)
+	assert, require := makeAR(t)
 	dir := t.TempDir()
 
 	var fs fuseFS
-	fuseLogger := log.New(log.Writer(), "FUSE ", log.Ltime|log.Lmicroseconds)
 	mount, e := fuse.Mount(dir, fuseutil.NewFileSystemServer(&fs), &fuse.MountConfig{
-		FSName:                  "NDN-DPDK fileserver test suite",
-		ReadOnly:                true,
-		ErrorLogger:             fuseLogger,
-		DebugLogger:             fuseLogger,
-		DisableWritebackCaching: true,
-		EnableNoOpenSupport:     true,
-		EnableNoOpendirSupport:  true,
-		EnableAsyncReads:        true,
+		FSName:                    "NDN-DPDK fileserver test suite",
+		ReadOnly:                  true,
+		ErrorLogger:               logging.StdLogger(logging.New("FUSE"), zap.ErrorLevel),
+		DebugLogger:               logging.StdLogger(logging.New("FUSE"), zap.DebugLevel),
+		DisableWritebackCaching:   true,
+		EnableNoOpenSupport:       true,
+		EnableNoOpendirSupport:    true,
+		DisableDefaultPermissions: true,
+		EnableAsyncReads:          true,
 	})
 	require.NoError(e)
 	t.Cleanup(func() {
@@ -484,12 +445,14 @@ func TestFuse(t *testing.T) {
 	})
 
 	cfg := fileserver.Config{
+		NThreads: 2,
 		Mounts: []fileserver.Mount{
 			{Prefix: ndn.ParseName("/fs"), Path: dir},
 		},
 		SegmentLen:   1200,
 		StatValidity: nnduration.Nanoseconds(100 * time.Millisecond),
-		KeepFds:      4,
+		OpenFds:      500,
+		KeepFds:      12,
 	}
 	f := newFileServerFixture(t, cfg)
 
@@ -500,137 +463,193 @@ func TestFuse(t *testing.T) {
 	rand.Read(fs.payloadY)
 	fs.sizeZ = uint64(cfg.SegmentLen * 80000)
 
-	t.Run("root", func(t *testing.T) {
-		t.Parallel()
-		assert, require := makeAR(t)
-
-		m, e := f.RetrieveMetadata("/fs")
-		require.NoError(e)
-		ls, e := f.ListDirectory(m)
-		require.NoError(e)
-
-		require.Len(ls, 6)
-		assert.Equal("A", ls[0].Name())
-		assert.True(ls[0].IsDir())
-		assert.Equal("B", ls[1].Name())
-		assert.True(ls[1].IsDir())
-		assert.Equal("X", ls[2].Name())
-		assert.False(ls[2].IsDir())
-		assert.Equal("Y", ls[3].Name())
-		assert.False(ls[3].IsDir())
-		assert.Equal("Z", ls[4].Name())
-		assert.False(ls[4].IsDir())
-		assert.Equal("P", ls[5].Name())
-		assert.True(ls[5].IsDir())
-	})
-
-	t.Run("A", func(t *testing.T) {
-		t.Parallel()
-		assert, require := makeAR(t)
-
-		m, e := f.RetrieveMetadata("/fs/A")
-		require.NoError(e)
-		assert.False(m.IsFile())
-		assert.True(m.IsDir())
-		assert.Equal(fs.ctime, m.Ctime)
-		assert.Equal(fs.mtime, m.Mtime)
-
-		ls, e := f.ListDirectory(m)
-		require.NoError(e)
-		assert.Len(ls, int(fuseInoAHi-fuseInoALo+1))
-	})
-
-	for _, suffix := range []string{"B", "P"} {
-		t.Run(suffix, func(t *testing.T) {
+	t.Run("_", func(t *testing.T) {
+		t.Run("root", func(t *testing.T) {
 			t.Parallel()
 			assert, require := makeAR(t)
 
-			m, e := f.RetrieveMetadata("/fs/" + suffix)
+			m, e := f.RetrieveMetadata("/fs")
+			require.NoError(e)
+			ls, e := f.ListDirectory(m)
+			require.NoError(e)
+
+			require.Len(ls, 6)
+			assert.Equal("A", ls[0].Name())
+			assert.True(ls[0].IsDir())
+			assert.Equal("B", ls[1].Name())
+			assert.True(ls[1].IsDir())
+			assert.Equal("X", ls[2].Name())
+			assert.False(ls[2].IsDir())
+			assert.Equal("Y", ls[3].Name())
+			assert.False(ls[3].IsDir())
+			assert.Equal("Z", ls[4].Name())
+			assert.False(ls[4].IsDir())
+			assert.Equal("P", ls[5].Name())
+			assert.True(ls[5].IsDir())
+		})
+
+		t.Run("A", func(t *testing.T) {
+			t.Parallel()
+			assert, require := makeAR(t)
+
+			m, e := f.RetrieveMetadata("/fs/A")
 			require.NoError(e)
 			assert.False(m.IsFile())
 			assert.True(m.IsDir())
+			assert.Equal(fs.ctime, m.Ctime)
+			assert.Equal(fs.mtime, m.Mtime)
 
 			ls, e := f.ListDirectory(m)
 			require.NoError(e)
-			assert.Len(ls, 0)
+			assert.Len(ls, int(fuseInoAHi-fuseInoALo+1))
 		})
-	}
 
-	t.Run("X", func(t *testing.T) {
-		t.Parallel()
-		assert, require := makeAR(t)
+		for _, suffix := range []string{"B", "P"} {
+			suffix := suffix
+			t.Run(suffix, func(t *testing.T) {
+				t.Parallel()
+				assert, require := makeAR(t)
 
-		m, e := f.RetrieveMetadata("/fs/X")
-		require.NoError(e)
-		assert.EqualValues(0, m.Size)
-		assert.EqualValues(0, f.LastSeg(t, m.FinalBlock))
+				m, e := f.RetrieveMetadata("/fs/" + suffix)
+				require.NoError(e)
+				assert.False(m.IsFile())
+				assert.True(m.IsDir())
 
-		payload, e := f.FetchPayload(m, nil)
-		require.NoError(e)
-		assert.Len(payload, 0)
-	})
-
-	t.Run("Y", func(t *testing.T) {
-		t.Parallel()
-		assert, require := makeAR(t)
-
-		m, e := f.RetrieveMetadata("/fs/Y")
-		require.NoError(e)
-		assert.True(m.IsFile())
-		assert.False(m.IsDir())
-		assert.EqualValues(len(fs.payloadY), m.Size)
-		assert.EqualValues(15, f.LastSeg(t, m.FinalBlock))
-		assert.Equal(fs.ctime, m.Ctime)
-		assert.Equal(fs.mtime, m.Mtime)
-
-		payload, e := f.FetchPayload(m, nil)
-		require.NoError(e)
-		assert.Equal(fs.payloadY, payload)
-	})
-
-	t.Run("Z", func(t *testing.T) {
-		t.Parallel()
-		assert, require := makeAR(t)
-
-		m, e := f.RetrieveMetadata("/fs/Z")
-		require.NoError(e)
-		assert.EqualValues(fs.sizeZ, m.Size)
-		assert.EqualValues(79999, f.LastSeg(t, m.FinalBlock))
-		assert.Equal(fs.ctime, m.Ctime)
-		assert.Equal(fs.mtime, m.Mtime)
-
-		lastSeg := tlv.NNI(3)
-		payload, e := f.FetchPayload(m, &lastSeg)
-		if assert.NoError(e) {
-			assert.Len(payload, cfg.SegmentLen*4)
+				ls, e := f.ListDirectory(m)
+				require.NoError(e)
+				assert.Len(ls, 0)
+			})
 		}
 
-		mtimeZ := fs.mtime.Add(8 * time.Second)
-		fs.mtimeZ.Store(mtimeZ)
-		time.Sleep(2 * cfg.StatValidity.Duration())
-		_, e = f.FetchPayloadOpts(m, segmented.FetchOptions{
-			SegmentEnd: 1 + uint64(lastSeg),
-			RetxLimit:  0,
+		t.Run("X", func(t *testing.T) {
+			t.Parallel()
+			assert, require := makeAR(t)
+
+			m, e := f.RetrieveMetadata("/fs/X")
+			require.NoError(e)
+			assert.EqualValues(0, m.Size)
+			assert.EqualValues(0, f.LastSeg(t, m.FinalBlock))
+
+			payload, e := f.FetchPayload(m, nil)
+			require.NoError(e)
+			assert.Len(payload, 0)
 		})
-		assert.Error(e)
 
-		m, e = f.RetrieveMetadata("/fs/Z")
-		require.NoError(e)
-		assert.Equal(mtimeZ, m.Mtime)
-	})
+		t.Run("Y", func(t *testing.T) {
+			t.Parallel()
+			assert, require := makeAR(t)
 
-	for _, suffix := range []string{"socket", "pipe", "block", "char", "nonexistent"} {
-		t.Run(suffix, func(t *testing.T) {
-			if suffix == "pipe" {
-				// XXX "pipe" causes openat() to block
-				t.SkipNow()
+			m, e := f.RetrieveMetadata("/fs/Y")
+			require.NoError(e)
+			assert.True(m.IsFile())
+			assert.False(m.IsDir())
+			assert.EqualValues(len(fs.payloadY), m.Size)
+			assert.EqualValues(15, f.LastSeg(t, m.FinalBlock))
+			assert.Equal(fs.ctime, m.Ctime)
+			assert.Equal(fs.mtime, m.Mtime)
+
+			payload, e := f.FetchPayload(m, nil)
+			require.NoError(e)
+			assert.Equal(fs.payloadY, payload)
+		})
+
+		t.Run("Z", func(t *testing.T) {
+			t.Parallel()
+			assert, require := makeAR(t)
+
+			m, e := f.RetrieveMetadata("/fs/Z")
+			require.NoError(e)
+			assert.EqualValues(fs.sizeZ, m.Size)
+			assert.EqualValues(79999, f.LastSeg(t, m.FinalBlock))
+			assert.Equal(fs.ctime, m.Ctime)
+			assert.Equal(fs.mtime, m.Mtime)
+
+			lastSeg := tlv.NNI(3)
+			payload, e := f.FetchPayload(m, &lastSeg)
+			if assert.NoError(e) {
+				assert.Len(payload, cfg.SegmentLen*4)
 			}
 
+			mtimeZ := fs.mtime.Add(8 * time.Second)
+			fs.mtimeZ.Store(mtimeZ)
+			time.Sleep(2 * cfg.StatValidity.Duration())
+			_, e = f.FetchPayloadOpts(m, segmented.FetchOptions{
+				SegmentEnd: 1 + uint64(lastSeg),
+				RetxLimit:  1,
+			})
+			assert.Error(e)
+
+			m, e = f.RetrieveMetadata("/fs/Z")
+			require.NoError(e)
+			assert.Equal(mtimeZ, m.Mtime)
+		})
+
+		for _, tt := range []struct {
+			Name       string
+			ExpectNack bool
+		}{
+			{"/no-such-mount/autoexec.bat", false},
+			{"nonexistent", true},
+			{"socket", true},
+			{"pipe", true},
+			{"block", true},
+			{"char", true},
+			{"zero%00/filename", false},
+			{"slash%2F/filename", false},
+			{".../filename", false},
+			{"..../filename", false},
+			{"...../filename", false},
+			{"....../filename", true},
+		} {
+			tt := tt
+			t.Run(tt.Name, func(t *testing.T) {
+				t.Parallel()
+				assert, _ := makeAR(t)
+
+				name := tt.Name
+				if tt.Name[0] != '/' {
+					name = "/fs/" + tt.Name
+				}
+
+				expectedErr := endpoint.ErrExpire
+				if tt.ExpectNack {
+					expectedErr = ndn.ErrContentType
+				}
+
+				_, e := f.RetrieveMetadata(name)
+				assert.ErrorIs(e, expectedErr)
+			})
+		}
+
+		t.Run("keepFds", func(t *testing.T) {
 			t.Parallel()
 			assert, _ := makeAR(t)
 
-			_, e := f.RetrieveMetadata("/fs/" + suffix)
-			assert.ErrorIs(e, ndn.ErrContentType)
+			var wg sync.WaitGroup
+			wg.Add(int(fuseInoAHi - fuseInoALo + 1))
+			for ino := fuseInoALo; ino <= fuseInoAHi; ino++ {
+				go func(suffix string) {
+					defer wg.Done()
+					// cannot retrieve file metadata with 32=ls keyword, but this opens file descriptor and triggers keepFds mechanism
+					_, e := f.RetrieveMetadataOpts("/fs/A/"+suffix+"/"+ndn6file.KeywordLs.String(), endpoint.ConsumerOptions{})
+					assert.ErrorIs(e, ndn.ErrContentType, "%s", suffix)
+				}(fuseNameA(ino))
+			}
+			wg.Wait()
 		})
-	}
+	})
+
+	cnt := f.p.Counters()
+	assert.NotZero(cnt.ReqRead)
+	assert.NotZero(cnt.ReqLs)
+	assert.NotZero(cnt.ReqMetadata)
+	assert.NotZero(cnt.FdNew)
+	assert.NotZero(cnt.FdNotFound)
+	assert.NotZero(cnt.FdClose)
+	assert.LessOrEqual(cnt.FdNew, cnt.FdClose+uint64(cfg.NThreads*cfg.KeepFds))
+	assert.NotZero(cnt.UringSubmit)
+	assert.NotZero(cnt.UringSubmitNonBlock)
+	assert.NotZero(cnt.SqeSubmit)
+	cntJ, _ := json.Marshal(cnt)
+	t.Log(string(cntJ))
 }

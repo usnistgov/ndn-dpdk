@@ -2,6 +2,7 @@
 package logging
 
 import (
+	"log"
 	"os"
 
 	"go.uber.org/zap"
@@ -28,4 +29,26 @@ func Named(pkg string) *zap.Logger {
 //  var logger = logging.New("Foo")
 func New(pkg string) *zap.Logger {
 	return Named(pkg).WithOptions(zap.IncreaseLevel(GetLevel(pkg).al))
+}
+
+// StdLogger creates a log.Logger that logs to zap.Logger at specified level.
+func StdLogger(logger *zap.Logger, lvl zapcore.Level) *log.Logger {
+	return log.New(&stdLoggerWriter{
+		logger: logger,
+		lvl:    lvl,
+	}, "", 0)
+}
+
+type stdLoggerWriter struct {
+	logger *zap.Logger
+	lvl    zapcore.Level
+}
+
+func (w *stdLoggerWriter) Write(p []byte) (n int, e error) {
+	n = len(p)
+	if n > 0 && p[n-1] == '\n' {
+		p = p[:n-1]
+	}
+	w.logger.Check(w.lvl, string(p)).Write()
+	return
 }

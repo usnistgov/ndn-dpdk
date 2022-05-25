@@ -66,26 +66,24 @@ FileServerFd_StatTime(struct statx_timestamp t)
   return (uint64_t)t.tv_sec * SPDK_SEC_TO_NSEC + (uint64_t)t.tv_nsec;
 }
 
-__attribute__((nonnull)) static inline int
-FileServerFd_UpdateStatx(FileServer* p, FileServerFd* entry, TscTime now, bool* changed)
+static __rte_always_inline int
+FileServerFd_InvokeStatx(FileServer* p, FileServerFd* entry, int dfd, const char* restrict pathname,
+                         TscTime now)
 {
-  *changed = true;
-  uint64_t oldVersion = entry->version;
-  uint64_t oldSize = entry->st.stx_size;
-
-  int res = syscall(__NR_statx, entry->fd, "", AT_EMPTY_PATH,
+  int res = syscall(__NR_statx, dfd, pathname, AT_EMPTY_PATH,
                     FileServerStatxRequired | FileServerStatxOptional, &entry->st);
-  if (likely(res == 0)) {
-    if (likely(FileServerFd_HasStatBit(entry, FileServerStatxRequired) &&
-               (FileServerFd_IsFile(entry) || FileServerFd_IsDir(entry)))) {
-      entry->version = FileServerFd_StatTime(entry->st.stx_mtime);
-      *changed = oldVersion != entry->version || oldSize != entry->st.stx_size;
-    } else {
-      res = ETXTBSY; // use an "impossible" errno to indicate statx error condition
-    }
-  }
   entry->st.FdStx_NextUpdate = now + p->statValidity;
-  return res;
+  if (unlikely(res != 0)) {
+    return errno;
+  }
+  if (unlikely(!FileServerFd_HasStatBit(entry, FileServerStatxRequired))) {
+    return ENOMSG;
+  }
+  if (unlikely(!FileServerFd_IsFile(entry) && !FileServerFd_IsDir(entry))) {
+    return ENOTDIR;
+  }
+  entry->version = FileServerFd_StatTime(entry->st.stx_mtime);
+  return 0;
 }
 
 __attribute__((nonnull)) static inline void
@@ -125,15 +123,17 @@ FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
   }
 
   if (unlikely((TscTime)entry->st.FdStx_NextUpdate < now)) {
-    bool changed = false;
-    int res = FileServerFd_UpdateStatx(p, entry, now, &changed);
+    uint64_t oldVersion = entry->version;
+    uint64_t oldSize = entry->st.stx_size;
+    int res = FileServerFd_InvokeStatx(p, entry, entry->fd, "", now);
     ++p->cnt.fdUpdateStat;
     if (unlikely(res != 0)) {
-      N_LOGD(
-        "Ref statx-update fd=%d refcnt=%" PRIu16 N_LOG_ERROR("statx-res=%d statx-mask=0x%" PRIx32),
-        entry->fd, entry->refcnt, res, entry->st.stx_mask);
+      N_LOGD("Ref statx-err fd=%d refcnt=%" PRIu16 N_LOG_ERROR_ERRNO, entry->fd, entry->refcnt,
+             res);
       return NULL;
     }
+
+    bool changed = oldVersion != entry->version || oldSize != entry->st.stx_size;
     N_LOGD("Ref statx-update fd=%d refcnt=%" PRIu16 " version=%" PRIu64 " size=%" PRIu64
            " changed=%d",
            entry->fd, entry->refcnt, entry->version, (uint64_t)entry->st.stx_size, (int)changed);
@@ -152,60 +152,48 @@ FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
 __attribute__((nonnull)) static FileServerFd*
 FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, TscTime now)
 {
-  FileServerFd* errEntry = NULL;
   int mount = LNamePrefixFilter_Find(prefix, FileServerMaxMounts, p->mountPrefixL, p->mountPrefixV);
   if (unlikely(mount < 0)) {
     N_LOGD("New bad-name" N_LOG_ERROR("mount-not-matched"));
-    goto FAIL_OUT;
+    return NULL;
   }
+  int dfd = p->dfd[mount];
 
   char filename[PATH_MAX];
   if (unlikely(!FileServer_ToFilename(name, p->mountPrefixComps[mount], filename))) {
     N_LOGD("New bad-name" N_LOG_ERROR("invalid-filename"));
-    goto FAIL_OUT;
+    return NULL;
   }
-
-  errEntry = FileServer_NotFound;
-  int fd = -1;
-  const char* logFilename = NULL;
-  if (likely(filename[0] != '\0')) {
-    logFilename = filename;
-    fd = openat(p->dfd[mount], filename, O_RDONLY);
-    if (unlikely(fd < 0)) {
-      ++p->cnt.fdNotFound;
-      N_LOGD("New openat-err mount=%d filename=%s" N_LOG_ERROR_ERRNO, mount, filename, errno);
-      goto FAIL_OUT;
-    }
-  } else {
-    logFilename = "(empty)";
-    fd = dup(p->dfd[mount]);
-    if (unlikely(fd < 0)) {
-      ++p->cnt.fdNotFound;
-      N_LOGD("New dup-err mount=%d filename=''" N_LOG_ERROR_ERRNO, mount, errno);
-      errEntry = NULL;
-      goto FAIL_OUT;
-    }
-  }
-  ++p->cnt.fdNew;
 
   FileServerFd* entry = NULL;
   int res = rte_mempool_get(p->fdMp, (void**)&entry);
   if (unlikely(res != 0)) {
     N_LOGE("New fd-alloc-err" N_LOG_ERROR_BLANK);
-    errEntry = NULL;
-    goto FAIL_CLOSE;
+    return NULL;
   }
-  entry->fd = fd;
 
-  entry->version = 0;
-  entry->st.stx_size = 0;
-  bool changed_ = false;
-  res = FileServerFd_UpdateStatx(p, entry, now, &changed_);
+  res = FileServerFd_InvokeStatx(p, entry, dfd, filename, now);
   if (unlikely(res != 0)) {
-    N_LOGD("New mount=%d filename=%s" N_LOG_ERROR("statx-res=%d statx-mask=0x%" PRIx32), mount,
-           logFilename, res, entry->st.stx_mask);
-    goto FAIL_ALLOC;
+    N_LOGD("New statx-err mount=%d dfd=%d filename=%s" N_LOG_ERROR_ERRNO, mount, dfd, filename,
+           res);
+    goto FAIL;
   }
+
+  const char* logFilename = NULL;
+  if (likely(filename[0] != '\0')) {
+    logFilename = filename;
+    entry->fd = openat(dfd, filename, O_RDONLY);
+  } else {
+    logFilename = "(empty)";
+    entry->fd = dup(dfd);
+  }
+
+  if (unlikely(entry->fd < 0)) {
+    N_LOGD("New openat-err mount=%d dfd=%d filename=%s" N_LOG_ERROR_ERRNO, mount, dfd, logFilename,
+           errno);
+    goto FAIL;
+  }
+  ++p->cnt.fdNew;
 
   entry->refcnt = 1;
   entry->lsL = UINT32_MAX;
@@ -215,18 +203,14 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
   FileServerFd_PrepapeMetaInfo(p, entry, entry->st.stx_size);
 
   HASH_ADD_BYHASHVALUE(hh, p->fdHt, self, 0, hash, entry);
-  N_LOGD("New mount=%d filename=%s fd=%d statx-mask=0x%" PRIu32 " version=%" PRIu64
-         " size=%" PRIu64,
-         mount, logFilename, entry->fd, entry->st.stx_mask, entry->version,
-         (uint64_t)entry->st.stx_size);
+  N_LOGD("New mount=%d dfd=%d filename=%s fd=%d version=%" PRIu64 " size=%" PRIu64, mount, dfd,
+         logFilename, entry->fd, entry->version, (uint64_t)entry->st.stx_size);
   return entry;
 
-FAIL_ALLOC:
+FAIL:
   rte_mempool_put(p->fdMp, entry);
-FAIL_CLOSE:
-  close(fd);
-FAIL_OUT:
-  return errEntry;
+  ++p->cnt.fdNotFound;
+  return FileServer_NotFound;
 }
 
 FileServerFd*
