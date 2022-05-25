@@ -16,26 +16,26 @@ This is a Node.js application that generates activation parameters for NDN-DPDK 
 4. Open a `.ts` file in the editor, and make changes.
    The editor can provide hints on available options.
 5. Run `corepack pnpm typecheck` to verify your arguments conform to the TypeScript definitions.
-6. Run `corepack pnpm start -s [filename] | jq` to see the JSON document.
-7. Run `corepack pnpm start -s [filename] | ndndpdk-ctrl [subcommand]` to send the activation command to NDN-DPDK.
+6. Run `corepack pnpm -s start [filename] | jq` to see the JSON document.
+7. Run `corepack pnpm -s start [filename] | ndndpdk-ctrl [subcommand]` to send the activation command to NDN-DPDK.
 
 ## Available Samples
 
 [Forwarder](../docs/forwarder.md): activate with `fw-args.ts`
 
 ```bash
-corepack pnpm start -s fw-args.ts | ndndpdk-ctrl activate-forwarder
+corepack pnpm -s start fw-args.ts | ndndpdk-ctrl activate-forwarder
 ```
 
 [Traffic generator](../docs/trafficgen.md): activate with `gen-args.ts`, use traffic pattern in `gen-config.ts`
 
 ```bash
-corepack pnpm start -s gen-args.ts | ndndpdk-ctrl activate-trafficgen
-corepack pnpm start -s gen-config.ts | ndndpdk-ctrl start-trafficgen
+corepack pnpm -s start gen-args.ts | ndndpdk-ctrl activate-trafficgen
+corepack pnpm -s start gen-config.ts | ndndpdk-ctrl start-trafficgen
 ```
 
 [File server](../docs/fileserver.md): activate with `fileserver-args.ts`
 
 ```bash
-corepack pnpm start -s fileserver-args.ts | ndndpdk-ctrl activate-fileserver
+corepack pnpm -s start fileserver-args.ts | ndndpdk-ctrl activate-fileserver
 ```

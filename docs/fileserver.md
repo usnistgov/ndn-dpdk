@@ -115,11 +115,16 @@ sudo ndndpdk-ctrl --gqlserver http://127.0.0.1:3031 systemd start
 ```
 
 If you are running [NDN-DPDK in Docker container](Docker.md), start another container from the same NDN-DPDK image.
-The `/run/ndn` directory should be mounted into both containers in order to establish memif connection.
-In this case, you should change `--gqlserver` flag to target the container.
+The `/run/ndn` directory should be mounted into both containers in order to establish memif connection; you also need to change `--gqlserver` flag and `NDNTS_NDNDPDK_GQLSERVER` environment variable to target the container.
+Moreover, any folders that you want to serve from the NDN-DPDK file server should be mounted into the container; however, this isn't necessary in this example.
 
 The sample activation parameters given in [NDN-DPDK activation sample](../sample/activate) may be used in this scenario.
-Follow the instructions in the sample, then run `corepack pnpm start -s fileserver-args.ts | ndndpdk-ctrl --gqlserver http://127.0.0.1:3031 activate-fileserver` to send a file server activation command.
+Follow the instructions in the sample, then send a file server activation command with this command:
+
+```bash
+corepack pnpm -s start fileserver-args.ts | ndndpdk-ctrl --gqlserver http://127.0.0.1:3031 activate-fileserver
+```
+
 Notice the `--gqlserver` flag, targeting the second NDN-DPDK service instance.
 
 ### Retrieve the File
@@ -142,10 +147,38 @@ Example command and output:
 ```shell
 $ export NDNTS_UPLINK=ndndpdk-udp:
 $ export NDNTS_NDNDPDK_GQLSERVER=http://127.0.0.1:3030
-$ npx -y -p https://ndnts-nightly.ndn.today/cat.tgz ndncat get-segmented \
-    --ver=rdr /fileserver/usr-local-bin/ndndpdk-svc > /tmp/ndndpdk-svc.retrieved
+$ alias ndncat='npx -y -p https://ndnts-nightly.ndn.today/cat.tgz ndncat'
+
+$ ndncat get-segmented --ver=rdr /fileserver/usr-local-bin/ndndpdk-svc > /tmp/ndndpdk-svc.retrieved
 
 $ sha256sum /usr/local/bin/ndndpdk-svc /tmp/ndndpdk-svc.retrieved
 d7d68600dd33a2e344bb4e4895e10302d4f9781930b601241d5ec5aaacab6392  /usr/local/bin/ndndpdk-svc
 d7d68600dd33a2e344bb4e4895e10302d4f9781930b601241d5ec5aaacab6392  /tmp/ndndpdk-svc.retrieved
+
+$ ndncat file-client /fileserver/usr-local-bin /tmp/usr-local-bin-retrieved
+```
+
+### Retrieve a Directory
+
+NDN-DPDK file server also supports directory listing as defined in the [ndn6-file-server protocol](https://github.com/yoursunny/ndn6-tools/blob/main/file-server.md).
+You can use the [ndncat command](https://ndnts-docs.ndn.today/typedoc/modules/cat.html) to view the directory listing or recursively retrieve a directory.
+
+Example command and (partial) output:
+
+```shell
+$ $ ndncat get-segmented --ver=rdr /fileserver/usr-local-share/32=ls | tr '\0' '\n'
+ca-certificates/
+bash-completion/
+ndn-dpdk/
+
+$ ndncat get-segmented --ver=rdr /fileserver/usr-local-share/ndn-dpdk/32=ls | tr '\0' '\n'
+locator.schema.json
+ndn-dpdk.npm.tgz
+fileserver.schema.json
+
+$ ndncat file-client /fileserver/usr-local-share/ndn-dpdk /tmp/usr-local-share/ndn-dpdk
+FOLDER /tmp/usr-local-share/ndn-dpdk folders=0 files=7
+FILE /tmp/usr-local-share/ndn-dpdk/locator.schema.json size=8210
+FILE /tmp/usr-local-share/ndn-dpdk/ndn-dpdk.npm.tgz size=10980
+FILE /tmp/usr-local-share/ndn-dpdk/fileserver.schema.json size=22270
 ```

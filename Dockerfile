@@ -15,11 +15,12 @@ RUN export PATH=$PATH:/usr/local/go/bin && \
     env ${MAKE_ENV} make && \
     make install
 RUN rm -rf \
+      /usr/local/bin/__pycache__ \
       /usr/local/bin/dpdk-dumpcap \
       /usr/local/bin/dpdk-pdump \
       /usr/local/bin/dpdk-proc-info \
       /usr/local/bin/dpdk-test* \
-      /usr/local/bin/ninja \
+      /usr/local/bin/meson \
       /usr/local/bin/pip* \
       /usr/local/bin/spdk_* \
       /usr/local/bin/wheel \
@@ -31,7 +32,11 @@ RUN rm -rf \
       /usr/local/lib/python* \
       /usr/local/lib/systemd \
       /usr/local/man \
+      /usr/local/sbin \
       /usr/local/share/dpdk \
+      /usr/local/share/man \
+      /usr/local/share/polkit-1 \
+      /usr/local/share/xdp-tools \
       /usr/local/src && \
     for F in /usr/local/lib/*.so /usr/local/bin/*; do \
       ldd "$F" 2>/dev/null | awk 'NF==4 && $2=="=>" && $3~"^/" {print $3}'; \

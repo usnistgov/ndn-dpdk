@@ -24,6 +24,7 @@ const args: ActivateFileServerArgs = {
     mounts: [
       { prefix: "/fileserver/usr-local-bin", path: "/usr/local/bin" },
       { prefix: "/fileserver/usr-local-lib", path: "/usr/local/lib" },
+      { prefix: "/fileserver/usr-local-share", path: "/usr/local/share" },
     ],
     segmentLen: 6 * 1024,
     uringCapacity: 4096,
