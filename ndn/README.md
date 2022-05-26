@@ -41,6 +41,7 @@ KeyChain
   * ECDSA: yes
   * RSA: yes
   * HMAC-SHA256: no
+  * Ed25519: proof of concept only
   * Null: yes
 * [NDN certificates](https://named-data.net/doc/ndn-cxx/0.8.0/specs/certificate.html): basic support
 * Persistent key and certificate storage: no

@@ -8,6 +8,7 @@ const (
 	SigSha256WithRsa   = 0x01
 	SigSha256WithEcdsa = 0x03
 	SigHmacWithSha256  = 0x04
+	SigEd25519         = 0x05
 	SigNull            = 0xC8
 
 	_ = "enumgen:SigType"
@@ -24,6 +25,8 @@ func SigTypeString(sigType uint32) string {
 		return "ECDSA"
 	case SigHmacWithSha256:
 		return "HMAC"
+	case SigEd25519:
+		return "Ed25519"
 	case SigNull:
 		return "null"
 	}

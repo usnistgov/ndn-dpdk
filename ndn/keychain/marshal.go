@@ -3,6 +3,7 @@ package keychain
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"errors"
@@ -55,6 +56,8 @@ func UnmarshalKey(wire []byte) (PrivateKey, error) {
 		return NewRSAPrivateKey(name, key)
 	case *ecdsa.PrivateKey:
 		return NewECDSAPrivateKey(name, key)
+	case ed25519.PrivateKey:
+		return NewEd25519PrivateKey(name, key)
 	}
 	return nil, fmt.Errorf("unknown private key type %T", key)
 }

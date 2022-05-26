@@ -8,7 +8,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
-// NDN testbed certificates.
+// NDN certificate samples.
 // Each is a function that returns the certificate Data packet.
 var (
 	TestbedArizona20200301 = makeDataFromBase64(`
@@ -65,6 +65,14 @@ var (
 		AP0CACT9AgEMb3JnYW5pemF0aW9u/QICEE5ETiBUZXN0YmVkIFJvb3QXRjBEAiB0
 		uX44O3vhTLx3ioGAIWsXl5Htbskry+hcczZ6zVY+NgIgT4nBoHDJkbeeAg7+tpAY
 		E2rs8ThtmNI1je+CP5CfKOE=`)
+
+	Ed25519Demo = makeDataFromBase64(`
+		Bv0BCgc1CAxFZDI1NTE5LWRlbW8IA0tFWQgQNWE2MTVkYjdjZjA2MDNiNQgEc2Vs
+		ZjYIAAABgQD8AY0UCRgBAhkEADbugBUsMCowBQYDK2VwAyEAQxUZBL+3I3D4oDIJ
+		tJvuCTguHM7AUbhlhA/wu8ZhrkwWVhsBBRwnByUIDEVkMjU1MTktZGVtbwgDS0VZ
+		CBA1YTYxNWRiN2NmMDYwM2I1/QD9Jv0A/g8xOTcwMDEwMVQwMDAwMDD9AP8PMjAy
+		MjA1MjZUMTUyODQ0F0DAAWCZzxQSCAV0tluFDry5aT1b+EgoYgT1JKxbKVb/tINx
+		M43PFy/2hDe8j61PuYD9tCah0TWapPwfXWi3fygA`)
 )
 
 func makeDataFromBase64(input string) func() ndn.Data {

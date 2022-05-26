@@ -35,7 +35,7 @@ func (signer namedSigner) Sign(packet ndn.Signable) error {
 
 type privateKey struct {
 	namedSigner
-	key any // *rsa.PrivateKey or *ecdsa.PrivateKey
+	key any // *rsa.PrivateKey or *ecdsa.PrivateKey or ed25519.PrivateKey
 }
 
 func (pvt privateKey) Name() ndn.Name {
@@ -76,7 +76,7 @@ type PublicKey interface {
 type publicKey struct {
 	sigType  uint32
 	keyName  ndn.Name
-	key      any // *rsa.PublicKey or *ecdsa.PublicKey
+	key      any // *rsa.PublicKey or *ecdsa.PublicKey or ed25519.PublicKey
 	llVerify ndn.LLVerify
 }
 

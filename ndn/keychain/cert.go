@@ -2,6 +2,7 @@ package keychain
 
 import (
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding"
@@ -99,6 +100,8 @@ func CertFromData(data ndn.Data) (cert *Certificate, e error) {
 		cert.key, _ = NewRSAPublicKey(keyName, key)
 	case *ecdsa.PublicKey:
 		cert.key, _ = NewECDSAPublicKey(keyName, key)
+	case ed25519.PublicKey:
+		cert.key, _ = NewEd25519PublicKey(keyName, key)
 	}
 	if cert.key == nil {
 		return nil, ErrX509PublicKey
