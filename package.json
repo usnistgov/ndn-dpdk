@@ -14,12 +14,12 @@
     "tslib": "^2.4.0"
   },
   "devDependencies": {
-    "@yoursunny/xo-config": "0.48.4",
+    "@yoursunny/xo-config": "0.49.0",
     "dockerfilelint": "^1.8.0",
     "json-stable-stringify": "^1.0.1",
     "markdownlint-cli": "^0.31.1",
     "ts-json-schema-generator": "^1.0.0",
-    "typescript": "~4.6.4"
+    "typescript": "~4.7.2"
   },
   "engines": {
     "node": "16.x"
