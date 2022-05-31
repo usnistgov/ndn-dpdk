@@ -4,7 +4,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@7.1.5",
+  "packageManager": "pnpm@7.1.7",
   "dependencies": {
     "@fastify/express": "^1.1.0",
     "@fastify/http-proxy": "^7.1.0",
@@ -16,7 +16,7 @@
     "dotenv": "^16.0.1",
     "fastify": "^3.29.0",
     "graphql": "^16.5.0",
-    "graphql-request": "^4.2.0",
+    "graphql-request": "^4.3.0",
     "preact": "^10.7.2",
     "ts-loader": "^9.3.0",
     "tslib": "^2.4.0",

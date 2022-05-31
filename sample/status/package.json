@@ -4,7 +4,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@7.1.5",
+  "packageManager": "pnpm@7.1.7",
   "dependencies": {
     "@fastify/express": "^1.1.0",
     "@fastify/static": "^5.0.2",
@@ -14,7 +14,7 @@
     "delay": "^5.0.0",
     "fastify": "^3.29.0",
     "graphql": "^16.5.0",
-    "graphql-request": "^4.2.0",
+    "graphql-request": "^4.3.0",
     "graphql-ws": "^5.8.2",
     "hashquery": "^1.0.0",
     "http-proxy": "^1.18.1",
@@ -24,8 +24,10 @@
     "ts-loader": "^9.3.0",
     "tslib": "^2.4.0",
     "typescript": "~4.7.2",
+    "url-parse-lax": "^5.0.0",
     "webpack": "^5.72.1",
-    "webpack-dev-middleware": "^5.3.3"
+    "webpack-dev-middleware": "^5.3.3",
+    "yargs": "^17.5.1"
   },
   "engines": {
     "node": "16.x"
