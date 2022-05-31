@@ -1,1 +1,1 @@
-export * as runningstat from "./runningstat";
+export * as runningstat from "./runningstat.js";

@@ -1,4 +1,4 @@
-import type { NNNanoseconds } from "./core";
+import type { NNNanoseconds } from "./core.js";
 
 /**
  * PIT suppression configuration.

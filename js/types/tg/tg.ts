@@ -1,8 +1,8 @@
-import type { FaceLocator } from "../iface";
-import type { TgcConfig } from "./consumer";
-import type { FetcherConfig } from "./fetch";
-import type { FileServerConfig } from "./fileserver";
-import type { TgpConfig } from "./producer";
+import type { FaceLocator } from "../iface.js";
+import type { TgcConfig } from "./consumer.js";
+import type { FetcherConfig } from "./fetch.js";
+import type { FileServerConfig } from "./fileserver.js";
+import type { TgpConfig } from "./producer.js";
 
 /**
  * Traffic generator configuration.

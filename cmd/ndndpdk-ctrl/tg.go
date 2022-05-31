@@ -17,9 +17,9 @@ func init() {
 			return clientDoPrint(c.Context, `
 				mutation startTrafficGen(
 					$face: JSON!
-					$producer: TgProducerConfigInput
+					$producer: TgpConfigInput
 					$fileServer: FileServerConfigInput
-					$consumer: TgConsumerConfigInput
+					$consumer: TgcConfigInput
 					$fetcher: FetcherConfigInput
 				) {
 					startTrafficGen(

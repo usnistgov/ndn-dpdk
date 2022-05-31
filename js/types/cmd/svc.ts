@@ -1,7 +1,7 @@
-import type { EalConfig, LCoreAllocConfig, PktmbufPoolTemplateUpdates } from "../dpdk";
-import type { FwdpConfig } from "../fwdp";
-import type { FaceLocator, SocketFaceGlobalConfig } from "../iface";
-import type { FileServerConfig } from "../tg/mod";
+import type { EalConfig, LCoreAllocConfig, PktmbufPoolTemplateUpdates } from "../dpdk.js";
+import type { FwdpConfig } from "../fwdp.js";
+import type { FaceLocator, SocketFaceGlobalConfig } from "../iface.js";
+import type { FileServerConfig } from "../tg/mod.js";
 
 export interface ActivateArgsCommon<Roles extends string = never> {
   eal?: EalConfig;

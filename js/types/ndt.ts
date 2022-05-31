@@ -1,4 +1,4 @@
-import type { Uint } from "./core";
+import type { Uint } from "./core.js";
 
 /**
  * Name Dispatch Table (NDT) configuration.

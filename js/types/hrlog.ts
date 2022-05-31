@@ -1,5 +1,5 @@
-import type { Counter } from "./core";
-import type { LCore } from "./dpdk";
+import type { Counter } from "./core.js";
+import type { LCore } from "./dpdk.js";
 
 export enum HrlogAction {
   OI = 1,

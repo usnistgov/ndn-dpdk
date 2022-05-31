@@ -1,2 +1,2 @@
-export * from "./lib/mod";
-export * from "./types/mod";
+export * from "./lib/mod.js";
+export * from "./types/mod.js";

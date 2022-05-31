@@ -1,6 +1,6 @@
-import type { FaceMgmt } from "./face";
-import type { FibMgmt } from "./fib";
-import type { VersionMgmt } from "./version";
+import type { FaceMgmt } from "./face.js";
+import type { FibMgmt } from "./fib.js";
+import type { VersionMgmt } from "./version.js";
 
 /**
  * JSON-RPC 2.0 management API.

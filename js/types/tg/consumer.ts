@@ -1,6 +1,6 @@
-import type { Counter, NNNanoseconds, RunningStatSnapshot, Uint } from "../core";
-import type { DataGen, InterestTemplate } from "../ndni";
-import type { PktQueueConfig } from "../pktqueue";
+import type { Counter, NNNanoseconds, RunningStatSnapshot, Uint } from "../core.js";
+import type { DataGen, InterestTemplate } from "../ndni.js";
+import type { PktQueueConfig } from "../pktqueue.js";
 
 /**
  * Traffic generator consumer config.

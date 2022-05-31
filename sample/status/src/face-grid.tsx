@@ -1,9 +1,8 @@
-import type { FaceLocator } from "@usnistgov/ndn-dpdk";
 import numd from "numd";
 import { Fragment, h } from "preact";
 
 import { gql, gqlSub } from "./client";
-import type { Face } from "./model";
+import { type Face, describeFaceLocator } from "./model";
 import { AbortableComponent } from "./refresh-component";
 
 const counters = [
@@ -31,7 +30,7 @@ export class FaceGrid extends AbortableComponent<Props, State> {
   override async componentDidMount() {
     const { id } = this.props.face;
     for await (const { faceCounters } of gqlSub<{ faceCounters: Counters }>(gql`
-      subscription threadLoadStat($id: ID!) {
+      subscription faceCounters($id: ID!) {
         faceCounters(id: $id, interval: "1s", diff: true) {
           ${counters.join(" ")}
         }
@@ -99,24 +98,5 @@ export class FaceGrid extends AbortableComponent<Props, State> {
         ) : undefined}
       </g>
     );
-  }
-}
-
-function describeFaceLocator(loc: FaceLocator): string {
-  switch (loc.scheme) {
-    case "ether":
-      return `Ethernet ${loc.remote}${loc.vlan && ` VLAN ${loc.vlan}`}`;
-    case "udpe":
-      return `UDP [${loc.remoteIP}]:${loc.remoteUDP}`;
-    case "vxlan":
-      return `VXLAN ${loc.remoteIP} ${loc.vxlan}`;
-    case "unix":
-    case "udp":
-    case "tcp":
-      return `${loc.scheme.toUpperCase()} socket ${loc.remote}`;
-    case "memif":
-      return `memif ${loc.socketName} ${loc.id}`;
-    default:
-      return JSON.stringify(loc);
   }
 }

@@ -48,6 +48,7 @@ const compiler = webpack({
     ],
   },
   resolve: {
+    enforceExtension: false,
     extensions: [".tsx", ".ts", ".js"],
   },
   output: {

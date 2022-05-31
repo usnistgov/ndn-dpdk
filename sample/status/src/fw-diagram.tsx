@@ -4,7 +4,7 @@ import { h } from "preact";
 import { gql, gqlQuery } from "./client";
 import { FwFwd } from "./fw-fwd";
 import { FwInput } from "./fw-input";
-import type { Face, Worker } from "./model";
+import { Face, Worker } from "./model";
 import { TimerRefreshComponent } from "./refresh-component";
 import { WorkerShape } from "./worker-shape";
 
@@ -37,13 +37,10 @@ export class FwDiagram extends TimerRefreshComponent<{}, State> {
     const fwdp = await gqlQuery<FwdpQueryResult>(gql`
       {
         fwdp {
-          inputs { id nid worker { id nid numaSocket role } }
-          fwds { id nid worker { id nid numaSocket role } }
+          inputs { id nid worker { ${Worker.subselection} } }
+          fwds { id nid worker { ${Worker.subselection} } }
         }
-        workersTX: workers(role: "TX") {
-          id nid numaSocket role
-          txLoopFaces { id nid }
-        }
+        workersTX: workers(role: "TX") { txLoopFaces { id nid } ${Worker.subselection} }
       }
     `);
     return { fwdp };

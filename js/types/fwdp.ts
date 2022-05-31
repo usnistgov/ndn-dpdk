@@ -1,10 +1,10 @@
-import type { Uint } from "./core";
-import type { BdevLocator } from "./dpdk";
-import type { FibConfig } from "./fib";
-import type { NdtConfig } from "./ndt";
-import type { PcctConfig } from "./pcct";
-import type { SuppressConfig } from "./pit";
-import type { PktQueueConfig } from "./pktqueue";
+import type { Uint } from "./core.js";
+import type { BdevLocator } from "./dpdk.js";
+import type { FibConfig } from "./fib.js";
+import type { NdtConfig } from "./ndt.js";
+import type { PcctConfig } from "./pcct.js";
+import type { SuppressConfig } from "./pit.js";
+import type { PktQueueConfig } from "./pktqueue.js";
 
 /**
  * Forwarder data plane configuration.

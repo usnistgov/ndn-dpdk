@@ -1,6 +1,6 @@
-import type { NNNanoseconds, Ratio, Uint } from "../core";
-import type { Name } from "../ndni";
-import type { PktQueueConfig } from "../pktqueue";
+import type { NNNanoseconds, Ratio, Uint } from "../core.js";
+import type { Name } from "../ndni.js";
+import type { PktQueueConfig } from "../pktqueue.js";
 
 /**
  * File server config.

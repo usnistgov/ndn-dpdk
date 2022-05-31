@@ -9,7 +9,7 @@ const roleColor: Record<WorkerRole, string> = {
   CRYPTO: "#ffdc00",
   DISK: "#ffdc00",
   PRODUCER: "#0074d9",
-  CONSUMER: "#0074d9",
+  CONSUMER: "#39cccc",
 };
 
 type makeRolePath = (w: number, h: number) => string;

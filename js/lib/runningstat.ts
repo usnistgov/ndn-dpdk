@@ -1,4 +1,4 @@
-import type { RunningStatSnapshot as SnapshotJSON } from "../types/core";
+import type { RunningStatSnapshot as SnapshotJSON } from "../types/core.js";
 
 function nullNaN(v: number): number | undefined {
   return Number.isNaN(v) ? undefined : v;
@@ -87,5 +87,15 @@ export class Snapshot {
     diff.m1 = diffM1;
     diff.m2 = this.m2 - other.m2 - delta2 * Number(other.len * diff.len) / Number(this.len);
     return diff;
+  }
+
+  /** Multiply every number by a ratio. */
+  public scale(this: Readonly<Snapshot>, ratio: number): Snapshot {
+    return new Snapshot({
+      count: this.count.toString(),
+      len: this.len.toString(),
+      m1: this.m1 * ratio,
+      m2: this.m2 * ratio * ratio,
+    });
   }
 }

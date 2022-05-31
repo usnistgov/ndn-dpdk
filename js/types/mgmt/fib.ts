@@ -1,7 +1,7 @@
-import type { Counter, Uint } from "../core";
-import type { FaceID } from "../iface";
-import type { Name } from "../ndni";
-import type { NameArg } from "./common";
+import type { Counter, Uint } from "../core.js";
+import type { FaceID } from "../iface.js";
+import type { Name } from "../ndni.js";
+import type { NameArg } from "./common.js";
 
 export interface FibMgmt {
   Info: { args: {}; reply: FibInfo };

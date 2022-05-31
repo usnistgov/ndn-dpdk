@@ -1,1 +1,1 @@
-export * from "./svc";
+export * from "./svc.js";

@@ -1,5 +1,5 @@
-import type { Counter, NNMilliseconds, Uint } from "./core";
-import type { EthNetifConfig } from "./dpdk";
+import type { Counter, NNMilliseconds, Uint } from "./core.js";
+import type { EthNetifConfig } from "./dpdk.js";
 
 /**
  * Numeric face identifier.
@@ -134,7 +134,7 @@ export interface VxlanLocator extends IpLocatorBase {
   innerRemote: string;
 }
 
-export type MemifRole = "server" | "client";
+export type MemifRole = "server" | "client.js";
 
 /**
  * memif face locator.

@@ -1,4 +1,4 @@
-import type { Uint } from "./core";
+import type { Uint } from "./core.js";
 
 type EalLCoreConfig = {
   cores?: number[];
@@ -129,7 +129,7 @@ export namespace BdevLocator {
     fileDriver?: FileDriver;
   }
 
-  export type FileDriver = "aio" | "uring";
+  export type FileDriver = "aio" | "uring.js";
 
   export interface Nvme {
     pciAddr: string;

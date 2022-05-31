@@ -5,13 +5,14 @@ import { Component, Fragment, h, render } from "preact";
 import { gql, gqlQuery } from "./client";
 import { FacesList } from "./faces-list";
 import { FwDiagram } from "./fw-diagram";
-import type { Worker, WorkerRole, WorkersByRole } from "./model";
+import { Worker, WorkerRole, WorkersByRole } from "./model";
+import { TgDiagram } from "./tg-diagram";
 import { WorkersTable } from "./workers-table";
 
 const roles = {
   "": "(unactivated)",
   fw: "forwarder",
-  gen: "traffic generator",
+  tg: "traffic generator",
 };
 
 const tabs = {
@@ -19,6 +20,8 @@ const tabs = {
     switch (role) {
       case "fw":
         return <FwDiagram/>;
+      case "tg":
+        return <TgDiagram/>;
     }
     return undefined;
   },
@@ -45,12 +48,7 @@ class App extends Component<{}, State> {
 
     const { workers } = await gqlQuery<{ workers: ReadonlyArray<Worker<WorkerRole | "">> }>(gql`
       {
-        workers {
-          id
-          nid
-          numaSocket
-          role
-        }
+        workers { ${Worker.subselection} }
       }
     `);
     const sw: State["workers"] = {};
@@ -60,7 +58,7 @@ class App extends Component<{}, State> {
       }
       (sw[w.role] ??= []).push(w as Worker);
     }
-    const role = sw.FWD ? "fw" : (sw.PRODUCER || sw.CONSUMER) ? "gen" : "";
+    const role = sw.FWD ? "fw" : (sw.PRODUCER || sw.CONSUMER) ? "tg" : "";
     document.title = `NDN-DPDK ${roles[role]} status`;
     this.setState({
       role,

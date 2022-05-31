@@ -37,7 +37,7 @@ func init() {
 		}),
 	})
 	GqlConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
-		Name:        "TgConsumerConfigInput",
+		Name:        "TgcConfigInput",
 		Description: "Traffic generator consumer config.",
 		Fields: gqlserver.BindInputFields[Config](gqlserver.FieldTypes{
 			reflect.TypeOf(iface.PktQueueConfig{}):    iface.GqlPktQueueInput,
@@ -49,14 +49,14 @@ func init() {
 	GqlPatternCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "TgcPatternCounters",
 		Fields: gqlserver.BindFields[PatternCounters](gqlserver.FieldTypes{
-			reflect.TypeOf(RttCounters{}): runningstat.GqlSnapshotType,
+			reflect.TypeOf(runningstat.Snapshot{}): runningstat.GqlSnapshotType,
 		}),
 	})
 	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "TgcCounters",
 		Fields: gqlserver.BindFields[Counters](gqlserver.FieldTypes{
-			reflect.TypeOf(RttCounters{}):     runningstat.GqlSnapshotType,
-			reflect.TypeOf(PatternCounters{}): GqlPatternCountersType,
+			reflect.TypeOf(runningstat.Snapshot{}): runningstat.GqlSnapshotType,
+			reflect.TypeOf(PatternCounters{}):      GqlPatternCountersType,
 		}),
 	})
 

@@ -1,5 +1,5 @@
-import type { EtherLocator, FaceLocator } from "../iface";
-import type { IdArg } from "./common";
+import type { EtherLocator, FaceLocator } from "../iface.js";
+import type { IdArg } from "./common.js";
 
 export interface FaceMgmt {
   List: { args: {}; reply: FaceBasicInfo[] };

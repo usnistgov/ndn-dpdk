@@ -1,5 +1,5 @@
-import type { Uint } from "../core";
-import type { Name } from "../ndni";
+import type { Uint } from "../core.js";
+import type { Name } from "../ndni.js";
 
 export interface IdArg {
   Id: Uint;

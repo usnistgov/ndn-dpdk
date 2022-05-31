@@ -185,7 +185,7 @@ export class Benchmark {
       }>(gql`
         mutation startTrafficGen(
           $face: JSON!
-          $producer: TgProducerConfigInput
+          $producer: TgpConfigInput
           $fetcher: FetcherConfigInput
         ) {
           startTrafficGen(

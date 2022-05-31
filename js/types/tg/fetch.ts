@@ -1,5 +1,5 @@
-import type { Counter, NNNanoseconds, Uint } from "../core";
-import type { PktQueueConfig } from "../pktqueue";
+import type { Counter, NNNanoseconds, Uint } from "../core.js";
+import type { PktQueueConfig } from "../pktqueue.js";
 
 export interface FetcherConfig {
   /**

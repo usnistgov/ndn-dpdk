@@ -2,7 +2,7 @@ import { Fragment, h } from "preact";
 
 import { gql, gqlQuery } from "./client";
 import { FaceGrid } from "./face-grid";
-import type { Face as FaceB } from "./model";
+import { Face as FaceB } from "./model";
 import { TimerRefreshComponent } from "./refresh-component";
 
 interface EthDev {
@@ -45,7 +45,7 @@ export class FacesList extends TimerRefreshComponent<{}, State> {
           id nid name numaSocket macAddr mtu isDown devInfo
           rxGroups { __typename queue faces { id } }
         }
-        faces { ethDev { id } id nid locator isDown }
+        faces { ethDev { id } ${FaceB.subselection} }
       }
     `);
   }

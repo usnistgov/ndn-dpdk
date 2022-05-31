@@ -1,6 +1,6 @@
-import type { Counter, Uint } from "../core";
-import type { DataGen, Name } from "../ndni";
-import type { PktQueueConfig } from "../pktqueue";
+import type { Counter, Uint } from "../core.js";
+import type { DataGen, Name } from "../ndni.js";
+import type { PktQueueConfig } from "../pktqueue.js";
 
 /**
  * Traffic generator producer config.

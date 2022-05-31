@@ -1,4 +1,4 @@
-import type { NNMilliseconds, Uint } from "./core";
+import type { NNMilliseconds, Uint } from "./core.js";
 
 /** Name represented as canonical URI. */
 export type Name = string;

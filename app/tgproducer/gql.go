@@ -41,7 +41,7 @@ func init() {
 		}),
 	})
 	GqlConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
-		Name:        "TgProducerConfigInput",
+		Name:        "TgpConfigInput",
 		Description: "Traffic generator producer config.",
 		Fields: gqlserver.BindInputFields[Config](gqlserver.FieldTypes{
 			reflect.TypeOf(iface.PktQueueConfig{}): iface.GqlPktQueueInput,

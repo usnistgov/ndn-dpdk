@@ -1,4 +1,4 @@
-import type { NNNanoseconds, Uint } from "./core";
+import type { NNNanoseconds, Uint } from "./core.js";
 
 /**
  * Packet queue configuration.

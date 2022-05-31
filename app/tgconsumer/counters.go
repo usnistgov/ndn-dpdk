@@ -10,6 +10,18 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
+func formatRttCounters(cnt runningstat.Snapshot) string {
+	const ratio = 1.0 / float64(time.Millisecond)
+	formatMinMax := func(v *uint64) string {
+		if v == nil {
+			return "none"
+		}
+		return strconv.FormatFloat(float64(*v)*ratio, 'f', 3, 64)
+	}
+	ms := cnt.Scale(ratio)
+	return fmt.Sprintf("%s/%0.3f/%s/%0.3fms(%dsamp)", formatMinMax(ms.Min), ms.Mean, formatMinMax(ms.Max), ms.Stdev, ms.Len)
+}
+
 // PacketCounters is a group of network layer packet counters.
 type PacketCounters struct {
 	NInterests uint64 `json:"nInterests"`
@@ -34,43 +46,26 @@ func (cnt PacketCounters) String() string {
 		cnt.NNacks, cnt.NackRatio()*100.0)
 }
 
-// RttCounters contains RTT statistics in nanoseconds.
-type RttCounters struct {
-	runningstat.Snapshot
-}
-
-func (cnt RttCounters) String() string {
-	const ratio = 1.0 / float64(time.Millisecond)
-	formatMinMax := func(v *uint64) string {
-		if v == nil {
-			return "none"
-		}
-		return strconv.FormatFloat(float64(*v)*ratio, 'f', 3, 64)
-	}
-	ms := cnt.Scale(ratio)
-	return fmt.Sprintf("%s/%0.3f/%s/%0.3fms(%dsamp)", formatMinMax(ms.Min), ms.Mean, formatMinMax(ms.Max), ms.Stdev, ms.Len)
-}
-
 // PatternCounters contains per-pattern counters.
 type PatternCounters struct {
 	PacketCounters
-	Rtt RttCounters `json:"rtt"`
+	Rtt runningstat.Snapshot `json:"rtt" gqldesc:"RTT in nanoseconds."`
 }
 
 func (cnt PatternCounters) String() string {
-	return fmt.Sprintf("%s rtt=%s", cnt.PacketCounters, cnt.Rtt)
+	return fmt.Sprintf("%s rtt=%s", cnt.PacketCounters, formatRttCounters(cnt.Rtt))
 }
 
 // Counters contains consumer counters.
 type Counters struct {
 	PacketCounters
-	NAllocError uint64            `json:"nAllocError"`
-	Rtt         RttCounters       `json:"rtt"`
-	PerPattern  []PatternCounters `json:"perPattern"`
+	NAllocError uint64               `json:"nAllocError"`
+	Rtt         runningstat.Snapshot `json:"rtt" gqldesc:"RTT in nanoseconds."`
+	PerPattern  []PatternCounters    `json:"perPattern"`
 }
 
 func (cnt Counters) String() string {
-	s := fmt.Sprintf("%s %dalloc-error rtt=%s", cnt.PacketCounters, cnt.NAllocError, cnt.Rtt)
+	s := fmt.Sprintf("%s %dalloc-error rtt=%s", cnt.PacketCounters, cnt.NAllocError, formatRttCounters(cnt.Rtt))
 	for i, pcnt := range cnt.PerPattern {
 		s += fmt.Sprintf(", pattern(%d) %s", i, pcnt)
 	}
@@ -88,13 +83,13 @@ func (c *Consumer) Counters() (cnt Counters) {
 		pcnt.NInterests = uint64(ctP.nInterests)
 		pcnt.NData = rtt.Count
 		pcnt.NNacks = uint64(crP.nNacks)
-		pcnt.Rtt.Snapshot = rtt
+		pcnt.Rtt = rtt
 		cnt.PerPattern = append(cnt.PerPattern, pcnt)
 
 		cnt.NInterests += pcnt.NInterests
 		cnt.NData += pcnt.NData
 		cnt.NNacks += pcnt.NNacks
-		cnt.Rtt.Snapshot = cnt.Rtt.Snapshot.Add(rtt)
+		cnt.Rtt = cnt.Rtt.Add(rtt)
 	}
 
 	cnt.NAllocError = uint64(c.txC.nAllocError)
