@@ -51,7 +51,7 @@ func PublishInterval(p graphql.ResolveParams, read graphql.FieldResolveFn, ender
 	var prev any
 	if diffB, ok := p.Args["diff"].(bool); ok && diffB {
 		diff = true
-		if prev, e = read(p); e != nil {
+		if prev, e = read(p); e != nil || prev == nil {
 			return nil, e
 		}
 	}
@@ -63,14 +63,13 @@ func PublishInterval(p graphql.ResolveParams, read graphql.FieldResolveFn, ender
 		cont := true
 		doUpdate := func() {
 			value, e := read(p)
-			if e != nil {
+			switch {
+			case e != nil, value == nil:
 				cont = false
-				return
-			}
-			if diff {
+			case diff:
 				updates <- subtract.Sub(value, prev)
 				prev = value
-			} else {
+			case !diff:
 				updates <- value
 			}
 		}

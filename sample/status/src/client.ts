@@ -11,6 +11,12 @@ export const client = createClient({
   lazy: false,
 });
 
+export class GqlErrors extends Error {
+  constructor(errs: ReadonlyArray<{}>) {
+    super(errs.map((e) => e.toString()).join("\n"));
+  }
+}
+
 export function gqlQuery<T extends {}>(query: string, variables?: Record<string, unknown>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     let result!: T;
@@ -18,20 +24,32 @@ export function gqlQuery<T extends {}>(query: string, variables?: Record<string,
       query,
       variables,
     }, {
-      next({ data }) { result = data as T; },
+      next({ data, errors }) {
+        if (errors) {
+          reject(new GqlErrors(errors));
+        } else {
+          result = data as T;
+        }
+      },
       error: reject,
       complete() { resolve(result); },
     });
   });
 }
 
-export async function* gqlSub<T extends {}>(query: string, variables?: Record<string, unknown>, { signal }: { signal?: AbortSignal } = {}): AsyncIterable<T> {
-  const q = pushable<T>();
+export async function* gqlSubError<T extends {}>(query: string, variables?: Record<string, unknown>, { signal }: { signal?: AbortSignal } = {}): AsyncIterable<T | GqlErrors> {
+  const q = pushable<T | GqlErrors>();
   const unsubscribe = client.subscribe({
     query,
     variables,
   }, {
-    next({ data }) { q.push(data as T); },
+    next({ data, errors }) {
+      if (errors) {
+        q.push(new GqlErrors(errors));
+      } else {
+        q.push(data as T);
+      }
+    },
     error(err) { q.end(err as Error); },
     complete() { q.end(); },
   });
@@ -40,5 +58,15 @@ export async function* gqlSub<T extends {}>(query: string, variables?: Record<st
     yield* q;
   } finally {
     unsubscribe();
+  }
+}
+
+export async function* gqlSub<T extends {}>(query: string, variables?: Record<string, unknown>, { signal }: { signal?: AbortSignal } = {}): AsyncIterable<T> {
+  for await (const item of gqlSubError<T>(query, variables, { signal })) {
+    if (item instanceof GqlErrors) {
+      throw item;
+    } else {
+      yield item;
+    }
   }
 }

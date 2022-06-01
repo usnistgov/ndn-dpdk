@@ -14,7 +14,7 @@ interface State {
   cnt?: TgcCounters;
 }
 
-export class TgConsumer extends AbortableComponent<Props, State> {
+export class TgcPatternsTable extends AbortableComponent<Props, State> {
   state: State = {};
 
   override async componentDidMount() {
@@ -41,7 +41,6 @@ export class TgConsumer extends AbortableComponent<Props, State> {
     const { cnt } = this.state;
     return (
       <table class="pure-table pure-table-horizontal">
-        <caption>consumer patterns</caption>
         <thead>
           <tr>
             <th>#</th>

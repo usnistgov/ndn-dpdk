@@ -1,4 +1,4 @@
-import type { NNNanoseconds, Ratio, Uint } from "../core.js";
+import type { Counter, NNNanoseconds, Ratio, Uint } from "../core.js";
 import type { Name } from "../ndni.js";
 import type { PktQueueConfig } from "../pktqueue.js";
 
@@ -26,4 +26,23 @@ export interface FileServerConfig {
 export interface FileServerMount {
   prefix: Name;
   path: string;
+}
+
+/**
+ * File server counters.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/app/fileserver#Counters>
+ */
+export interface FileServerCounters {
+  reqRead: Counter;
+  reqLs: Counter;
+  reqMetadata: Counter;
+  fdNew: Counter;
+  fdNotFound: Counter;
+  fdUpdateStat: Counter;
+  fdClose: Counter;
+  uringSubmit: Counter;
+  uringSubmitNonBlock: Counter;
+  uringSubmitWait: Counter;
+  sqeSubmit: Counter;
+  cqeFail: Counter;
 }

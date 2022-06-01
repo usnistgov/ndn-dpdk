@@ -14,7 +14,7 @@ interface State {
   cnt?: TgpCounters;
 }
 
-export class TgProducer extends AbortableComponent<Props, State> {
+export class TgpPatternsTable extends AbortableComponent<Props, State> {
   state: State = {};
 
   override async componentDidMount() {
@@ -38,7 +38,6 @@ export class TgProducer extends AbortableComponent<Props, State> {
     const { cnt } = this.state;
     return (
       <table class="pure-table pure-table-horizontal">
-        <caption>producer patterns</caption>
         <thead>
           <tr>
             <th>#</th>

@@ -76,8 +76,8 @@ func (s Snapshot) Scale(ratio float64) Snapshot {
 
 func newSnapshot(i, n uint64, m1, m2 float64, hasMinMax bool, min, max uint64) (s Snapshot) {
 	s.Count, s.Len = i, n
-	s.M1, s.M2 = m1, m2
 	if n > 0 {
+		s.M1, s.M2 = m1, m2
 		s.Mean = m1
 	}
 	if n > 1 {

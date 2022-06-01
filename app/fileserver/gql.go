@@ -48,6 +48,13 @@ func init() {
 		Name:        "FileServer",
 		Description: "File server.",
 		Fields: tggql.CommonFields(graphql.Fields{
+			"mounts": &graphql.Field{
+				Description: "Mount entries.",
+				Type:        gqlserver.NonNullJSON,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(*Server).Mounts(), nil
+				},
+			},
 			"counters": &graphql.Field{
 				Description: "Counters.",
 				Type:        graphql.NewNonNull(GqlCountersType),

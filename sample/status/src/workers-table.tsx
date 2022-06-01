@@ -1,7 +1,7 @@
 import { Component, h } from "preact";
 
 import type { WorkersByRole } from "./model";
-import { ThreadLoadStat } from "./thread-load-stat";
+import { WorkerLoadStat } from "./worker-load-stat";
 
 interface Props {
   workers: WorkersByRole;
@@ -14,10 +14,15 @@ export class WorkersTable extends Component<Props> {
       <table class="pure-table pure-table-horizontal">
         <thead>
           <tr>
-            <th>role</th>
-            <th>#</th>
-            <th>NUMA</th>
-            <th>load</th>
+            <th rowSpan={2}>role</th>
+            <th rowSpan={2}>#</th>
+            <th rowSpan={2}>NUMA</th>
+            <th colSpan={6}>load</th>
+          </tr>
+          <tr>
+            <th colSpan={2}>items per poll</th>
+            <th colSpan={2}>valid polls</th>
+            <th colSpan={2}>empty polls</th>
           </tr>
         </thead>
         <tbody>
@@ -28,7 +33,7 @@ export class WorkersTable extends Component<Props> {
               ) : undefined}
               <td title={w.id}>{w.nid}</td>
               <td>{w.numaSocket}</td>
-              <td style="text-align: right;"><ThreadLoadStat id={w.id}/></td>
+              <WorkerLoadStat id={w.id}/>
             </tr>
           )))}
         </tbody>

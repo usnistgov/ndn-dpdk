@@ -1,9 +1,12 @@
-import type { TgcPattern, TgpPattern } from "@usnistgov/ndn-dpdk";
+import type { FileServerMount, TgcPattern, TgpPattern } from "@usnistgov/ndn-dpdk";
+import numd from "numd";
 import { Component, Fragment, h } from "preact";
 
+import { FileServerCounterView } from "./file-server-counter-view";
+import { FileServerMountsTable } from "./file-server-mounts-table";
 import { describeFaceLocator, Face as FaceB, Worker } from "./model";
-import { TgConsumer } from "./tg-consumer";
-import { TgProducer } from "./tg-producer";
+import { TgcPatternsTable } from "./tgc-patterns-table";
+import { TgpPatternsTable } from "./tgp-patterns-table";
 import { WorkerShape } from "./worker-shape";
 
 export interface Face extends FaceB {
@@ -14,6 +17,7 @@ export interface Face extends FaceB {
       workers: Worker[];
     };
     fileServer?: {
+      mounts: FileServerMount[];
       workers: Worker[];
     };
     consumer?: {
@@ -31,7 +35,7 @@ export namespace Face {
     trafficgen {
       id
       producer { patterns workers { ${Worker.subselection} } }
-      fileServer { workers { ${Worker.subselection} } }
+      fileServer { mounts workers { ${Worker.subselection} } }
       consumer { patterns workers { ${Worker.subselection} } }
       fetcher { workers { ${Worker.subselection} } }
     }
@@ -55,21 +59,21 @@ export class TgFace extends Component<Props> {
         <h3 title={`face: ${faceID}\ntrafficgen: ${id}`}>
           {nid} <span title={JSON.stringify(locator, undefined, 2)}>{describeFaceLocator(locator)}</span>
         </h3>
-        <svg style="background: #ffffff; width: 900px;" viewBox={`0 0 500 ${height}`}>
+        <svg style="background: #ffffff; width: 500px; font-size: 16px;" viewBox={`0 0 500 ${height}`}>
           <WorkerShape role="RX" label="input" x={0} y={rxtxY} width={100} height={50}/>
           <WorkerShape role="TX" label="output" x={400} y={rxtxY} width={100} height={50}/>
-          {producer ? (
+          {producer && (
             <WorkerShape role="PRODUCER" label={`producer ${gatherWorkerIDs(producer)}`} x={150} y={producerY} width={200} height={50}/>
-          ) : undefined}
-          {fileServer ? (
+          )}
+          {fileServer && (
             <WorkerShape role="PRODUCER" label={`file server ${gatherWorkerIDs(fileServer)}`} x={150} y={producerY} width={200} height={50}/>
-          ) : undefined}
-          {consumer ? (
+          )}
+          {consumer && (
             <WorkerShape role="CONSUMER" label={`consumer ${gatherWorkerIDs(consumer)}`} x={150} y={consumerY} width={200} height={50}/>
-          ) : undefined}
-          {fetcher ? (
+          )}
+          {fetcher && (
             <WorkerShape role="CONSUMER" label={`fetcher ${gatherWorkerIDs(fetcher)}`} x={150} y={consumerY} width={200} height={50}/>
-          ) : undefined}
+          )}
           {(producerY === consumerY ? [producerY] : [producerY, consumerY]).map((y) => (
             <>
               <line key={`${y}L`} x1={100} y1={rxtxY + 25} x2={150} y2={y + 25} stroke="#111111" stroke-width="1"/>
@@ -77,8 +81,31 @@ export class TgFace extends Component<Props> {
             </>
           ))}
         </svg>
-        {producer && <TgProducer tgID={id} patterns={producer.patterns}/>}
-        {consumer && <TgConsumer tgID={id} patterns={consumer.patterns}/>}
+        {producer && (
+          <details style="margin-top: 1em;">
+            <summary>Producer, {numd(producer.patterns.length, "pattern", "patterns")}</summary>
+            <TgpPatternsTable tgID={id} patterns={producer.patterns}/>
+          </details>
+        )}
+        {fileServer && (
+          <details style="margin-top: 1em;">
+            <summary>File Server, {numd(fileServer.mounts.length, "mount entry", "mount entries")}</summary>
+            <FileServerMountsTable mounts={fileServer.mounts}/>
+            <FileServerCounterView tgID={id}/>
+          </details>
+        )}
+        {consumer && (
+          <details style="margin-top: 1em;">
+            <summary>Consumer, {numd(consumer.patterns.length, "pattern", "patterns")}</summary>
+            <TgcPatternsTable tgID={id} patterns={consumer.patterns}/>
+          </details>
+        )}
+        {fetcher && (
+          <details style="margin-top: 1em;">
+            <summary>Fetcher</summary>
+            <p>Congestion-aware fetcher is present on this face.</p>
+          </details>
+        )}
       </section>
     );
   }
