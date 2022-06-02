@@ -27,7 +27,7 @@ export namespace Face {
 export function describeFaceLocator(loc: FaceLocator): string {
   switch (loc.scheme) {
     case "ether":
-      return `Ethernet ${loc.remote}${loc.vlan && ` VLAN ${loc.vlan}`}`;
+      return `Ethernet ${loc.remote}${loc.vlan ? ` VLAN ${loc.vlan}` : ""}`;
     case "udpe":
       return `UDP [${loc.remoteIP}]:${loc.remoteUDP}`;
     case "vxlan":

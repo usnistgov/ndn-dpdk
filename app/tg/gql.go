@@ -12,6 +12,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"go4.org/must"
 )
@@ -39,6 +41,18 @@ func init() {
 	GqlTrafficGenType = gqlserver.NewNodeType(graphql.ObjectConfig{
 		Name: "TrafficGen",
 		Fields: tggql.CommonFields(graphql.Fields{
+			"rxLoops": &graphql.Field{
+				Description: "RX worker threads.",
+				Type:        gqlserver.NewListNonNullBoth(ealthread.GqlWorkerType.Object),
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					var workers []eal.LCore
+					gen := p.Source.(*TrafficGen)
+					for _, rxl := range gen.rxl {
+						workers = append(workers, rxl.LCore())
+					}
+					return workers, nil
+				},
+			},
 			"producer": &graphql.Field{
 				Description: "Producer module.",
 				Type:        tgproducer.GqlProducerType.Object,

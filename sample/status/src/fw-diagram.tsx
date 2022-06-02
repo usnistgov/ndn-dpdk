@@ -54,6 +54,14 @@ export class FwDiagram extends TimerRefreshComponent<{}, State> {
     const height = Math.max(100 * inputs.length, 120 * fwds.length, 100 * workersTX.length);
     return (
       <svg style="background: #ffffff; width: 900px;" viewBox={`0 0 900 ${height}`}>
+        {fwds.flatMap((fwd, i) => [
+          ...inputs.map((input, j) => (
+            <line key={`${i}L${j}`} x1={200} y1={100 * j + 40} x2={300} y2={120 * i + 50} stroke="#aaaaaa" stroke-width="1"/>
+          )),
+          ...workersTX.map((worker, j) => (
+            <line key={`${i}R${j}`} x1={700} y1={100 * j + 40} x2={600} y2={120 * i + 50} stroke="#aaaaaa" stroke-width="1"/>
+          )),
+        ])}
         {inputs.map(({ id, worker }, i) => (
           <WorkerShape key={id} role={worker.role} label={`input ${worker.nid}`} x={0} y={100 * i} width={200} height={80}>
             <FwInput id={id}/>
