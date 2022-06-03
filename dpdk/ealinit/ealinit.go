@@ -75,13 +75,12 @@ func Init(args []string) error {
 		initError = spdkenv.InitFinal()
 	})
 	if initError != nil {
-		logger.Error("EAL init error", zap.Error(initError))
+		logger.Error("EAL init error", zap.Error(initError), zap.String("args", shellquote.Join(args...)))
 	}
 	return initError
 }
 
 func initEal(args []string) error {
-	logEntry := logger.With(zap.String("args", shellquote.Join(args...)))
 	exe, e := os.Executable()
 	if e != nil {
 		exe = os.Args[0]
@@ -100,10 +99,19 @@ func initEal(args []string) error {
 	}
 	eal.UpdateLCoreSockets(lcoreSockets, int(C.rte_get_main_lcore()))
 	eal.InitTscUnit()
-	logEntry.Info("EAL ready",
+	logger.Info("EAL ready",
+		zap.String("args", shellquote.Join(args...)),
 		eal.MainLCore.ZapField("main"),
 		zap.Array("workers", eal.Workers),
 		zap.Any("sockets", eal.Sockets),
+		zap.Bool("has-hugepages", C.rte_eal_has_hugepages() != 0),
+		zap.Bool("has-pci", C.rte_eal_has_pci() != 0),
+		zap.String("iova-mode", map[C.enum_rte_iova_mode]string{
+			C.RTE_IOVA_DC: "DC",
+			C.RTE_IOVA_PA: "PA",
+			C.RTE_IOVA_VA: "VA",
+		}[C.rte_eal_iova_mode()]),
+		zap.String("runtime-dir", C.GoString(C.rte_eal_get_runtime_dir())),
 	)
 	return nil
 }

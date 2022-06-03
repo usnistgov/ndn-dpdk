@@ -1,6 +1,8 @@
 package ealconfig
 
 import (
+	"strings"
+
 	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
 )
 
@@ -10,6 +12,15 @@ var PmdPath string
 
 // DeviceConfig contains device related configuration.
 type DeviceConfig struct {
+	// IovaMode selects IO Virtual Addresses mode.
+	// Possible values are "PA" and "VA".
+	// Default is letting DPDK decide automatically based on loaded drivers and kernel options.
+	//
+	// Some DPDK drivers may require a particular mode, and will not work in the other mode.
+	// Read "Memory in DPDK Part 2: Deep Dive into IOVA" for how to choose a mode:
+	// https://www.intel.com/content/www/us/en/developer/articles/technical/memory-in-dpdk-part-2-deep-dive-into-iova.html
+	IovaMode string `json:"iovaMode,omitempty"`
+
 	// Drivers is a list of shared object files or directories containing them.
 	// Default is to include all DPDK drivers.
 	//
@@ -32,6 +43,11 @@ type DeviceConfig struct {
 func (cfg DeviceConfig) args(hwInfo hwinfo.Provider) (args []string, e error) {
 	if cfg.DeviceFlags != "" {
 		return shellSplit("deviceFlags", cfg.DeviceFlags)
+	}
+
+	switch cfg.IovaMode {
+	case "PA", "VA":
+		args = append(args, "--iova-mode", strings.ToLower(cfg.IovaMode))
 	}
 
 	switch {

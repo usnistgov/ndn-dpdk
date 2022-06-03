@@ -19,6 +19,7 @@ type EalMemoryConfig = {
 };
 
 type EalDeviceConfig = {
+  iovaMode?: "PA" | "VA";
   drivers?: string[];
   disablePCI?: boolean;
 } | {

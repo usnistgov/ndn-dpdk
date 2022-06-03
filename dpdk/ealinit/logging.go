@@ -88,6 +88,10 @@ func updateLogLevels() {
 	}
 }
 
+func init() {
+	updateLogLevels()
+}
+
 func parseLogLevel(lvl byte) C.uint32_t {
 	switch lvl {
 	case 'V':

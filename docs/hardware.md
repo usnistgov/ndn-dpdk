@@ -131,6 +131,9 @@ docker run \
 * `find` subcommand constructs `--device` flags for `/dev/uio*` devices.
 * `--mount target=/sys` flag enables access to attributes in `/sys/class/uio` directory.
 
+The igb\_uio driver expects "IOVA as Physical Addresses (PA)" mode.
+If you encounter port activation failure, in NDN-DPDK activation parameters, set **.eal.iovaMode** to `"PA"` to force this mode.
+
 Intel adapters have limited compatibility with NDN-DPDK RxFlow feature.
 As tested with i40e and ixgbe drivers, RxFlow can be used with UDP faces, but not Ethernet or VXLAN faces.
 You should test RxFlow with your specific hardware and face locators, and decide whether to use this feature.

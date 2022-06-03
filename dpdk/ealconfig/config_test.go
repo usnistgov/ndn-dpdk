@@ -228,10 +228,12 @@ func TestMemoryAll(t *testing.T) {
 }
 
 func parseDeviceFlags(args []string) (p struct {
-	d, a  []string
-	noPci bool
+	iovaMode string
+	d, a     []string
+	noPci    bool
 }) {
 	fset := makeBaseFlagSet()
+	fset.StringVar(&p.iovaMode, "iova-mode", "", "")
 	sliceflag.StringVar(fset, &p.d, "d", nil, "")
 	sliceflag.StringVar(fset, &p.a, "a", nil, "")
 	fset.BoolVar(&p.noPci, "no-pci", false, "")
@@ -248,6 +250,7 @@ func TestDeviceEmpty(t *testing.T) {
 	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	p := parseDeviceFlags(args)
+	assert.Equal("", p.iovaMode)
 	assert.Equal([]string{"/tmp/pmd-path"}, p.d)
 	assert.Len(p.a, 1)
 	assert.False(p.noPci)
@@ -258,6 +261,7 @@ func TestDeviceAll(t *testing.T) {
 
 	cfg := makeBaseConfig()
 	cfg.DeviceFlags = ""
+	cfg.IovaMode = "VA"
 	cfg.Drivers = []string{
 		"/usr/lib/pmd-A.so",
 		"/usr/lib/pmd-B.so",
@@ -267,6 +271,7 @@ func TestDeviceAll(t *testing.T) {
 	args, e := cfg.Args(testHwInfo{})
 	require.NoError(e)
 	p := parseDeviceFlags(args)
+	assert.Equal("va", p.iovaMode)
 	assert.Equal([]string{"/usr/lib/pmd-A.so", "/usr/lib/pmd-B.so"}, p.d)
 	assert.Len(p.a, 0)
 	assert.True(p.noPci)
