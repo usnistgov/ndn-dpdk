@@ -98,41 +98,31 @@ ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
 
 ### Intel Ethernet Adapters
 
-The PCI device must use igb\_uio driver, available in [dpdk-kmods repository](https://git.dpdk.org/dpdk-kmods).
-To install this driver, first install kernel headers, then:
+The PCI device should use vfio-pci driver, which requires [enabling IOMMU](https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF#Setting_up_IOMMU).
+Example command:
 
 ```bash
-git clone https://dpdk.org/git/dpdk-kmods
-cd dpdk-kmods/linux/igb_uio
-make
-UIODIR=/lib/modules/$(uname -r)/kernel/drivers/uio
-sudo install -d -m0755 $UIODIR
-sudo install -m0644 igb_uio.ko $UIODIR
-sudo depmod
+# check IOMMU enabled
+# look for "DMAR: IOMMU enabled" message
+sudo journalctl --dmesg --grep IOMMU
+
+# load vfio-pci driver and bind to PCI device
+sudo modprobe vfio-pci
+sudo dpdk-devbind.py -b vfio-pci 04:00.0
 ```
 
-Example command to bind the PCI device to igb\_uio driver:
-
-```bash
-sudo modprobe igb_uio
-sudo dpdk-devbind.py -b igb_uio 04:00.0
-```
-
-To use Intel adapters in Docker container, the driver must still be installed and loaded on the host.
+To use Intel adapters in Docker container, the driver binding must still be performed on the host.
 Then, add these flags when you launch the NDN-DPDK service container:
 
 ```bash
 docker run \
-  $(find /dev -name 'uio*' -type c -printf ' --device %p') \
-  --mount type=bind,source=/sys,target=/sys \
+  --device /dev/vfio \
   [other arguments]
 ```
 
-* `find` subcommand constructs `--device` flags for `/dev/uio*` devices.
-* `--mount target=/sys` flag enables access to attributes in `/sys/class/uio` directory.
-
-The igb\_uio driver expects "IOVA as Physical Addresses (PA)" mode.
-If you encounter port activation failure, in NDN-DPDK activation parameters, set **.eal.iovaMode** to `"PA"` to force this mode.
+* `--device /dev/vfio` flag enables access to VFIO devices.
+* Driver binding must be configured before starting the container.
+  Otherwise, port creation fails and you would see `Failed to open VFIO group` error in container logs.
 
 Intel adapters have limited compatibility with NDN-DPDK RxFlow feature.
 As tested with i40e and ixgbe drivers, RxFlow can be used with UDP faces, but not Ethernet or VXLAN faces.
@@ -142,7 +132,7 @@ Example command:
 ```bash
 # determine maximum number of RxFlow queues
 # look at "current hardware settings - combined" row
-# you can only run this command before binding to igb_uio driver
+# you can only run this command before binding to vfio-pci driver
 ethtool --show-channels enp4s0f0
 
 # create Ethernet port, enable RxFlow
@@ -178,9 +168,9 @@ To use Intel VF:
     * All faces must use this assigned MAC address as the local address.
       You cannot use the MAC address of the physical adapter or any other address.
 
-2. If NDN-DPDK is installed on the physical server: bind the VF PCI device to igb\_uio driver.
+2. If NDN-DPDK is installed on the physical server: bind the VF PCI device to vfio-pci driver.
 
-3. If NDN-DPDK is installed in a virtual machine: passthrough the VF PCI device to the virtual machine, bind the VF to igb\_uio driver in the guest OS.
+3. If NDN-DPDK is installed in a virtual machine: passthrough the VF PCI device to the virtual machine, bind the VF to vfio-pci driver in the guest OS.
 
 ### Unsupported Ethernet Adapters
 
