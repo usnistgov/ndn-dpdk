@@ -134,7 +134,7 @@ export interface VxlanLocator extends IpLocatorBase {
   innerRemote: string;
 }
 
-export type MemifRole = "server" | "client.js";
+export type MemifRole = "server" | "client";
 
 /**
  * memif face locator.

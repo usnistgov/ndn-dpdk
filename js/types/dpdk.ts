@@ -130,7 +130,7 @@ export namespace BdevLocator {
     fileDriver?: FileDriver;
   }
 
-  export type FileDriver = "aio" | "uring.js";
+  export type FileDriver = "aio" | "uring";
 
   export interface Nvme {
     pciAddr: string;
