@@ -43,10 +43,13 @@ func SubFields[T any](curr, prev T, diffPtr *T) {
 
 func subFieldsV(currV, prevV, diffV reflect.Value) {
 	for _, field := range reflect.VisibleFields(currV.Type()) {
-		if !field.IsExported() || field.Tag.Get("subtract") == "-" {
-			continue
+		switch {
+		case !field.IsExported():
+		case field.Tag.Get("subtract") == "-":
+			diffV.FieldByIndex(field.Index).Set(currV.FieldByIndex(field.Index))
+		default:
+			subValue(currV.FieldByIndex(field.Index), prevV.FieldByIndex(field.Index), diffV.FieldByIndex(field.Index))
 		}
-		subValue(currV.FieldByIndex(field.Index), prevV.FieldByIndex(field.Index), diffV.FieldByIndex(field.Index))
 	}
 }
 

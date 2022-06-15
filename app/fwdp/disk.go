@@ -18,9 +18,10 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go.uber.org/multierr"
+	"go4.org/must"
 )
 
-// DiskConfig contains disk helper thread configuration.
+// DiskConfig contains disk service thread configuration.
 type DiskConfig struct {
 	// Locator describes where to create or attach a block device.
 	bdev.Locator
@@ -68,49 +69,23 @@ type Disk struct {
 var (
 	_ ealthread.ThreadWithRole     = (*Disk)(nil)
 	_ ealthread.ThreadWithLoadStat = (*Disk)(nil)
+	_ DispatchThread               = (*Disk)(nil)
 )
 
-// Init initializes the disk helper.
-func (fwdisk *Disk) Init(lc eal.LCore, demuxPrep *demuxPreparer, cfg DiskConfig) (e error) {
-	defer func() {
-		if e == nil {
-			return
-		}
-	}()
+// DispatchThreadID implements DispatchThread interface.
+func (fwdisk *Disk) DispatchThreadID() int {
+	return fwdisk.id
+}
 
-	if fwdisk.Thread, e = spdkenv.NewThread(); e != nil {
-		return e
+func (fwdisk *Disk) String() string {
+	return fmt.Sprintf("disk%d", fwdisk.id)
+}
+
+// DemuxOf implements DispatchThread interface.
+func (fwdisk *Disk) DemuxOf(t ndni.PktType) *iface.InputDemux {
+	if t == ndni.PktInterest {
+		return iface.InputDemuxFromPtr(unsafe.Pointer(&fwdisk.c.output))
 	}
-
-	calc := disk.SizeCalc{
-		NThreads:   len(demuxPrep.Fwds),
-		NPackets:   cfg.csDiskCapacity,
-		PacketSize: ndni.PacketMempool.Config().Dataroom,
-	}
-	if fwdisk.bdev, fwdisk.bdevCloser, e = cfg.createDevice(calc.MinBlocks()); e != nil {
-		return e
-	}
-
-	socket := lc.NumaSocket()
-	fwdisk.c = eal.ZmallocAligned[C.FwDisk]("FwDisk", C.sizeof_FwDisk, 1, socket)
-	fwdisk.SetLCore(lc)
-
-	if fwdisk.store, e = disk.NewStore(fwdisk.bdev, fwdisk.Thread, calc.BlocksPerSlot(),
-		disk.StoreGetDataCallback.C(C.FwDisk_GotData, fwdisk.c)); e != nil {
-		return e
-	}
-
-	fwdisk.allocs = map[int]*disk.Alloc{}
-	for i, fwd := range demuxPrep.Fwds {
-		alloc := disk.NewAllocIn(fwdisk.store, i, len(demuxPrep.Fwds), fwd.NumaSocket())
-		fwdisk.allocs[fwd.id] = alloc
-		if e = fwd.Cs().SetDisk(fwdisk.store, alloc); e != nil {
-			return fmt.Errorf("Cs[%d].SetDisk: %w", fwd.id, e)
-		}
-	}
-
-	demuxPrep.PrepareDemuxI(iface.InputDemuxFromPtr(unsafe.Pointer(&fwdisk.c.output)), socket)
-
 	return nil
 }
 
@@ -137,15 +112,53 @@ func (fwdisk *Disk) Close() error {
 	return multierr.Combine(errs...)
 }
 
-func (fwdisk *Disk) String() string {
-	return fmt.Sprintf("disk%d", fwdisk.id)
-}
-
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (Disk) ThreadRole() string {
 	return RoleDisk
 }
 
-func newDisk(id int) *Disk {
-	return &Disk{id: id}
+// newDisk creates a disk service thread.
+func newDisk(id int, lc eal.LCore, demuxPrep *demuxPreparer, cfg DiskConfig) (fwdisk *Disk, e error) {
+	fwdisk = &Disk{
+		id: id,
+	}
+	defer func(d *Disk) {
+		if e != nil {
+			must.Close(d)
+		}
+	}(fwdisk)
+
+	if fwdisk.Thread, e = spdkenv.NewThread(); e != nil {
+		return nil, e
+	}
+
+	calc := disk.SizeCalc{
+		NThreads:   len(demuxPrep.Fwds),
+		NPackets:   cfg.csDiskCapacity,
+		PacketSize: ndni.PacketMempool.Config().Dataroom,
+	}
+	if fwdisk.bdev, fwdisk.bdevCloser, e = cfg.createDevice(calc.MinBlocks()); e != nil {
+		return nil, e
+	}
+
+	socket := lc.NumaSocket()
+	fwdisk.c = eal.ZmallocAligned[C.FwDisk]("FwDisk", C.sizeof_FwDisk, 1, socket)
+	fwdisk.SetLCore(lc)
+
+	if fwdisk.store, e = disk.NewStore(fwdisk.bdev, fwdisk.Thread, calc.BlocksPerSlot(),
+		disk.StoreGetDataCallback.C(C.FwDisk_GotData, fwdisk.c)); e != nil {
+		return nil, e
+	}
+
+	fwdisk.allocs = map[int]*disk.Alloc{}
+	for i, fwd := range demuxPrep.Fwds {
+		alloc := disk.NewAllocIn(fwdisk.store, i, len(demuxPrep.Fwds), fwd.NumaSocket())
+		fwdisk.allocs[fwd.id] = alloc
+		if e = fwd.Cs().SetDisk(fwdisk.store, alloc); e != nil {
+			return nil, fmt.Errorf("Cs[%d].SetDisk: %w", fwd.id, e)
+		}
+	}
+
+	demuxPrep.Prepare(fwdisk, socket)
+	return fwdisk, nil
 }

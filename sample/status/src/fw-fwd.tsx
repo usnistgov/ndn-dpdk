@@ -1,16 +1,13 @@
 import { Fragment, h } from "preact";
 
 import { gql, gqlSub } from "./client";
+import type { FwDispatchCounters } from "./fw-dispatch-queues";
 import { AbortableComponent } from "./refresh-component";
 
-interface Props {
-  id: string;
-}
+export type FwdPktQueueCounters = Partial<Record<keyof FwDispatchCounters, number>>;
 
 const fwdCounters = [
-  "nInterestsQueued", "nInterestsDropped", "nInterestsCongMarked",
-  "nDataQueued", "nDataDropped", "nDataCongMarked",
-  "nNacksQueued", "nNacksDropped", "nNacksCongMarked",
+  "nInterestsCongMarked", "nDataCongMarked", "nNacksCongMarked",
 ] as const;
 const pitCounters = [
   "nEntries", "nInsert", "nExpired", "nAllocErr", "nDataMiss",
@@ -19,6 +16,12 @@ const csCounters = [
   "directEntries", "directCapacity", "indirectEntries", "indirectCapacity",
   "nHitMemory", "nHitDisk", "nHitIndirect", "nMiss",
 ] as const;
+
+interface Props {
+  id: string;
+  inputCnt?: Array<FwdPktQueueCounters | undefined>;
+  onlyFromInput?: number;
+}
 
 interface State {
   fwd: Record<typeof fwdCounters[number], number>;
@@ -36,37 +39,31 @@ export class FwFwd extends AbortableComponent<Props, State> {
   override componentDidMount() {
     void this.subscribe("fwd", gql`
       subscription fwFwdCounters($id: ID!) {
-        result: fwFwdCounters(id: $id, interval: "1s") {
+        result: fwFwdCounters(id: $id, diff: true, interval: "1s") {
           ${fwdCounters.join(" ")}
         }
       }
-    `, fwdCounters);
+    `);
     void this.subscribe("pit", gql`
       subscription fwPitCounters($id: ID!) {
-        result: fwPitCounters(id: $id, interval: "1s") {
+        result: fwPitCounters(id: $id, diff: true, interval: "1s") {
           ${pitCounters.join(" ")}
         }
       }
-    `, pitCounters.slice(1));
+    `);
     void this.subscribe("cs", gql`
       subscription fwCsCounters($id: ID!) {
-        result: fwCsCounters(id: $id, interval: "1s") {
+        result: fwCsCounters(id: $id, diff: true, interval: "1s") {
           ${csCounters.join(" ")}
         }
       }
-    `, csCounters.slice(4));
+    `);
   }
 
-  private async subscribe<K extends keyof State>(key: K, query: string, sub: ReadonlyArray<keyof State[K]>) {
+  private async subscribe<K extends keyof State>(key: K, query: string) {
     const { id } = this.props;
-    let prev: State[K] = JSON.parse(JSON.stringify(this.state[key]));
-    for await (const { result } of gqlSub<{ result: typeof prev }>(query, { id }, this.abort)) {
-      const update: typeof prev = JSON.parse(JSON.stringify(result));
-      for (const k of sub) {
-        (update[k] as any) -= (prev[k] as any);
-      }
-      prev = result;
-      this.setState({ [key]: update });
+    for await (const { result } of gqlSub<{ result: State[K] }>(query, { id }, this.abort)) {
+      this.setState({ [key]: result });
     }
   }
 
@@ -83,8 +80,8 @@ export class FwFwd extends AbortableComponent<Props, State> {
   }
 
   private renderQueue(y: number, t: "Interests" | "Data" | "Nacks") {
-    const queued = this.state.fwd[`n${t}Queued`];
-    const dropped = this.state.fwd[`n${t}Dropped`];
+    const queued = this.getInputCnt(`n${t}Queued`);
+    const dropped = this.getInputCnt(`n${t}Dropped`);
     const congMarked = this.state.fwd[`n${t}CongMarked`];
     return (
       <g transform={`translate(-2 ${y})`}>
@@ -99,6 +96,14 @@ export class FwFwd extends AbortableComponent<Props, State> {
         </circle>
       </g>
     );
+  }
+
+  private getInputCnt(key: keyof FwdPktQueueCounters) {
+    const { inputCnt = [], onlyFromInput } = this.props;
+    if (onlyFromInput === undefined) {
+      return inputCnt.reduce((sum, cnt = {}) => sum + (cnt[key] ?? 0), 0);
+    }
+    return inputCnt[onlyFromInput]?.[key] ?? 0;
   }
 
   private renderPit() {

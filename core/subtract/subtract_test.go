@@ -76,7 +76,7 @@ func TestStruct(t *testing.T) {
 	if assert.NotNil(diff.B) {
 		assert.EqualValues(200000, diff.B.U)
 	}
-	assert.Zero(diff.X)
+	assert.Equal(5000000, diff.X)
 
 	zero := structA{}
 	positive := subtract.Sub(curr, zero)

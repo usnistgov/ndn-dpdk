@@ -7,38 +7,10 @@ import "C"
 import (
 	"fmt"
 
-	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
-
-type demuxPreparer struct {
-	Ndt  *ndt.Ndt
-	Fwds []*Fwd
-}
-
-func (p *demuxPreparer) PrepareDemuxI(demux *iface.InputDemux, socket eal.NumaSocket) {
-	ndq := demux.InitNdt()
-	ndq.Init(p.Ndt, socket)
-	for i, fwd := range p.Fwds {
-		demux.SetDest(i, fwd.queueI)
-	}
-}
-
-func (p *demuxPreparer) PrepareDemuxD(demux *iface.InputDemux) {
-	demux.InitToken(C.FwTokenOffsetFwdID)
-	for i, fwd := range p.Fwds {
-		demux.SetDest(i, fwd.queueD)
-	}
-}
-
-func (p *demuxPreparer) PrepareDemuxN(demux *iface.InputDemux) {
-	demux.InitToken(C.FwTokenOffsetFwdID)
-	for i, fwd := range p.Fwds {
-		demux.SetDest(i, fwd.queueN)
-	}
-}
 
 // Input represents an input thread.
 type Input struct {
@@ -46,18 +18,20 @@ type Input struct {
 	rxl iface.RxLoop
 }
 
-// Init initializes the input thread.
-func (fwi *Input) Init(lc eal.LCore, demuxPrep *demuxPreparer) error {
-	socket := lc.NumaSocket()
+var _ DispatchThread = (*Input)(nil)
 
-	fwi.rxl = iface.NewRxLoop(socket)
-	fwi.rxl.SetLCore(lc)
+// DispatchThreadID implements DispatchThread interface.
+func (fwi *Input) DispatchThreadID() int {
+	return fwi.id
+}
 
-	demuxPrep.PrepareDemuxI(fwi.rxl.DemuxOf(ndni.PktInterest), socket)
-	demuxPrep.PrepareDemuxD(fwi.rxl.DemuxOf(ndni.PktData))
-	demuxPrep.PrepareDemuxN(fwi.rxl.DemuxOf(ndni.PktNack))
+func (fwi *Input) String() string {
+	return fmt.Sprintf("input%d", fwi.id)
+}
 
-	return nil
+// DemuxOf implements DispatchThread interface.
+func (fwi *Input) DemuxOf(t ndni.PktType) *iface.InputDemux {
+	return fwi.rxl.DemuxOf(t)
 }
 
 // Close stops the thread.
@@ -65,10 +39,15 @@ func (fwi *Input) Close() error {
 	return fwi.rxl.Close()
 }
 
-func (fwi *Input) String() string {
-	return fmt.Sprintf("input%d", fwi.id)
-}
+// newInput creates an input thread.
+func newInput(id int, lc eal.LCore, demuxPrep *demuxPreparer) (fwi *Input, e error) {
+	socket := lc.NumaSocket()
+	fwi = &Input{
+		id:  id,
+		rxl: iface.NewRxLoop(socket),
+	}
+	fwi.rxl.SetLCore(lc)
 
-func newInput(id int) *Input {
-	return &Input{id: id}
+	demuxPrep.Prepare(fwi, socket)
+	return fwi, nil
 }

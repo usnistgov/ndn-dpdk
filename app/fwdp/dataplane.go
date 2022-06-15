@@ -119,141 +119,14 @@ func DefaultAlloc() (m map[string]eal.LCores, e error) {
 
 // DataPlane represents the forwarder data plane.
 type DataPlane struct {
-	ndt    *ndt.Ndt
-	fib    *fib.Fib
-	fwis   []*Input
-	fwcs   []*Crypto
-	fwcsh  map[eal.NumaSocket]*CryptoShared
-	fwdisk *Disk
-	fwds   []*Fwd
-}
-
-// New creates and launches forwarder data plane.
-func New(cfg Config) (dp *DataPlane, e error) {
-	if e := cfg.validate(); e != nil {
-		return nil, e
-	}
-	dp = &DataPlane{}
-
-	var alloc map[string]eal.LCores
-	if len(cfg.LCoreAlloc) > 0 {
-		alloc, e = ealthread.AllocConfig(cfg.LCoreAlloc)
-	} else {
-		alloc, e = DefaultAlloc()
-	}
-	if e != nil {
-		return nil, e
-	}
-	lcRx, lcTx, lcCrypto, lcDisk, lcFwd := alloc[RoleInput], alloc[RoleOutput], alloc[RoleCrypto], alloc[RoleDisk], alloc[RoleFwd]
-
-	{
-		ndtSockets := []eal.NumaSocket{}
-		for _, lcs := range []eal.LCores{lcRx, lcDisk} {
-			for socket := range lcs.ByNumaSocket() {
-				ndtSockets = append(ndtSockets, socket)
-			}
-		}
-		dp.ndt = ndt.New(cfg.Ndt, ndtSockets)
-		dp.ndt.Randomize(uint8(len(lcFwd)))
-	}
-
-	for _, lc := range lcTx {
-		txl := iface.NewTxLoop(lc.NumaSocket())
-		txl.SetLCore(lc)
-		ealthread.Launch(txl)
-	}
-
-	var fibFwds []fib.LookupThread
-	for i, lc := range lcFwd {
-		fwd := newFwd(i)
-		if e = fwd.Init(lc, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
-			cfg.LatencySampleInterval, cfg.Suppress); e != nil {
-			must.Close(dp)
-			return nil, fmt.Errorf("Fwd[%d].Init(): %w", i, e)
-		}
-		dp.fwds = append(dp.fwds, fwd)
-		fibFwds = append(fibFwds, fwd)
-	}
-	if len(eal.Sockets)*ndni.PacketMempool.Config().Capacity < len(dp.fwds)*cfg.Pcct.CsMemoryCapacity {
-		logger.Warn("total DIRECT mempool capacity is less than total CsMemoryCapacity; packet reception failure will occur when CS is full")
-	}
-
-	if dp.fib, e = fib.New(cfg.Fib, fibFwds); e != nil {
-		must.Close(dp)
-		return nil, fmt.Errorf("fib.New: %w", e)
-	}
-
-	demuxPrep := &demuxPreparer{
-		Ndt:  dp.ndt,
-		Fwds: dp.fwds,
-	}
-
-	fwcshList := []*CryptoShared{}
-	{
-		dp.fwcsh = map[eal.NumaSocket]*CryptoShared{}
-		id := 0
-		for socket, lcs := range lcCrypto.ByNumaSocket() {
-			socketFwcs := []*Crypto{}
-			for _, lc := range lcs {
-				fwc := newCrypto(id)
-				if e = fwc.Init(lc, demuxPrep); e != nil {
-					must.Close(dp)
-					return nil, fmt.Errorf("Crypto[%d].Init(): %w", id, e)
-				}
-				socketFwcs = append(socketFwcs, fwc)
-				dp.fwcs = append(dp.fwcs, fwc)
-				id++
-			}
-
-			fwcsh, e := newCryptoShared(cfg.Crypto, socket, len(socketFwcs))
-			if e != nil {
-				must.Close(dp)
-				return nil, fmt.Errorf("newCryptoShared[%s]: %w", socket, e)
-			}
-			fwcsh.AssignTo(socketFwcs)
-			fwcshList = append(fwcshList, fwcsh)
-			dp.fwcsh[socket] = fwcsh
-		}
-	}
-
-	if len(lcDisk) > 0 {
-		cfg.Disk.csDiskCapacity = cfg.Pcct.CsDiskCapacity
-		id := len(lcRx)
-		dp.fwdisk = newDisk(id)
-		if e = dp.fwdisk.Init(lcDisk[0], demuxPrep, cfg.Disk); e != nil {
-			must.Close(dp)
-			return nil, fmt.Errorf("Disk[%d].Init(): %w", id, e)
-		}
-	} else if cfg.Pcct.CsDiskCapacity > 0 {
-		logger.Warn("CsDiskCapacity is non-zero but no lcore is allocated for DISK role; disk caching will not work")
-	}
-
-	for _, fwc := range dp.fwcs {
-		ealthread.Launch(fwc)
-	}
-	if dp.fwdisk != nil {
-		ealthread.Launch(dp.fwdisk)
-	}
-	for _, fwd := range dp.fwds {
-		if fwcsh := dp.fwcsh[fwd.NumaSocket()]; fwcsh != nil {
-			fwcsh.ConnectTo(fwd)
-		} else if n := len(fwcshList); n > 0 {
-			fwcshList[rand.Intn(n)].ConnectTo(fwd)
-		}
-		ealthread.Launch(fwd)
-	}
-
-	for i, lc := range lcRx {
-		fwi := newInput(i)
-		if e = fwi.Init(lc, demuxPrep); e != nil {
-			must.Close(dp)
-			return nil, fmt.Errorf("Input[%d].Init(): %w", i, e)
-		}
-		dp.fwis = append(dp.fwis, fwi)
-		ealthread.Launch(fwi.rxl)
-	}
-
-	return dp, nil
+	ndt      *ndt.Ndt
+	fib      *fib.Fib
+	dispatch []DispatchThread
+	fwis     []*Input
+	fwcs     []*Crypto
+	fwcsh    map[eal.NumaSocket]*CryptoShared
+	fwdisk   *Disk
+	fwds     []*Fwd
 }
 
 // Ndt returns the NDT.
@@ -316,4 +189,143 @@ func (dp *DataPlane) Close() error {
 
 	ealthread.AllocFree(lcores...)
 	return multierr.Combine(errs...)
+}
+
+// New creates and launches forwarder data plane.
+func New(cfg Config) (dp *DataPlane, e error) {
+	if e := cfg.validate(); e != nil {
+		return nil, e
+	}
+	dp = &DataPlane{}
+	defer func(d *DataPlane) {
+		if e != nil {
+			must.Close(d)
+		}
+	}(dp)
+
+	var alloc map[string]eal.LCores
+	if len(cfg.LCoreAlloc) > 0 {
+		alloc, e = ealthread.AllocConfig(cfg.LCoreAlloc)
+	} else {
+		alloc, e = DefaultAlloc()
+	}
+	if e != nil {
+		return nil, e
+	}
+	lcRx, lcTx, lcCrypto, lcDisk, lcFwd := alloc[RoleInput], alloc[RoleOutput], alloc[RoleCrypto], alloc[RoleDisk], alloc[RoleFwd]
+
+	{
+		ndtSockets := []eal.NumaSocket{}
+		for _, lcs := range []eal.LCores{lcRx, lcDisk} {
+			for socket := range lcs.ByNumaSocket() {
+				ndtSockets = append(ndtSockets, socket)
+			}
+		}
+		dp.ndt = ndt.New(cfg.Ndt, ndtSockets)
+		dp.ndt.Randomize(uint8(len(lcFwd)))
+	}
+
+	for _, lc := range lcTx {
+		txl := iface.NewTxLoop(lc.NumaSocket())
+		txl.SetLCore(lc)
+		ealthread.Launch(txl)
+	}
+
+	var fibFwds []fib.LookupThread
+	for i, lc := range lcFwd {
+		fwd, e := newFwd(i, lc, cfg.Pcct, cfg.FwdInterestQueue, cfg.FwdDataQueue, cfg.FwdNackQueue,
+			cfg.LatencySampleInterval, cfg.Suppress)
+		if e != nil {
+			return nil, fmt.Errorf("Fwd[%d].Init(): %w", i, e)
+		}
+		dp.fwds = append(dp.fwds, fwd)
+		fibFwds = append(fibFwds, fwd)
+	}
+	if len(eal.Sockets)*ndni.PacketMempool.Config().Capacity < len(dp.fwds)*cfg.Pcct.CsMemoryCapacity {
+		logger.Warn("total DIRECT mempool capacity is less than total CsMemoryCapacity; packet reception will stop when CS is full")
+	}
+
+	if dp.fib, e = fib.New(cfg.Fib, fibFwds); e != nil {
+		return nil, fmt.Errorf("fib.New: %w", e)
+	}
+
+	demuxPrep := &demuxPreparer{
+		Ndt:  dp.ndt,
+		Fwds: dp.fwds,
+	}
+
+	fwcshList := []*CryptoShared{}
+	{
+		dp.fwcsh = map[eal.NumaSocket]*CryptoShared{}
+		for socket, lcs := range lcCrypto.ByNumaSocket() {
+			socketFwcs := []*Crypto{}
+			for i, lc := range lcs {
+				if _, e := addDispatchThread(dp, &socketFwcs, func(id int) (*Crypto, error) {
+					return newCrypto(id, lc, demuxPrep)
+				}); e != nil {
+					return nil, fmt.Errorf("Crypto[%d].Init(): %w", i, e)
+				}
+			}
+
+			fwcsh, e := newCryptoShared(cfg.Crypto, socket, len(socketFwcs))
+			if e != nil {
+				return nil, fmt.Errorf("newCryptoShared[%s]: %w", socket, e)
+			}
+			fwcsh.AssignTo(socketFwcs)
+			fwcshList = append(fwcshList, fwcsh)
+			dp.fwcsh[socket] = fwcsh
+			dp.fwcs = append(dp.fwcs, socketFwcs...)
+		}
+	}
+
+	if len(lcDisk) > 0 {
+		cfg.Disk.csDiskCapacity = cfg.Pcct.CsDiskCapacity
+		dp.fwdisk, e = addDispatchThread(dp, nil, func(id int) (*Disk, error) {
+			return newDisk(id, lcDisk[0], demuxPrep, cfg.Disk)
+		})
+		if e != nil {
+			return nil, fmt.Errorf("Disk[%d].Init(): %w", 0, e)
+		}
+	} else if cfg.Pcct.CsDiskCapacity > 0 {
+		logger.Warn("CsDiskCapacity is non-zero but no lcore is allocated for DISK role; disk caching will not work")
+	}
+
+	for _, fwc := range dp.fwcs {
+		ealthread.Launch(fwc)
+	}
+	if dp.fwdisk != nil {
+		ealthread.Launch(dp.fwdisk)
+	}
+	for _, fwd := range dp.fwds {
+		if fwcsh := dp.fwcsh[fwd.NumaSocket()]; fwcsh != nil {
+			fwcsh.ConnectTo(fwd)
+		} else if n := len(fwcshList); n > 0 {
+			fwcshList[rand.Intn(n)].ConnectTo(fwd)
+		}
+		ealthread.Launch(fwd)
+	}
+
+	for i, lc := range lcRx {
+		fwi, e := addDispatchThread(dp, &dp.fwis, func(id int) (*Input, error) {
+			return newInput(id, lc, demuxPrep)
+		})
+		if e != nil {
+			return nil, fmt.Errorf("Input[%d].Init(): %w", i, e)
+		}
+		ealthread.Launch(fwi.rxl)
+	}
+
+	return dp, nil
+}
+
+func addDispatchThread[T DispatchThread](dp *DataPlane, slice *[]T, f func(id int) (T, error)) (T, error) {
+	id := len(dp.dispatch)
+	th, e := f(id)
+	if e == nil {
+		dp.dispatch = append(dp.dispatch, th)
+		if slice != nil {
+			*slice = append(*slice, th)
+		}
+	}
+	return th, e
 }

@@ -7,6 +7,18 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// FieldDefToField converts FieldDefinition to *Field.
+func FieldDefToField(d *graphql.FieldDefinition) *graphql.Field {
+	return &graphql.Field{
+		Name:              d.Name,
+		Description:       d.Description,
+		Type:              d.Type,
+		Resolve:           d.Resolve,
+		Subscribe:         d.Subscribe,
+		DeprecationReason: d.DeprecationReason,
+	}
+}
+
 // Interface defines a GraphQL interface.
 type Interface struct {
 	Interface *graphql.Interface
@@ -40,12 +52,7 @@ func (it *Interface) CopyFieldsTo(fieldsAny any) graphql.Fields {
 			}
 			continue
 		}
-		fields[name] = &graphql.Field{
-			Type:        field.Type,
-			Description: field.Description,
-			Resolve:     field.Resolve,
-			Subscribe:   field.Subscribe,
-		}
+		fields[name] = FieldDefToField(field)
 	}
 	return fields
 }

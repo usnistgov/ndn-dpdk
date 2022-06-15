@@ -18,10 +18,10 @@ var ReadMissCounter func(pcct *pcct.Pcct) uint64
 
 // Counters contains CS counters.
 type Counters struct {
-	DirectEntries    int `json:"directEntries" gqldesc:"Direct entries."`
-	DirectCapacity   int `json:"directCapacity" gqldesc:"Direct capacity."`
-	IndirectEntries  int `json:"indirectEntries" gqldesc:"Indirect entries."`
-	IndirectCapacity int `json:"indirectCapacity" gqldesc:"Indirect capacity."`
+	DirectEntries    int `json:"directEntries" gqldesc:"Direct entries." subtract:"-"`
+	DirectCapacity   int `json:"directCapacity" gqldesc:"Direct capacity." subtract:"-"`
+	IndirectEntries  int `json:"indirectEntries" gqldesc:"Indirect entries." subtract:"-"`
+	IndirectCapacity int `json:"indirectCapacity" gqldesc:"Indirect capacity." subtract:"-"`
 
 	NHitMemory   uint64 `json:"nHitMemory" gqldesc:"Lookup hits on memory entry."`
 	NHitDisk     uint64 `json:"nHitDisk" gqldesc:"Lookup hits on disk entry."`

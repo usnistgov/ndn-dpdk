@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go.uber.org/multierr"
 )
 
@@ -40,20 +41,23 @@ type Crypto struct {
 var (
 	_ ealthread.ThreadWithRole     = (*Crypto)(nil)
 	_ ealthread.ThreadWithLoadStat = (*Crypto)(nil)
+	_ DispatchThread               = (*Crypto)(nil)
 )
 
-// Init initializes the crypto helper thread.
-func (fwc *Crypto) Init(lc eal.LCore, demuxPrep *demuxPreparer) error {
-	socket := lc.NumaSocket()
-	fwc.c = eal.ZmallocAligned[C.FwCrypto]("FwCrypto", C.sizeof_FwCrypto, 1, socket)
-	fwc.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
-		cptr.Func0.C(C.FwCrypto_Run, unsafe.Pointer(fwc.c)),
-		unsafe.Pointer(&fwc.c.ctrl),
-	)
-	fwc.SetLCore(lc)
+// DispatchThreadID implements DispatchThread interface.
+func (fwc *Crypto) DispatchThreadID() int {
+	return fwc.id
+}
 
-	demuxPrep.PrepareDemuxD(iface.InputDemuxFromPtr(unsafe.Pointer(&fwc.c.output)))
+func (fwc *Crypto) String() string {
+	return fmt.Sprintf("crypto%d", fwc.id)
+}
 
+// DemuxOf implements DispatchThread interface.
+func (fwc *Crypto) DemuxOf(t ndni.PktType) *iface.InputDemux {
+	if t == ndni.PktData {
+		return iface.InputDemuxFromPtr(unsafe.Pointer(&fwc.c.output))
+	}
 	return nil
 }
 
@@ -64,17 +68,26 @@ func (fwc *Crypto) Close() error {
 	return nil
 }
 
-func (fwc *Crypto) String() string {
-	return fmt.Sprintf("crypto%d", fwc.id)
-}
-
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (Crypto) ThreadRole() string {
 	return RoleCrypto
 }
 
-func newCrypto(id int) *Crypto {
-	return &Crypto{id: id}
+// newCrypto creates a crypto helper thread.
+func newCrypto(id int, lc eal.LCore, demuxPrep *demuxPreparer) (fwc *Crypto, e error) {
+	socket := lc.NumaSocket()
+	fwc = &Crypto{
+		id: id,
+		c:  eal.ZmallocAligned[C.FwCrypto]("FwCrypto", C.sizeof_FwCrypto, 1, socket),
+	}
+	fwc.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
+		cptr.Func0.C(C.FwCrypto_Run, unsafe.Pointer(fwc.c)),
+		unsafe.Pointer(&fwc.c.ctrl),
+	)
+	fwc.SetLCore(lc)
+
+	demuxPrep.Prepare(fwc, socket)
+	return fwc, nil
 }
 
 // CryptoShared contains per NUMA socket shared resources for crypto helper threads.

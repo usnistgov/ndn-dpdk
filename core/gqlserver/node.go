@@ -49,6 +49,18 @@ func parseID(id string) (prefix, suffix string, ok bool) {
 	return string(tokens[0]), string(tokens[1]), true
 }
 
+// RetrieveNode retrieves a node.
+func RetrieveNode(id string) (any, error) {
+	prefix, suffix, ok := parseID(id)
+	if !ok {
+		return nil, nil
+	}
+	if nt := nodeTypes[prefix]; nt != nil {
+		return nt.retrieveAny(suffix)
+	}
+	return nil, nil
+}
+
 // NodeTypeBase contains non-generic fields of NodeType.
 type NodeTypeBase struct {
 	Object      *graphql.Object
@@ -194,14 +206,7 @@ func init() {
 		},
 		Type: nodeInterface.Interface,
 		Resolve: func(p graphql.ResolveParams) (any, error) {
-			prefix, suffix, ok := parseID(p.Args["id"].(string))
-			if !ok {
-				return nil, nil
-			}
-			if nt := nodeTypes[prefix]; nt != nil {
-				return nt.retrieveAny(suffix)
-			}
-			return nil, nil
+			return RetrieveNode(p.Args["id"].(string))
 		},
 	})
 

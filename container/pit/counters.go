@@ -16,7 +16,7 @@ func init() {
 
 // Counters contains PIT counters.
 type Counters struct {
-	NEntries  uint64 `json:"nEntries" gqldesc:"Current number of entries."`
+	NEntries  uint64 `json:"nEntries" gqldesc:"Current number of entries." subtract:"-"`
 	NInsert   uint64 `json:"nInsert" gqldesc:"Insertions that created a new PIT entry."`
 	NFound    uint64 `json:"nFound" gqldesc:"Insertions that found an existing PIT entry."`
 	NAllocErr uint64 `json:"nAllocErr" gqldesc:"Insertions that failed due to allocation error."`

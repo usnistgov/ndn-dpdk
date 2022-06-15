@@ -21,6 +21,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go.uber.org/multierr"
+	"go4.org/must"
 )
 
 // Fwd represents a forwarding thread.
@@ -38,47 +39,6 @@ var (
 	_ ealthread.ThreadWithRole     = (*Fwd)(nil)
 	_ ealthread.ThreadWithLoadStat = (*Fwd)(nil)
 )
-
-// Init initializes the forwarding thread.
-// Excluding FIB.
-func (fwd *Fwd) Init(lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN iface.PktQueueConfig,
-	latencySampleInterval int, suppressCfg pit.SuppressConfig) (e error) {
-	socket := lc.NumaSocket()
-
-	fwd.c = eal.Zmalloc[C.FwFwd]("FwFwd", C.sizeof_FwFwd, socket)
-	fwd.c.id = C.uint8_t(fwd.id)
-	fwd.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
-		cptr.Func0.C(C.FwFwd_Run, fwd.c),
-		unsafe.Pointer(&fwd.c.ctrl),
-	)
-	fwd.SetLCore(lc)
-
-	fwd.queueI = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueI))
-	if e = fwd.queueI.Init(qcfgI, socket); e != nil {
-		return e
-	}
-	fwd.queueD = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueD))
-	if e = fwd.queueD.Init(qcfgD, socket); e != nil {
-		return e
-	}
-	fwd.queueN = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueN))
-	if e = fwd.queueN.Init(qcfgN, socket); e != nil {
-		return e
-	}
-
-	if fwd.pcct, e = pcct.New(pcctCfg, socket); e != nil {
-		return fmt.Errorf("pcct.New: %w", e)
-	}
-	pcctC := (*C.Pcct)(fwd.pcct.Ptr())
-	fwd.c.pit = &pcctC.pit
-	fwd.c.cs = &pcctC.cs
-
-	pcg32.Init(unsafe.Pointer(&fwd.c.sgRng))
-	suppressCfg.CopyToC(unsafe.Pointer(&fwd.c.suppressCfg))
-	(*ndni.Mempools)(unsafe.Pointer(&fwd.c.mp)).Assign(socket)
-	fwd.LatencyStat().Init(latencySampleInterval)
-	return nil
-}
 
 // Close stops and releases the thread.
 func (fwd *Fwd) Close() error {
@@ -123,16 +83,6 @@ func (fwd *Fwd) Cs() *cs.Cs {
 	return cs.FromPcct(fwd.pcct)
 }
 
-// Counters retrieves forwarding thread counters.
-func (fwd *Fwd) Counters() (cnt FwdCounters) {
-	cnt.id = fwd.id
-	cnt.NNoFibMatch = uint64(fwd.c.nNoFibMatch)
-	cnt.NDupNonce = uint64(fwd.c.nDupNonce)
-	cnt.NSgNoFwd = uint64(fwd.c.nSgNoFwd)
-	cnt.NNackMismatch = uint64(fwd.c.nNackMismatch)
-	return cnt
-}
-
 // LatencyStat returns latency statistics collector.
 // Its reading reflects the latency since packet arrival until forwarding thread starts processing the packet.
 func (fwd *Fwd) LatencyStat() *runningstat.RunningStat {
@@ -161,17 +111,76 @@ func (Fwd) ThreadRole() string {
 	return RoleFwd
 }
 
-func newFwd(id int) *Fwd {
-	return &Fwd{id: id}
+// newFwd creates a forwarding thread.
+// FIB must be assigned before starting the thread.
+func newFwd(id int, lc eal.LCore, pcctCfg pcct.Config, qcfgI, qcfgD, qcfgN iface.PktQueueConfig,
+	latencySampleInterval int, suppressCfg pit.SuppressConfig) (fwd *Fwd, e error) {
+	socket := lc.NumaSocket()
+	fwd = &Fwd{
+		id: id,
+		c:  eal.Zmalloc[C.FwFwd]("FwFwd", C.sizeof_FwFwd, socket),
+	}
+
+	fwd.c.id = C.uint8_t(fwd.id)
+	fwd.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
+		cptr.Func0.C(C.FwFwd_Run, fwd.c),
+		unsafe.Pointer(&fwd.c.ctrl),
+	)
+	fwd.SetLCore(lc)
+
+	fwd.queueI = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueI))
+	fwd.queueD = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueD))
+	fwd.queueN = iface.PktQueueFromPtr(unsafe.Pointer(&fwd.c.queueN))
+	for t, qcfg := range map[ndni.PktType]iface.PktQueueConfig{
+		ndni.PktInterest: qcfgI,
+		ndni.PktData:     qcfgD,
+		ndni.PktNack:     qcfgN,
+	} {
+		if e = fwd.PktQueueOf(t).Init(qcfg, socket); e != nil {
+			must.Close(fwd)
+			return nil, fmt.Errorf("queue%s.Init: %w", t, e)
+		}
+	}
+
+	if fwd.pcct, e = pcct.New(pcctCfg, socket); e != nil {
+		must.Close(fwd)
+		return nil, fmt.Errorf("pcct.New: %w", e)
+	}
+	pcctC := (*C.Pcct)(fwd.pcct.Ptr())
+	fwd.c.pit = &pcctC.pit
+	fwd.c.cs = &pcctC.cs
+
+	pcg32.Init(unsafe.Pointer(&fwd.c.sgRng))
+	suppressCfg.CopyToC(unsafe.Pointer(&fwd.c.suppressCfg))
+	(*ndni.Mempools)(unsafe.Pointer(&fwd.c.mp)).Assign(socket)
+	fwd.LatencyStat().Init(latencySampleInterval)
+	return fwd, nil
 }
 
 // FwdCounters contains forwarding thread counters.
 type FwdCounters struct {
-	id            int    // FwFwd index
+	NInterestsCongMarked uint64               `json:"nInterestsCongMarked" gqldesc:"Congestion marked added to Interests."`
+	NDataCongMarked      uint64               `json:"nDataCongMarked" gqldesc:"Congestion marked added to Data."`
+	NNacksCongMarked     uint64               `json:"nNacksCongMarked" gqldesc:"Congestion marked added to Nacks."`
+	InputLatency         runningstat.Snapshot `json:"inputLatency" gqldesc:"Latency between packet arrival and dequeuing at forwarding thread, in nanoseconds."`
+
 	NNoFibMatch   uint64 `json:"nNoFibMatch" gqldesc:"Interests dropped due to no FIB match."`
 	NDupNonce     uint64 `json:"nDupNonce" gqldesc:"Interests dropped due to duplicate nonce."`
 	NSgNoFwd      uint64 `json:"nSgNoFwd" gqldesc:"Interests not forwarded by strategy."`
 	NNackMismatch uint64 `json:"nNackMismatch" gqldesc:"Nacks dropped due to outdated nonce."`
+}
+
+// Counters retrieves forwarding thread counters.
+func (fwd *Fwd) Counters() (cnt FwdCounters) {
+	cnt.NInterestsCongMarked = fwd.queueI.Counters().NDrops
+	cnt.NDataCongMarked = fwd.queueD.Counters().NDrops
+	cnt.NNacksCongMarked = fwd.queueN.Counters().NDrops
+	cnt.InputLatency = fwd.LatencyStat().Read().Scale(eal.TscNanos)
+	cnt.NNoFibMatch = uint64(fwd.c.nNoFibMatch)
+	cnt.NDupNonce = uint64(fwd.c.nDupNonce)
+	cnt.NSgNoFwd = uint64(fwd.c.nSgNoFwd)
+	cnt.NNackMismatch = uint64(fwd.c.nNackMismatch)
+	return cnt
 }
 
 func init() {
