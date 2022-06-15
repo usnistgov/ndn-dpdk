@@ -8,7 +8,6 @@ import "C"
 import (
 	"errors"
 	"math/rand"
-	"sync"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
@@ -27,8 +26,6 @@ type Table struct {
 	c         *C.Fib
 	nDyns     int
 	sgGlobals []unsafe.Pointer
-	free      chan []*Entry
-	wg        sync.WaitGroup
 }
 
 // Ptr returns *C.Fib pointer.
@@ -38,8 +35,10 @@ func (t *Table) Ptr() unsafe.Pointer {
 
 // Close frees C memory.
 func (t *Table) Close() error {
-	close(t.free)
-	t.wg.Wait()
+	urcu.Barrier()
+	C.Fib_Clear(t.c)
+	C.cds_lfht_destroy(t.c.lfht, nil)
+	t.mp.Close()
 	return nil
 }
 
@@ -76,37 +75,10 @@ func (t *Table) erase(entry *Entry) {
 	C.Fib_Erase(t.c, entry.ptr())
 }
 
-func (t *Table) deferredFree(entries ...*Entry) {
-	t.free <- entries
-}
-
-func (t *Table) freeLoop() {
-	var wg sync.WaitGroup
-	for entries := range t.free {
-		wg.Add(1)
-		go func(entries []*Entry) {
-			defer wg.Done()
-			urcu.Synchronize()
-			objs := []unsafe.Pointer{}
-			for _, entry := range entries {
-				if entry != nil {
-					if !entry.IsVirt() {
-						C.StrategyCode_Unref(*entry.ptrStrategy())
-					}
-					objs = append(objs, entry.Ptr())
-				}
-			}
-			if len(objs) > 0 {
-				mempool.Free(t.mp, objs)
-			}
-		}(entries)
+func (t *Table) deferredFree(entry *Entry) {
+	if entry != nil {
+		C.FibEntry_DeferredFree(entry.ptr())
 	}
-	wg.Wait()
-
-	C.Fib_Clear(t.c)
-	C.cds_lfht_destroy(t.c.lfht, nil)
-	t.mp.Close()
-	t.wg.Done()
 }
 
 // New creates a Table.
@@ -129,7 +101,6 @@ func New(cfg fibdef.Config, sgGlobals []unsafe.Pointer, socket eal.NumaSocket) (
 		mpC:       (*C.struct_rte_mempool)(mp.Ptr()),
 		nDyns:     nDyns,
 		sgGlobals: sgGlobals,
-		free:      make(chan []*Entry),
 	}
 
 	t.c = (*C.Fib)(C.rte_mempool_get_priv(t.mpC))
@@ -144,7 +115,5 @@ func New(cfg fibdef.Config, sgGlobals []unsafe.Pointer, socket eal.NumaSocket) (
 		return nil, errors.New("cds_lfht_new error")
 	}
 
-	t.wg.Add(1)
-	go t.freeLoop()
 	return t, nil
 }

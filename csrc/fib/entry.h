@@ -54,7 +54,7 @@ struct FibEntry
 
   /**
    * @brief Height of a virtual node.
-   * @pre nComps == startDepth and this is a virtual node
+   * @pre nComps == startDepth and this is a virtual node.
    *
    * This field is known as '(MD - M)' in 2-stage LPM algorithm.
    * The height of a node is the length of the longest downward path to a leaf from that node.
@@ -63,7 +63,8 @@ struct FibEntry
 
   FaceID nexthops[FibMaxNexthops];
 
-  char b_[32];
+  char b_[16];
+  struct rcu_head rcuhead;
   RTE_MARKER cachelineB_;
   FibEntryDyn dyn[];
 };
@@ -83,11 +84,14 @@ FibEntry_GetReal(FibEntry* entry)
   return entry->realEntry;
 }
 
-static inline FibEntryDyn*
+__attribute__((nonnull)) static inline FibEntryDyn*
 FibEntry_PtrDyn(FibEntry* entry, int index)
 {
   return &entry->dyn[index];
 }
+
+__attribute__((nonnull)) void
+FibEntry_DeferredFree(FibEntry* entry);
 
 typedef struct SgGlobal SgGlobal;
 

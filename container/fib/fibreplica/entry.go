@@ -137,6 +137,7 @@ func (entry *Entry) assignReal(u *fibdef.RealUpdate, sgGlobals []unsafe.Pointer)
 				goHandle: C.uintptr_t(paramsHdl),
 			}
 			sgInit(unsafe.Pointer(ctx), C.sizeof_SgCtx)
+			eal.Free(ctx)
 		}
 	}
 }
