@@ -4,24 +4,24 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@7.1.7",
+  "packageManager": "pnpm@7.2.1",
   "dependencies": {
-    "@fastify/express": "^1.1.0",
-    "@fastify/http-proxy": "^7.1.0",
-    "@fastify/static": "^5.0.2",
+    "@fastify/express": "^2.0.0",
+    "@fastify/http-proxy": "^8.0.1",
+    "@fastify/static": "^6.4.0",
     "@strattadb/environment": "^8.0.2",
-    "@typescript/lib-dom": "npm:@types/web@0.0.67",
+    "@typescript/lib-dom": "npm:@types/web@0.0.68",
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz",
     "delay": "^5.0.0",
     "dotenv": "^16.0.1",
-    "fastify": "^3.29.0",
+    "fastify": "^4.0.3",
     "graphql": "^16.5.0",
     "graphql-request": "^4.3.0",
-    "preact": "^10.7.2",
+    "preact": "^10.8.1",
     "ts-loader": "^9.3.0",
     "tslib": "^2.4.0",
-    "typescript": "~4.7.2",
-    "webpack": "^5.72.1",
+    "typescript": "~4.7.3",
+    "webpack": "^5.73.0",
     "webpack-dev-middleware": "^5.3.3"
   },
   "engines": {

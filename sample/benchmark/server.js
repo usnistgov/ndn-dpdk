@@ -107,4 +107,7 @@ fastify.get("/env.json", async (request, reply) => {
   });
 });
 
-await fastify.listen(3333, "127.0.0.1");
+await fastify.listen({
+  port: 3333,
+  host: "127.0.0.1",
+});

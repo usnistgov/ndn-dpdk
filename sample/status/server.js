@@ -74,4 +74,7 @@ fastify.get("/graphql", (request) => {
   proxy.ws(request.raw, request.socket, request.headers);
 });
 
-await fastify.listen(args.listen.port, args.listen.hostname);
+await fastify.listen({
+  port: args.listen.port,
+  host: args.listen.hostname,
+});

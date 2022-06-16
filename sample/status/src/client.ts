@@ -38,7 +38,7 @@ export function gqlQuery<T extends {}>(query: string, variables?: Record<string,
 }
 
 export async function* gqlSubError<T extends {}>(query: string, variables?: Record<string, unknown>, { signal }: { signal?: AbortSignal } = {}): AsyncIterable<T | GqlErrors> {
-  const q = pushable<T | GqlErrors>();
+  const q = pushable<T | GqlErrors>({ objectMode: true });
   const unsubscribe = client.subscribe({
     query,
     variables,
