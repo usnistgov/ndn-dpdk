@@ -33,8 +33,10 @@ model | speed | DPDK driver | RxFlow
 Mellanox ConnectX-5 | 100 Gbps | mlx5 | yes
 Intel X710 | 10 Gbps | i40e | UDP only
 Intel X710 VF | 10 Gbps | iavf | untested
+Intel XXV710 | 25 Gbps | i40e | untested
 Intel X520 | 10 Gbps | ixgbe | UDP only
 Intel I350 | 1 Gbps | igb | no
+Broadcom/QLogic 57810 | 10 Gbps | bnx2x | untested
 
 Some Ethernet adapters have more than one physical ports on the same PCI card.
 NDN-DPDK is only tested to work on the first port (lowest PCI address) of those dual-port or quad-port adapters.
@@ -49,6 +51,8 @@ DPDK supports Mellanox adapters in Ethernet mode, but not in Infiniband mode.
 If you have VPI adapters, use `mlxconfig` tool to verify and change port mode.
 See [MLX5 poll mode driver](https://doc.dpdk.org/guides/nics/mlx5.html) for more information.
 
+#### Setup with bifurcated driver
+
 The libibverbs library must be installed before building DPDK or running the `ndndpdk-depends.sh` script:
 
 ```bash
@@ -56,21 +60,24 @@ sudo apt install libibverbs-dev
 
 # for building Docker image
 docker build \
-  --build-arg APT_PKGS="libibverbs-dev"
+  --build-arg APT_PKGS="libibverbs-dev" \
   [other arguments]
 ```
+
+Mellanox adapters use a bifurcated driver.
+You should not change PCI driver binding with `dpdk-devbind.py` command.
 
 To use Mellanox adapters in Docker container, add these flags when you launch the service container:
 
 ```bash
 docker run \
   --device /dev/infiniband \
-  --mount type=bind,source=/sys,target=/sys \
+  --mount type=bind,source=/sys,target=/sys,readonly=true \
   [other arguments]
 ```
 
 * `--device /dev/infiniband` flag enables access to IB verbs device.
-* `--mount target=/sys` flag enables access to hardware counters in `/sys/class/net` directory.
+* `--mount target=/sys` flag enables read-only access to Infiniband device hardware counters.
 
 It's also necessary to move the kernel network interface into the container's network namespace.
 This needs to be performed every time the container is started or restarted, before activating NDN-DPDK.
@@ -82,6 +89,8 @@ NETIF=enp4s0f0
 CTPID=$(docker inspect -f '{{.State.Pid}}' ndndpdk-svc)
 sudo ip link set $NETIF netns $CTPID
 ```
+
+#### RxFlow Feature
 
 Most Mellanox adapters are compatible with NDN-DPDK RxFlow feature.
 Unless you encounter errors, you should enable RxFlow while creating the Ethernet port.
@@ -98,20 +107,23 @@ ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
 
 ### Intel Ethernet Adapters
 
-The PCI device should use vfio-pci driver, which requires [enabling IOMMU](https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF#Setting_up_IOMMU).
-Example command:
+Intel Ethernet adapters may be used with either vfio-pci or igb\_uio driver.
+See [Memory in DPDK Part 2: Deep Dive into IOVA](https://www.intel.com/content/www/us/en/developer/articles/technical/memory-in-dpdk-part-2-deep-dive-into-iova.html) for their differences.
+Generally, it's recommended to use VFIO.
+
+#### Setup with VFIO
+
+The vfio-pci driver requires IOMMU.
+Follow [Arch Linux PCI passthrough guide](https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF#Setting_up_IOMMU) for how to enable IOMMU.
+
+With IOMMU enabled, to bind a PCI device to vfio-pci:
 
 ```bash
-# check IOMMU enabled
-# look for "DMAR: IOMMU enabled" message
-sudo journalctl --dmesg --grep IOMMU
-
-# load vfio-pci driver and bind to PCI device
 sudo modprobe vfio-pci
 sudo dpdk-devbind.py -b vfio-pci 04:00.0
 ```
 
-To use Intel adapters in Docker container, the driver binding must still be performed on the host.
+To use Intel adapters with VFIO in Docker container, the driver binding must still be performed on the host.
 Then, add these flags when you launch the NDN-DPDK service container:
 
 ```bash
@@ -124,25 +136,46 @@ docker run \
 * Driver binding must be configured before starting the container.
   Otherwise, port creation fails and you would see `Failed to open VFIO group` error in container logs.
 
-Intel adapters have limited compatibility with NDN-DPDK RxFlow feature.
-As tested with i40e and ixgbe drivers, RxFlow can be used with UDP faces, but not Ethernet or VXLAN faces.
-You should test RxFlow with your specific hardware and face locators, and decide whether to use this feature.
-Example command:
+#### Setup with UIO
+
+The igb\_uio driver is not recommended, but it may be used if IOMMU does not work.
+IOMMU must be disabled or set to passthrough mode with `iommu=pt` kernel parameter for igb\_uio to work.
+
+The igb\_uio driver is available from [dpdk-kmods repository](https://git.dpdk.org/dpdk-kmods/tree/).
+To install the driver:
 
 ```bash
-# determine maximum number of RxFlow queues
-# look at "current hardware settings - combined" row
-# you can only run this command before binding to vfio-pci driver
-ethtool --show-channels enp4s0f0
-
-# create Ethernet port, enable RxFlow
-ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
-
-# or, create Ethernet port, disable RxFlow
-ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500
+git clone https://dpdk.org/git/dpdk-kmods
+cd dpdk-kmods/linux/igb_uio
+make clean all
+UIODIR=/lib/modules/$(uname -r)/kernel/drivers/uio
+sudo install -d -m0755 $UIODIR
+sudo install -m0644 igb_uio.ko $UIODIR
+sudo depmod
 ```
 
-### Intel Virtual Function
+To bind a PCI device to igb\_uio:
+
+```bash
+sudo modprobe igb_uio
+sudo dpdk-devbind.py -b igb_uio 04:00.0
+```
+
+The igb\_uio driver requires DPDK to operate in *IOVA as Physical Addresses (PA) Mode*.
+To choose this mode, set **.eal.iovaMode** to "PA" in NDN-DPDK activation parameters.
+
+To use Intel adapters with UIO in Docker container, add these flags when you launch the NDN-DPDK service container:
+
+```bash
+docker run \
+  --privileged \
+  [other arguments]
+```
+
+* `--privileged` flag enables writing to PCI device config.
+  See also [moby issue #22825](https://github.com/moby/moby/issues/22825).
+
+#### Virtual Function
 
 Some Intel Ethernet adapters support network virtual functions (VFs).
 It allows sharing the same physical adapter between NDN-DPDK and kernel IP stack, either on the physical server or with NDN-DPDK in a virtual machine.
@@ -171,6 +204,43 @@ To use Intel VF:
 2. If NDN-DPDK is installed on the physical server: bind the VF PCI device to vfio-pci driver.
 
 3. If NDN-DPDK is installed in a virtual machine: passthrough the VF PCI device to the virtual machine, bind the VF to vfio-pci driver in the guest OS.
+
+#### RxFlow Feature
+
+Intel adapters have limited compatibility with NDN-DPDK RxFlow feature.
+As tested with i40e and ixgbe drivers, RxFlow can be used with UDP faces, but not Ethernet or VXLAN faces.
+You should test RxFlow with your specific hardware and face locators, and decide whether to use this feature.
+Example command:
+
+```bash
+# determine maximum number of RxFlow queues
+# look at "current hardware settings - combined" row
+# you can only run this command before binding to vfio-pci driver
+ethtool --show-channels enp4s0f0
+
+# create Ethernet port, enable RxFlow
+ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
+
+# or, create Ethernet port, disable RxFlow
+ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500
+```
+
+### Broadcom/QLogic Ethernet Adapters
+
+BCM57810 has been tested with igb\_uio driver.
+The setup procedure is very similar to Intel Ethernet adapters with UIO.
+
+To use Broadcom/QLogic adapters with UIO in Docker container, add these flags when you launch the NDN-DPDK service container:
+
+```bash
+docker run \
+  --privileged \
+  --mount type=bind,source=/lib/firmware,target=/lib/firmware,readonly=true \
+  [other arguments]
+```
+
+* `--privileged` flag enables writing to PCI device config.
+* `--mount target=/lib/firmware` flag enables read-only access to firmware files.
 
 ### Unsupported Ethernet Adapters
 

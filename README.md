@@ -54,7 +54,7 @@ Forwarding plane
 
 Management
 
-* GraphQL endpoint: yes
+* GraphQL endpoint: HTTP POST, WebSocket "graphql-transport-ws", WebSocket "graphql-ws"
 * Configuration file: none
 * Routing: no
   * [Multiverse](https://github.com/multiverse-nms) can provide centralized routing
