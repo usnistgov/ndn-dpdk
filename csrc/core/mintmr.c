@@ -22,10 +22,16 @@ MinSched_New(int nSlotBits, TscDuration interval, MinTmrCb cb, uintptr_t ctx)
   N_LOGI("New sched=%p slots=%" PRIu16 " interval=%" PRIu64 " cb=%p", sched, sched->nSlots,
          sched->interval, cb);
 
-  for (uint32_t i = 0; i < nSlots; ++i) {
+  MinSched_Clear(sched);
+  return sched;
+}
+
+void
+MinSched_Clear(MinSched* sched)
+{
+  for (uint32_t i = 0; i < sched->nSlots; ++i) {
     CDS_INIT_LIST_HEAD(&sched->slot[i]);
   }
-  return sched;
 }
 
 void

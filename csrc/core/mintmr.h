@@ -46,6 +46,10 @@ typedef struct MinSched
 __attribute__((returns_nonnull)) MinSched*
 MinSched_New(int nSlotBits, TscDuration interval, MinTmrCb cb, uintptr_t ctx);
 
+/** @brief Cancel all events. */
+__attribute__((nonnull)) void
+MinSched_Clear(MinSched* sched);
+
 /** @brief Destroy a minute scheduler. */
 __attribute__((nonnull)) void
 MinSched_Close(MinSched* sched);

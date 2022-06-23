@@ -12,7 +12,7 @@ export interface FetcherConfig {
    * @minimum 1
    * @default 1
    */
-  nProcs?: Uint;
+  nTasks?: Uint;
 
   rxQueue?: PktQueueConfig;
 
@@ -24,7 +24,8 @@ export interface FetcherConfig {
 }
 
 export interface FetchCounters {
-  time: unknown;
+  elapsed: NNNanoseconds;
+  finished?: NNNanoseconds;
   lastRtt: NNNanoseconds;
   sRtt: NNNanoseconds;
   rto: NNNanoseconds;

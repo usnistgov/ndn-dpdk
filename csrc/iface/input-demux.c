@@ -124,6 +124,7 @@ InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt)
     return InputDemux_Drop(demux, npkt, "token-too-short");
   }
 
+  static_assert(MaxInputDemuxDest <= UINT8_MAX, "");
   uint8_t index = token->value[demux->byToken.offset];
   return InputDemux_PassTo(demux, npkt, index);
 }

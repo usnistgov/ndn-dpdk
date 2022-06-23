@@ -166,7 +166,7 @@ export class Benchmark {
         },
         fetcher: {
           nThreads: 1,
-          nProcs: nFwds,
+          nTasks: nFwds,
         },
       };
       for (let j = 0; j < nFwds; ++j) {

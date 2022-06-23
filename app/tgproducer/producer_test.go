@@ -160,12 +160,11 @@ func TestDataProducer(t *testing.T) {
 	require.NoError(e)
 	fwFace.AddRoute(ndn.Name{})
 
-	fetcher := segmented.Fetch(nameP, segmented.FetchOptions{
-		Fw:           fw,
-		SegmentBegin: 0,
-		SegmentEnd:   5000,
-		RetxLimit:    10,
-	})
+	var fetchOpts segmented.FetchOptions
+	fetchOpts.Fw = fw
+	fetchOpts.SegmentEnd = 5000
+	fetchOpts.RetxLimit = 10
+	fetcher := segmented.Fetch(nameP, fetchOpts)
 
 	ordered := make(chan *ndn.Data)
 	go func() {

@@ -17,6 +17,8 @@ typedef struct FetchLogic
   TcpCubic ca;
   struct cds_list_head retxQ;
   MinSched* sched;
+  TscTime startTime;
+  TscTime finishTime;
   uint64_t nTxRetx;
   uint64_t nRxData;
   uint64_t finalSegNum;
@@ -29,29 +31,12 @@ __attribute__((nonnull)) void
 FetchLogic_Init_(FetchLogic* fl);
 
 /**
- * @brief Set final segment number.
- * @param segNum segment number of the last segment, inclusive.
- */
-__attribute__((nonnull)) static inline void
-FetchLogic_SetFinalSegNum(FetchLogic* fl, uint64_t segNum)
-{
-  fl->finalSegNum = segNum;
-}
-
-/** @brief Determine if all segments have been fetched. */
-__attribute__((nonnull)) static inline bool
-FetchLogic_Finished(FetchLogic* fl)
-{
-  return fl->win.loSegNum > fl->finalSegNum;
-}
-
-/**
  * @brief Request to transmit a burst of Interests.
  * @param[out] segNums segment numbers to retrieve.
  * @param limit size of segNums array.
  */
 __attribute__((nonnull)) size_t
-FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit);
+FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit, TscTime now);
 
 typedef struct FetchLogicRxData
 {
@@ -65,6 +50,6 @@ typedef struct FetchLogicRxData
  * @param count size of @p pkts array.
  */
 __attribute__((nonnull)) void
-FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count);
+FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count, TscTime now);
 
 #endif // NDNDPDK_FETCH_LOGIC_H

@@ -12,9 +12,10 @@ import (
 
 // GraphQL types.
 var (
-	GqlNameType              *graphql.Scalar
-	GqlInterestTemplateInput *graphql.InputObject
-	GqlDataGenInput          *graphql.InputObject
+	GqlNameType                   *graphql.Scalar
+	GqlInterestTemplateInput      *graphql.InputObject
+	GqlInterestTemplateFieldTypes gqlserver.FieldTypes
+	GqlDataGenInput               *graphql.InputObject
 )
 
 func init() {
@@ -48,13 +49,14 @@ func init() {
 		},
 	})
 
+	GqlInterestTemplateFieldTypes = gqlserver.FieldTypes{
+		reflect.TypeOf(ndn.Name{}):                 gqlserver.NonNullString,
+		reflect.TypeOf(nnduration.Milliseconds(0)): nnduration.GqlMilliseconds,
+	}
 	GqlInterestTemplateInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "InterestTemplateInput",
 		Description: "Interest template.",
-		Fields: gqlserver.BindInputFields[InterestTemplateConfig](gqlserver.FieldTypes{
-			reflect.TypeOf(ndn.Name{}):                 gqlserver.NonNullString,
-			reflect.TypeOf(nnduration.Milliseconds(0)): nnduration.GqlMilliseconds,
-		}),
+		Fields:      gqlserver.BindInputFields[InterestTemplateConfig](GqlInterestTemplateFieldTypes),
 	})
 
 	GqlDataGenInput = graphql.NewInputObject(graphql.InputObjectConfig{

@@ -105,7 +105,7 @@ func init() {
 			reflect.TypeOf(tgproducer.Config{}):    tgproducer.GqlConfigInput,
 			reflect.TypeOf(fileserver.Config{}):    fileserver.GqlConfigInput,
 			reflect.TypeOf(tgconsumer.Config{}):    tgconsumer.GqlConfigInput,
-			reflect.TypeOf(fetch.FetcherConfig{}):  fetch.GqlConfigInput,
+			reflect.TypeOf(fetch.Config{}):         fetch.GqlConfigInput,
 		}),
 		Type: graphql.NewNonNull(GqlTrafficGenType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {

@@ -19,7 +19,7 @@ type Config struct {
 	Producer   *tgproducer.Config   `json:"producer,omitempty"`
 	FileServer *fileserver.Config   `json:"fileServer,omitempty"`
 	Consumer   *tgconsumer.Config   `json:"consumer,omitempty"`
-	Fetcher    *fetch.FetcherConfig `json:"fetcher,omitempty"`
+	Fetcher    *fetch.Config        `json:"fetcher,omitempty"`
 }
 
 // Validate applies defaults and validates the configuration.

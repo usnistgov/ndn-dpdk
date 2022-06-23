@@ -2,7 +2,7 @@
 
 This package is the [traffic generator](../tg) producer.
 It may act as a [ndnping server](https://github.com/named-data/ndn-tools/blob/ndn-tools-22.02/tools/ping/README.md#ndnping-protocol).
-It requires one thread, running the `Tgp_Run` function.
+It requires at least one thread, running the `Tgp_Run` function.
 
 The producer responds to every Interest with Data or Nack.
 It supports multiple configurable patterns:

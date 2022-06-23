@@ -1,6 +1,6 @@
-/*.out
+*.out
+.pnpm-debug.log
 /*ndn-dpdk-*.tgz
-/.pnpm-debug.log
 /.vscode
 /build*
 /csrc/*/*enum.h

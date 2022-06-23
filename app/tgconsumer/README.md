@@ -40,7 +40,7 @@ Name suffix cannot be used in the Data template.
 ## Relative Sequence Number
 
 Normally, each traffic pattern in the consumer has an independent sequence number that is incremented by one every time the pattern is selected.
-If the `seqNumOffset` option is specified to a non-zero value, the traffic pattern would instead use a relative sequence number.
+If the `seqNumOffset` option is set to a non-zero value, the traffic pattern would instead use a relative sequence number.
 
 Suppose the `seqNumOffset` option is specified on traffic pattern *i*, every time pattern *i* is selected:
 

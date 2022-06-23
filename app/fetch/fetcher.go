@@ -8,193 +8,143 @@ import "C"
 import (
 	"errors"
 	"math"
-	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
-	"github.com/usnistgov/ndn-dpdk/core/pcg32"
-	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/zyedidia/generic"
 	"go.uber.org/multierr"
+	"golang.org/x/exp/maps"
 )
 
-// FetcherConfig contains Fetcher configuration.
-type FetcherConfig struct {
-	NThreads       int                  `json:"nThreads,omitempty"`
-	NProcs         int                  `json:"nProcs,omitempty"`
-	RxQueue        iface.PktQueueConfig `json:"rxQueue,omitempty"`
-	WindowCapacity int                  `json:"windowCapacity,omitempty"`
+var logger = logging.New("fetch")
+
+// Config contains Fetcher configuration.
+type Config struct {
+	TaskSlotConfig
+
+	// NThreads is the number of worker threads.
+	// Each worker thread can serve multiple fetch tasks.
+	NThreads int `json:"nThreads,omitempty"`
+
+	// NTasks is the number of task slots.
+	// Each task retrieves one segmented object and has independent congestion control.
+	NTasks int `json:"nTasks,omitempty"`
 }
 
 // Validate applies defaults and validates the configuration.
-func (cfg *FetcherConfig) Validate() error {
-	cfg.NThreads = generic.Max(1, cfg.NThreads)
-	cfg.NProcs = generic.Max(1, cfg.NProcs)
-	cfg.RxQueue.DisableCoDel = true
-	cfg.WindowCapacity = ringbuffer.AlignCapacity(cfg.WindowCapacity, 16, 65536)
+func (cfg *Config) Validate() error {
+	cfg.TaskSlotConfig.applyDefaults()
+	cfg.NThreads = generic.Clamp(cfg.NThreads, 1, math.MaxInt8)
+	cfg.NTasks = generic.Clamp(cfg.NTasks, 1, iface.MaxInputDemuxDest)
 	return nil
 }
 
-type worker struct {
-	ealthread.ThreadWithCtrl
-	c *C.FetchThread
-}
-
-var (
-	_ ealthread.ThreadWithRole     = (*worker)(nil)
-	_ ealthread.ThreadWithLoadStat = (*worker)(nil)
-)
-
-// ThreadRole implements ealthread.ThreadWithRole interface.
-func (worker) ThreadRole() string {
-	return tgdef.RoleConsumer
-}
-
-// NumaSocket implements eal.WithNumaSocket interface.
-func (w worker) NumaSocket() eal.NumaSocket {
-	return w.face().NumaSocket()
-}
-
-func (w worker) face() iface.Face {
-	return iface.Get(iface.ID(w.c.face))
-}
-
-// Fetcher controls fetch threads and fetch procedures on a face.
-// A fetch procedure retrieves Data under a single name prefix, and has independent congestion control.
-// A fetch thread runs on an lcore, and can serve multiple fetch procedures.
+// Fetcher controls worker threads and task slots on a face.
 type Fetcher struct {
-	workers      []*worker
-	fp           []*C.FetchProc
-	nActiveProcs int
+	workers   []*worker
+	taskSlots []*taskSlot
 }
 
 var _ tgdef.Consumer = &Fetcher{}
 
-// New creates a Fetcher.
-func New(face iface.Face, cfg FetcherConfig) (*Fetcher, error) {
-	cfg.Validate()
-	if cfg.NProcs >= math.MaxUint8 { // InputDemux dispatches on 1-octet of PIT token
-		return nil, errors.New("too many procs")
-	}
-
-	faceID := face.ID()
-	socket := face.NumaSocket()
-	interestMp := (*C.struct_rte_mempool)(ndni.InterestMempool.Get(socket).Ptr())
-
-	fetcher := &Fetcher{
-		workers: make([]*worker, cfg.NThreads),
-		fp:      make([]*C.FetchProc, cfg.NProcs),
-	}
-	for i := range fetcher.workers {
-		w := &worker{
-			c: eal.Zmalloc[C.FetchThread]("FetchThread", C.sizeof_FetchThread, socket),
-		}
-		w.c.face = (C.FaceID)(faceID)
-		w.c.interestMp = interestMp
-		pcg32.Init(unsafe.Pointer(&w.c.nonceRng))
-		w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
-			cptr.Func0.C(C.FetchThread_Run, w.c),
-			unsafe.Pointer(&w.c.ctrl),
-		)
-		fetcher.workers[i] = w
-	}
-
-	for i := range fetcher.fp {
-		fp := eal.Zmalloc[C.FetchProc]("FetchProc", C.sizeof_FetchProc, socket)
-		if e := iface.PktQueueFromPtr(unsafe.Pointer(&fp.rxQueue)).Init(cfg.RxQueue, socket); e != nil {
-			return nil, e
-		}
-		fp.pitToken = C.uint8_t(i)
-		fetcher.fp[i] = fp
-		fetcher.Logic(i).Init(cfg.WindowCapacity, socket)
-	}
-
-	return fetcher, nil
-}
-
-// Logic returns the Logic of i-th fetch procedure.
-func (fetcher *Fetcher) Logic(i int) *Logic {
-	return (*Logic)(&fetcher.fp[i].logic)
-}
-
-// Reset resets all Logics.
-// If the fetcher is running, it is automatically stopped.
-func (fetcher *Fetcher) Reset() {
-	fetcher.Stop()
-	for _, fth := range fetcher.workers {
-		fth.c.head.next = nil
-	}
-	for i := range fetcher.fp {
-		fetcher.Logic(i).Reset()
-	}
-	fetcher.nActiveProcs = 0
-}
-
-// AddTemplate sets name prefix and other InterestTemplate arguments.
-// Return index of fetch procedure.
-func (fetcher *Fetcher) AddTemplate(tplCfg ndni.InterestTemplateConfig) (i int, e error) {
-	i = fetcher.nActiveProcs
-	if i >= len(fetcher.fp) {
-		return -1, errors.New("too many templates")
-	}
-
-	fp := fetcher.fp[i]
-	tpl := ndni.InterestTemplateFromPtr(unsafe.Pointer(&fp.tpl))
-	tplCfg.Apply(tpl)
-
-	if uintptr(fp.tpl.prefixL+1) >= unsafe.Sizeof(fp.tpl.prefixV) {
-		return -1, errors.New("name too long")
-	}
-	fp.tpl.prefixV[fp.tpl.prefixL] = an.TtSegmentNameComponent
-	// put SegmentNameComponent TLV-TYPE in the buffer so that it's checked in same memcmp
-
-	rs := urcu.NewReadSide()
-	defer rs.Close()
-	fth := fetcher.workers[i%len(fetcher.workers)]
-	C.cds_hlist_add_head_rcu(&fp.fthNode, &fth.c.head)
-	fetcher.nActiveProcs++
-	return i, nil
-}
-
 // Face returns the face.
 func (fetcher *Fetcher) Face() iface.Face {
-	return fetcher.workers[0].face()
+	return fetcher.workers[0].Face()
 }
 
-func (fetcher *Fetcher) rxQueue(i int) *iface.PktQueue {
-	return iface.PktQueueFromPtr(unsafe.Pointer(&fetcher.fp[i].rxQueue))
-}
-
-// ConnectRxQueues connects Data+Nack InputDemux to RxQueues.
+// ConnectRxQueues connects Data InputDemux to RxQueues.
+// Nack InputDemux is set to drop packets because fetcher does not support Nacks.
 func (fetcher *Fetcher) ConnectRxQueues(demuxD, demuxN *iface.InputDemux) {
 	demuxD.InitToken(0)
-	demuxN.InitToken(0)
-	for i := range fetcher.fp {
-		q := fetcher.rxQueue(i)
-		demuxD.SetDest(i, q)
-		demuxN.SetDest(i, q)
+	for i, ts := range fetcher.taskSlots {
+		demuxD.SetDest(i, ts.RxQueueD())
 	}
+	demuxN.InitDrop()
 }
 
 // Workers returns worker threads.
-func (fetcher Fetcher) Workers() []ealthread.ThreadWithRole {
+func (fetcher *Fetcher) Workers() []ealthread.ThreadWithRole {
 	return tgdef.GatherWorkers(fetcher.workers)
 }
 
-// Launch launches all fetch threads.
+// Tasks returns running fetch tasks.
+func (fetcher *Fetcher) Tasks() (list []*TaskContext) {
+	taskContextLock.RLock()
+	defer taskContextLock.RUnlock()
+	list = []*TaskContext{}
+	for _, task := range taskContextByID {
+		if task.fetcher == fetcher {
+			list = append(list, task)
+		}
+	}
+	return
+}
+
+// Fetch starts a fetch task.
+func (fetcher *Fetcher) Fetch(d TaskDef) (task *TaskContext, e error) {
+	eal.CallMain(func() {
+		task = &TaskContext{
+			d:        d,
+			fetcher:  fetcher,
+			w:        fetcher.workers[0],
+			stopping: make(chan struct{}),
+		}
+
+		for _, ts := range fetcher.taskSlots {
+			if ts.worker == -1 {
+				task.ts = ts
+				break
+			}
+		}
+		if task.ts == nil {
+			task, e = nil, errors.New("too many running tasks")
+			return
+		}
+		if e = task.ts.Init(d); e != nil {
+			task = nil
+			return
+		}
+
+		for _, w := range fetcher.workers {
+			if task.w.nTasks > w.nTasks {
+				task.w = w
+			}
+		}
+
+		task.w.AddTask(eal.MainReadSide, task.ts)
+		e = nil
+		taskContextLock.Lock()
+		defer taskContextLock.Unlock()
+		lastTaskContextID++
+		task.id = lastTaskContextID
+		taskContextByID[task.id] = task
+	})
+	return
+}
+
+// Launch launches all worker threads.
 func (fetcher *Fetcher) Launch() {
 	tgdef.LaunchWorkers(fetcher.workers)
 }
 
-// Stop stops all fetch threads.
+// Stop stops all worker threads.
 func (fetcher *Fetcher) Stop() error {
 	return tgdef.StopWorkers(fetcher.workers)
+}
+
+// Reset aborts all tasks and stops all worker threads.
+func (fetcher *Fetcher) Reset() {
+	fetcher.Stop()
+	for _, w := range fetcher.workers {
+		w.ClearTasks()
+	}
+	for _, ts := range fetcher.taskSlots {
+		ts.worker = -1
+	}
+	maps.DeleteFunc(taskContextByID, func(id int, task *TaskContext) bool { return task.fetcher == fetcher })
 }
 
 // Close deallocates data structures.
@@ -202,15 +152,35 @@ func (fetcher *Fetcher) Close() error {
 	errs := []error{
 		fetcher.Stop(),
 	}
-	for i, fp := range fetcher.fp {
+	for _, ts := range fetcher.taskSlots {
 		errs = append(errs,
-			fetcher.rxQueue(i).Close(),
-			fetcher.Logic(i).Close(),
+			ts.RxQueueD().Close(),
+			ts.Logic().Close(),
 		)
-		eal.Free(fp)
+		eal.Free(ts)
 	}
-	for _, fth := range fetcher.workers {
-		eal.Free(fth.c)
+	for _, w := range fetcher.workers {
+		eal.Free(w.c)
 	}
 	return multierr.Combine(errs...)
+}
+
+// New creates a Fetcher.
+func New(face iface.Face, cfg Config) (*Fetcher, error) {
+	cfg.applyDefaults()
+
+	fetcher := &Fetcher{
+		workers:   make([]*worker, cfg.NThreads),
+		taskSlots: make([]*taskSlot, cfg.NTasks),
+	}
+	for i := range fetcher.workers {
+		fetcher.workers[i] = newWorker(face, i)
+	}
+
+	socket := face.NumaSocket()
+	for i := range fetcher.taskSlots {
+		fetcher.taskSlots[i] = newTaskSlot(i, cfg.TaskSlotConfig, socket)
+	}
+
+	return fetcher, nil
 }

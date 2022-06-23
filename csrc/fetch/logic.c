@@ -5,9 +5,8 @@
 N_LOG_INIT(FetchLogic);
 
 size_t
-FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit)
+FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit, TscTime now)
 {
-  TscTime now = rte_get_tsc_cycles();
   uint32_t cwnd = TcpCubic_GetCwnd(&fl->ca);
   size_t count = 0;
   int nNew = 0, nRetx = 0;
@@ -96,11 +95,13 @@ FetchLogic_RxData(FetchLogic* fl, TscTime now, uint64_t segNum, bool hasCongMark
 }
 
 void
-FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count)
+FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count, TscTime now)
 {
-  TscTime now = rte_get_tsc_cycles();
   for (size_t i = 0; i < count; ++i) {
     FetchLogic_RxData(fl, now, pkts[i].segNum, pkts[i].congMark > 0);
+  }
+  if (unlikely(fl->finishTime == 0 && fl->win.loSegNum > fl->finalSegNum)) {
+    fl->finishTime = rte_get_tsc_cycles();
   }
 }
 
@@ -129,6 +130,8 @@ FetchLogic_Init_(FetchLogic* fl)
   NDNDPDK_ASSERT(rte_is_power_of_2(fl->win.capacityMask + 1));
 
   CDS_INIT_LIST_HEAD(&fl->retxQ);
+  fl->startTime = rte_get_tsc_cycles();
+  fl->finishTime = 0;
   fl->nTxRetx = 0;
   fl->nRxData = 0;
   fl->finalSegNum = UINT64_MAX;
@@ -136,7 +139,11 @@ FetchLogic_Init_(FetchLogic* fl)
   fl->cwndDecreaseInterestSegNum = 0;
   fl->nInFlight = 0;
 
-  // 2^16 slots of 1ms interval, accommodates RTO up to 65536ms
-  fl->sched = MinSched_New(16, TscHz / 1000, FetchLogic_RtoTimeout, (uintptr_t)fl);
-  NDNDPDK_ASSERT(MinSched_GetMaxDelay(fl->sched) >= RttEstTscMaxRto);
+  if (fl->sched == NULL) {
+    // 2^16 slots of 1ms interval, accommodates RTO up to 65536ms
+    fl->sched = MinSched_New(16, TscHz / 1000, FetchLogic_RtoTimeout, (uintptr_t)fl);
+    NDNDPDK_ASSERT(MinSched_GetMaxDelay(fl->sched) >= RttEstTscMaxRto);
+  } else {
+    MinSched_Clear(fl->sched);
+  }
 }

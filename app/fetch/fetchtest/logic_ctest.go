@@ -14,14 +14,14 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
 
-func TestLogic(t *testing.T) {
+func ctestLogic(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	fl := eal.Zmalloc[fetch.Logic]("FetchLogic", unsafe.Sizeof(fetch.Logic{}), eal.NumaSocket{})
 	defer eal.Free(fl)
 	fl.Init(64, eal.NumaSocket{})
 	defer fl.Close()
-	flC := (*C.FetchLogic)(unsafe.Pointer(&fl))
+	flC := (*C.FetchLogic)(unsafe.Pointer(fl))
 
 	const FINAL_SEG = 1999
 	const LOSS_RATE = 0.05
@@ -38,7 +38,7 @@ func TestLogic(t *testing.T) {
 		for {
 			select {
 			case rxSegNum := <-rxData:
-				C.FetchLogic_RxDataBurst(flC, &C.FetchLogicRxData{segNum: C.uint64_t(rxSegNum)}, 1)
+				C.FetchLogic_RxDataBurst(flC, &C.FetchLogicRxData{segNum: C.uint64_t(rxSegNum)}, 1, C.TscTime(eal.TscNow()))
 			default:
 				break RX
 			}
@@ -46,7 +46,7 @@ func TestLogic(t *testing.T) {
 
 		for {
 			var txSegNumC C.uint64_t
-			if nTx := C.FetchLogic_TxInterestBurst(flC, &txSegNumC, 1); nTx == 0 {
+			if nTx := C.FetchLogic_TxInterestBurst(flC, &txSegNumC, 1, C.TscTime(eal.TscNow())); nTx == 0 {
 				break
 			}
 			txSegNum := uint64(txSegNumC)

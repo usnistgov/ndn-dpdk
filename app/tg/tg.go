@@ -99,6 +99,8 @@ func (gen *TrafficGen) Launch() error {
 
 	if gen.consumer != nil {
 		gen.consumer.Launch()
+	} else if gen.fetcher != nil {
+		gen.fetcher.Launch()
 	}
 
 	return nil

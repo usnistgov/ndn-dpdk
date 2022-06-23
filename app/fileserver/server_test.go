@@ -573,10 +573,10 @@ func TestFuse(t *testing.T) {
 			mtimeZ := fs.mtime.Add(8 * time.Second)
 			fs.mtimeZ.Store(mtimeZ)
 			time.Sleep(2 * cfg.StatValidity.Duration())
-			_, e = f.FetchPayloadOpts(m, segmented.FetchOptions{
-				SegmentEnd: 1 + uint64(lastSeg),
-				RetxLimit:  1,
-			})
+			var fetchOpts segmented.FetchOptions
+			fetchOpts.SegmentEnd = 1 + uint64(lastSeg)
+			fetchOpts.RetxLimit = 1
+			_, e = f.FetchPayloadOpts(m, fetchOpts)
 			assert.Error(e)
 
 			m, e = f.RetrieveMetadata("/fs/Z")

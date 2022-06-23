@@ -9,7 +9,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
 func TestFetcher(t *testing.T) {
@@ -18,53 +17,55 @@ func TestFetcher(t *testing.T) {
 	intFace := intface.MustNew()
 	defer intFace.D.Close()
 
-	cfg := fetch.FetcherConfig{
-		NThreads:       1,
-		NProcs:         1,
-		WindowCapacity: 1024,
-	}
+	var cfg fetch.Config
+	cfg.NThreads = 1
+	cfg.NTasks = 2
+	cfg.WindowCapacity = 1024
 
 	fetcher, e := fetch.New(intFace.D, cfg)
 	require.NoError(e)
 	tgtestenv.Open(t, fetcher)
 	defer fetcher.Close()
+	fetcher.Launch()
 
-	nInterests := 0
+	nInterests := map[byte]int{}
 	go func() {
 		for packet := range intFace.Rx {
 			require.NotNil(packet.Interest)
-			assert.Equal([]byte{0}, packet.Lp.PitToken)
-			nInterests++
+			if assert.Len(packet.Lp.PitToken, 1) {
+				nInterests[packet.Lp.PitToken[0]]++
+			}
 			if rand.Float64() > 0.01 {
 				intFace.Tx <- ndn.MakeData(packet.Interest)
 			}
 		}
 	}()
 
-	fetcher.Reset()
-	i, e := fetcher.AddTemplate(ndni.InterestTemplateConfig{
-		Prefix: ndn.ParseName("/A"),
-	})
+	var def0, def1 fetch.TaskDef
+	def0.Prefix = ndn.ParseName("/A")
+	def0.SegmentEnd = 5000
+	task0, e := fetcher.Fetch(def0)
 	require.NoError(e)
-	assert.Equal(i, 0)
+	def1.Prefix = ndn.ParseName("/B")
+	def1.SegmentEnd = 2000
+	task1, e := fetcher.Fetch(def1)
+	require.NoError(e)
 
-	logic := fetcher.Logic(i)
-	logic.SetFinalSegNum(4999)
-	fetcher.Launch()
 	t0 := time.Now()
-
 	{
 		ticker := time.NewTicker(time.Millisecond)
 		for range ticker.C {
-			if logic.Finished() {
+			if task0.Finished() && task1.Finished() {
 				break
 			}
 		}
 		ticker.Stop()
 	}
-	fetcher.Stop()
 
-	t.Log(nInterests, "Interests in", time.Since(t0))
-	assert.GreaterOrEqual(nInterests, 5000)
-	assert.Less(nInterests, 6000)
+	require.Len(nInterests, 2)
+	assert.GreaterOrEqual(nInterests[0], 5000)
+	assert.Less(nInterests[0], 6000)
+	assert.GreaterOrEqual(nInterests[1], 2000)
+	assert.Less(nInterests[1], 3000)
+	t.Log(nInterests[0], "and", nInterests[1], "Interests in", time.Since(t0))
 }

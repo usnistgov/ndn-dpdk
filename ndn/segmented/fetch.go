@@ -18,39 +18,48 @@ import (
 	"github.com/zyedidia/generic"
 )
 
-// FetchOptions contains options for Fetch function.
-type FetchOptions struct {
-	// Fw specifies the L3 Forwarder.
-	// Default is the default Forwarder.
-	Fw l3.Forwarder
-
+// SegmentRange specifies range of segment numbers.
+type SegmentRange struct {
 	// SegmentBegin is the first segment number.
 	// Default is zero.
-	SegmentBegin uint64
+	SegmentBegin uint64 `json:"segmentBegin,omitempty"`
 
 	// SegmentEnd is the last segment number plus one.
 	// Default is math.MaxUint64.
 	//
 	// Data FinalBlock field is always respected.
-	SegmentEnd uint64
-
-	// RetxLimit is the maximum number of retransmissions, excluding initial Interest.
-	// Default is no retransmission.
-	RetxLimit int
-
-	// MaxCwnd is the maximum effective congestion window.
-	// Default is no limitation.
-	MaxCwnd int
-
-	// Verifier is a public key to verify Data.
-	// Default is NopVerifier.
-	Verifier ndn.Verifier
+	SegmentEnd uint64 `json:"segmentEnd,omitempty"`
 }
 
-func (opts *FetchOptions) applyDefaults() {
+// SegmentRangeApplyDefaults applies defaults in SegmentRange struct.
+func (opts *SegmentRange) SegmentRangeApplyDefaults() {
 	if opts.SegmentEnd == 0 {
 		opts.SegmentEnd = math.MaxUint64
 	}
+}
+
+// FetchOptions contains options for Fetch function.
+type FetchOptions struct {
+	SegmentRange
+
+	// Fw specifies the L3 Forwarder.
+	// Default is the default Forwarder.
+	Fw l3.Forwarder `json:"-"`
+
+	// RetxLimit is the maximum number of retransmissions, excluding initial Interest.
+	// Default is no retransmission.
+	RetxLimit int `json:"retxLimit,omitempty"`
+
+	// MaxCwnd is the maximum effective congestion window.
+	// Default is no limitation.
+	MaxCwnd int `json:"maxCwnd,omitempty"`
+
+	// Verifier is a public key to verify Data.
+	// Default is NopVerifier.
+	Verifier ndn.Verifier `json:"-"`
+}
+
+func (opts *FetchOptions) applyDefaults() {
 	if opts.MaxCwnd == 0 {
 		opts.MaxCwnd = math.MaxInt32
 	}
