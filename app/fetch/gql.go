@@ -135,13 +135,13 @@ func init() {
 		Subscription: "fetchCounters",
 		NoDiff:       true,
 		FindArgs: graphql.FieldConfigArgument{
-			"task": &graphql.ArgumentConfig{
+			"id": &graphql.ArgumentConfig{
 				Description: "Task context.",
 				Type:        gqlserver.NonNullID,
 			},
 		},
 		Find: func(p graphql.ResolveParams) (source any, enders []any, e error) {
-			task := GqlTaskContextType.Retrieve(p.Args["task"].(string))
+			task := GqlTaskContextType.Retrieve(p.Args["id"].(string))
 			if task == nil {
 				return nil, nil, nil
 			}

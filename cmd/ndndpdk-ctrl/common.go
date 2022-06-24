@@ -168,7 +168,7 @@ func (r request) isSubscription() bool {
 
 func (r request) Execute(ctx context.Context, ptr any) error {
 	if r.isSubscription() {
-		return r.subscribe(ctx)
+		return r.subscribe(ctx, reflect.ValueOf(ptr))
 	}
 	return r.do(ctx, ptr)
 }
@@ -195,15 +195,44 @@ func (r request) do(ctx context.Context, ptr any) error {
 	return nil
 }
 
-func (r request) subscribe(ctx context.Context) error {
+func (r request) subscribe(ctx context.Context, cb reflect.Value) error {
+	var elemTyp reflect.Type
+	switch cb.Kind() {
+	case reflect.Invalid:
+	case reflect.Func:
+		if cb.IsNil() {
+			break
+		}
+		if t := cb.Type(); t.NumIn() == 1 && (t.NumOut() == 0 || (t.NumOut() == 1 && t.Out(0) == reflect.TypeOf(true))) {
+			elemTyp = t.In(0)
+			break
+		}
+		fallthrough
+	default:
+		panic("invalid callback")
+	}
+
+	subscribeCtx, unsubscribe := context.WithCancel(ctx)
+	defer unsubscribe()
+
 	updates := make(chan any)
 	go func() {
 		for update := range updates {
 			j, _ := json.Marshal(update)
 			fmt.Println(string(j))
+
+			if elemTyp != nil {
+				elemPtr := reflect.New(elemTyp)
+				if e := json.Unmarshal(j, elemPtr.Interface()); e == nil {
+					ret := cb.Call([]reflect.Value{elemPtr.Elem()})
+					if len(ret) == 1 && !ret[0].Bool() {
+						unsubscribe()
+					}
+				}
+			}
 		}
 	}()
-	return client.Subscribe(ctx, r.Query, r.Vars, r.Key, updates)
+	return client.Subscribe(subscribeCtx, r.Query, r.Vars, r.Key, updates)
 }
 
 func (r request) Print() error {
@@ -240,6 +269,12 @@ func (r request) Print() error {
 	return nil
 }
 
+// clientDoPrint either runs a GraphQL query/mutation/subscription or prints the command to stdout.
+//  query: GraphQL document, which should contain exactly one GraphQL operation.
+//  vars: query variables.
+//  key: top-level JSON property key to extract from response.
+//  ptr: for query/mutation, pointer to a variable for receiving the response;
+//       for subscription, `func(T)` or `func(T) bool` for receiving each update, return false to unsubscribe.
 func clientDoPrint(ctx context.Context, query string, vars map[string]any, key string, ptr ...any) error {
 	r := request{
 		Query: query,

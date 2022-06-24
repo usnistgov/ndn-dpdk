@@ -34,7 +34,6 @@ func init() {
 func init() {
 	var name, strategy, params string
 	var nexthops cli.StringSlice
-
 	defineCommand(&cli.Command{
 		Category: "fib",
 		Name:     "insert-fib",

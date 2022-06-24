@@ -25,7 +25,7 @@ func (s *RunningStat) ptr() *C.RunningStat {
 // sampleInterval: how often to collect sample, will be adjusted to nearest power of two and truncated between 1 and 2^30.
 func (s *RunningStat) Init(sampleInterval int) {
 	*s = RunningStat{
-		mask: C.uint64_t(generic.Clamp(binutils.NearPowerOfTwo(int64(sampleInterval)), 1, 1<<30) - 1),
+		mask: generic.Clamp(C.uint64_t(binutils.NearPowerOfTwo(int64(sampleInterval))), 1, 1<<30) - 1,
 	}
 }
 

@@ -23,18 +23,18 @@ func init() {
 	createWriter := func(c *cli.Context) error {
 		var result withID
 		if e := clientDoPrint(c.Context, `
-				mutation createPdumpWriter($filename: String!) {
-					createPdumpWriter(filename: $filename) {
-						filename
+			mutation createPdumpWriter($filename: String!) {
+				createPdumpWriter(filename: $filename) {
+					filename
+					id
+					worker {
 						id
-						worker {
-							id
-							nid
-							numaSocket
-						}
+						nid
+						numaSocket
 					}
 				}
-			`, map[string]any{
+			}
+		`, map[string]any{
 			"filename": filename,
 		}, "createPdumpWriter", &result); e != nil {
 			return e
