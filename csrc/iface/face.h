@@ -3,7 +3,6 @@
 
 /** @file */
 
-#include "faceid.h"
 #include "input-demux.h"
 #include "reassembler.h"
 

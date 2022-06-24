@@ -9,7 +9,7 @@
 __attribute__((nonnull)) struct rte_cryptodev_sym_session*
 CryptoDev_NewSha256DigestSession(struct rte_mempool* mp, uint8_t dev);
 
-/** @brief Identify a crypto queue pair. */
+/** @brief Crypto queue pair. */
 typedef struct CryptoQueuePair
 {
   struct rte_cryptodev_sym_session* sha256;

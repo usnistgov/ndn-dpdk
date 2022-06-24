@@ -8,9 +8,9 @@
 
 /** @brief EthFace header buffer length. */
 #define ETHHDR_MAXLEN                                                                              \
-  (RTE_ETHER_HDR_LEN + RTE_VLAN_HLEN + sizeof(struct rte_ipv6_hdr) + RTE_ETHER_VXLAN_HLEN +        \
+  (RTE_ETHER_HDR_LEN + RTE_VLAN_HLEN +                                                             \
+   spdk_max(sizeof(struct rte_ipv4_hdr), sizeof(struct rte_ipv6_hdr)) + RTE_ETHER_VXLAN_HLEN +     \
    RTE_ETHER_HDR_LEN)
-static_assert(sizeof(struct rte_ipv4_hdr) <= sizeof(struct rte_ipv6_hdr), "");
 static_assert(ETHHDR_MAXLEN <= RTE_PKTMBUF_HEADROOM, "");
 
 /** @brief EthFace address information. */

@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
 	github.com/FDio/vpp v1.0.1-0.20220223130241-7911f29c518c
-	github.com/bhoriuchi/graphql-go-tools v0.3.3
+	github.com/bhoriuchi/graphql-go-tools v1.0.0
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/dylandreimerink/gobpfld v0.6.0
@@ -29,10 +29,10 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/soh335/sliceflag v0.0.0-20160923061056-d2d28a5acab8
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.7.5
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
-	github.com/urfave/cli/v2 v2.8.1
+	github.com/urfave/cli/v2 v2.10.3
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zyedidia/generic v1.1.0
@@ -41,12 +41,12 @@ require (
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d
-	golang.org/x/sys v0.0.0-20220615213510-4f61da869c0c
+	golang.org/x/sys v0.0.0-20220622161953-175b2fd9d664
 )
 
 require (
 	github.com/alecthomas/participle/v2 v2.0.0-alpha6 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
 	github.com/google/uuid v1.3.0 // indirect

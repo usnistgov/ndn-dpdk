@@ -11,27 +11,31 @@ typedef enum PktQueuePopAct
   PktQueuePopActPlain,
   PktQueuePopActDelay,
   PktQueuePopActCoDel,
-} PktQueuePopAct;
+} __rte_packed PktQueuePopAct;
 
-/** @brief Thread-safe packet queue. */
+/**
+ * @brief Thread-safe packet queue.
+ *
+ * It can operate in one of these modes:
+ * @li plain mode: packets are dequeued as fast as possible.
+ * @li delay mode: packets are dequeued no earlier than @c q->target after it's received.
+ * @li CoDel mode: @c PktQueuePopResult.drop is set according to CoDel algorithm.
+ */
 typedef struct PktQueue
 {
-  struct rte_ring* ring;
-
-  PktQueuePopAct pop;
-  TscDuration target;
-  TscDuration interval;
-  uint32_t dequeueBurstSize;
-
-  uint32_t count;
-  uint32_t lastCount;
-  bool dropping;
-  uint16_t recInvSqrt;
-  TscTime firstAboveTime;
-  TscTime dropNext;
-  TscDuration sojourn;
-
-  uint64_t nDrops;
+  struct rte_ring* ring;     ///< ringbuffer of packets in queue
+  TscDuration target;        ///< delay target or CoDel target
+  TscDuration interval;      ///< CoDel interval
+  uint32_t dequeueBurstSize; ///< maximum dequeue burst size
+  uint32_t count;            ///< CoDel internal variable
+  uint32_t lastCount;        ///< CoDel internal variable
+  uint16_t recInvSqrt;       ///< CoDel internal variable
+  bool dropping;             ///< CoDel internal variable
+  PktQueuePopAct pop;        ///< dequeue function index
+  TscTime firstAboveTime;    ///< CoDel internal variable
+  TscTime dropNext;          ///< CoDel internal variable
+  TscDuration sojourn;       ///< CoDel internal variable
+  uint64_t nDrops;           ///< number of packets marked as dropped by CoDel
 } PktQueue;
 
 /**
