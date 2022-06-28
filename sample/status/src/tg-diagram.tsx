@@ -1,12 +1,8 @@
 import { h } from "preact";
 
-import { gql, gqlQuery } from "./client";
+import { client, gql } from "./client";
 import { TimerRefreshComponent } from "./refresh-component";
 import { Face, TgFace } from "./tg-face";
-
-interface TgQueryResult {
-  faces: Face[];
-}
 
 interface State {
   faces?: Face[];
@@ -14,15 +10,16 @@ interface State {
 
 export class TgDiagram extends TimerRefreshComponent<{}, State> {
   protected override async refresh() {
-    let { faces } = await gqlQuery<TgQueryResult>(gql`
+    const faces = await client.request<Array<Partial<Face>>>(gql`
       {
         faces {
           ${Face.subselection}
         }
       }
-    `);
-    faces = faces.filter((face) => !!(face as Partial<Face>).trafficgen);
-    return { faces };
+    `, {}, { key: "faces" });
+    return {
+      faces: faces.filter((face): face is Face => !!face.trafficgen),
+    };
   }
 
   override render() {

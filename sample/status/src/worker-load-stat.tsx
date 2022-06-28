@@ -1,7 +1,7 @@
 import type { Counter } from "@usnistgov/ndn-dpdk";
 import { Fragment, h } from "preact";
 
-import { gql, GqlErrors, gqlSubError } from "./client";
+import { client, gql } from "./client";
 import { AbortableComponent } from "./refresh-component";
 
 interface Props {
@@ -23,7 +23,7 @@ export class WorkerLoadStat extends AbortableComponent<Props, State> {
 
   override async componentDidMount() {
     const { id } = this.props;
-    for await (const item of gqlSubError<{ threadLoadStat: LoadStat }>(gql`
+    for await (const loadStat of client.subscribe<LoadStat>(gql`
       subscription threadLoadStat($id: ID!) {
         threadLoadStat(id: $id, interval: "1s", diff: true) {
           itemsPerPoll
@@ -31,12 +31,12 @@ export class WorkerLoadStat extends AbortableComponent<Props, State> {
           validPolls
         }
       }
-    `, { id }, this.abort)) {
-      if (item instanceof GqlErrors) {
-        this.setState({ loadStat: undefined });
-      } else {
-        this.setState({ loadStat: item.threadLoadStat });
-      }
+    `, { id }, {
+      signal: this.signal,
+      key: "threadLoadStat",
+      onError: () => this.setState({ loadStat: undefined }),
+    })) {
+      this.setState({ loadStat });
     }
   }
 

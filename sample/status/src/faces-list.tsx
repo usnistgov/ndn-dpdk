@@ -1,6 +1,6 @@
 import { Fragment, h } from "preact";
 
-import { gql, gqlQuery } from "./client";
+import { client, gql } from "./client";
 import { FaceGrid } from "./face-grid";
 import { Face as FaceB } from "./model";
 import { TimerRefreshComponent } from "./refresh-component";
@@ -39,7 +39,7 @@ export class FacesList extends TimerRefreshComponent<{}, State> {
   };
 
   protected override refresh() {
-    return gqlQuery<State>(gql`
+    return client.request<State>(gql`
       {
         ethDevs {
           id nid name numaSocket macAddr mtu isDown devInfo

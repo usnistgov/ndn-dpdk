@@ -1,7 +1,7 @@
 import type { Counter, FileServerCounters } from "@usnistgov/ndn-dpdk";
 import { h } from "preact";
 
-import { gql, gqlSub } from "./client";
+import { client, gql } from "./client";
 import { AbortableComponent } from "./refresh-component";
 
 interface Props {
@@ -25,13 +25,13 @@ export class FileServerCounterView extends AbortableComponent<Props, State> {
 
   override async componentDidMount() {
     const { tgID } = this.props;
-    for await (const { tgCounters: { fileServer: cnt } } of gqlSub<{ tgCounters: { fileServer: FileServerCounters } }>(gql`
+    for await (const { fileServer: cnt } of client.subscribe<{ fileServer: FileServerCounters }>(gql`
       subscription tgCounters($id: ID!) {
         tgCounters(id: $id, interval: "1s", diff: false) {
           fileServer { ${counters.join(" ")} }
         }
       }
-    `, { id: tgID }, this.abort)) {
+    `, { id: tgID }, { signal: this.signal, key: "tgCounters" })) {
       this.setState({ cnt });
     }
   }

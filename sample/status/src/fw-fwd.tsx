@@ -1,6 +1,6 @@
 import { Fragment, h } from "preact";
 
-import { gql, gqlSub } from "./client";
+import { client, gql } from "./client";
 import type { FwDispatchCounters } from "./fw-dispatch-queues";
 import { AbortableComponent } from "./refresh-component";
 
@@ -62,7 +62,7 @@ export class FwFwd extends AbortableComponent<Props, State> {
 
   private async subscribe<K extends keyof State>(key: K, query: string) {
     const { id } = this.props;
-    for await (const { result } of gqlSub<{ result: State[K] }>(query, { id }, this.abort)) {
+    for await (const result of client.subscribe<State[K]>(query, { id }, { signal: this.signal, key: "result" })) {
       this.setState({ [key]: result });
     }
   }

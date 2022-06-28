@@ -1,7 +1,7 @@
 import type { Counter, TgpCounters, TgpPattern, TgpReply } from "@usnistgov/ndn-dpdk";
 import { type ComponentChild, Fragment, h } from "preact";
 
-import { gql, gqlSub } from "./client";
+import { client, gql } from "./client";
 import { formatName } from "./model";
 import { AbortableComponent } from "./refresh-component";
 
@@ -19,7 +19,7 @@ export class TgpPatternsTable extends AbortableComponent<Props, State> {
 
   override async componentDidMount() {
     const { tgID } = this.props;
-    for await (const { tgCounters: { producer: cnt } } of gqlSub<{ tgCounters: { producer: TgpCounters } }>(gql`
+    for await (const { producer: cnt } of client.subscribe<{ producer: TgpCounters }>(gql`
       subscription tgCounters($id: ID!) {
         tgCounters(id: $id, interval: "1s", diff: true) {
           producer {
@@ -28,7 +28,7 @@ export class TgpPatternsTable extends AbortableComponent<Props, State> {
           }
         }
       }
-    `, { id: tgID }, this.abort)) {
+    `, { id: tgID }, { signal: this.signal, key: "tgCounters" })) {
       this.setState({ cnt });
     }
   }

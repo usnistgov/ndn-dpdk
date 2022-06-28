@@ -1,7 +1,7 @@
 import numd from "numd";
 import { Fragment, h } from "preact";
 
-import { gql, gqlQuery } from "./client";
+import { client, gql } from "./client";
 import { TimerRefreshComponent } from "./refresh-component";
 
 interface Props {
@@ -33,7 +33,7 @@ export class FwInput extends TimerRefreshComponent<Props, State> {
   state: State = {};
 
   protected override async refresh(): Promise<Partial<State> | undefined> {
-    const { node } = await gqlQuery<{ node: State }>(gql`
+    const node = await client.request<State>(gql`
       query FwInput($id: ID!) {
         node(id: $id) {
           ... on FwInput {
@@ -53,7 +53,7 @@ export class FwInput extends TimerRefreshComponent<Props, State> {
           }
         }
       }
-    `, { id: this.props.id });
+    `, { id: this.props.id }, { key: "node" });
     return node;
   }
 

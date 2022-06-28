@@ -2,7 +2,7 @@
 import { get as hashGet } from "hashquery";
 import { Component, Fragment, h, render } from "preact";
 
-import { gql, gqlQuery } from "./client";
+import { client, gql } from "./client";
 import { FacesList } from "./faces-list";
 import { FwDiagram } from "./fw-diagram";
 import { Worker, WorkerRole, WorkersByRole } from "./model";
@@ -46,11 +46,11 @@ class App extends Component<{}, State> {
     this.handleHashChange();
     window.addEventListener("hashchange", this.handleHashChange);
 
-    const { workers } = await gqlQuery<{ workers: ReadonlyArray<Worker<WorkerRole | "">> }>(gql`
+    const workers = await client.request<ReadonlyArray<Worker<WorkerRole | "">>>(gql`
       {
         workers { ${Worker.subselection} }
       }
-    `);
+    `, {}, { key: "workers" });
     const sw: State["workers"] = {};
     for (const w of workers) {
       if (!w.role) {

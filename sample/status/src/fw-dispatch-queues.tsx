@@ -1,6 +1,6 @@
 import { h } from "preact";
 
-import { gql, gqlSub } from "./client";
+import { client, gql } from "./client";
 import { AbortableComponent } from "./refresh-component";
 
 const counters = [
@@ -31,15 +31,15 @@ export class FwDispatchQueues extends AbortableComponent<Props, State> {
 
   override async componentDidMount() {
     const { id, onChange } = this.props;
-    for await (const { fwDispatchCounters } of gqlSub<{ fwDispatchCounters: FwDispatchCounters }>(gql`
+    for await (const cnt of client.subscribe<FwDispatchCounters>(gql`
       subscription fwDispatchCounters($id: ID!) {
         fwDispatchCounters(id: $id, interval: "1s", diff: true) {
           ${counters.join(" ")}
         }
       }
-    `, { id }, this.abort)) {
-      this.setState({ cnt: fwDispatchCounters });
-      onChange?.(fwDispatchCounters);
+    `, { id }, { signal: this.signal, key: "fwDispatchCounters" })) {
+      this.setState({ cnt });
+      onChange?.(cnt);
     }
   }
 

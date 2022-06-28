@@ -1,11 +1,17 @@
 import { Component } from "preact";
 
 export abstract class AbortableComponent<P = {}, S = {}> extends Component<P, S> {
+  protected constructor() {
+    super();
+    this.signal = this.abort.signal;
+  }
+
   override componentWillUnmount() {
     this.abort.abort();
   }
 
   protected readonly abort = new AbortController();
+  protected readonly signal: AbortSignal;
 }
 
 export abstract class TimerRefreshComponent<P = {}, S = {}> extends Component<P, S> {

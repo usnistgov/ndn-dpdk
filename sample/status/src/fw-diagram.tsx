@@ -1,7 +1,7 @@
 import numd from "numd";
 import { h } from "preact";
 
-import { gql, gqlQuery } from "./client";
+import { client, gql } from "./client";
 import { type FwDispatchCounters, FwDispatchQueues } from "./fw-dispatch-queues";
 import { type FwdPktQueueCounters, FwFwd } from "./fw-fwd";
 import { FwInput } from "./fw-input";
@@ -41,7 +41,7 @@ export class FwDiagram extends TimerRefreshComponent<{}, State> {
   };
 
   protected override async refresh() {
-    const fwdp = await gqlQuery<FwdpQueryResult>(gql`
+    const fwdp = await client.request<FwdpQueryResult>(gql`
       {
         fwdp {
           inputs { id nid worker { ${Worker.subselection} } }

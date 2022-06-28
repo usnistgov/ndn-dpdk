@@ -1,7 +1,7 @@
 import numd from "numd";
 import { Fragment, h } from "preact";
 
-import { gql, gqlSub } from "./client";
+import { client, gql } from "./client";
 import { type Face, describeFaceLocator } from "./model";
 import { AbortableComponent } from "./refresh-component";
 
@@ -29,13 +29,13 @@ export class FaceGrid extends AbortableComponent<Props, State> {
 
   override async componentDidMount() {
     const { id } = this.props.face;
-    for await (const { faceCounters } of gqlSub<{ faceCounters: Counters }>(gql`
+    for await (const faceCounters of client.subscribe<Counters>(gql`
       subscription faceCounters($id: ID!) {
         faceCounters(id: $id, interval: "1s", diff: true) {
           ${counters.join(" ")}
         }
       }
-    `, { id }, this.abort)) {
+    `, { id }, { signal: this.signal, key: "faceCounters" })) {
       this.setState({ cnt: faceCounters });
     }
   }
