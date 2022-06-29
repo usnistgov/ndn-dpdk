@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import FastifyExpress from "@fastify/express";
+import FastifyProxy from "@fastify/http-proxy";
 import FastifyStatic from "@fastify/static";
 import Fastify from "fastify";
-import httpProxy from "http-proxy";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import urlParseLax from "url-parse-lax";
@@ -64,14 +64,11 @@ fastify.use(devMiddleware(compiler));
 
 await fastify.register(FastifyStatic, { root: publicDir });
 
-const proxy = httpProxy.createProxyServer({
-  target: args.gqlserver.toString(),
-  ws: true,
-  ignorePath: true,
-});
-proxy.on("error", (err) => console.warn(err));
-fastify.get("/graphql", (request) => {
-  proxy.ws(request.raw, request.socket, request.headers);
+await fastify.register(FastifyProxy, {
+  upstream: args.gqlserver.toString(),
+  prefix: "/graphql",
+  rewritePrefix: "/",
+  websocket: true,
 });
 
 await fastify.listen({

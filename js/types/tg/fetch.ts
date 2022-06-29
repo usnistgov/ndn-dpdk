@@ -1,4 +1,5 @@
 import type { Counter, NNNanoseconds, Uint } from "../core.js";
+import type { InterestTemplate } from "../ndni.js";
 import type { PktQueueConfig } from "../pktqueue.js";
 
 export interface FetcherConfig {
@@ -21,6 +22,10 @@ export interface FetcherConfig {
    * @default 65536
    */
   windowCapacity?: Uint;
+}
+
+export interface FetchTaskDef extends InterestTemplate {
+  segmentEnd?: Uint;
 }
 
 export interface FetchCounters {

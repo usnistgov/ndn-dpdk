@@ -23,6 +23,7 @@ export class App extends Component<{}, State> {
       interestNameLen: 3,
       dataMatch: "exact",
       payloadLen: 1000,
+      warmup: 5,
       duration: 30,
     },
     running: false,
@@ -99,10 +100,9 @@ export class App extends Component<{}, State> {
       let i = 0;
       while (this.state.running) {
         this.setState({ message: `running trial ${++i}` });
-        const r = await b.run();
+        const { pps, bps } = await b.run();
         const dt = new Date();
-        const { pps, bps } = b.computeThroughput(r);
-        console.log({ i, dt, pps, bps, r });
+        console.log({ i, dt, pps, bps });
         this.setState(({ results }) => ({
           results: [...results, { dt, pps, bps }],
         }));

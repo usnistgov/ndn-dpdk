@@ -2,15 +2,12 @@ package fetch
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/app/tg/tggql"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
-	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
@@ -151,85 +148,6 @@ func init() {
 		Read: func(p graphql.ResolveParams) (any, error) {
 			task := p.Source.(*TaskContext)
 			return task.Counters(), nil
-		},
-	})
-
-	gqlserver.AddMutation(&graphql.Field{
-		Name:              "runFetchBenchmark",
-		Description:       "Run a fetcher benchmark.",
-		DeprecationReason: "Use fetch mutation and fetchCounters subscription.",
-		Args: graphql.FieldConfigArgument{
-			"fetcher": &graphql.ArgumentConfig{
-				Description: "Fetcher ID.",
-				Type:        gqlserver.NonNullID,
-			},
-			"templates": &graphql.ArgumentConfig{
-				Description: "Interest templates.",
-				Type:        gqlserver.NewListNonNullBoth(ndni.GqlInterestTemplateInput),
-			},
-			"finalSegNum": &graphql.ArgumentConfig{
-				Description: "Final segment number for each Interest template",
-				Type:        graphql.NewList(gqlserver.NonNullInt),
-			},
-			"interval": &graphql.ArgumentConfig{
-				Description: "How often to collect statistics.",
-				Type:        graphql.NewNonNull(nnduration.GqlNanoseconds),
-			},
-			"count": &graphql.ArgumentConfig{
-				Description: "How many sets of statistics to be collected.",
-				Type:        gqlserver.NonNullInt,
-			},
-		},
-		Type: gqlserver.NonNullJSON,
-		Resolve: func(p graphql.ResolveParams) (any, error) {
-			fetcher := GqlFetcherType.Retrieve(p.Args["fetcher"].(string))
-			if fetcher == nil {
-				return nil, errors.New("fetcher not found")
-			}
-
-			var templates []ndni.InterestTemplateConfig
-			if e := jsonhelper.Roundtrip(p.Args["templates"], &templates, jsonhelper.DisallowUnknownFields); e != nil {
-				return nil, e
-			}
-			finalSegNums, _ := p.Args["finalSegNum"].([]any)
-
-			fetcher.Reset()
-			var tasks []*TaskContext
-			for i, tpl := range templates {
-				d := TaskDef{
-					InterestTemplateConfig: tpl,
-				}
-				if i < len(finalSegNums) {
-					d.SegmentEnd = uint64(finalSegNums[i].(int)) + 1
-				}
-
-				task, e := fetcher.Fetch(d)
-				if e != nil {
-					//lint:ignore ST1005 'Fetch' is a function name
-					return nil, fmt.Errorf("Fetch[%d]: %w", i, e)
-				}
-				tasks = append(tasks, task)
-			}
-
-			interval := p.Args["interval"].(nnduration.Nanoseconds)
-			count := p.Args["count"].(int)
-
-			result := make([][]Counters, len(templates))
-			for i := range result {
-				result[i] = make([]Counters, count)
-			}
-
-			fetcher.Launch()
-			ticker := time.NewTicker(interval.Duration())
-			defer ticker.Stop()
-			for c := 0; c < count; c++ {
-				<-ticker.C
-				for i, task := range tasks {
-					result[i][c] = task.Counters()
-				}
-			}
-			fetcher.Stop()
-			return result, nil
 		},
 	})
 }

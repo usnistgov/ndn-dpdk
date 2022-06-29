@@ -90,22 +90,15 @@ for (const u of [
   await fastify.register(FastifyProxy, {
     ...u,
     rewritePrefix: "/",
-    http: {
-      requestOptions: {
-        timeout: 600000,
-      },
-    },
     websocket: true,
   });
 }
 
-fastify.get("/env.json", async (request, reply) => {
-  reply.send({
-    ...env,
-    F_GQLSERVER: "/F",
-    G_GQLSERVER: "/G",
-  });
-});
+fastify.get("/env.json", () => ({
+  ...env,
+  F_GQLSERVER: "/F",
+  G_GQLSERVER: "/G",
+}));
 
 await fastify.listen({
   port: 3333,

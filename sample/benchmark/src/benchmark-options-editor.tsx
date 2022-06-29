@@ -9,7 +9,7 @@ interface Props {
 }
 
 export class BenchmarkOptionsEditor extends Component<Props> {
-  private id = `benchmark-options-form_${Math.random}_`;
+  private readonly id = `BenchmarkOptionsEditor_${Math.random}_`;
 
   override render() {
     const {

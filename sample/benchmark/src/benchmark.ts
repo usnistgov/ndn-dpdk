@@ -1,7 +1,7 @@
-import type { ActivateFwArgs, ActivateGenArgs, EtherLocator, FaceLocator, FetchCounters, InterestTemplate, TgConfig, VxlanLocator } from "@usnistgov/ndn-dpdk";
+import { type ActivateFwArgs, type ActivateGenArgs, type EtherLocator, type FaceLocator, type FetcherConfig, type FetchTaskDef, type TgpConfig, type VxlanLocator } from "@usnistgov/ndn-dpdk";
 import delay from "delay";
-import { gql, GraphQLClient } from "graphql-request";
-import type { RequestInit as gqlRequestInit } from "graphql-request/dist/types.dom";
+
+import { GqlFwControl, GqlGenControl } from "./control";
 
 export interface ServerEnv {
   F_GQLSERVER: string;
@@ -23,6 +23,7 @@ export interface BenchmarkOptions {
   interestNameLen: number;
   dataMatch: "exact" | "prefix";
   payloadLen: number;
+  warmup: number;
   duration: number;
 }
 
@@ -30,9 +31,8 @@ export interface BenchmarkState {
   face: Record<string, string>;
   ndtDuplicate: boolean;
   fetcher: Record<string, string>;
+  tasks: Record<string, string[]>;
 }
-
-export type BenchmarkResult = Record<string, FetchCounters[][]>;
 
 export interface Throughput {
   pps: number;
@@ -45,21 +45,21 @@ export class Benchmark {
       private readonly opts: BenchmarkOptions,
       signal: AbortSignal,
   ) {
-    // graphql-request package bundles a copy of DOM typing incompatible with @types/web
-    const init: gqlRequestInit = {
-      signal: signal as gqlRequestInit["signal"],
-    };
-    this.cF = new GraphQLClient(env.F_GQLSERVER, init);
-    this.cG = new GraphQLClient(env.G_GQLSERVER, init);
+    this.cF = new GqlFwControl(env.F_GQLSERVER);
+    this.cG = new GqlGenControl(env.G_GQLSERVER);
     this.state = JSON.parse(JSON.stringify(initialState));
+    signal.addEventListener("abort", () => {
+      this.cF.close();
+      this.cG.close();
+    });
   }
 
-  private readonly cF: GraphQLClient;
-  private readonly cG: GraphQLClient;
+  private readonly cF: GqlFwControl;
+  private readonly cG: GqlGenControl;
   private state: BenchmarkState;
 
   public async setupForwarder(): Promise<void> {
-    await restart(this.cF);
+    await this.cF.restart();
 
     const {
       faceScheme,
@@ -93,16 +93,12 @@ export class Benchmark {
       fwdDataQueue: { dequeueBurstSize: 64 },
       fwdNackQueue: { dequeueBurstSize: 64 },
     };
-    await this.cF.request(gql`
-      mutation activate($arg: JSON!) {
-        activate(forwarder: $arg)
-      }
-    `, { arg });
+    await this.cF.activate("forwarder", arg);
 
     const seenNdtIndices = new Set<number>();
     for (const [i, [label]] of DIRECTIONS.entries()) {
-      const port = await createEthPort(this.cF, this.env.F_PORTS[i]!);
-      const face = await createFace(this.cF, {
+      const port = await this.cF.createEthPort(this.env.F_PORTS[i]!);
+      const face = await this.cF.createFace({
         port,
         nRxQueues: faceRxQueues,
         local: macAddr("F", label),
@@ -113,9 +109,9 @@ export class Benchmark {
 
       for (let j = 0; j < nFwds; ++j) {
         const name = `/${label}/${j}`;
-        await insertFibEntry(this.cF, name, face);
+        await this.cF.insertFibEntry(name, face);
 
-        const index = await updateNdt(this.cF, name, j % nFwds);
+        const index = await this.cF.updateNdt(name, j % nFwds);
         this.state.ndtDuplicate ||= seenNdtIndices.has(index);
         seenNdtIndices.add(index);
       }
@@ -123,7 +119,7 @@ export class Benchmark {
   }
 
   public async setupTrafficGen(): Promise<void> {
-    await restart(this.cG);
+    await this.cG.restart();
 
     const {
       faceScheme,
@@ -143,34 +139,23 @@ export class Benchmark {
         INDIRECT: { capacity: 2097151 },
       },
     };
-    await this.cG.request(gql`
-      mutation activate($arg: JSON!) {
-        activate(trafficgen: $arg)
-      }
-    `, { arg });
+    await this.cG.activate("trafficgen", arg);
 
     for (const [i, [label]] of DIRECTIONS.entries()) {
-      const port = await createEthPort(this.cG, this.env.G_PORTS[i]!);
-
-      const cfg: TgConfig = {
-        face: {
-          port,
-          nRxQueues: faceRxQueues,
-          local: macAddr("G", label),
-          remote: macAddr("F", label),
-          ...(faceScheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
-        },
-        producer: {
-          nThreads: 1,
-          patterns: [],
-        },
-        fetcher: {
-          nThreads: 1,
-          nTasks: nFwds,
-        },
+      const port = await this.cG.createEthPort(this.env.G_PORTS[i]!);
+      const locator: FaceLocator = {
+        port,
+        nRxQueues: faceRxQueues,
+        local: macAddr("G", label),
+        remote: macAddr("F", label),
+        ...(faceScheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
+      };
+      const producer: TgpConfig = {
+        nThreads: 1,
+        patterns: [],
       };
       for (let j = 0; j < nFwds; ++j) {
-        cfg.producer!.patterns.push({
+        producer.patterns.push({
           prefix: `/${label}/${j}`,
           replies: [{
             suffix: dataMatch === "exact" ? undefined : "/d",
@@ -179,75 +164,56 @@ export class Benchmark {
           }],
         });
       }
-
-      const { startTrafficGen: { fetcher: { id } } } = await this.cG.request<{
-        startTrafficGen: { fetcher: { id: string } };
-      }>(gql`
-        mutation startTrafficGen(
-          $face: JSON!
-          $producer: TgpConfigInput
-          $fetcher: FetcherConfigInput
-        ) {
-          startTrafficGen(
-            face: $face
-            producer: $producer
-            fetcher: $fetcher
-          ) {
-            fetcher { id }
-          }
-        }
-      `, cfg);
-      this.state.fetcher[label] = id;
+      const fetcher: FetcherConfig = {
+        nThreads: 1,
+        nTasks: nFwds,
+      };
+      const result = await this.cG.startTrafficGen(locator, producer, fetcher);
+      this.state.fetcher[label] = result.fetcher;
     }
   }
 
-  public async run(): Promise<BenchmarkResult> {
+  public async run(): Promise<Throughput> {
     const {
       nFwds,
       interestNameLen,
       dataMatch,
+      payloadLen,
+      warmup,
       duration,
     } = this.opts;
-    const result = Object.fromEntries(await Promise.all(DIRECTIONS.map(async ([label, dest]) => {
-      const templates: InterestTemplate[] = [];
+    await Promise.all(DIRECTIONS.map(async ([label, dest]) => {
+      const tasks: FetchTaskDef[] = [];
       for (let j = 0; j < nFwds; ++j) {
-        templates.push({
+        tasks.push({
           prefix: `/${dest}/${j}${"/i".repeat(interestNameLen - 3)}`,
           canBePrefix: dataMatch === "prefix",
           mustBeFresh: true,
         });
       }
-      const { runFetchBenchmark } = await this.cG.request<{ runFetchBenchmark: any }>(gql`
-        mutation runFetchBenchmark($fetcher: ID!, $templates: [InterestTemplateInput!]!, $interval: NNNanoseconds!, $count: Int!) {
-          runFetchBenchmark(fetcher: $fetcher, templates: $templates, interval: $interval, count: $count)
-        }
-      `, {
-        fetcher: this.state.fetcher[label],
-        templates,
-        interval: "1s",
-        count: 1 + duration,
-      });
-      return [label, runFetchBenchmark];
-    })));
-    await delay(1000);
-    return result;
-  }
+      this.state.tasks[label] = await this.cG.startFetch(this.state.fetcher[label], tasks);
+    }));
+    await delay(1000 * warmup);
+    const cnts0 = await Promise.all(DIRECTIONS.map(([label]) => this.cG.getFetchProgress(this.state.tasks[label])));
+    await delay(1000 * duration);
+    const cnts1 = await Promise.all(DIRECTIONS.map(([label]) => this.cG.getFetchProgress(this.state.tasks[label])));
+    await Promise.all(DIRECTIONS.map(([label]) => this.cG.stopFetch(this.state.tasks[label])));
 
-  public computeThroughput(a: BenchmarkResult | readonly FetchCounters[] | readonly FetchCounters[][]): Throughput {
-    if (Array.isArray(a)) {
-      if (Array.isArray(a[0])) {
-        // eslint-disable-next-line unicorn/no-array-method-this-argument
-        return sumThroughput((a as FetchCounters[][]).map(this.computeThroughput, this));
+    let totalPackets = 0; let
+      totalElapsedSeconds = 0;
+    for (const [i, cnt0d] of cnts0.entries()) {
+      for (const [j, cnt0] of cnt0d.entries()) {
+        const cnt1 = cnts1[i]![j]!;
+        totalPackets += Number(cnt1.nRxData) - Number(cnt0.nRxData);
+        totalElapsedSeconds += (Number(cnt1.elapsed) - Number(cnt0.elapsed)) / 1e9;
       }
-
-      const { payloadLen, duration } = this.opts;
-      const r = a as FetchCounters[];
-      const pps = (Number(r.at(-1)!.nRxData) - Number(r[0].nRxData)) / duration;
-      return { pps, bps: pps * payloadLen * 8 };
     }
-
-    // eslint-disable-next-line unicorn/no-array-method-this-argument
-    return sumThroughput(Object.values(a as BenchmarkResult).map(this.computeThroughput, this));
+    const avgElapsedSeconds = totalElapsedSeconds / cnts0.length / cnts0[0]!.length;
+    const pps = totalPackets / avgElapsedSeconds;
+    return {
+      pps,
+      bps: pps * payloadLen * 8,
+    };
   }
 }
 
@@ -255,22 +221,10 @@ const initialState: BenchmarkState = {
   face: {},
   ndtDuplicate: false,
   fetcher: {},
+  tasks: {},
 };
 
 const DIRECTIONS = [["A", "B"], ["B", "A"]];
-
-async function restart(c: GraphQLClient) {
-  await c.request(gql`mutation { shutdown(restart: true) }`);
-  await delay(5000);
-  for (let i = 0; i < 30; ++i) {
-    try {
-      await delay(1000);
-      await c.request(gql`{ version { version } }`);
-      return;
-    } catch {}
-  }
-  throw new Error("restart timeout");
-}
 
 function hexDigit(s: string): string {
   return s.codePointAt(0)!.toString(16).padStart(2, "0");
@@ -288,77 +242,3 @@ const vxlanLocatorFields: Omit<VxlanLocator, Exclude<keyof EtherLocator, "scheme
   innerLocal: "02:00:00:ff:ff:ff",
   innerRemote: "02:00:00:ff:ff:ff",
 };
-
-async function createEthPort(client: GraphQLClient, pciAddr: string): Promise<string> {
-  const { createEthPort: { id } } = await client.request<{
-    createEthPort: { id: string };
-  }>(gql`
-    mutation createEthPort(
-      $pciAddr: String
-    ) {
-      createEthPort(
-        driver: PCI
-        pciAddr: $pciAddr
-        mtu: 9000
-        rxFlowQueues: 2
-      ) {
-        id
-      }
-    }
-  `, { pciAddr });
-  return id;
-}
-
-async function createFace(client: GraphQLClient, locator: FaceLocator): Promise<string> {
-  const { createFace: { id } } = await client.request<{
-    createFace: { id: string };
-  }>(gql`
-    mutation createFace($locator: JSON!) {
-      createFace(locator: $locator) {
-        id
-      }
-    }
-  `, { locator });
-  return id;
-}
-
-async function insertFibEntry(client: GraphQLClient, name: string, nexthop: string): Promise<string> {
-  const { insertFibEntry: { id } } = await client.request<{
-    insertFibEntry: { id: string };
-  }>(gql`
-    mutation insertFibEntry($name: Name!, $nexthops: [ID!]!) {
-      insertFibEntry(name: $name, nexthops: $nexthops) {
-        id
-      }
-    }
-  `, {
-    name,
-    nexthops: [nexthop],
-  });
-  return id;
-}
-
-async function updateNdt(client: GraphQLClient, name: string, value: number): Promise<number> {
-  const { updateNdt: { index } } = await client.request<{
-    updateNdt: { index: number };
-  }>(gql`
-    mutation updateNdt($name: Name!, $value: Int!) {
-      updateNdt(name: $name, value: $value) {
-        index
-      }
-    }
-  `, {
-    name,
-    value,
-  });
-  return index;
-}
-
-function sumThroughput(a: Iterable<Throughput>): Throughput {
-  const r = { pps: 0, bps: 0 };
-  for (const { pps, bps } of a) {
-    r.pps += pps;
-    r.bps += bps;
-  }
-  return r;
-}

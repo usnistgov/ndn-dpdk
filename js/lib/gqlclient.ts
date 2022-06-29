@@ -1,7 +1,7 @@
 import { type ClientError, type RequestDocument, gql, GraphQLWebSocketClient } from "graphql-request";
 import WebSocket from "isomorphic-ws";
 import { pushable } from "it-pushable";
-import pDefer from "p-defer";
+import throat from "throat";
 
 export { gql };
 
@@ -12,26 +12,38 @@ export class GqlClient {
    * @param uri NDN-DPDK GraphQL server URI.
    */
   constructor(uri: string | URL) {
-    const connecting = pDefer<void>();
-    this.connecting = connecting.promise;
-
-    uri = new URL(uri);
+    uri = new URL(uri, globalThis.document?.URL);
     uri.protocol = uri.protocol.replace(/^http/, "ws");
-    const ws = new WebSocket(uri.toString(), GraphQLWebSocketClient.PROTOCOL);
-    ws.addEventListener("error", (evt) => connecting.reject(evt.error));
-    ws.addEventListener("close", (evt) => connecting.reject(new Error("WebSocket closed")));
+    this.uri = uri.toString();
 
-    this.client = new GraphQLWebSocketClient(ws as any, {
-      async onAcknowledged() { connecting.resolve(); },
-    });
+    // const ws = new WebSocket(uri.toString(), GraphQLWebSocketClient.PROTOCOL);
+    // ws.addEventListener("error", (evt) => connecting.reject(evt.error));
+
+    // this.client = new GraphQLWebSocketClient(ws as any, {
+    //   async onAcknowledged() { connecting.resolve(); },
+    // });
   }
 
-  private readonly connecting: Promise<void>;
-  public readonly client: GraphQLWebSocketClient;
+  private readonly mutex = throat(1);
+  private uri: string;
+  public client?: GraphQLWebSocketClient;
+
+  private async reconnect(): Promise<void> {
+    this.client ??= await this.mutex(async () => new Promise<GraphQLWebSocketClient>((resolve, reject) => {
+      const ws = new WebSocket(this.uri, GraphQLWebSocketClient.PROTOCOL);
+      ws.addEventListener("error", (evt) => reject(evt.error));
+      ws.addEventListener("close", () => { this.client = undefined; });
+
+      const client = new GraphQLWebSocketClient(ws as any, {
+        async onAcknowledged() { resolve(client); },
+      });
+    }));
+  }
 
   /** Close the GraphQL client. */
   public close(): void {
-    this.client.close();
+    this.client?.close();
+    this.client = undefined;
   }
 
   /** Run a query or mutation. */
@@ -39,8 +51,8 @@ export class GqlClient {
     signal,
     key,
   }: GqlClient.Options = {}): Promise<T> {
-    await this.connecting;
-    let value = await this.client.request(query, vars);
+    await this.reconnect();
+    let value = await this.client!.request(query, vars);
     if (signal?.aborted) {
       throw signal.reason as Error;
     }
@@ -67,9 +79,9 @@ export class GqlClient {
     key,
     onError,
   }: GqlClient.SubscribeOptions = {}): AsyncIterable<T> {
-    await this.connecting;
+    await this.reconnect();
     const q = pushable<T>({ objectMode: true });
-    const unsubscribe = this.client.subscribe(query, {
+    const unsubscribe = this.client!.subscribe(query, {
       next: (value) => {
         if (key) {
           value = value[key];
