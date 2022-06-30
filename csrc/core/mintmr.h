@@ -1,5 +1,5 @@
-#ifndef NDNDPDK_MINTMR_MINTMR_H
-#define NDNDPDK_MINTMR_MINTMR_H
+#ifndef NDNDPDK_CORE_MINTMR_H
+#define NDNDPDK_CORE_MINTMR_H
 
 /** @file */
 
@@ -11,11 +11,7 @@ typedef struct MinTmr
   struct cds_list_head h;
 } MinTmr;
 
-/**
- * @brief Initialize a timer.
- *
- * MinTmr must be either zeroed or initialized with this function.
- */
+/** @brief Initialize a timer. */
 __attribute__((nonnull)) static __rte_always_inline void
 MinTmr_Init(MinTmr* tmr)
 {
@@ -103,4 +99,4 @@ MinTmr_At(MinTmr* tmr, TscTime at, MinSched* sched)
   return MinTmr_After(tmr, at - now, sched);
 }
 
-#endif // NDNDPDK_MINTMR_MINTMR_H
+#endif // NDNDPDK_CORE_MINTMR_H

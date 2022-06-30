@@ -44,6 +44,7 @@ func ctestDataParse(t *testing.T) {
 	assert.EqualValues(1, data.name.nComps)
 	assert.Equal(bytesFromHex("050141"), C.GoBytes(unsafe.Pointer(data.name.value), C.int(data.name.length)))
 	assert.EqualValues(0, data.freshness)
+	assert.False(bool(data.isFinalBlock))
 
 	// full
 	p = makePacket(`
@@ -62,6 +63,21 @@ func ctestDataParse(t *testing.T) {
 	assert.EqualValues(2, data.name.nComps)
 	assert.Equal(bytesFromHex("080142080130"), C.GoBytes(unsafe.Pointer(data.name.value), C.int(data.name.length))) // linearized
 	assert.EqualValues(260, data.freshness)
+	assert.False(bool(data.isFinalBlock))
+
+	// isFinalBlock
+	p = makePacket(`
+		0616
+		0706080143080137 // name
+		14051A0308`, `0137 // metainfo with finalblock
+		16031B0100 // siginfo
+		1700 // sigvalue
+	`)
+	defer p.Close()
+	require.True(bool(C.Packet_ParseL3(p.npkt)))
+	require.EqualValues(ndni.PktData, C.Packet_GetType(p.npkt))
+	data = C.Packet_GetDataHdr(p.npkt)
+	assert.True(bool(data.isFinalBlock))
 
 	// invalid: unknown-critical
 	p = makePacket(`

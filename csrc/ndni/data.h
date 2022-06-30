@@ -11,6 +11,7 @@ typedef struct PData
   PName name;
   uint32_t freshness; ///< FreshnessPeriod in millis
   bool hasDigest;
+  bool isFinalBlock;
   RTE_MARKER64 a_;
   uint8_t digest[ImplicitDigestLength];
   RTE_MARKER64 b_;
