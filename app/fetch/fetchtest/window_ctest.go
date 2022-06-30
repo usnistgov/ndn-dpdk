@@ -48,6 +48,7 @@ func ctestWindowLarge(t *testing.T) {
 
 	win := &C.FetchWindow{}
 	C.FetchWindow_Init(win, 0x4000, C.SOCKET_ID_ANY)
+	C.FetchWindow_Reset(win, 0xC0000)
 	defer C.FetchWindow_Free(win)
 
 	appendRange := func(first, last int) {
@@ -63,16 +64,16 @@ func ctestWindowLarge(t *testing.T) {
 		}
 	}
 
-	appendRange(0x0000, 0x3FFF)
+	appendRange(0xC0000, 0xC3FFF)
 	assert.Nil(C.FetchWindow_Append(win))
 
-	deleteRange(0x0000, 0x0001)
-	appendRange(0x4000, 0x4001)
+	deleteRange(0xC0000, 0xC0001)
+	appendRange(0xC4000, 0xC4001)
 	assert.Nil(C.FetchWindow_Append(win))
 
-	deleteRange(0x0002, 0x200D)
-	deleteRange(0x200F, 0x4000)
-	deleteRange(0x200E, 0x200E)
-	appendRange(0x4002, 0x8000)
+	deleteRange(0xC0002, 0xC200D)
+	deleteRange(0xC200F, 0xC4000)
+	deleteRange(0xC200E, 0xC200E)
+	appendRange(0xC4002, 0xC8000)
 	assert.Nil(C.FetchWindow_Append(win))
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/ndn/segmented"
 )
 
 // Logic implements fetcher congestion control and scheduling logic.
@@ -19,32 +20,20 @@ func (fl *Logic) ptr() *C.FetchLogic {
 }
 
 // Init initializes the logic and allocates data structures.
-func (fl *Logic) Init(windowCapacity int, socket eal.NumaSocket) {
-	C.FetchWindow_Init(&fl.win, C.uint32_t(windowCapacity), C.int(socket.ID()))
-	C.RttEst_Init(&fl.rtte)
-	C.TcpCubic_Init(&fl.ca)
-	C.FetchLogic_Init_(fl.ptr())
+func (fl *Logic) Init(winCapacity int, socket eal.NumaSocket) {
+	C.FetchLogic_Init(fl.ptr(), C.uint32_t(winCapacity), C.int(socket.ID()))
 }
 
 // Reset resets this to initial state.
-func (fl *Logic) Reset() {
-	*fl = Logic{win: fl.win, sched: fl.sched}
-	fl.win.loSegNum, fl.win.hiSegNum = 0, 0
-	C.RttEst_Init(&fl.rtte)
-	C.TcpCubic_Init(&fl.ca)
-	C.FetchLogic_Init_(fl.ptr())
+func (fl *Logic) Reset(r segmented.SegmentRange) {
+	r.SegmentRangeApplyDefaults()
+	C.FetchLogic_Reset(fl.ptr(), C.uint64_t(r.SegmentBegin), C.uint64_t(r.SegmentEnd))
 }
 
 // Close deallocates data structures.
 func (fl *Logic) Close() error {
-	C.MinSched_Close(fl.sched)
-	C.FetchWindow_Free(&fl.win)
+	C.FetchLogic_Free(fl.ptr())
 	return nil
-}
-
-// SetFinalSegNum assigns (inclusive) final segment number.
-func (fl *Logic) SetFinalSegNum(segNum uint64) {
-	fl.finalSegNum = C.uint64_t(segNum)
 }
 
 // Finished determines if all segments have been fetched.

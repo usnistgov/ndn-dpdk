@@ -12,6 +12,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/fetch"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/usnistgov/ndn-dpdk/ndn/segmented"
 )
 
 func ctestLogic(t *testing.T) {
@@ -26,7 +27,9 @@ func ctestLogic(t *testing.T) {
 	const FINAL_SEG = 1999
 	const LOSS_RATE = 0.05
 
-	fl.SetFinalSegNum(FINAL_SEG)
+	fl.Reset(segmented.SegmentRange{
+		SegmentEnd: FINAL_SEG + 1,
+	})
 
 	rxData := make(chan uint64)
 	txCounts := map[uint64]int{}

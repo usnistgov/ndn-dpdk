@@ -3,6 +3,9 @@
 void
 FetchWindow_Init(FetchWindow* win, uint32_t capacity, int numaSocket)
 {
+  // txTime has room for RTT up to 300s
+  NDNDPDK_ASSERT(TscDuration_FromMillis(300000) < (TscDuration)FetchSegTxTimeMask);
+
   NDNDPDK_ASSERT(rte_is_power_of_2(capacity));
 
   size_t sizeofArray = sizeof(FetchSeg) * capacity;
@@ -23,6 +26,13 @@ FetchWindow_Free(FetchWindow* win)
   rte_free(win->array);
   NULLize(win->array);
   NULLize(win->deleted);
+}
+
+void
+FetchWindow_Reset(FetchWindow* win, uint64_t firstSegNum)
+{
+  win->loSegNum = firstSegNum;
+  win->hiSegNum = firstSegNum;
 }
 
 void

@@ -5,31 +5,41 @@
 
 #include "../core/mintmr.h"
 
+enum
+{
+  FetchSegTxTimeBits = 56,
+  FetchSegTxTimeMask = ((uint64_t)1 << FetchSegTxTimeBits) - 1,
+};
+static_assert(FetchSegTxTimeBits + 1 + 1 <= 64, "");
+
 /** @brief Per-segment state. */
 typedef struct FetchSeg
 {
-  uint64_t segNum;               ///< segment number
-  TscTime txTime;                ///< last Interest tx time
-  MinTmr rtoExpiry;              ///< RTO expiration timer
-  struct cds_list_head retxNode; ///< retxQ node
-  uint16_t nRetx;                ///< number of Interest retx, increment upon TX
-} __rte_cache_aligned FetchSeg;
+  uint64_t segNum; ///< segment number
+  struct
+  {
+    uint64_t txTime : FetchSegTxTimeBits; ///< TscTime last Interest tx time
+    bool hasRetx : 1;                     ///< whether Interest has been retransmitted at least once
+    bool inRetxQ : 1;
+  } __rte_packed;
+  union
+  {
+    MinTmr rtoExpiry;              ///< RTO expiration timer, valid if inRetxQ==false
+    struct cds_list_head retxNode; ///< retxQ node, valid if inRetxQ==true
+  };
+} FetchSeg;
 
 __attribute__((nonnull)) static inline void
 FetchSeg_Init(FetchSeg* seg, uint64_t segNum)
 {
-  seg->segNum = segNum;
-  seg->txTime = 0;
-  MinTmr_Init(&seg->rtoExpiry);
-  CDS_INIT_LIST_HEAD(&seg->retxNode);
-  seg->nRetx = 0;
+  *seg = (FetchSeg){ .segNum = segNum };
 }
 
 /** @brief Window of segment states. */
 typedef struct FetchWindow
 {
-  FetchSeg* array;
-  uint64_t* deleted;     ///< deleted flag bitmap
+  FetchSeg* array;       ///< segment records
+  uint64_t* deleted;     ///< deleted flag bit vector
   uint32_t capacityMask; ///< array capacity minus one
   uint64_t loSegNum;     ///< inclusive lower bound of segment numbers
   uint64_t hiSegNum;     ///< exclusive upper bound of segment numbers
@@ -46,6 +56,10 @@ FetchWindow_Init(FetchWindow* win, uint32_t capacity, int numaSocket);
 /** @brief Deallocated memory. */
 __attribute__((nonnull)) void
 FetchWindow_Free(FetchWindow* win);
+
+/** @brief Delete all records and set first segment number. */
+__attribute__((nonnull)) void
+FetchWindow_Reset(FetchWindow* win, uint64_t firstSegNum);
 
 /**
  * @brief Compute position of a segment number.

@@ -14,14 +14,14 @@ TcpCubic_Init(TcpCubic* ca)
   ca->ssthresh = DBL_MAX;
 }
 
-static double
+__attribute__((nonnull)) static inline double
 TcpCubic_ComputeWCubic(TcpCubic* ca, double t)
 {
   double tk = t - ca->k;
   return TCPCUBIC_C * tk * tk * tk + ca->wMax;
 }
 
-static double
+__attribute__((nonnull)) static inline double
 TcpCubic_ComputeWEst(TcpCubic* ca, double t, double rtt)
 {
   return ca->wMax * TCPCUBIC_BETACUBIC +

@@ -9,6 +9,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgtestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/intface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 func TestFetcher(t *testing.T) {
@@ -20,7 +22,7 @@ func TestFetcher(t *testing.T) {
 	var cfg fetch.Config
 	cfg.NThreads = 1
 	cfg.NTasks = 2
-	cfg.WindowCapacity = 1024
+	cfg.WindowCapacity = 512
 
 	fetcher, e := fetch.New(intFace.D, cfg)
 	require.NoError(e)
@@ -28,44 +30,75 @@ func TestFetcher(t *testing.T) {
 	defer fetcher.Close()
 	fetcher.Launch()
 
-	nInterests := map[byte]int{}
+	var defA, defB fetch.TaskDef
+	defA.Prefix = ndn.ParseName("/A")
+	defA.SegmentBegin, defA.SegmentEnd = 0, 5000
+	defB.Prefix = ndn.ParseName("/B")
+	defB.SegmentBegin, defB.SegmentEnd = 1000, 4000
+	const finalBlockB = 1800
+
+	pInterestsA, nInterestsA, pInterestsB, nInterestsB := map[tlv.NNI]int{}, 0, map[tlv.NNI]int{}, 0
 	go func() {
 		for packet := range intFace.Rx {
 			require.NotNil(packet.Interest)
-			if assert.Len(packet.Lp.PitToken, 1) {
-				nInterests[packet.Lp.PitToken[0]]++
+			data := ndn.MakeData(packet.Interest, time.Millisecond)
+
+			lastComp := packet.Interest.Name.Get(-1)
+			assert.EqualValues(an.TtSegmentNameComponent, lastComp.Type)
+			var segNum tlv.NNI
+			assert.NoError(segNum.UnmarshalBinary(lastComp.Value))
+
+			switch {
+			case defA.Prefix.IsPrefixOf(packet.Interest.Name):
+				nInterestsA++
+				pInterestsA[segNum]++
+				assert.Less(uint64(segNum), defA.SegmentEnd)
+			case defB.Prefix.IsPrefixOf(packet.Interest.Name):
+				nInterestsB++
+				pInterestsB[segNum]++
+				assert.GreaterOrEqual(uint64(segNum), defB.SegmentBegin)
+				assert.Less(uint64(segNum), defB.SegmentEnd)
+				if segNum == finalBlockB {
+					data.FinalBlock = lastComp
+				} else if segNum > finalBlockB {
+					continue
+				}
+			default:
+				assert.Fail("unexpected Interest", packet.Interest.Name)
 			}
+
 			if rand.Float64() > 0.01 {
-				intFace.Tx <- ndn.MakeData(packet.Interest)
+				intFace.Tx <- data
 			}
 		}
 	}()
 
-	var def0, def1 fetch.TaskDef
-	def0.Prefix = ndn.ParseName("/A")
-	def0.SegmentEnd = 5000
-	task0, e := fetcher.Fetch(def0)
+	taskA, e := fetcher.Fetch(defA)
 	require.NoError(e)
-	def1.Prefix = ndn.ParseName("/B")
-	def1.SegmentEnd = 2000
-	task1, e := fetcher.Fetch(def1)
+	taskB, e := fetcher.Fetch(defB)
 	require.NoError(e)
 
 	t0 := time.Now()
 	{
 		ticker := time.NewTicker(time.Millisecond)
 		for range ticker.C {
-			if task0.Finished() && task1.Finished() {
+			if taskA.Finished() && taskB.Finished() {
 				break
 			}
 		}
 		ticker.Stop()
 	}
 
-	require.Len(nInterests, 2)
-	assert.GreaterOrEqual(nInterests[0], 5000)
-	assert.Less(nInterests[0], 6000)
-	assert.GreaterOrEqual(nInterests[1], 2000)
-	assert.Less(nInterests[1], 3000)
-	t.Log(nInterests[0], "and", nInterests[1], "Interests in", time.Since(t0))
+	cntA, cntB := taskA.Counters(), taskB.Counters()
+	assert.EqualValues(defA.SegmentEnd-defA.SegmentBegin, cntA.NRxData)
+	assert.EqualValues(defA.SegmentEnd-defA.SegmentBegin, len(pInterestsA))
+	assert.Zero(cntA.NInFlight)
+	assert.InDelta(float64(nInterestsA), float64(cntA.NTxRetx+cntA.NRxData), float64(cfg.WindowCapacity))
+
+	assert.EqualValues(finalBlockB-defB.SegmentBegin+1, cntB.NRxData)
+	assert.GreaterOrEqual(len(pInterestsB), int(finalBlockB-defB.SegmentBegin+1))
+	assert.Less(len(pInterestsB), int(finalBlockB-defB.SegmentBegin)+cfg.WindowCapacity)
+
+	t.Logf("/A Interests %d (unique %d) and /B Interests %d (unique %d) in %v",
+		nInterestsA, len(pInterestsA), nInterestsB, len(pInterestsB), time.Since(t0))
 }

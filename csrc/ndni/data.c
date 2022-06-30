@@ -3,9 +3,6 @@
 #include "tlv-decoder.h"
 #include "tlv-encoder.h"
 
-#include "../core/logger.h"
-N_LOG_INIT(PData);
-
 // helperScratch should be small enough not to increase PacketPriv size
 static_assert(sizeof(PData) <= sizeof(PInterest), "");
 
@@ -32,7 +29,6 @@ __attribute__((nonnull)) static __rte_always_inline bool
 PData_ParseMetaInfo(PData* data, TlvDecoder* d)
 {
   TlvDecoder_EachTL (d, type, length) {
-    // N_LOGE("PData_ParseMetaInfo %"PRIx32, type);
     switch (type) {
       case TtFreshnessPeriod: {
         if (unlikely(!TlvDecoder_ReadNniTo(d, length, &data->freshness))) {
@@ -43,7 +39,6 @@ PData_ParseMetaInfo(PData* data, TlvDecoder* d)
       case TtFinalBlock: {
         // TODO skip this step in forwarder
         LName lastComp = PName_Slice(&data->name, -1, INT16_MAX);
-        N_LOGE("TtFinalBlock %" PRIu16 " %" PRIu32, lastComp.length, length);
         if (likely(lastComp.length == length)) {
           uint8_t scratch[NameMaxLength];
           const uint8_t* finalBlockComp = TlvDecoder_Read(d, scratch, lastComp.length);

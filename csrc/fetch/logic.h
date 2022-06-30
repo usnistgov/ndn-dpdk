@@ -17,18 +17,24 @@ typedef struct FetchLogic
   TcpCubic ca;
   struct cds_list_head retxQ;
   MinSched* sched;
-  TscTime startTime;
-  TscTime finishTime;
-  uint64_t nTxRetx;
-  uint64_t nRxData;
-  uint64_t finalSegNum;
-  uint64_t hiDataSegNum;
-  uint64_t cwndDecreaseInterestSegNum;
-  uint32_t nInFlight;
+  uint64_t segmentEnd;            ///< last segnum desired plus one
+  TscTime startTime;              ///< start time
+  TscTime finishTime;             ///< finish time, 0 if not finished
+  uint64_t nTxRetx;               ///< retransmitted Interests
+  uint64_t nRxData;               ///< non-duplicate Data
+  uint64_t hiDataSegNum;          ///< highest Data segnum received
+  uint64_t cwndDecInterestSegNum; ///< highest Interest segnum when cwnd was last decreased
+  uint32_t nInFlight;             ///< count of in-flight Interests
 } FetchLogic;
 
 __attribute__((nonnull)) void
-FetchLogic_Init_(FetchLogic* fl);
+FetchLogic_Init(FetchLogic* fl, uint32_t winCapacity, int numaSocket);
+
+__attribute__((nonnull)) void
+FetchLogic_Free(FetchLogic* fl);
+
+__attribute__((nonnull)) void
+FetchLogic_Reset(FetchLogic* fl, uint64_t segmentBegin, uint64_t segmentEnd);
 
 /**
  * @brief Request to transmit a burst of Interests.
@@ -42,6 +48,7 @@ typedef struct FetchLogicRxData
 {
   uint64_t segNum;
   uint8_t congMark;
+  bool isFinalBlock;
 } FetchLogicRxData;
 
 /**

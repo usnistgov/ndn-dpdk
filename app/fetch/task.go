@@ -6,7 +6,6 @@ package fetch
 import "C"
 import (
 	"errors"
-	"math"
 	"sync"
 	"unsafe"
 
@@ -68,7 +67,6 @@ type TaskDef struct {
 	ndni.InterestTemplateConfig
 
 	// SegmentRange specifies range of segment numbers.
-	// SegmentBegin option is unimplemented and must be omitted.
 	segmented.SegmentRange
 }
 
@@ -93,7 +91,7 @@ type taskSlot C.FetchTask
 // This should only be called on an inactive task slot.
 func (ts *taskSlot) Init(d TaskDef) error {
 	fl := ts.Logic()
-	fl.Reset()
+	fl.Reset(d.SegmentRange)
 
 	tpl := ndni.InterestTemplateFromPtr(unsafe.Pointer(&ts.tpl))
 	d.InterestTemplateConfig.Apply(tpl)
@@ -103,14 +101,6 @@ func (ts *taskSlot) Init(d TaskDef) error {
 		return errors.New("name too long")
 	}
 	ts.tpl.prefixV[ts.tpl.prefixL] = an.TtSegmentNameComponent
-
-	d.SegmentRangeApplyDefaults()
-	if d.SegmentBegin != 0 {
-		return errors.New("SegmentBegin option is unimplemented")
-	}
-	if d.SegmentEnd != math.MaxUint64 {
-		fl.SetFinalSegNum(d.SegmentEnd - 1)
-	}
 
 	return nil
 }

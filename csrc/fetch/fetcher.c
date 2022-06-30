@@ -49,6 +49,8 @@ FetchTask_DecodeData(FetchTask* fp, Packet* npkt, FetchLogicRxData* lpkt)
   lpkt->congMark = lpl3->congMark;
 
   const PData* data = Packet_GetDataHdr(npkt);
+  lpkt->isFinalBlock = data->isFinalBlock;
+
   const uint8_t* seqNumComp = RTE_PTR_ADD(data->name.value, fp->tpl.prefixL);
   return data->name.length > fp->tpl.prefixL + 1 &&
          // this memcmp checks for SegmentNameComponent TLV-TYPE also
