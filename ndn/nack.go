@@ -16,6 +16,10 @@ type Nack struct {
 	Interest Interest
 }
 
+var (
+	_ L3Packet = Nack{}
+)
+
 // MakeNack creates a Nack from flexible arguments.
 // Arguments can contain:
 //  - uint8 or int: set Reason
@@ -52,12 +56,13 @@ func MakeNack(args ...any) (nack Nack) {
 }
 
 // ToPacket wraps Nack as Packet.
-func (nack Nack) ToPacket() *Packet {
-	if nack.packet == nil {
-		packet := Packet{Nack: &nack}
-		nack.packet = &packet
+func (nack Nack) ToPacket() (packet *Packet) {
+	packet = &Packet{}
+	if nack.packet != nil {
+		*packet = *nack.packet
 	}
-	return nack.packet
+	packet.Nack = &nack
+	return packet
 }
 
 // Name returns the name of the enclosed Interest.

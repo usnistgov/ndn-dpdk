@@ -21,6 +21,13 @@ func TestNackLpEncode(t *testing.T) {
 	assert.Equal(bytesFromHex("6418 pittoken=6203B0B1B2 nack=FD032000 payload=500D "+
 		"interest=050B 0703080141 0A04C0C1C2C3"), wire)
 
+	nackNoRoute := ndn.MakeNack(interest)
+	nackNoRoute.Reason = an.NackNoRoute
+	wire, e = tlv.EncodeFrom(nackNoRoute.ToPacket())
+	assert.NoError(e)
+	assert.Equal(bytesFromHex("641D pittoken=6203B0B1B2 nack=FD032005FD03210196 payload=500D "+
+		"interest=050B 0703080141 0A04C0C1C2C3"), wire)
+
 	nackDuplicate := ndn.MakeNack(&interest, an.NackDuplicate)
 	wire, e = tlv.EncodeFrom(nackDuplicate.ToPacket())
 	assert.NoError(e)

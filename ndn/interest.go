@@ -33,6 +33,7 @@ type Interest struct {
 var (
 	_ tlv.Fielder                = Interest{}
 	_ encoding.BinaryUnmarshaler = (*Interest)(nil)
+	_ L3Packet                   = Interest{}
 )
 
 // MakeInterest creates an Interest from flexible arguments.
@@ -47,8 +48,7 @@ var (
 //  - []byte: set AppParameters
 //  - LpL3: copy PitToken and CongMark
 func MakeInterest(args ...any) (interest Interest) {
-	packet := Packet{Interest: &interest}
-	interest.packet = &packet
+	interest.packet = &Packet{}
 	for _, arg := range args {
 		switch a := arg.(type) {
 		case string:
@@ -70,7 +70,7 @@ func MakeInterest(args ...any) (interest Interest) {
 		case []byte:
 			interest.AppParameters = a
 		case LpL3:
-			packet.Lp.inheritFrom(a)
+			interest.packet.Lp.inheritFrom(a)
 		default:
 			panic("bad argument type " + reflect.TypeOf(arg).String())
 		}
@@ -79,11 +79,13 @@ func MakeInterest(args ...any) (interest Interest) {
 }
 
 // ToPacket wraps Interest as Packet.
-func (interest Interest) ToPacket() *Packet {
-	if interest.packet == nil {
-		interest.packet = &Packet{Interest: &interest}
+func (interest Interest) ToPacket() (packet *Packet) {
+	packet = &Packet{}
+	if interest.packet != nil {
+		*packet = *interest.packet
 	}
-	return interest.packet
+	packet.Interest = &interest
+	return packet
 }
 
 func (interest Interest) String() string {

@@ -504,7 +504,7 @@ func TestImplicitDigestSimple(t *testing.T) {
 
 	packet := data.ToPacket()
 	packet.Lp.PitToken = collect2.Get(-1).Lp.PitToken
-	frags, e := ndn.NewLpFragmenter(1400).Fragment(data.ToPacket())
+	frags, e := ndn.NewLpFragmenter(1400).Fragment(packet)
 	require.NoError(e)
 	require.Greater(len(frags), 1)
 	for _, frag := range frags {

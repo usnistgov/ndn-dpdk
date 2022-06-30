@@ -27,6 +27,7 @@ type Data struct {
 var (
 	_ tlv.Fielder                = Data{}
 	_ encoding.BinaryUnmarshaler = (*Data)(nil)
+	_ L3Packet                   = Data{}
 )
 
 // MakeData creates a Data from flexible arguments.
@@ -40,8 +41,7 @@ var (
 //  - LpL3: copy PitToken and CongMark
 //  - Interest or *Interest: copy Name, set FreshnessPeriod if Interest has MustBeFresh, inherit LpL3
 func MakeData(args ...any) (data Data) {
-	packet := Packet{Data: &data}
-	data.packet = &packet
+	data.packet = &Packet{}
 	hasFinalBlockFlag := false
 	handleInterestArg := func(a *Interest) {
 		data.Name = a.Name
@@ -49,7 +49,7 @@ func MakeData(args ...any) (data Data) {
 			data.Freshness = 1 * time.Millisecond
 		}
 		if ipkt := a.packet; ipkt != nil {
-			packet.Lp.inheritFrom(ipkt.Lp)
+			data.packet.Lp.inheritFrom(ipkt.Lp)
 		}
 	}
 	for _, arg := range args {
@@ -69,7 +69,7 @@ func MakeData(args ...any) (data Data) {
 		case []byte:
 			data.Content = a
 		case LpL3:
-			packet.Lp.inheritFrom(a)
+			data.packet.Lp.inheritFrom(a)
 		case Interest:
 			handleInterestArg(&a)
 		case *Interest:
@@ -85,11 +85,13 @@ func MakeData(args ...any) (data Data) {
 }
 
 // ToPacket wraps Data as Packet.
-func (data Data) ToPacket() *Packet {
-	if data.packet == nil {
-		data.packet = &Packet{Data: &data}
+func (data Data) ToPacket() (packet *Packet) {
+	packet = &Packet{}
+	if data.packet != nil {
+		*packet = *data.packet
 	}
-	return data.packet
+	packet.Data = &data
+	return packet
 }
 
 func (data Data) String() string {

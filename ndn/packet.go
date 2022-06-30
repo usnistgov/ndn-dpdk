@@ -42,6 +42,7 @@ type Packet struct {
 var (
 	_ tlv.Fielder     = (*Packet)(nil)
 	_ tlv.Unmarshaler = (*Packet)(nil)
+	_ L3Packet        = (*Packet)(nil)
 )
 
 func (pkt *Packet) String() string {

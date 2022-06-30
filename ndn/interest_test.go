@@ -35,7 +35,8 @@ func TestInterestLpEncode(t *testing.T) {
 
 	var lph ndn.LpL3
 	lph.PitToken = bytesFromHex("B0B1B2")
-	interest := ndn.MakeInterest("/A", lph, ndn.NonceFromUint(0xC0C1C2C3))
+	interest := ndn.MakeInterest("/A", lph)
+	interest.Nonce = ndn.NonceFromUint(0xC0C1C2C3)
 
 	wire, e := tlv.EncodeFrom(interest.ToPacket())
 	assert.NoError(e)

@@ -35,7 +35,8 @@ func TestDataLpEncode(t *testing.T) {
 	lph.PitToken = bytesFromHex("B0B1B2")
 	lph.CongMark = 1
 	interest := ndn.MakeInterest("/A", lph, ndn.NonceFromUint(0xC0C1C2C3), ndn.MustBeFreshFlag)
-	data := ndn.MakeData(interest, bytesFromHex("content=C0C1"), ndn.FinalBlock(ndn.ParseNameComponent("F")))
+	data := ndn.MakeData(interest, ndn.FinalBlock(ndn.ParseNameComponent("F")))
+	data.Content = bytesFromHex("C0C1")
 
 	wire, e := tlv.EncodeFrom(data.ToPacket())
 	assert.NoError(e)
