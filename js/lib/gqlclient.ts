@@ -15,13 +15,6 @@ export class GqlClient {
     uri = new URL(uri, globalThis.document?.URL);
     uri.protocol = uri.protocol.replace(/^http/, "ws");
     this.uri = uri.toString();
-
-    // const ws = new WebSocket(uri.toString(), GraphQLWebSocketClient.PROTOCOL);
-    // ws.addEventListener("error", (evt) => connecting.reject(evt.error));
-
-    // this.client = new GraphQLWebSocketClient(ws as any, {
-    //   async onAcknowledged() { connecting.resolve(); },
-    // });
   }
 
   private readonly mutex = throat(1);

@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
-	github.com/FDio/vpp v1.0.1-0.20220223130241-7911f29c518c
+	github.com/FDio/vpp v1.0.1-0.20220629121349-0d352a97c5e3
 	github.com/bhoriuchi/graphql-go-tools v1.0.0
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/coreos/go-systemd/v22 v22.3.2
@@ -29,7 +29,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/soh335/sliceflag v0.0.0-20160923061056-d2d28a5acab8
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
-	github.com/stretchr/testify v1.7.5
+	github.com/stretchr/testify v1.8.0
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
 	github.com/urfave/cli/v2 v2.10.3
@@ -41,7 +41,7 @@ require (
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d
-	golang.org/x/sys v0.0.0-20220622161953-175b2fd9d664
+	golang.org/x/sys v0.0.0-20220627191245-f75cf1eec38b
 )
 
 require (

@@ -36,6 +36,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
+	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
 )
 
@@ -90,13 +91,11 @@ func (bd *Bdev) CopyToC(ptr unsafe.Pointer) {
 
 func (bd *Bdev) enableDwordAlign() {
 	bd.c.dwordAlign = true
-	if bd.c.bufAlign < 4 {
-		bd.c.bufAlign = 4
-	}
+	bd.c.bufAlign = generic.Max(bd.c.bufAlign, 4)
 }
 
 func (bd *Bdev) do(pkt *pktmbuf.Packet, f func(breq *C.BdevRequest)) error {
-	done := make(chan int)
+	done := make(chan C.int)
 	ctx := cgo.NewHandle(done)
 	defer ctx.Delete()
 
@@ -181,7 +180,7 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 	return bd, nil
 }
 
-// ForceDwordAlign forcefully enables DwordAlign mode.
+// ForceDwordAlign enables DwordAlign mode even if the driver does not require it.
 // This is mainly useful for unit testing.
 func ForceDwordAlign(bd *Bdev) {
 	bd.enableDwordAlign()
@@ -198,6 +197,6 @@ func go_bdevEvent(typ C.enum_spdk_bdev_event_type, bdev *C.struct_spdk_bdev, ctx
 //export go_bdevComplete
 func go_bdevComplete(breq *C.BdevRequest, res C.int) {
 	req := (*C.go_BdevRequest)(unsafe.Add(unsafe.Pointer(breq), -int(unsafe.Offsetof(C.go_BdevRequest{}.breq))))
-	done := cgo.Handle(req.handle).Value().(chan int)
-	done <- int(res)
+	done := cgo.Handle(req.handle).Value().(chan C.int)
+	done <- res
 }

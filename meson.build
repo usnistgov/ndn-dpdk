@@ -6,7 +6,7 @@ project('NDN-DPDK', 'c',
     'warning_level=2',
     'werror=true'
   ],
-  meson_version: '>=0.62.0'
+  meson_version: '>=0.62.2'
 )
 
 subdir('csrc')

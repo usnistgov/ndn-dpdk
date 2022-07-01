@@ -37,14 +37,14 @@ fi
 DFLT_CODEROOT=$HOME/code
 DFLT_NODEVER=16.x
 DFLT_GOVER=latest
-DFLT_UBPFVER=83eed7211febb74d7490c1fea2c7343cef816624
-DFLT_XDPTOOLSVER=8858c814d039340f1789a12412e995da5d7e909c
-DFLT_LIBBPFVER=v0.7.0
-DFLT_URINGVER=liburing-2.1
+DFLT_UBPFVER=48e526d87935f975abcf990e8d0fef9ee017323d
+DFLT_XDPTOOLSVER=v1.2.4
+DFLT_LIBBPFVER=v0.8.0
+DFLT_URINGVER=liburing-2.2
 DFLT_DPDKVER=v22.03
 DFLT_DPDKPATCH=
 DFLT_DPDKOPTS={}
-DFLT_SPDKVER=v22.01
+DFLT_SPDKVER=v22.05
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -348,7 +348,7 @@ fi
 if [[ $URINGVER != 0 ]]; then
   cd "$(github_download axboe/liburing $URINGVER)"
   ./configure --prefix=/usr/local
-  make -j${NJOBS}
+  make -C src -j${NJOBS}
   $SUDO find /usr/local/lib -name 'liburing.*' -delete
   $SUDO find /usr/local/share/man -name 'io_uring*' -delete
   $SUDO rm -rf /usr/local/include/liburing /usr/local/include/liburing.h
