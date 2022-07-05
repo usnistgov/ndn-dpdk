@@ -315,6 +315,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		ealthread.Launch(fwi.rxl)
 	}
 
+	iface.RxParseFor = ndni.ParseForFw
 	return dp, nil
 }
 

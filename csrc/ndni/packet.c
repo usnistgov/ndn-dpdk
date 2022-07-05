@@ -8,7 +8,7 @@ const char* PktType_Strings_[] = {
 };
 
 bool
-Packet_Parse(Packet* npkt)
+Packet_Parse(Packet* npkt, ParseFor parseFor)
 {
   PacketPriv* priv = Packet_GetPriv_(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
@@ -30,11 +30,11 @@ Packet_Parse(Packet* npkt)
     return true;
   }
 
-  return Packet_ParseL3(npkt);
+  return Packet_ParseL3(npkt, parseFor);
 }
 
 bool
-Packet_ParseL3(Packet* npkt)
+Packet_ParseL3(Packet* npkt, ParseFor parseFor)
 {
   PacketPriv* priv = Packet_GetPriv_(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
@@ -48,10 +48,10 @@ Packet_ParseL3(Packet* npkt)
   switch (type) {
     case TtInterest:
       Packet_SetType(npkt, priv->lpl3.nackReason == 0 ? PktInterest : PktNack);
-      return PInterest_Parse(&priv->interest, pkt);
+      return PInterest_Parse(&priv->interest, pkt, parseFor);
     case TtData:
       Packet_SetType(npkt, PktData);
-      return PData_Parse(&priv->data, pkt);
+      return PData_Parse(&priv->data, pkt, parseFor);
   }
   return false;
 }

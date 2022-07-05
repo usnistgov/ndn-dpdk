@@ -138,24 +138,26 @@ Packet_GetNackHdr(Packet* npkt)
 /**
  * @brief Parse layer 2 and layer 3 in mbuf.
  * @param npkt a uniquely owned, unsegmented, direct mbuf.
+ * @param parseFor see @c PInterest_Parse and @c PData_Parse .
  * @return whether success.
  * @post If the packet is fragmented, Packet_GetType(npkt) returns @c PktFragment .
  *       Otherwise, same as @c Packet_ParseL3 .
  */
 __attribute__((nonnull, warn_unused_result)) bool
-Packet_Parse(Packet* npkt);
+Packet_Parse(Packet* npkt, ParseFor parseFor);
 
 /**
  * @brief Parse layer 3 in mbuf.
  * @param npkt a uniquely owned, possibly segmented, direct mbuf.
  *             Its PacketPriv.lpl3 should have been initialized.
+ * @param parseFor see @c PInterest_Parse and @c PData_Parse .
  * @return whether success.
  * @post Packet_GetType(npkt) returns @c PktInterest , @c PktData , or @c PktNack .
  * @post If the packet is not fragmented, one of @c PInterest , @c PData , or @c PNack is
  * initialized.
  */
 __attribute__((nonnull, warn_unused_result)) bool
-Packet_ParseL3(Packet* npkt);
+Packet_ParseL3(Packet* npkt, ParseFor parseFor);
 
 /**
  * @brief Retrieve packet name.

@@ -23,6 +23,7 @@ var (
 // Init initializes testing environment for traffic generator applications.
 func Init() {
 	ealtestenv.Init()
+	iface.RxParseFor = ndni.ParseForApp
 
 	rxl := iface.NewRxLoop(eal.RandomSocket())
 	DemuxI, DemuxD, DemuxN = rxl.DemuxOf(ndni.PktInterest), rxl.DemuxOf(ndni.PktData), rxl.DemuxOf(ndni.PktNack)

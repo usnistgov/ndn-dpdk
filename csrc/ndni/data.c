@@ -25,8 +25,8 @@ RTE_INIT(InitNullSig)
   static_assert(sizeof(NullSig) == DataEncNullSigLen, "");
 }
 
-__attribute__((nonnull)) static __rte_always_inline bool
-PData_ParseMetaInfo(PData* data, TlvDecoder* d)
+__attribute__((nonnull)) static inline bool
+PData_ParseMetaInfo(PData* data, TlvDecoder* d, ParseFor parseFor)
 {
   TlvDecoder_EachTL (d, type, length) {
     switch (type) {
@@ -37,14 +37,17 @@ PData_ParseMetaInfo(PData* data, TlvDecoder* d)
         break;
       }
       case TtFinalBlock: {
-        // TODO skip this step in forwarder
-        LName lastComp = PName_Slice(&data->name, -1, INT16_MAX);
-        if (likely(lastComp.length == length)) {
-          uint8_t scratch[NameMaxLength];
-          const uint8_t* finalBlockComp = TlvDecoder_Read(d, scratch, lastComp.length);
-          data->isFinalBlock = memcmp(lastComp.value, finalBlockComp, lastComp.length) == 0;
-        } else {
+        if (parseFor == ParseForFw) {
           TlvDecoder_Skip(d, length);
+        } else {
+          LName lastComp = PName_Slice(&data->name, -1, INT16_MAX);
+          if (likely(lastComp.length == length)) {
+            uint8_t scratch[NameMaxLength];
+            const uint8_t* finalBlockComp = TlvDecoder_Read(d, scratch, lastComp.length);
+            data->isFinalBlock = memcmp(lastComp.value, finalBlockComp, lastComp.length) == 0;
+          } else {
+            TlvDecoder_Skip(d, length);
+          }
         }
         break;
       }
@@ -62,7 +65,7 @@ PData_ParseMetaInfo(PData* data, TlvDecoder* d)
 }
 
 bool
-PData_Parse(PData* data, struct rte_mbuf* pkt)
+PData_Parse(PData* data, struct rte_mbuf* pkt, ParseFor parseFor)
 {
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
   *data = (const PData){ 0 };
@@ -86,7 +89,7 @@ PData_Parse(PData* data, struct rte_mbuf* pkt)
       }
       case TtMetaInfo: {
         TlvDecoder vd = TlvDecoder_MakeValueDecoder(&d, length);
-        if (unlikely(!PData_ParseMetaInfo(data, &vd))) {
+        if (unlikely(!PData_ParseMetaInfo(data, &vd, parseFor))) {
           return false;
         }
         break;

@@ -120,7 +120,7 @@ DiskStore_ProcessQueue(DiskStore* store, DiskStoreRequest* head, struct rte_mbuf
     // copy the packet payload from current request
     rte_memcpy(room, rte_pktmbuf_mtod(dataPkt, void*), dataPkt->pkt_len);
     Mbuf_SetTimestamp(dataBuf, Mbuf_GetTimestamp(dataPkt));
-    bool ok = Packet_Parse(interest->diskData);
+    bool ok = Packet_Parse(interest->diskData, ParseForFw);
     NDNDPDK_ASSERT(ok);
     NDNDPDK_ASSERT(Packet_GetType(interest->diskData) == PktData);
 
@@ -169,7 +169,7 @@ GetData_End(BdevRequest* breq, int res)
   }
 
   Mbuf_SetTimestamp(dataPkt, rte_get_tsc_cycles());
-  if (unlikely(!Packet_Parse(interest->diskData)) ||
+  if (unlikely(!Packet_Parse(interest->diskData, ParseForFw)) ||
       unlikely(Packet_GetType(interest->diskData) != PktData)) {
     N_LOGW("GetData error slot=%" PRIu64 " npkt=%p" N_LOG_ERROR("not-Data"), slotID, npkt);
     res = ENOEXEC;

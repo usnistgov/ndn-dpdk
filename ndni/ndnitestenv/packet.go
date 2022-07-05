@@ -40,7 +40,7 @@ func MakePacket(input any, modifiers ...PacketModifier) *ndni.Packet {
 	m.SetTimestamp(eal.TscNow())
 
 	pkt := ndni.PacketFromPtr(m.Ptr())
-	if !C.Packet_Parse((*C.Packet)(pkt.Ptr())) {
+	if !C.Packet_Parse((*C.Packet)(pkt.Ptr()), C.ParseForAny) {
 		panic("C.Packet_Parse error")
 	}
 

@@ -87,6 +87,18 @@ func _() {
 	x[sha256.Size-ImplicitDigestLength] = 0
 }
 
+// ParseFor suggests which fields may be skipped by the decoder.
+type ParseFor int
+
+// ParseFor values.
+const (
+	ParseForAny ParseFor = iota
+	ParseForFw
+	ParseForApp
+
+	_ = "enumgen:ParseFor"
+)
+
 // PktType indicates packet type in mbuf.
 type PktType int
 

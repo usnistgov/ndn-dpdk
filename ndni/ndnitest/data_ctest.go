@@ -38,7 +38,7 @@ func ctestDataParse(t *testing.T) {
 		1700 // sigvalue
 	`)
 	defer p.Close()
-	require.True(bool(C.Packet_Parse(p.npkt)))
+	require.True(bool(C.Packet_Parse(p.npkt, C.ParseForAny)))
 	require.EqualValues(ndni.PktData, C.Packet_GetType(p.npkt))
 	data := C.Packet_GetDataHdr(p.npkt)
 	assert.EqualValues(1, data.name.nComps)
@@ -57,7 +57,7 @@ func ctestDataParse(t *testing.T) {
 		1700 // sigvalue
 	`)
 	defer p.Close()
-	require.True(bool(C.Packet_ParseL3(p.npkt)))
+	require.True(bool(C.Packet_ParseL3(p.npkt, C.ParseForAny)))
 	require.EqualValues(ndni.PktData, C.Packet_GetType(p.npkt))
 	data = C.Packet_GetDataHdr(p.npkt)
 	assert.EqualValues(2, data.name.nComps)
@@ -74,7 +74,7 @@ func ctestDataParse(t *testing.T) {
 		1700 // sigvalue
 	`)
 	defer p.Close()
-	require.True(bool(C.Packet_ParseL3(p.npkt)))
+	require.True(bool(C.Packet_ParseL3(p.npkt, C.ParseForAny)))
 	require.EqualValues(ndni.PktData, C.Packet_GetType(p.npkt))
 	data = C.Packet_GetDataHdr(p.npkt)
 	assert.True(bool(data.isFinalBlock))
@@ -88,7 +88,7 @@ func ctestDataParse(t *testing.T) {
 		1700 // sigvalue
 	`)
 	defer p.Close()
-	assert.False(bool(C.Packet_ParseL3(p.npkt)))
+	assert.False(bool(C.Packet_ParseL3(p.npkt, C.ParseForAny)))
 
 	// invalid: MetaInfo with unknown-critical
 	p = makePacket(`
@@ -99,7 +99,7 @@ func ctestDataParse(t *testing.T) {
 		1700 // sigvalue
 	`)
 	defer p.Close()
-	assert.False(bool(C.Packet_ParseL3(p.npkt)))
+	assert.False(bool(C.Packet_ParseL3(p.npkt, C.ParseForAny)))
 }
 
 func ctestDataEncMinimal(t *testing.T) {

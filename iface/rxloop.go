@@ -21,6 +21,9 @@ import (
 // RoleRx is the thread role for RxLoop.
 const RoleRx = "RX"
 
+// RxParseFor indicates decoder parsing purpose for newly created faces.
+var RxParseFor = ndni.ParseForAny
+
 // RxGroup is a receive channel for faces.
 // An RxGroup may serve multiple faces; a face may have multiple RxGroups.
 type RxGroup interface {

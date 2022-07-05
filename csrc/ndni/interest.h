@@ -35,10 +35,11 @@ typedef struct PInterest
 /**
  * @brief Parse Interest.
  * @param pkt a uniquely owned, possibly segmented, direct mbuf that contains Interest TLV.
+ * @param parseFor if set to @c ParseForApp , skip FwHints.
  * @return whether success.
  */
 __attribute__((nonnull)) bool
-PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt);
+PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt, ParseFor parseFor);
 
 /**
  * @brief Retrieve i-th forwarding hint name.

@@ -26,7 +26,7 @@ TgcTxDigestPattern_Fill(TgcTxPattern* pattern)
     Packet* npkt =
       DataGen_Encode(&dp->dataGen, dp->prefix, &dp->dataMp, (PacketTxAlign){ .linearize = false });
     *Packet_GetLpL3Hdr(npkt) = (const LpL3){ 0 };
-    bool ok = Packet_ParseL3(npkt);
+    bool ok = Packet_ParseL3(npkt, ParseForApp);
     NDNDPDK_ASSERT(ok && Packet_GetType(npkt) == PktData);
     npkts[i] = npkt;
     ops[i] = DataDigest_Prepare(&dp->cqp, npkt);

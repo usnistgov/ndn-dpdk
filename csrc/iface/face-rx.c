@@ -12,7 +12,7 @@ FaceRx_Input(Face* face, int rxThread, struct rte_mbuf* pkt)
   rxt->nFrames[0] += pkt->pkt_len; // nOctets counter
 
   Packet* npkt = Packet_FromMbuf(pkt);
-  if (unlikely(!Packet_Parse(npkt))) {
+  if (unlikely(!Packet_Parse(npkt, face->impl->rxParseFor))) {
     ++rxt->nDecodeErr;
     N_LOGD("l2-decode-error face=%" PRI_FaceID " thread=%d", face->id, rxThread);
     rte_pktmbuf_free(pkt);
@@ -31,7 +31,7 @@ FaceRx_Input(Face* face, int rxThread, struct rte_mbuf* pkt)
     return NULL;
   }
 
-  if (unlikely(!Packet_ParseL3(npkt))) {
+  if (unlikely(!Packet_ParseL3(npkt, face->impl->rxParseFor))) {
     ++rxt->nDecodeErr;
     N_LOGD("l3-decode-error face=%" PRI_FaceID " thread=%d", face->id, rxThread);
     rte_pktmbuf_free(Packet_ToMbuf(npkt));

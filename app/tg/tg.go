@@ -196,6 +196,7 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 		}
 	}(gen)
 
+	iface.RxParseFor = ndni.ParseForApp
 	defer saveChooseRxlTxl()()
 	iface.ChooseRxLoop = func(rxg iface.RxGroup) iface.RxLoop {
 		if _, ok := rxg.(iface.RxGroupSingleFace); !ok {

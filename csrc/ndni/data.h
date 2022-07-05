@@ -21,10 +21,11 @@ typedef struct PData
 /**
  * @brief Parse Data.
  * @param pkt a uniquely owned, possibly segmented, direct mbuf that contains Data TLV.
+ * @param parseFor if set to @c ParseForFw , skip FinalBlock and set @c data->isFinalBlock to false.
  * @return whether success.
  */
 __attribute__((nonnull)) bool
-PData_Parse(PData* data, struct rte_mbuf* pkt);
+PData_Parse(PData* data, struct rte_mbuf* pkt, ParseFor parseFor);
 
 /** @brief Determine whether Data can satisfy Interest. */
 __attribute__((nonnull)) DataSatisfyResult

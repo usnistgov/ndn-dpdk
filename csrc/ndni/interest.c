@@ -3,7 +3,7 @@
 #include "tlv-decoder.h"
 #include "tlv-encoder.h"
 
-__attribute__((nonnull)) static bool
+__attribute__((nonnull)) static inline bool
 PInterest_ParseFwHint(PInterest* interest, TlvDecoder* d)
 {
   TlvDecoder_EachTL (d, type, length) {
@@ -35,7 +35,7 @@ PInterest_ParseFwHint(PInterest* interest, TlvDecoder* d)
 }
 
 bool
-PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt)
+PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt, ParseFor parseFor)
 {
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
   *interest = (const PInterest){ 0 };
@@ -72,12 +72,16 @@ PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt)
         break;
       }
       case TtForwardingHint: {
-        TlvDecoder vd = TlvDecoder_MakeValueDecoder(&d, length);
-        if (unlikely(!PInterest_ParseFwHint(interest, &vd))) {
-          return false;
+        if (parseFor == ParseForApp) {
+          TlvDecoder_Skip(&d, length);
+        } else {
+          TlvDecoder vd = TlvDecoder_MakeValueDecoder(&d, length);
+          if (unlikely(!PInterest_ParseFwHint(interest, &vd))) {
+            return false;
+          }
+          d.m = vd.m; // mbuf may change when linearizing
+          d.offset = vd.offset;
         }
-        d.m = vd.m; // mbuf may change when linearizing
-        d.offset = vd.offset;
         break;
       }
       case TtNonce: {

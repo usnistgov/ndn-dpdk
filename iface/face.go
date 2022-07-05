@@ -205,6 +205,8 @@ func newFace(p NewParams) (Face, error) {
 	}
 	logEntry = logEntry.With(zap.Reflect("locator", LocatorWrapper{f.Locator()}))
 
+	c.impl.rxParseFor = C.ParseFor(RxParseFor)
+
 	c.txAlign = C.PacketTxAlign{
 		linearize:           C.bool(initResult.TxLinearize),
 		fragmentPayloadSize: C.uint16_t(p.MTU - ndni.LpHeaderHeadroom),

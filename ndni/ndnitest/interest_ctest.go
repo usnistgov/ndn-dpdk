@@ -38,17 +38,17 @@ func ctestInterestParse(t *testing.T) {
 	// missing Nonce
 	p := makePacket("0505 0703080141")
 	defer p.Close()
-	assert.False(bool(C.Packet_Parse(p.npkt)))
+	assert.False(bool(C.Packet_Parse(p.npkt, C.ParseForAny)))
 
 	// empty name
 	p = makePacket("0508 0700 0A04A0A1A2A3")
 	defer p.Close()
-	assert.False(bool(C.Packet_Parse(p.npkt)))
+	assert.False(bool(C.Packet_Parse(p.npkt, C.ParseForAny)))
 
 	// minimal
 	p = makePacket("050B 0703050141 0A04A0A1A2A3")
 	defer p.Close()
-	require.True(bool(C.Packet_Parse(p.npkt)))
+	require.True(bool(C.Packet_Parse(p.npkt, C.ParseForAny)))
 	require.EqualValues(ndni.PktInterest, C.Packet_GetType(p.npkt))
 	interest := C.Packet_GetInterestHdr(p.npkt)
 	var u C.PInterestUnpacked
@@ -79,7 +79,7 @@ func ctestInterestParse(t *testing.T) {
 		2201DC // hoplimit
 		2401C0 // appparameters
 	`)
-	require.True(bool(C.Packet_ParseL3(p.npkt)))
+	require.True(bool(C.Packet_ParseL3(p.npkt, C.ParseForAny)))
 	require.EqualValues(ndni.PktInterest, C.Packet_GetType(p.npkt))
 	interest = C.Packet_GetInterestHdr(p.npkt)
 	C.c_PInterest_Unpack(interest, &u)
@@ -116,7 +116,7 @@ func checkInterestModify(t *testing.T, fragmentPayloadSize C.uint16_t, nSegs int
 
 	p := makePacket(input)
 	defer p.Close()
-	require.True(bool(C.Packet_Parse(p.npkt)))
+	require.True(bool(C.Packet_Parse(p.npkt, C.ParseForAny)))
 	require.EqualValues(ndni.PktInterest, C.Packet_GetType(p.npkt))
 
 	guiders := C.InterestGuiders{
@@ -139,7 +139,7 @@ func checkInterestModify(t *testing.T, fragmentPayloadSize C.uint16_t, nSegs int
 	}
 
 	copy := makePacket(modify.Bytes())
-	require.True(bool(C.Packet_ParseL3(copy.npkt)))
+	require.True(bool(C.Packet_ParseL3(copy.npkt, C.ParseForAny)))
 	require.EqualValues(ndni.PktInterest, C.Packet_GetType(copy.npkt))
 	interest := C.Packet_GetInterestHdr(copy.npkt)
 	var u C.PInterestUnpacked

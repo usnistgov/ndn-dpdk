@@ -59,6 +59,8 @@ typedef struct FaceImpl
   Face_TxBurstFunc txBurst;
   PdumpSourceRef txPdump;
 
+  ParseFor rxParseFor;
+
   uint8_t priv[] __rte_cache_aligned;
 } FaceImpl;
 
