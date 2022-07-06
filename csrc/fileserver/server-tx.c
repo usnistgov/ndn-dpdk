@@ -96,7 +96,6 @@ FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx, uint32_t index)
 
 FINISH:
   FileServerFd_Unref(p, fd);
-  io_uring_cqe_seen(&p->uring, cqe);
 }
 
 uint32_t
@@ -104,16 +103,16 @@ FileServer_TxBurst(FileServer* p)
 {
   TxBurstCtx ctx;
   ctx.now = rte_get_tsc_cycles();
-  ctx.congMark = (uint8_t)(p->uringCount >= p->uringCongestionLbound);
+  ctx.congMark = (uint8_t)(p->ur.nPending >= p->uringCongestionLbound);
   ctx.nData = 0;
   ctx.discardPayloadIndex = MaxBurstIovecs;
   ctx.discardInterestIndex = MaxBurstIovecs;
 
-  uint32_t nCqe = io_uring_peek_batch_cqe(&p->uring, ctx.cqe, RTE_DIM(ctx.cqe));
-  p->uringCount -= nCqe;
+  uint32_t nCqe = Uring_PeekCqes(&p->ur, ctx.cqe, RTE_DIM(ctx.cqe));
   for (uint32_t i = 0; i < nCqe; ++i) {
     FileServerTx_ProcessCqe(p, &ctx, i);
   }
+  Uring_PutCqes(&p->ur, nCqe);
 
   Face_TxBurst(p->face, ctx.data, ctx.nData);
   rte_pktmbuf_free_bulk(&ctx.discard[ctx.discardPayloadIndex],

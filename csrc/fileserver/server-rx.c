@@ -29,7 +29,6 @@ typedef struct RxBurstCtx
   uint8_t payloadIndex;  ///< payload[payloadIndex:] are unused
   uint8_t discardIndex;  ///< discard[MaxBurstSize:discardIndex] are dropped Interests
   uint8_t dataCount;     ///< data[:dataCount] are Data packets to be sent
-  uint8_t nSqe;
   RTE_MARKER zeroizeEnd_;
   struct rte_mbuf* interest[MaxBurstSize];
   union
@@ -75,11 +74,10 @@ FileServerRx_NoSqe(RxBurstCtx* ctx)
 __attribute__((nonnull)) static inline bool
 FileServerRx_SubmitReadv(FileServer* p, RxBurstCtx* ctx)
 {
-  struct io_uring_sqe* sqe = io_uring_get_sqe(&p->uring);
+  struct io_uring_sqe* sqe = Uring_GetSqe(&p->ur);
   if (unlikely(sqe == NULL)) {
     return FileServerRx_NoSqe(ctx);
   }
-  ++ctx->nSqe;
 
   FileServerOp* op = ctx->op;
   N_LOGV("SQE fd=%d segment=%" PRIu64 " nIov=%" PRIu32, op->fd->fd, op->segment, op->nIov);
@@ -325,22 +323,7 @@ FileServer_RxBurst(FileServer* p)
     FileServerRx_SubmitReadv(p, &ctx);
   }
 
-  if (likely(ctx.nSqe > 0)) {
-    p->cnt.sqeSubmit += ctx.nSqe;
-    if (unlikely(p->uringCount >= p->uringWaitLbound)) {
-      ++p->cnt.uringSubmitWait;
-      res = io_uring_submit_and_wait(&p->uring, MaxBurstSize);
-    } else {
-      ++p->cnt.uringSubmitNonBlock;
-      res = io_uring_submit(&p->uring);
-    }
-    if (unlikely(res < 0)) {
-      N_LOGE("io_uring_submit" N_LOG_ERROR_ERRNO, res);
-    } else {
-      p->uringCount += (uint32_t)res;
-    }
-  }
-
+  Uring_Submit(&p->ur, p->uringWaitLbound, MaxBurstSize);
   Face_TxBurst(p->face, ctx.data, ctx.dataCount);
   rte_pktmbuf_free_bulk(&ctx.discard[ctx.payloadIndex], ctx.discardIndex - ctx.payloadIndex);
   return ctx.interestCount;

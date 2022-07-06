@@ -8,14 +8,11 @@ N_LOG_INIT(FileServer);
 int
 FileServer_Run(FileServer* p)
 {
-  struct io_uring_params uringParams = { 0 };
-  int res = io_uring_queue_init_params(p->uringCapacity, &p->uring, &uringParams);
-  if (res < 0) {
-    N_LOGE("uring init" N_LOG_ERROR_ERRNO, res);
+  bool ok = Uring_Init(&p->ur, p->uringCapacity);
+  if (unlikely(!ok)) {
+    N_LOGE("uring init error" N_LOG_ERROR_BLANK);
     return 1;
   }
-  N_LOGI("uring init sqe=%" PRIu32 " cqe=%" PRIu32 " features=0x%" PRIx32, uringParams.sq_entries,
-         uringParams.cq_entries, uringParams.features);
   CDS_INIT_LIST_HEAD(&p->fdQ);
 
   uint32_t nProcessed = 0;
@@ -24,7 +21,7 @@ FileServer_Run(FileServer* p)
     nProcessed += FileServer_TxBurst(p);
   }
 
-  io_uring_queue_exit(&p->uring);
+  Uring_Free(&p->ur);
   FileServerFd_Clear(p);
   return 0;
 }

@@ -3,8 +3,9 @@
 C shared code in [csrc/core](../csrc/core/):
 
 * common includes
+* io\_uring
 * logging macros
-* mmap
+* mmap file descriptor
 * [minute scheduler](mintmr.md)
 * RTT estimator
 * runningstat

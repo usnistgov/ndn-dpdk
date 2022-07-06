@@ -74,11 +74,9 @@ type Config struct {
 	SegmentLen int `json:"segmentLen,omitempty" gqldesc:"Maximum TLV-LENGTH of Data Content payload."`
 
 	// UringCapacity is io_uring submission queue size.
-	// When pending I/O operations exceed 50% capacity, congestion marks start to appear on Data packets.
-	// When pending I/O operations exceed 75% capacity, submissions will block waiting for completions.
 	UringCapacity int `json:"uringCapacity,omitempty" gqldesc:"uring submission queue size."`
 
-	// UringCongestionThres is the uring occupancy threshold to start inserting congetion marks.
+	// UringCongestionThres is the uring occupancy threshold to start inserting congestion marks.
 	// If uring occupancy ratio exceeds this threshold, congestion marks are added to some outgoing Data packets
 	// This must be between 0.0 (exclusive) and 1.0 (exclusive); it should be smaller than UringWaitThres.
 	UringCongestionThres float64 `json:"uringCongestionThres,omitempty" gqldesc:"uring occupancy threshold to start inserting congestion marks."`

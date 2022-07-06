@@ -43,6 +43,14 @@ func (p *Server) Workers() []ealthread.ThreadWithRole {
 	return tgdef.GatherWorkers(p.workers)
 }
 
+// Counters retrieves counters.
+func (p *Server) Counters() (cnt Counters) {
+	for _, w := range p.workers {
+		w.addToCounters(&cnt)
+	}
+	return cnt
+}
+
 // Launch launches all workers.
 func (p *Server) Launch() {
 	tgdef.LaunchWorkers(p.workers)

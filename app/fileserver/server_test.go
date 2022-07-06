@@ -232,9 +232,8 @@ func TestServer(t *testing.T) {
 	assert.NotZero(cnt.FdNew)
 	assert.Zero(cnt.FdNotFound)
 	assert.Zero(cnt.FdClose)
-	assert.NotZero(cnt.UringSubmit)
+	assert.NotZero(cnt.UringSubmitted)
 	assert.NotZero(cnt.UringSubmitNonBlock)
-	assert.NotZero(cnt.SqeSubmit)
 	cntJ, _ := json.Marshal(cnt)
 	t.Log(string(cntJ))
 }
@@ -647,9 +646,8 @@ func TestFuse(t *testing.T) {
 	assert.NotZero(cnt.FdNotFound)
 	assert.NotZero(cnt.FdClose)
 	assert.LessOrEqual(cnt.FdNew, cnt.FdClose+uint64(cfg.NThreads*cfg.KeepFds))
-	assert.NotZero(cnt.UringSubmit)
+	assert.NotZero(cnt.UringSubmitted)
 	assert.NotZero(cnt.UringSubmitNonBlock)
-	assert.NotZero(cnt.SqeSubmit)
 	cntJ, _ := json.Marshal(cnt)
 	t.Log(string(cntJ))
 }

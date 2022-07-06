@@ -60,8 +60,19 @@ func (w *worker) close() error {
 	return multierr.Combine(errs...)
 }
 
-func (w worker) counters() countersC {
-	return *(*countersC)(unsafe.Pointer(&w.c.cnt))
+func (w worker) addToCounters(cnt *Counters) {
+	cnt.ReqRead += uint64(w.c.cnt.reqRead)
+	cnt.ReqLs += uint64(w.c.cnt.reqLs)
+	cnt.ReqMetadata += uint64(w.c.cnt.reqMetadata)
+	cnt.FdNew += uint64(w.c.cnt.fdNew)
+	cnt.FdNotFound += uint64(w.c.cnt.fdNotFound)
+	cnt.FdUpdateStat += uint64(w.c.cnt.fdUpdateStat)
+	cnt.FdClose += uint64(w.c.cnt.fdClose)
+	cnt.UringAllocError += uint64(w.c.ur.nAllocErrs)
+	cnt.UringSubmitted += uint64(w.c.ur.nSubmitted)
+	cnt.UringSubmitNonBlock += uint64(w.c.ur.nSubmitNonBlock)
+	cnt.UringSubmitWait += uint64(w.c.ur.nSubmitWait)
+	cnt.UringCqeFail += uint64(w.c.cnt.cqeFail)
 }
 
 func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e error) {
@@ -110,4 +121,20 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e
 		unsafe.Pointer(&w.c.ctrl),
 	)
 	return w, nil
+}
+
+// Counters contains file server counters.
+type Counters struct {
+	ReqRead             uint64 `json:"reqRead" gqldesc:"Received read requests."`
+	ReqLs               uint64 `json:"reqLs" gqldesc:"Received directory listing requests."`
+	ReqMetadata         uint64 `json:"reqMetadata" gqldesc:"Received metadata requests."`
+	FdNew               uint64 `json:"fdNew" gqldesc:"Successfully opened file descriptors."`
+	FdNotFound          uint64 `json:"fdNotFound" gqldesc:"File not found."`
+	FdUpdateStat        uint64 `json:"fdUpdateStat" gqldesc:"Update stat on already open file descriptors."`
+	FdClose             uint64 `json:"fdClose" gqldesc:"Closed file descriptors."`
+	UringAllocError     uint64 `json:"uringAllocErrs" gqldesc:"uring SQE allocation errors."`
+	UringSubmitted      uint64 `json:"uringSubmitted" gqldesc:"uring submitted SQEs."`
+	UringSubmitNonBlock uint64 `json:"uringSubmitNonBlock" gqldesc:"uring non-blocking submission batches."`
+	UringSubmitWait     uint64 `json:"uringSubmitWait" gqldesc:"uring waiting submission batches."`
+	UringCqeFail        uint64 `json:"cqeFail" gqldesc:"uring failed CQEs."`
 }

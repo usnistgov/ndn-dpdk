@@ -3,11 +3,11 @@
 
 /** @file */
 
+#include "../core/uring.h"
 #include "../dpdk/thread.h"
 #include "../iface/face.h"
 #include "../iface/pktqueue.h"
 #include "enum.h"
-#include <liburing.h>
 
 typedef struct FileServerFd FileServerFd;
 
@@ -20,16 +20,13 @@ typedef struct FileServerCounters
   uint64_t fdNotFound;
   uint64_t fdUpdateStat;
   uint64_t fdClose;
-  uint64_t uringSubmitNonBlock;
-  uint64_t uringSubmitWait;
-  uint64_t sqeSubmit;
   uint64_t cqeFail;
 } FileServerCounters;
 
 /** @brief File server. */
 typedef struct FileServer
 {
-  struct io_uring uring;
+  Uring ur;
   ThreadCtrl ctrl;
   PktQueue rxQueue;
   FileServerCounters cnt;
@@ -40,7 +37,6 @@ typedef struct FileServer
   struct cds_list_head fdQ;
   TscDuration statValidity;
 
-  uint32_t uringCount;
   uint32_t uringCongestionLbound;
   uint32_t uringWaitLbound;
   FaceID face;
