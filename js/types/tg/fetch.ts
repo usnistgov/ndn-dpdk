@@ -27,6 +27,9 @@ export interface FetcherConfig {
 export interface FetchTaskDef extends InterestTemplate {
   segmentBegin?: Uint;
   segmentEnd?: Uint;
+
+  filename?: string;
+  segmentLen?: Uint;
 }
 
 export interface FetchCounters {

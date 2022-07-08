@@ -12,6 +12,8 @@ typedef struct PData
   uint32_t freshness; ///< FreshnessPeriod in millis
   bool hasDigest;
   bool isFinalBlock;
+  uint32_t contentOffset; ///< Content TLV-VALUE offset
+  uint32_t contentL;      ///< Content TLV-LENGTH
   RTE_MARKER64 a_;
   uint8_t digest[ImplicitDigestLength];
   RTE_MARKER64 b_;

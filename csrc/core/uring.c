@@ -23,7 +23,9 @@ Uring_Free(Uring* ur)
 {
   int fd = ur->uring.ring_fd;
   io_uring_queue_exit(&ur->uring);
-  N_LOGI("exit ur=%p fd=%d", ur, fd);
+  N_LOGI("free ur=%p fd=%d alloc-errs=%" PRIu64 " submitted=%" PRIu64 " submit-nonblock=%" PRIu64
+         " submit-wait=%" PRIu64,
+         ur, fd, ur->nAllocErrs, ur->nSubmitted, ur->nSubmitNonBlock, ur->nSubmitWait);
   return true;
 }
 

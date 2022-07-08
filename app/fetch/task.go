@@ -6,6 +6,7 @@ package fetch
 import "C"
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"unsafe"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/segmented"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go.uber.org/zap"
+	"golang.org/x/sys/unix"
 )
 
 var (
@@ -44,6 +46,7 @@ func (task *TaskContext) Counters() Counters {
 func (task *TaskContext) Stop() {
 	eal.CallMain(func() {
 		task.w.RemoveTask(eal.MainReadSide, task.ts)
+		task.ts.closeFd()
 		close(task.stopping)
 		taskContextLock.Lock()
 		defer taskContextLock.Unlock()
@@ -68,6 +71,15 @@ type TaskDef struct {
 
 	// SegmentRange specifies range of segment numbers.
 	segmented.SegmentRange
+
+	// Filename is the output file name.
+	// If omitted, payload is not written to a file.
+	Filename string `json:"filename,omitempty"`
+
+	// SegmentLen is the payload length in each segment.
+	// This is only needed when writing to a file.
+	// If any segment has incorrect Content TLV-LENGTH, the output file would not contain correct payload.
+	SegmentLen int `json:"segmentLen,omitempty"`
 }
 
 // TaskSlotConfig contains task slot configuration.
@@ -90,6 +102,7 @@ type taskSlot C.FetchTask
 // Init (re-)initializes the task slot to perform a fetch task.
 // This should only be called on an inactive task slot.
 func (ts *taskSlot) Init(d TaskDef) error {
+	d.SegmentRangeApplyDefaults()
 	fl := ts.Logic()
 	fl.Reset(d.SegmentRange)
 
@@ -102,6 +115,35 @@ func (ts *taskSlot) Init(d TaskDef) error {
 	}
 	ts.tpl.prefixV[ts.tpl.prefixL] = an.TtSegmentNameComponent
 
+	if d.Filename != "" {
+		if d.SegmentLen <= 0 {
+			return errors.New("missing SegmentLen")
+		}
+
+		fd, e := unix.Open(d.Filename, unix.O_WRONLY|unix.O_CREAT, 0o666)
+		if e != nil {
+			return fmt.Errorf("unix.Open(%s): %w", d.Filename, e)
+		}
+
+		offsetBegin := int64(d.SegmentBegin) * int64(d.SegmentLen)
+		offsetEnd := int64(d.SegmentEnd) * int64(d.SegmentLen)
+		if e := unix.Fallocate(fd, 0, offsetBegin, offsetEnd-offsetBegin); e != nil {
+			unix.Close(fd)
+			unix.Unlink(d.Filename)
+			return fmt.Errorf("unix.Fallocate(%s): %w", d.Filename, e)
+		}
+
+		ts.fd, ts.segmentLen = C.int(fd), C.uint32_t(d.SegmentLen)
+	}
+
+	logger.Info("task init",
+		zap.Int("slot-index", int(ts.index)),
+		zap.Stringer("prefix", d.Prefix),
+		zap.Uint64s("segment-range", []uint64{d.SegmentBegin, d.SegmentEnd}),
+		zap.String("filename", d.Filename),
+		zap.Int("fd", int(ts.fd)),
+		zap.Int("segment-len", d.SegmentLen),
+	)
 	return nil
 }
 
@@ -115,9 +157,23 @@ func (ts *taskSlot) Logic() *Logic {
 	return (*Logic)(&ts.logic)
 }
 
+func (ts *taskSlot) closeFd() {
+	if ts.fd < 0 {
+		return
+	}
+	if e := unix.Close(int(ts.fd)); e != nil {
+		logger.Warn("unix.Close error",
+			zap.Int("fd", int(ts.fd)),
+			zap.Error(e),
+		)
+	}
+	ts.fd = -1
+}
+
 func newTaskSlot(index int, cfg TaskSlotConfig, socket eal.NumaSocket) (ts *taskSlot) {
 	ts = eal.Zmalloc[taskSlot]("FetchTask", unsafe.Sizeof(taskSlot{}), socket)
 	*ts = taskSlot{
+		fd:     -1,
 		index:  C.uint8_t(index),
 		worker: -1,
 	}

@@ -71,6 +71,7 @@ func (w *worker) RemoveTask(rs *urcu.ReadSide, ts *taskSlot) {
 
 	w.nTasks--
 	C.cds_hlist_del_rcu(&ts.fthNode)
+	urcu.Barrier()
 }
 
 // ClearTasks clears task list.
@@ -90,6 +91,7 @@ func newWorker(face iface.Face, index int) (w *worker) {
 		interestMp: (*C.struct_rte_mempool)(ndni.InterestMempool.Get(socket).Ptr()),
 		face:       C.FaceID(face.ID()),
 	}
+	w.c.uringCapacity, w.c.uringWaitLbound = 4096, 2048
 	pcg32.Init(unsafe.Pointer(&w.c.nonceRng))
 	w.ThreadWithCtrl = ealthread.NewThreadWithCtrl(
 		cptr.Func0.C(C.FetchThread_Run, w.c),

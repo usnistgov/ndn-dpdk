@@ -79,10 +79,8 @@ PData_Parse(PData* data, struct rte_mbuf* pkt, ParseFor parseFor)
       case TtName: {
         LName lname = (LName){ .length = length };
         if (unlikely(length > NameMaxLength ||
-                     (lname.value = TlvDecoder_Linearize(&d, length)) == NULL)) {
-          return false;
-        }
-        if (unlikely(!PName_Parse(&data->name, lname))) {
+                     (lname.value = TlvDecoder_Linearize(&d, length)) == NULL ||
+                     !PName_Parse(&data->name, lname))) {
           return false;
         }
         break;
@@ -94,7 +92,11 @@ PData_Parse(PData* data, struct rte_mbuf* pkt, ParseFor parseFor)
         }
         break;
       }
-      case TtContent:
+      case TtContent: {
+        data->contentOffset = pkt->pkt_len - d.length;
+        data->contentL = length;
+      }
+      // fallthrough
       case TtDSigInfo:
       case TtDSigValue: {
         return true;

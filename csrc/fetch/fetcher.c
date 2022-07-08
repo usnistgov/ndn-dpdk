@@ -1,7 +1,7 @@
 #include "fetcher.h"
 
 #include "../core/logger.h"
-#include "../ndni/nni.h"
+#include "../ndni/tlv-decoder.h"
 
 N_LOG_INIT(FetchTask);
 
@@ -58,29 +58,131 @@ FetchTask_DecodeData(FetchTask* fp, Packet* npkt, FetchLogicRxData* lpkt)
          Nni_Decode(seqNumComp[1], RTE_PTR_ADD(seqNumComp, 2), &lpkt->segNum);
 }
 
-__attribute__((nonnull)) static inline uint32_t
-FetchTask_RxBurst(FetchTask* fp)
+__attribute__((nonnull)) static inline bool
+FetchTask_WriteData(FetchThread* fth, FetchTask* fp, Packet* npkt, FetchLogicRxData* lpkt)
+{
+  const PData* data = Packet_GetDataHdr(npkt);
+  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  struct iovec* iov = (struct iovec*)data->helperScratch;
+  if (unlikely(pkt->nb_segs > sizeof(data->helperScratch) / sizeof(iov[0]))) {
+    N_LOGW("%p WriteData seg=%" PRIu64 " frags=%" PRIu16 N_LOG_ERROR_STR, fp, lpkt->segNum,
+           pkt->nb_segs, "too-many-frags");
+    return false;
+  }
+
+  struct io_uring_sqe* sqe = Uring_GetSqe(&fth->ur);
+  if (unlikely(sqe == NULL)) {
+    N_LOGW("%p WriteData seg=%" PRIu64 N_LOG_ERROR_STR, fp, lpkt->segNum, "no-SQE");
+    return false;
+  }
+
+  uint32_t nIov = 0, skipRemain = data->contentOffset,
+           acceptRemain = RTE_MIN(fp->segmentLen, data->contentL);
+  for (struct rte_mbuf* m = pkt; m != NULL && acceptRemain != 0; m = m->next) {
+    uint32_t skipLen = RTE_MIN(skipRemain, (uint32_t)m->data_len);
+    skipRemain -= skipLen;
+    uint32_t acceptLen = RTE_MIN(acceptRemain, (uint32_t)m->data_len - skipLen);
+    acceptRemain -= acceptLen;
+    if (acceptLen > 0) {
+      iov[nIov++] = (struct iovec){
+        .iov_base = rte_pktmbuf_mtod_offset(m, void*, skipLen),
+        .iov_len = acceptLen,
+      };
+    }
+  }
+  NDNDPDK_ASSERT(skipRemain + acceptRemain == 0);
+
+  io_uring_prep_writev(sqe, fp->fd, iov, nIov, lpkt->segNum * fp->segmentLen);
+  io_uring_sqe_set_data(sqe, pkt);
+  return true;
+}
+
+__attribute__((nonnull)) static __rte_always_inline uint32_t
+FetchTask_RxBurst(FetchThread* fth, FetchTask* fp, bool wantWrite)
 {
   TscTime now = rte_get_tsc_cycles();
   Packet* npkts[MaxBurstSize];
   uint32_t nRx = PktQueue_Pop(&fp->queueD, (struct rte_mbuf**)npkts, MaxBurstSize, now).count;
+  Packet* discards[MaxBurstSize];
+  uint32_t nDiscards = 0;
 
   FetchLogicRxData lpkts[MaxBurstSize];
-  size_t count = 0;
+  uint32_t count = 0;
   for (uint16_t i = 0; i < nRx; ++i) {
-    bool ok = FetchTask_DecodeData(fp, npkts[i], &lpkts[count]);
-    if (likely(ok)) {
-      ++count;
+    Packet* npkt = npkts[i];
+    FetchLogicRxData* lpkt = &lpkts[count];
+    bool ok = FetchTask_DecodeData(fp, npkt, lpkt);
+    if (wantWrite && likely(ok)) {
+      ok = FetchTask_WriteData(fth, fp, npkt, lpkt);
     }
+
+    if (unlikely(!ok)) {
+      discards[nDiscards++] = npkt;
+      continue;
+    }
+    ++count;
   }
   FetchLogic_RxDataBurst(&fp->logic, lpkts, count, now);
-  rte_pktmbuf_free_bulk((struct rte_mbuf**)npkts, nRx);
+
+  if (wantWrite) {
+    if (unlikely(nDiscards > 0)) {
+      rte_pktmbuf_free_bulk((struct rte_mbuf**)discards, nDiscards);
+    }
+  } else {
+    rte_pktmbuf_free_bulk((struct rte_mbuf**)npkts, nRx);
+  }
   return nRx;
+}
+
+__attribute__((nonnull)) static uint32_t
+FetchTask_RxBurst_Discard(FetchThread* fth, FetchTask* fp)
+{
+  return FetchTask_RxBurst(fth, fp, false);
+}
+
+__attribute__((nonnull)) static uint32_t
+FetchTask_RxBurst_Write(FetchThread* fth, FetchTask* fp)
+{
+  return FetchTask_RxBurst(fth, fp, true);
+}
+
+typedef uint32_t (*FetchTask_RxBurstFunc)(FetchThread* fth, FetchTask* fp);
+const FetchTask_RxBurstFunc FetchTask_RxBurstJmp[] = {
+  [false] = FetchTask_RxBurst_Discard,
+  [true] = FetchTask_RxBurst_Write,
+};
+
+__attribute__((nonnull)) static inline uint32_t
+FetchThread_CqBurst(FetchThread* fth)
+{
+  struct io_uring_cqe* cqes[MaxBurstSize];
+  uint32_t n = Uring_PeekCqes(&fth->ur, cqes, RTE_DIM(cqes));
+  if (n == 0) {
+    return 0;
+  }
+
+  struct rte_mbuf* discards[MaxBurstSize];
+  for (uint32_t i = 0; i < n; ++i) {
+    struct io_uring_cqe* cqe = cqes[i];
+    if (unlikely(cqe->res < 0)) {
+      N_LOGW("%p CQE error" N_LOG_ERROR_ERRNO, fth, cqe->res);
+    }
+    discards[i] = io_uring_cqe_get_data(cqe);
+  }
+  Uring_SeenCqes(&fth->ur, n);
+
+  rte_pktmbuf_free_bulk(discards, n);
+  return n;
 }
 
 int
 FetchThread_Run(FetchThread* fth)
 {
+  bool ok = Uring_Init(&fth->ur, fth->uringCapacity);
+  if (unlikely(!ok)) {
+    return 1;
+  }
+
   uint32_t nProcessed = 0;
   while (ThreadCtrl_Continue(fth->ctrl, nProcessed)) {
     rcu_quiescent_state();
@@ -90,9 +192,14 @@ FetchThread_Run(FetchThread* fth)
     cds_hlist_for_each_entry_rcu (fp, pos, &fth->tasksHead, fthNode) {
       MinSched_Trigger(fp->logic.sched);
       nProcessed += FetchTask_TxBurst(fp, fth);
-      nProcessed += FetchTask_RxBurst(fp);
+      nProcessed += FetchTask_RxBurstJmp[fp->fd >= 0](fth, fp);
     }
+
+    Uring_Submit(&fth->ur, fth->uringWaitLbound, MaxBurstSize);
+    nProcessed += FetchThread_CqBurst(fth);
     rcu_read_unlock();
   }
+
+  Uring_Free(&fth->ur);
   return 0;
 }

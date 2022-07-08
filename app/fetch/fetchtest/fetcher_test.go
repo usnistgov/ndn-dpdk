@@ -1,7 +1,10 @@
 package fetchtest
 
 import (
+	"io"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -33,6 +36,9 @@ func TestFetcher(t *testing.T) {
 	var defA, defB fetch.TaskDef
 	defA.Prefix = ndn.ParseName("/A")
 	defA.SegmentBegin, defA.SegmentEnd = 0, 5000
+	defA.Filename, defA.SegmentLen = filepath.Join(t.TempDir(), "A.bin"), 100
+	payloadA := make([]byte, int(defA.SegmentEnd)*defA.SegmentLen)
+	rand.Read(payloadA)
 	defB.Prefix = ndn.ParseName("/B")
 	defB.SegmentBegin, defB.SegmentEnd = 1000, 4000
 	const finalBlockB = 1800
@@ -53,6 +59,8 @@ func TestFetcher(t *testing.T) {
 				nInterestsA++
 				pInterestsA[segNum]++
 				assert.Less(uint64(segNum), defA.SegmentEnd)
+				payloadOffset := int(segNum) * defA.SegmentLen
+				data.Content = payloadA[payloadOffset : payloadOffset+defA.SegmentLen]
 			case defB.Prefix.IsPrefixOf(packet.Interest.Name):
 				nInterestsB++
 				pInterestsB[segNum]++
@@ -101,4 +109,11 @@ func TestFetcher(t *testing.T) {
 
 	t.Logf("/A Interests %d (unique %d) and /B Interests %d (unique %d) in %v",
 		nInterestsA, len(pInterestsA), nInterestsB, len(pInterestsB), time.Since(t0))
+
+	if fA, e := os.Open(defA.Filename); assert.NoError(e) {
+		defer fA.Close()
+		writtenA, e := io.ReadAll(fA)
+		assert.NoError(e)
+		assert.Equal(payloadA, writtenA)
+	}
 }

@@ -200,7 +200,7 @@ TlvDecoder_ReadVarNum(TlvDecoder* d, uint32_t* n)
  * @brief Read TLV-TYPE and TLV-LENGTH, without checking for truncated TLV-VALUE.
  * @param[out] length TLV-LENGTH.
  * @return TLV-TYPE number.
- * @retval 0 truncated packet.
+ * @retval 0 truncated TLV-TYPE or TLV-LENGTH.
  * @post Decoder is advanced after TLV-LENGTH.
  */
 __attribute__((nonnull)) static __rte_always_inline uint32_t
@@ -275,12 +275,12 @@ TlvDecoder_ReadNni(TlvDecoder* d, uint32_t length, uint64_t max, uint64_t* n)
   return Nni_Decode(length, value, n) && *n <= max;
 }
 
-#define TlvDecoder_ReadNniToTypeMax_(sizeofPtr)                                                    \
-  (sizeofPtr) == sizeof(uint8_t)    ? UINT8_MAX                                                    \
-  : (sizeofPtr) == sizeof(uint16_t) ? UINT16_MAX                                                   \
-  : (sizeofPtr) == sizeof(uint32_t) ? UINT32_MAX                                                   \
-  : (sizeofPtr) == sizeof(uint64_t) ? UINT64_MAX                                                   \
-                                    : 0
+#define TlvDecoder_ReadNniToTypeMax_(sizeofValue)                                                  \
+  (sizeofValue) == sizeof(uint8_t)    ? UINT8_MAX                                                  \
+  : (sizeofValue) == sizeof(uint16_t) ? UINT16_MAX                                                 \
+  : (sizeofValue) == sizeof(uint32_t) ? UINT32_MAX                                                 \
+  : (sizeofValue) == sizeof(uint64_t) ? UINT64_MAX                                                 \
+                                      : 0
 #define TlvDecoder_ReadNniTo4_(d, length, max, ptr)                                                \
   __extension__({                                                                                  \
     static_assert(__builtin_constant_p(TlvDecoder_ReadNniToTypeMax_(sizeof(*(ptr)))), "");         \

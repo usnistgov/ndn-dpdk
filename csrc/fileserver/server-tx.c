@@ -112,7 +112,7 @@ FileServer_TxBurst(FileServer* p)
   for (uint32_t i = 0; i < nCqe; ++i) {
     FileServerTx_ProcessCqe(p, &ctx, i);
   }
-  Uring_PutCqes(&p->ur, nCqe);
+  Uring_SeenCqes(&p->ur, nCqe);
 
   Face_TxBurst(p->face, ctx.data, ctx.nData);
   rte_pktmbuf_free_bulk(&ctx.discard[ctx.discardPayloadIndex],

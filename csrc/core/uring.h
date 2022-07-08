@@ -29,7 +29,7 @@ Uring_Init(Uring* ur, uint32_t capacity);
 __attribute__((nonnull)) bool
 Uring_Free(Uring* ur);
 
-/** @brief Obtain Submission Queue Entry (SQE). */
+/** @brief Obtain and enqueue Submission Queue Entry (SQE). */
 __attribute__((nonnull)) static __rte_always_inline struct io_uring_sqe*
 Uring_GetSqe(Uring* ur)
 {
@@ -62,6 +62,10 @@ Uring_Submit(Uring* ur, uint32_t waitLBound, uint32_t cqeBurst)
 __attribute__((nonnull)) static inline uint32_t
 Uring_PeekCqes(Uring* ur, struct io_uring_cqe* cqes[], size_t count)
 {
+  if (ur->nPending == 0) {
+    return 0;
+  }
+
   uint32_t n = io_uring_peek_batch_cqe(&ur->uring, cqes, count);
   ur->nPending -= n;
   return n;
@@ -69,7 +73,7 @@ Uring_PeekCqes(Uring* ur, struct io_uring_cqe* cqes[], size_t count)
 
 /** @brief Release processed CQEs. */
 __attribute__((nonnull)) static __rte_always_inline void
-Uring_PutCqes(Uring* ur, uint32_t n)
+Uring_SeenCqes(Uring* ur, uint32_t n)
 {
   io_uring_cq_advance(&ur->uring, n);
 }
