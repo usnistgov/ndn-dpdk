@@ -7,6 +7,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"math"
 	"sync"
 	"unsafe"
 
@@ -102,7 +103,6 @@ type taskSlot C.FetchTask
 // Init (re-)initializes the task slot to perform a fetch task.
 // This should only be called on an inactive task slot.
 func (ts *taskSlot) Init(d TaskDef) error {
-	d.SegmentRangeApplyDefaults()
 	fl := ts.Logic()
 	fl.Reset(d.SegmentRange)
 
@@ -116,8 +116,11 @@ func (ts *taskSlot) Init(d TaskDef) error {
 	ts.tpl.prefixV[ts.tpl.prefixL] = an.TtSegmentNameComponent
 
 	if d.Filename != "" {
-		if d.SegmentLen <= 0 {
-			return errors.New("missing SegmentLen")
+		if d.SegmentLen <= 0 || d.SegmentLen > math.MaxUint32 {
+			return errors.New("bad SegmentLen")
+		}
+		if d.SegmentEnd <= d.SegmentBegin || d.SegmentEnd > math.MaxUint32 {
+			return errors.New("bad SegmentEnd")
 		}
 
 		fd, e := unix.Open(d.Filename, unix.O_WRONLY|unix.O_CREAT, 0o666)

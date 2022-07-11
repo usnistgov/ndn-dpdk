@@ -126,8 +126,9 @@ func init() {
 }
 
 func init() {
-	var fetcher, name string
-	var segmentEnd uint64
+	var fetcher, name, filename string
+	var segmentBegin, segmentEnd uint64
+	var segmentLen int
 	defineCommand(&cli.Command{
 		Category: "trafficgen",
 		Name:     "start-fetch",
@@ -146,18 +147,42 @@ func init() {
 				Required:    true,
 			},
 			&cli.Uint64Flag{
+				Name:        "segment-begin",
+				Usage:       "first segment `number` (inclusive)",
+				Destination: &segmentBegin,
+				Value:       0,
+			},
+			&cli.Uint64Flag{
 				Name:        "segment-end",
 				Usage:       "last segment `number` (exclusive)",
 				Destination: &segmentEnd,
 				Value:       math.MaxUint64,
+			},
+			&cli.StringFlag{
+				Name:        "filename",
+				Usage:       "output file name",
+				DefaultText: "not saving to file",
+				Destination: &filename,
+			},
+			&cli.IntFlag{
+				Name:        "segment-len",
+				Usage:       "segment length `octets`",
+				Destination: &segmentLen,
 			},
 		},
 		Action: func(c *cli.Context) error {
 			task := map[string]any{
 				"prefix": name,
 			}
+			if c.IsSet("segment-begin") {
+				task["segmentBegin"] = segmentBegin
+			}
 			if c.IsSet("segment-end") {
 				task["segmentEnd"] = segmentEnd
+			}
+			if filename != "" {
+				task["filename"] = filename
+				task["segmentLen"] = segmentLen
 			}
 			return clientDoPrint(c.Context, `
 				mutation fetch($fetcher: ID!, $task: FetchTaskDefInput!) {
@@ -169,6 +194,8 @@ func init() {
 							hopLimit
 							segmentBegin
 							segmentEnd
+							filename
+							segmentLen
 						}
 						worker {
 							id
