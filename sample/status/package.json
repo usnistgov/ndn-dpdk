@@ -4,18 +4,18 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@7.3.0",
+  "packageManager": "pnpm@7.5.2",
   "dependencies": {
-    "@fastify/express": "^2.0.0",
+    "@fastify/express": "^2.0.1",
     "@fastify/http-proxy": "^8.2.1",
     "@fastify/static": "^6.4.0",
-    "@typescript/lib-dom": "npm:@types/web@0.0.68",
+    "@typescript/lib-dom": "npm:@types/web@0.0.69",
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz",
     "delay": "^5.0.0",
-    "fastify": "^4.2.0",
+    "fastify": "^4.2.1",
     "hashquery": "^1.0.0",
     "numd": "^3.1.0",
-    "preact": "^10.8.2",
+    "preact": "^10.10.0",
     "ts-loader": "^9.3.1",
     "tslib": "^2.4.0",
     "typescript": "~4.7.4",

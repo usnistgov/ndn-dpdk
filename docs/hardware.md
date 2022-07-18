@@ -30,7 +30,7 @@ The developers have tested NDN-DPDK with the following Ethernet adapters:
 
 model | speed | DPDK driver | RxFlow
 -|-|-|-
-Mellanox ConnectX-5 | 100 Gbps | mlx5 | yes
+NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes
 Intel X710 | 10 Gbps | i40e | UDP only
 Intel X710 VF | 10 Gbps | iavf | untested
 Intel XXV710 | 25 Gbps | i40e | untested
@@ -45,9 +45,9 @@ If you encounter face creation failure or you are unable to send/receive packets
 See [face creation](face.md) for the general procedure of face creation on Ethernet adapters.
 The next sections provide information on specific NIC models.
 
-### Mellanox Ethernet Adapters
+### NVIDIA Ethernet Adapters
 
-DPDK supports Mellanox adapters in Ethernet mode, but not in Infiniband mode.
+DPDK supports NVIDIA adapters in Ethernet mode, but not in Infiniband mode.
 If you have VPI adapters, use `mlxconfig` tool to verify and change port mode.
 See [MLX5 poll mode driver](https://doc.dpdk.org/guides/nics/mlx5.html) for more information.
 
@@ -64,10 +64,10 @@ docker build \
   [other arguments]
 ```
 
-Mellanox adapters use a bifurcated driver.
+NVIDIA adapters use a bifurcated driver.
 You should not change PCI driver binding with `dpdk-devbind.py` command.
 
-To use Mellanox adapters in Docker container, add these flags when you launch the service container:
+To use NVIDIA adapters in Docker container, add these flags when you launch the service container:
 
 ```bash
 docker run \
@@ -92,7 +92,7 @@ sudo ip link set $NETIF netns $CTPID
 
 #### RxFlow Feature
 
-Most Mellanox adapters are compatible with NDN-DPDK RxFlow feature.
+Most NVIDIA adapters are compatible with NDN-DPDK RxFlow feature.
 Unless you encounter errors, you should enable RxFlow while creating the Ethernet port.
 Example command:
 

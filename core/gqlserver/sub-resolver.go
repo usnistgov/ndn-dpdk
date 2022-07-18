@@ -177,7 +177,8 @@ func AddCounters(cfg *CountersConfig) {
 	}
 
 	if cfg.Subscription != "" {
-		args := maps.Clone(cfg.Args)
+		args := graphql.FieldConfigArgument{}
+		maps.Copy(args, cfg.Args)
 		maps.Copy(args, cfg.FindArgs)
 		maps.Copy(args, subArgInterval)
 		if !cfg.NoDiff {

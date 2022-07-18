@@ -11,7 +11,7 @@ docker build --pull -t ndn-dpdk .
 ```
 
 Some DPDK drivers may require external dependencies.
-For example, the mlx5 driver for Mellanox ConnectX-4/5/6 Ethernet adapters needs the `libibverbs-dev` package.
+For example, the mlx5 driver for NVIDIA ConnectX-4/5/6 Ethernet adapters needs the `libibverbs-dev` package.
 You can use `APT_PKGS` build argument to add external dependencies.
 
 By default, the image is non-portable due to the use of `-march=native` compiler flag, and NDN-DPDK is built in debug mode.
