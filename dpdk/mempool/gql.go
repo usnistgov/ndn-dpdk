@@ -23,7 +23,7 @@ var (
 )
 
 func makeFileDumpResolver(f func(fp *C.FILE)) graphql.FieldResolveFn {
-	return func(p graphql.ResolveParams) (any, error) {
+	return func(graphql.ResolveParams) (any, error) {
 		dump, e := cptr.CaptureFileDump(func(fp unsafe.Pointer) {
 			f((*C.FILE)(fp))
 		})
@@ -67,7 +67,7 @@ func init() {
 		Name:        "memoryDiag",
 		Description: "DPDK memory-related diagnose reports.",
 		Type:        graphql.NewNonNull(GqlMemoryDiagType),
-		Resolve: func(p graphql.ResolveParams) (any, error) {
+		Resolve: func(graphql.ResolveParams) (any, error) {
 			if eal.MainThread == nil {
 				return nil, errors.New("EAL not ready")
 			}

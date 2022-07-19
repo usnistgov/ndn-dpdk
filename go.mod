@@ -26,7 +26,7 @@ require (
 	github.com/rickb777/plural v1.4.1
 	github.com/safchain/ethtool v0.2.0
 	github.com/sethvargo/go-retry v0.2.3
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.9.0
 	github.com/soh335/sliceflag v0.0.0-20160923061056-d2d28a5acab8
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
 	github.com/stretchr/testify v1.8.0

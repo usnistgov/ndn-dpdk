@@ -51,14 +51,14 @@ func init() {
 			"mounts": &graphql.Field{
 				Description: "Mount entries.",
 				Type:        gqlserver.NonNullJSON,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					return p.Source.(*Server).Mounts(), nil
 				},
 			},
 			"counters": &graphql.Field{
 				Description: "Counters.",
 				Type:        graphql.NewNonNull(GqlCountersType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				Resolve: func(p graphql.ResolveParams) (any, error) {
 					return p.Source.(*Server).Counters(), nil
 				},
 			},

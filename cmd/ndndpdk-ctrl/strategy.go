@@ -64,7 +64,7 @@ func init() {
 				Required:    true,
 			},
 		},
-		Before: func(c *cli.Context) (e error) {
+		Before: func(*cli.Context) (e error) {
 			elf, e = os.ReadFile(elffile)
 			if e != nil {
 				return e

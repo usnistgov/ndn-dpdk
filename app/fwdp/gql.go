@@ -217,7 +217,7 @@ func init() {
 		Parent:       GqlDiskType.Object,
 		Name:         "storeCounters",
 		Subscription: "fwDiskCounters",
-		Find: func(p graphql.ResolveParams) (source any, enders []any, e error) {
+		Find: func(graphql.ResolveParams) (source any, enders []any, e error) {
 			if GqlDataPlane == nil {
 				return nil, nil, nil
 			}

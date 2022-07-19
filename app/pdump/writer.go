@@ -105,7 +105,7 @@ func (w *Writer) defineIntf(id int, intf pcapgo.NgInterface) {
 	}
 	w.intfs[id] = intf
 
-	shb, idb := ngMakeHeader(id, intf)
+	shb, idb := ngMakeHeader(intf)
 	if !w.hasSHB {
 		w.putBlock(shb, NgTypeSHB, math.MaxUint16)
 		w.hasSHB = true
@@ -215,7 +215,7 @@ func NewWriter(cfg WriterConfig) (w *Writer, e error) {
 	return w, nil
 }
 
-func ngMakeHeader(id int, info pcapgo.NgInterface) (shb, idb []byte) {
+func ngMakeHeader(info pcapgo.NgInterface) (shb, idb []byte) {
 	intf := pcapgo.DefaultNgInterface
 	intf.Name = info.Name
 	intf.Description = info.Description

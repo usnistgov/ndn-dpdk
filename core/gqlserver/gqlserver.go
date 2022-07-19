@@ -71,8 +71,8 @@ func AddSubscription(f *graphql.Field) {
 		}
 	}
 	if subscribe := f.Subscribe; subscribe != nil {
-		f.Subscribe = func(p graphql.ResolveParams) (interface{}, error) {
-			var stop chan interface{}
+		f.Subscribe = func(p graphql.ResolveParams) (any, error) {
+			var stop chan any
 			goutils.Try(func() { stop = gqlwsserver.GetSubscriptionStopSig(p.Context) })
 			if stop != nil {
 				ctx, cancel := context.WithCancel(p.Context)

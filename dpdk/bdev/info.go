@@ -111,7 +111,7 @@ func (bdi *Info) DevInfo() *Info {
 	return bdi
 }
 
-// MarshalLogArray implements zapcore.ObjectMarshaler interface.
+// MarshalLogObject implements zapcore.ObjectMarshaler interface.
 func (bdi *Info) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	enc.AddString("name", bdi.Name())
 	enc.AddString("product-name", bdi.ProductName())

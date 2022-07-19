@@ -206,7 +206,7 @@ func (c *Consumer) Stop() error {
 	return c.StopDelay(0)
 }
 
-// Stop stops the TX thread, sleep for the specified duration, then stops the RX thread.
+// StopDelay stops the TX thread, sleep for the specified duration, then stops the RX thread.
 func (c *Consumer) StopDelay(delay time.Duration) error {
 	eTx := c.tx.Stop()
 	time.Sleep(delay)

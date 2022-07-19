@@ -36,21 +36,21 @@ func (ls DirectoryListing) MarshalBinary() (value []byte, e error) {
 }
 
 // UnmarshalBinary decodes from segmented object payload.
-func (m *DirectoryListing) UnmarshalBinary(value []byte) (e error) {
+func (ls *DirectoryListing) UnmarshalBinary(value []byte) (e error) {
 	totalLen := len(value)
-	*m = DirectoryListing{}
+	*ls = DirectoryListing{}
 	for len(value) > 0 {
 		pos := bytes.IndexByte(value, 0)
 		if pos <= 0 {
 			return fmt.Errorf("unterminated or blank line near offset %d", totalLen-len(value))
 		}
 		if value[pos-1] == '/' {
-			*m = append(*m, directoryEntry{
+			*ls = append(*ls, directoryEntry{
 				name:  string(value[:pos-1]),
 				isDir: true,
 			})
 		} else {
-			*m = append(*m, directoryEntry{
+			*ls = append(*ls, directoryEntry{
 				name:  string(value[:pos]),
 				isDir: false,
 			})

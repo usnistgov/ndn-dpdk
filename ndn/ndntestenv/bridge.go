@@ -104,7 +104,7 @@ func (tr *bridgeTransport) Write(buf []byte) (n int, e error) {
 	if !tr.loss() {
 		go func(delay time.Duration, pkt []byte) {
 			time.Sleep(delay)
-			tr.Conn.Write(buf)
+			tr.Conn.Write(pkt)
 		}(tr.delay(), buf)
 	}
 	return len(buf), nil

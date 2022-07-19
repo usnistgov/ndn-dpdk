@@ -28,6 +28,8 @@ func testDataGen(t testing.TB, fragmentPayloadSize int, checkMbuf func(m *pktmbu
 	pkt := gen.Encode(ndn.ParseName("/prefix"), &mp, fragmentPayloadSize)
 	require.NotNil(pkt)
 
+	checkMbuf(pkt.Mbuf())
+
 	data := pkt.ToNPacket().Data
 	require.NotNil(data)
 	nameEqual(assert, "/prefix/suffix", data)

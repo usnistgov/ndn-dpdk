@@ -37,7 +37,7 @@ var (
 )
 
 //export go_getDataCallback
-func go_getDataCallback(npkt *C.Packet, ctx C.uintptr_t) C.int {
+func go_getDataCallback(npkt *C.Packet, _ C.uintptr_t) C.int {
 	reply, ok := getDataReplyMap.LoadAndDelete(npkt)
 	if !ok {
 		panic("unexpected invocation")

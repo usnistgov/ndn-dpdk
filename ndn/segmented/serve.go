@@ -75,7 +75,7 @@ func Serve(ctx context.Context, source io.ReaderAt, opts ServeOptions) (endpoint
 		}
 	}
 
-	opts.Handler = func(ctx context.Context, interest ndn.Interest) (data ndn.Data, e error) {
+	opts.Handler = func(_ context.Context, interest ndn.Interest) (data ndn.Data, e error) {
 		seg, ok := extractSegment(interest.Name, prefixLen)
 		if !ok {
 			return data, errors.New("segment component not found")

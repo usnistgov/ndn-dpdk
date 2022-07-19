@@ -74,7 +74,7 @@ func NewRxMatch(loc Locator) (match RxMatch) {
 	return
 }
 
-// TxHdrFunc contains prepare buffer to prepend headers to outgoing packets.
+// TxHdr contains prepare buffer to prepend headers to outgoing packets.
 type TxHdr C.EthTxHdr
 
 func (hdr TxHdr) copyToC(c *C.EthTxHdr) {

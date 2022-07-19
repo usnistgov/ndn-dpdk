@@ -22,7 +22,7 @@ func IsMulticast(a net.HardwareAddr) bool {
 	return len(a) == 6 && a[0]&0x01 != 0
 }
 
-// MakeRandom generates a random unicast MAC-48 address.
+// MakeRandomUnicast generates a random unicast MAC-48 address.
 func MakeRandomUnicast() (a net.HardwareAddr) {
 	a = make(net.HardwareAddr, 6)
 	rand.Read(a)

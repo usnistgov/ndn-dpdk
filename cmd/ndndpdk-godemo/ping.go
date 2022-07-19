@@ -127,17 +127,17 @@ func init() {
 					return nil
 				case timestamp := <-ticker.C:
 					go func(t0 time.Time, s uint64) {
-						interest := ndn.MakeInterest(fmt.Sprintf("%s/%016X", name, seqNum), ndn.MustBeFreshFlag, lifetime)
+						interest := ndn.MakeInterest(fmt.Sprintf("%s/%016X", name, s), ndn.MustBeFreshFlag, lifetime)
 						_, e := endpoint.Consume(ctx, interest, endpoint.ConsumerOptions{
 							Verifier: verifier,
 						})
 						rtt := time.Since(t0)
 						if e == nil {
 							nDataL, nErrorsL := nData.Inc(), nErrors.Load()
-							log.Printf("%6.2f%% D %016X %6dus", 100*float64(nDataL)/float64(nDataL+nErrorsL), seqNum, rtt.Microseconds())
+							log.Printf("%6.2f%% D %016X %6dus", 100*float64(nDataL)/float64(nDataL+nErrorsL), s, rtt.Microseconds())
 						} else {
 							nDataL, nErrorsL := nData.Load(), nErrors.Inc()
-							log.Printf("%6.2f%% E %016X %v", 100*float64(nDataL)/float64(nDataL+nErrorsL), seqNum, e)
+							log.Printf("%6.2f%% E %016X %v", 100*float64(nDataL)/float64(nDataL+nErrorsL), s, e)
 						}
 					}(timestamp, seqNum)
 					seqNum++

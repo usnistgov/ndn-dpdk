@@ -74,7 +74,7 @@ func (pit *Pit) FindByNack(nack *ndni.Packet, token uint64) *Entry {
 }
 
 func init() {
-	pcct.InitPit = func(cfg pcct.Config, pcct *pcct.Pcct) {
+	pcct.InitPit = func(_ pcct.Config, pcct *pcct.Pcct) {
 		pit := &((*C.Pcct)(pcct.Ptr())).pit
 		logger.Info("init",
 			zap.Uintptr("pcct", uintptr(unsafe.Pointer(pcct))),

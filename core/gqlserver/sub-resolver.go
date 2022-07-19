@@ -109,7 +109,7 @@ func init() {
 		Args:        subArgInterval,
 		Subscribe: func(p graphql.ResolveParams) (any, error) {
 			n := 0
-			return PublishInterval(p, func(p graphql.ResolveParams) (any, error) {
+			return PublishInterval(p, func(graphql.ResolveParams) (any, error) {
 				n++
 				return n, nil
 			})

@@ -55,7 +55,7 @@ func fromLName(l C.LName) (n ndn.Name) {
 func ctestPName(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	checkPName(t, "/", func(p *C.PName, u *C.PNameUnpacked) {
+	checkPName(t, "/", func(_ *C.PName, u *C.PNameUnpacked) {
 		assert.EqualValues(-1, u.firstNonGeneric)
 		assert.EqualValues(false, u.hasDigestComp)
 	})
@@ -73,7 +73,7 @@ func ctestPName(t *testing.T) {
 		nameEqual(assert, "/A/B", fromLName(C.PName_GetPrefix(p, 3)))
 	})
 
-	checkPName(t, "/A/1="+strings.Repeat("%00", sha256.Size), func(p *C.PName, u *C.PNameUnpacked) {
+	checkPName(t, "/A/1="+strings.Repeat("%00", sha256.Size), func(_ *C.PName, u *C.PNameUnpacked) {
 		assert.EqualValues(1, u.firstNonGeneric)
 		assert.EqualValues(true, u.hasDigestComp)
 	})
@@ -88,7 +88,7 @@ func ctestPName(t *testing.T) {
 		nameEqual(assert, "/65535=F", fromLName(C.PName_Slice(p, 5, 6)))
 	})
 
-	checkPName(t, "/A/1="+strings.Repeat("%00", sha256.Size-1), func(p *C.PName, u *C.PNameUnpacked) {
+	checkPName(t, "/A/1="+strings.Repeat("%00", sha256.Size-1), func(_ *C.PName, u *C.PNameUnpacked) {
 		assert.EqualValues(1, u.firstNonGeneric)
 		assert.EqualValues(false, u.hasDigestComp) // wrong TLV-LENGTH
 	})

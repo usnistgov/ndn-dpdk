@@ -76,7 +76,8 @@ func Parse(input string) (a PCIAddress, e error) {
 	return a, nil
 }
 
-// MustParsePCIAddress parses a PCI string, and panics on failure.
+// MustParse parses a PCI string.
+// Panics on failure.
 func MustParse(input string) (a PCIAddress) {
 	var e error
 	if a, e = Parse(input); e != nil {

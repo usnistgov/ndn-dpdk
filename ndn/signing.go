@@ -51,7 +51,7 @@ var DigestSigning SignerVerifier = digestSigning{}
 type digestSigning struct{}
 
 func (digestSigning) Sign(packet Signable) error {
-	return packet.SignWith(func(name Name, si *SigInfo) (LLSign, error) {
+	return packet.SignWith(func(_ Name, si *SigInfo) (LLSign, error) {
 		si.Type = an.SigSha256
 		si.KeyLocator = KeyLocator{}
 		return func(input []byte) (sig []byte, e error) {
@@ -62,7 +62,7 @@ func (digestSigning) Sign(packet Signable) error {
 }
 
 func (digestSigning) Verify(packet Verifiable) error {
-	return packet.VerifyWith(func(name Name, si SigInfo) (LLVerify, error) {
+	return packet.VerifyWith(func(_ Name, si SigInfo) (LLVerify, error) {
 		if si.Type != an.SigSha256 {
 			return nil, ErrSigType
 		}
@@ -82,7 +82,7 @@ var NullSigner Signer = nullSigner{}
 type nullSigner struct{}
 
 func (nullSigner) Sign(packet Signable) error {
-	return packet.SignWith(func(name Name, si *SigInfo) (LLSign, error) {
+	return packet.SignWith(func(_ Name, si *SigInfo) (LLSign, error) {
 		si.Type = an.SigNull
 		si.KeyLocator = KeyLocator{}
 		return func(input []byte) (sig []byte, e error) {

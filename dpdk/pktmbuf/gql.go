@@ -76,7 +76,7 @@ func init() {
 		Name:        "pktmbufPoolTemplates",
 		Description: "Packet buffer pool templates.",
 		Type:        gqlserver.NewListNonNullBoth(GqlTemplateType),
-		Resolve: func(p graphql.ResolveParams) (any, error) {
+		Resolve: func(graphql.ResolveParams) (any, error) {
 			var list []Template
 			for _, tpl := range templates {
 				list = append(list, tpl)

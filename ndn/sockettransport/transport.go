@@ -172,7 +172,7 @@ func (tr *transport) doRW(f func() (n int, e error)) (n int, e error) {
 		return 0, nil
 	}
 
-	e = retry.Do(tr.ctx, tr.backoff, func(ctx context.Context) error {
+	e = retry.Do(tr.ctx, tr.backoff, func(context.Context) error {
 		tr.p.SetState(l3.TransportDown)
 		conn, e := tr.impl.Redial(tr.conn)
 		if e != nil {

@@ -24,11 +24,11 @@ func ctestLogic(t *testing.T) {
 	defer fl.Close()
 	flC := (*C.FetchLogic)(unsafe.Pointer(fl))
 
-	const FINAL_SEG = 1999
-	const LOSS_RATE = 0.05
+	const finalSeg = 1999
+	const lossRate = 0.05
 
 	fl.Reset(segmented.SegmentRange{
-		SegmentEnd: FINAL_SEG + 1,
+		SegmentEnd: finalSeg + 1,
 	})
 
 	rxData := make(chan uint64)
@@ -55,7 +55,7 @@ func ctestLogic(t *testing.T) {
 			txSegNum := uint64(txSegNumC)
 
 			txCounts[txSegNum]++
-			if loss := rand.Float64(); loss < LOSS_RATE {
+			if loss := rand.Float64(); loss < lossRate {
 				// packet loss
 			} else {
 				go func() {
@@ -67,7 +67,7 @@ func ctestLogic(t *testing.T) {
 	}
 
 	txCountFreq := make([]int, 10)
-	for i := uint64(0); i <= FINAL_SEG; i++ {
+	for i := uint64(0); i <= finalSeg; i++ {
 		txCount := txCounts[i]
 		assert.Greater(txCount, 0, "%d", i)
 		if txCount >= len(txCountFreq) {

@@ -29,7 +29,7 @@ import (
 var logger = logging.New("main")
 
 func init() {
-	http.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
+	http.HandleFunc("/robots.txt", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Add("Content-Type", "text/plain")
 		w.Write([]byte("User-Agent: *\nDisallow: /\n"))
 	})

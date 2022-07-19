@@ -57,10 +57,10 @@ func TestRunningStat(t *testing.T) {
 	assert.InDelta(mean, o.Mean, 0.1)
 	assert.InDelta(stdev, o.Stdev, 0.1)
 
-	bsJson, e := json.Marshal(o.Sub(ar))
+	bj, e := json.Marshal(o.Sub(ar))
 	assert.NoError(e)
 	var bs runningstat.Snapshot
-	e = json.Unmarshal(bsJson, &bs)
+	e = json.Unmarshal(bj, &bs)
 	assert.NoError(e)
 	assert.Equal(br.Count, bs.Count)
 	assert.Equal(br.Len, bs.Len)

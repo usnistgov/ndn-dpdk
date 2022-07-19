@@ -78,7 +78,7 @@ func init() {
 		Category: "activate",
 		Name:     "systemd",
 		Usage:    "Control NDN-DPDK systemd service",
-		Before: func(c *cli.Context) error {
+		Before: func(*cli.Context) error {
 			hostport, e := gqlCfg.Listen()
 			if e != nil {
 				return e
@@ -112,7 +112,7 @@ func init() {
 						Destination: &logsFollow,
 					},
 				},
-				Action: func(c *cli.Context) error {
+				Action: func(*cli.Context) error {
 					if logsFollow {
 						return run("journalctl", "-ocat", "-f", "-u", unitName)
 					}

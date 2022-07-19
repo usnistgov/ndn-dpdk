@@ -295,7 +295,7 @@ func init() {
 	GqlWriterType.Object.AddFieldConfig("sources", &graphql.Field{
 		Description: "Packet dump sources.",
 		Type:        gqlserver.NewListNonNullBoth(GqlSourceType),
-		Resolve: func(p graphql.ResolveParams) (any, error) {
+		Resolve: func(graphql.ResolveParams) (any, error) {
 			sources := []any{}
 
 			sourcesMutex.Lock()

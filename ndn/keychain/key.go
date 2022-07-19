@@ -26,7 +26,7 @@ type namedSigner struct {
 }
 
 func (signer namedSigner) Sign(packet ndn.Signable) error {
-	return packet.SignWith(func(name ndn.Name, si *ndn.SigInfo) (ndn.LLSign, error) {
+	return packet.SignWith(func(_ ndn.Name, si *ndn.SigInfo) (ndn.LLSign, error) {
 		si.Type = signer.sigType
 		si.KeyLocator = ndn.KeyLocator{Name: signer.klName}
 		return signer.llSign, nil
@@ -85,7 +85,7 @@ func (pub publicKey) Name() ndn.Name {
 }
 
 func (pub publicKey) Verify(packet ndn.Verifiable) error {
-	return packet.VerifyWith(func(name ndn.Name, si ndn.SigInfo) (ndn.LLVerify, error) {
+	return packet.VerifyWith(func(_ ndn.Name, si ndn.SigInfo) (ndn.LLVerify, error) {
 		if si.Type != pub.sigType {
 			return nil, ndn.ErrSigType
 		}

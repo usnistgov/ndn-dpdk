@@ -35,7 +35,7 @@ var app = &cli.App{
 			Destination: &cmdout,
 		},
 	},
-	Before: func(c *cli.Context) (e error) {
+	Before: func(*cli.Context) (e error) {
 		if e := gqlCfg.Validate(); e != nil {
 			return e
 		}
@@ -44,7 +44,7 @@ var app = &cli.App{
 		}
 		return e
 	},
-	After: func(c *cli.Context) (e error) {
+	After: func(*cli.Context) (e error) {
 		if client != nil {
 			e = client.Close()
 			client = nil

@@ -32,7 +32,7 @@ func (qp *QueuePair) CopyToC(ptr unsafe.Pointer) {
 	*(*C.CryptoQueuePair)(ptr) = qp.c
 }
 
-// PrepareSha256Digest prepares a SHA256 digest generation operation.
+// PrepareSha256 prepares a SHA256 digest generation operation.
 //  m[offset:offset+length] is the input to SHA256 digest function.
 //  output must have 32 bytes in C memory.
 func (qp *QueuePair) PrepareSha256(op *Op, m *pktmbuf.Packet, offset, length int, output unsafe.Pointer) {

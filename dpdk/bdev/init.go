@@ -32,7 +32,7 @@ func initBdevLib() {
 }
 
 //export go_bdevInitialized
-func go_bdevInitialized(ctx unsafe.Pointer, rc C.int) {
+func go_bdevInitialized(_ unsafe.Pointer, rc C.int) {
 	if rc != 0 {
 		logger.Panic("spdk_bdev_initialize error", zap.Error(eal.MakeErrno(rc)))
 	}

@@ -22,7 +22,7 @@ var implByNetwork = map[string]impl{}
 // noLocalAddrDialer dials with only remote addr.
 type noLocalAddrDialer struct{}
 
-func (noLocalAddrDialer) Dial(network, local, remote string) (net.Conn, error) {
+func (noLocalAddrDialer) Dial(network, _, remote string) (net.Conn, error) {
 	dialer := net.Dialer{
 		Control: greuse.Control,
 	}

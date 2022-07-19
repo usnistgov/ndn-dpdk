@@ -96,7 +96,7 @@ func init() {
 		}
 		return nil
 	}
-	waitFinish := func(c *cli.Context) {
+	waitFinish := func(*cli.Context) {
 		if cmdout {
 			if duration > 0 {
 				fmt.Printf("sleep %0.1f\n", duration.Seconds())
