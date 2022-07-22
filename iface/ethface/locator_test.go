@@ -8,7 +8,10 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
+	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndnlayer"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"golang.org/x/exp/slices"
 )
 
@@ -335,9 +338,7 @@ func TestLocatorRxMatch(t *testing.T) {
 func TestLocatorTxHdr(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	payload := make([]byte, 200)
-	rand.Read(payload)
-
+	payload, _ := tlv.EncodeFrom(ndn.MakeInterest("/I"))
 	checkTxHdr := func(locator string, expectedLayerTypes ...gopacket.LayerType) gopacket.Packet {
 		loc := parseLocator(locator)
 		txHdr := ethport.NewTxHdr(loc, false)
@@ -346,7 +347,7 @@ func TestLocatorTxHdr(t *testing.T) {
 		txHdr.Prepend(pkt, true)
 
 		parsed := gopacket.NewPacket(pkt.Bytes(), layers.LayerTypeEthernet, gopacket.NoCopy)
-		expectedLayerTypes = append(expectedLayerTypes, gopacket.LayerTypePayload)
+		expectedLayerTypes = append(expectedLayerTypes, ndnlayer.LayerTypeTLV, ndnlayer.LayerTypeNDN)
 		ipLen, actualLayerTypes := 0, []gopacket.LayerType{}
 		for i, l := range parsed.Layers() {
 			if i < 2 {

@@ -18,7 +18,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
-	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndnlayer"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/vishvananda/netlink"
 	"go.uber.org/atomic"
@@ -122,10 +122,9 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 		}
 	}()
 
-	makeRxPayload := func(prefix string, i int) gopacket.Payload {
+	makeRxFrame := func(prefix string, i int) gopacket.SerializableLayer {
 		interest := ndn.MakeInterest(fmt.Sprintf("/RX/%s/%d", prefix, i))
-		wire, _ := tlv.EncodeFrom(interest)
-		return gopacket.Payload(wire)
+		return &ndnlayer.NDN{Packet: interest.ToPacket()}
 	}
 	makeTxBurst := func(prefix string, i int) []*ndni.Packet {
 		return []*ndni.Packet{makeInterest(fmt.Sprintf("/TX/%s/%d", prefix, i))}
@@ -137,7 +136,7 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 		_, e = writeToFromLayers(tap,
 			&layers.Ethernet{SrcMAC: locEther.Remote.HardwareAddr, DstMAC: locEther.Local.HardwareAddr, EthernetType: layers.EthernetTypeDot1Q},
 			&layers.Dot1Q{VLANIdentifier: uint16(locEther.VLAN), Type: an.EtherTypeNDN},
-			makeRxPayload("Ether", i),
+			makeRxFrame("Ether", i),
 		)
 		assert.NoError(e)
 		iface.TxBurst(faceEther.ID(), makeTxBurst("Ether", i))
@@ -147,7 +146,7 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 			&layers.Dot1Q{VLANIdentifier: uint16(locUDP4.VLAN), Type: layers.EthernetTypeIPv4},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locUDP4.RemoteIP.AsSlice()), DstIP: net.IP(locUDP4.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP4.RemoteUDP), DstPort: layers.UDPPort(locUDP4.LocalUDP)},
-			makeRxPayload("UDP4", i),
+			makeRxFrame("UDP4", i),
 		)
 		assert.NoError(e)
 		iface.TxBurst(faceUDP4.ID(), makeTxBurst("UDP4", i))
@@ -157,7 +156,7 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 			&layers.Dot1Q{Priority: 1, VLANIdentifier: uint16(locUDP4p1.VLAN), Type: layers.EthernetTypeIPv4},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locUDP4p1.RemoteIP.AsSlice()), DstIP: net.IP(locUDP4p1.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP4p1.RemoteUDP), DstPort: layers.UDPPort(locUDP4p1.LocalUDP)},
-			makeRxPayload("UDP4p1", i),
+			makeRxFrame("UDP4p1", i),
 		)
 		assert.NoError(e)
 		iface.TxBurst(faceUDP4p1.ID(), makeTxBurst("UDP4p1", i))
@@ -166,7 +165,7 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 			&layers.Ethernet{SrcMAC: locUDP6.Remote.HardwareAddr, DstMAC: locUDP6.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv6},
 			&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: net.IP(locUDP6.RemoteIP.AsSlice()), DstIP: net.IP(locUDP6.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP6.RemoteUDP), DstPort: layers.UDPPort(locUDP6.LocalUDP)},
-			makeRxPayload("UDP6", i),
+			makeRxFrame("UDP6", i),
 		)
 		assert.NoError(e)
 		iface.TxBurst(faceUDP6.ID(), makeTxBurst("UDP6", i))
@@ -177,7 +176,7 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 			&layers.UDP{SrcPort: layers.UDPPort(65535 - i), DstPort: 4789},
 			&layers.VXLAN{ValidIDFlag: true, VNI: uint32(locVX.VXLAN)},
 			&layers.Ethernet{SrcMAC: locVX.InnerRemote.HardwareAddr, DstMAC: locVX.InnerLocal.HardwareAddr, EthernetType: an.EtherTypeNDN},
-			makeRxPayload("VX", i),
+			makeRxFrame("VX", i),
 		)
 		assert.NoError(e)
 		iface.TxBurst(faceVX.ID(), makeTxBurst("VX", i))

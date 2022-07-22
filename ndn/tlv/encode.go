@@ -14,6 +14,7 @@ type EncodingBuffer struct {
 }
 
 // Append appends a field.
+// If there's an error, it is accumulated in the EncodingBuffer.
 func (eb *EncodingBuffer) Append(f Field) {
 	if eb.err != nil {
 		return
@@ -21,7 +22,7 @@ func (eb *EncodingBuffer) Append(f Field) {
 	eb.b, eb.err = f.Encode(eb.b)
 }
 
-// Output returns encoding output.
+// Output returns encoding output and accumulated error.
 func (eb EncodingBuffer) Output() ([]byte, error) {
 	return eb.b, eb.err
 }

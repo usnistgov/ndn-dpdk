@@ -11,7 +11,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
-	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndnlayer"
 	"golang.org/x/exp/slices"
 )
 
@@ -102,41 +102,28 @@ func (tr *transport) Close() error {
 }
 
 type transportRx struct {
-	eth     layers.Ethernet
 	parser  *gopacket.DecodingLayerParser
 	decoded []gopacket.LayerType
+	eth     layers.Ethernet
+	dot1q   layers.Dot1Q
+	tlv     ndnlayer.TLV
 
-	matchSrc, matchDst func(a net.HardwareAddr) bool
-	extractPayload     func(layerType gopacket.LayerType) []byte
+	matchLL func(src, dst net.HardwareAddr) bool
 }
 
 func (rx *transportRx) Prepare(loc Locator) {
-	rx.matchSrc = func(a net.HardwareAddr) bool { return macaddr.Equal(loc.Remote.HardwareAddr, a) }
-	rx.matchDst = func(a net.HardwareAddr) bool { return macaddr.Equal(loc.Local.HardwareAddr, a) }
 	if macaddr.IsMulticast(loc.Remote.HardwareAddr) {
-		rx.matchSrc = func(net.HardwareAddr) bool { return true }
-		rx.matchDst = func(a net.HardwareAddr) bool { return macaddr.Equal(loc.Remote.HardwareAddr, a) }
+		rx.matchLL = func(src, dst net.HardwareAddr) bool {
+			return macaddr.Equal(loc.Remote.HardwareAddr, dst)
+		}
+	} else {
+		rx.matchLL = func(src, dst net.HardwareAddr) bool {
+			return macaddr.Equal(loc.Remote.HardwareAddr, src) && macaddr.Equal(loc.Local.HardwareAddr, dst)
+		}
 	}
 
-	var payload gopacket.Payload
-	rx.parser = gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &rx.eth, &payload)
-	rx.extractPayload = func(layerType gopacket.LayerType) []byte {
-		if layerType == layers.LayerTypeEthernet && rx.eth.EthernetType == EthernetTypeNDN {
-			return rx.eth.Payload
-		}
-		return nil
-	}
-	if loc.VLAN > 0 {
-		var dot1q layers.Dot1Q
-		rx.parser.AddDecodingLayer(&dot1q)
-		vlan16 := uint16(loc.VLAN)
-		rx.extractPayload = func(layerType gopacket.LayerType) []byte {
-			if layerType == layers.LayerTypeDot1Q && dot1q.VLANIdentifier == vlan16 && dot1q.Type == EthernetTypeNDN {
-				return dot1q.Payload
-			}
-			return nil
-		}
-	}
+	rx.parser = gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &rx.eth, &rx.dot1q, &rx.tlv)
+	rx.parser.IgnoreUnsupported = true
 }
 
 func (rx *transportRx) Read(hdl PacketDataHandle, buf []byte) (n int, e error) {
@@ -151,22 +138,16 @@ DROP:
 		}
 
 		for _, layerType := range rx.decoded {
-			if layerType == layers.LayerTypeEthernet && (!rx.matchSrc(rx.eth.SrcMAC) || !rx.matchDst(rx.eth.DstMAC)) {
-				continue DROP
+			switch layerType {
+			case layers.LayerTypeEthernet:
+				if !rx.matchLL(rx.eth.SrcMAC, rx.eth.DstMAC) {
+					continue DROP
+				}
+			case layers.LayerTypeDot1Q:
+				// TODO match VLAN ID; recognize afpacket.AncillaryVLAN
+			case ndnlayer.LayerTypeTLV:
+				return copy(buf, rx.tlv.LayerContents()), nil
 			}
-
-			payload := rx.extractPayload(layerType)
-			if len(payload) == 0 {
-				continue
-			}
-
-			d := tlv.DecodingBuffer(payload)
-			element, e := d.Element()
-			if e != nil {
-				continue DROP
-			}
-
-			return copy(buf, element.Wire), nil
 		}
 	}
 }
@@ -206,12 +187,4 @@ func (tx *transportTx) Write(hdl PacketDataHandle, buf []byte) (n int, e error) 
 		return 0, e
 	}
 	return len(buf), hdl.WritePacketData(tx.buf.Bytes())
-}
-
-func init() {
-	layers.EthernetTypeMetadata[EthernetTypeNDN] = layers.EnumMetadata{
-		DecodeWith: gopacket.DecodePayload,
-		Name:       "NDN",
-		LayerType:  gopacket.LayerTypePayload,
-	}
 }
