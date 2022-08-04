@@ -63,8 +63,8 @@ type LpFragment struct {
 	SeqNum    uint64
 	FragIndex int
 	FragCount int
-	header    []byte
-	payload   []byte
+	Header    []byte // encoded NDNLPv2 L3 header fields
+	Payload   []byte // LpPayload TLV-VALUE
 }
 
 var _ tlv.Fielder = LpFragment{}
@@ -84,8 +84,8 @@ func (frag LpFragment) Field() tlv.Field {
 		tlv.TLVBytes(an.TtLpSeqNum, seqNum),
 		tlv.TLVNNI(an.TtFragIndex, frag.FragIndex),
 		tlv.TLVNNI(an.TtFragCount, frag.FragCount),
-		tlv.Bytes(frag.header),
-		tlv.TLVBytes(an.TtLpPayload, frag.payload))
+		tlv.Bytes(frag.Header),
+		tlv.TLVBytes(an.TtLpPayload, frag.Payload))
 }
 
 // LpFragmenter splits Packet into fragments.
@@ -112,8 +112,8 @@ func (fragmenter *LpFragmenter) Fragment(full *Packet) (frags []*Packet, e error
 	var first Packet
 	first.Lp = full.Lp
 	first.Fragment = &LpFragment{
-		header:  header,
-		payload: payload[:sizeofFirstFragment],
+		Header:  header,
+		Payload: payload[:sizeofFirstFragment],
 	}
 	frags = append(frags, &first)
 
@@ -125,7 +125,7 @@ func (fragmenter *LpFragmenter) Fragment(full *Packet) (frags []*Packet, e error
 
 		var frag Packet
 		frag.Fragment = &LpFragment{
-			payload: payload[offset:nextOffset],
+			Payload: payload[offset:nextOffset],
 		}
 		frags = append(frags, &frag)
 	}
@@ -210,7 +210,7 @@ func (pp *lpPartialPacket) acceptOne(pkt *Packet) {
 	if pkt.Fragment.FragIndex == 0 {
 		pp.lpl3 = pkt.Lp
 	}
-	pp.buffer[pkt.Fragment.FragIndex] = pkt.Fragment.payload
+	pp.buffer[pkt.Fragment.FragIndex] = pkt.Fragment.Payload
 	pp.accepted++
 }
 

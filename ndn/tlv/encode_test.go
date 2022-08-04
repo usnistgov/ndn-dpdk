@@ -20,6 +20,7 @@ func TestEncode(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	wire, e := tlv.EncodeFrom(
+		tlv.Bytes(nil),
 		tlv.Bytes([]byte{0xF1}),
 		tlv.FieldFunc(func(b []byte) ([]byte, error) { return append(b, 0xF2), nil }),
 		tlv.TLVBytes(1, []byte{0xF3}),

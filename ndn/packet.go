@@ -187,7 +187,7 @@ func (pkt *Packet) decodeValue(value []byte) (e error) {
 
 func (pkt *Packet) decodePayload(payload []byte) error {
 	if pkt.Fragment != nil {
-		pkt.Fragment.payload = payload
+		pkt.Fragment.Payload = payload
 		return nil
 	}
 
