@@ -2,8 +2,8 @@
 //
 // Endpoint is the basic abstraction through which an application can communicate with the NDN network.
 // It is similar to "client face" in other NDN libraries, with the enhancement that it handles these details automatically:
-//  - Outgoing packets are signed and incoming packets are verified, if keys are provided.
-//  - Outgoing Interests are transmitted periodically, if retransmission policy is specified.
+//   - Outgoing packets are signed and incoming packets are verified, if keys are provided.
+//   - Outgoing Interests are transmitted periodically, if retransmission policy is specified.
 package endpoint
 
 import (

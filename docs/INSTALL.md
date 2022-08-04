@@ -11,7 +11,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Linux kernel 5.4 or newer (install `linux-generic-hwe-18.04` on Ubuntu 18.04)
 * Required APT packages: `build-essential clang-11 git jq libc6-dev-i386 libelf-dev libpcap-dev libssl-dev liburcu-dev ninja-build pkg-config` (enable [llvm-toolchain-bionic-11](https://apt.llvm.org/) repository on Ubuntu 18.04)
 * Optional APT packages: `clang-format-11 doxygen lcov yamllint`
-* Go 1.18
+* Go 1.19
 * Node.js 16.x
 * [Meson build system](https://mesonbuild.com/Getting-meson.html#installing-meson-with-pip)
 * [ubpf](https://github.com/iovisor/ubpf) 48e526d8

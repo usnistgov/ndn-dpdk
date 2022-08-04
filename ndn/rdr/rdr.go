@@ -37,7 +37,8 @@ func IsDiscoveryInterest(interest ndn.Interest) bool {
 }
 
 // RetrieveMetadata retrieves RDR metadata.
-//  m: either *Metadata or its derived type.
+//
+//	m: either *Metadata or its derived type.
 func RetrieveMetadata(ctx context.Context, m encoding.BinaryUnmarshaler, name ndn.Name, opts endpoint.ConsumerOptions) error {
 	interest := MakeDiscoveryInterest(name)
 	data, e := endpoint.Consume(ctx, interest, opts)

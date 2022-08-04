@@ -31,10 +31,11 @@ func subV(currV, prevV reflect.Value) (diffV reflect.Value) {
 // It assigns the result to a pointer to the same type.
 //
 // This function can handle these field types:
-//  - unsigned/signed integer.
-//  - struct (recursive).
-//  - slice (recursive, truncated to the shorter slice).
-//  - array (recursive).
+//   - unsigned/signed integer.
+//   - struct (recursive).
+//   - slice (recursive, truncated to the shorter slice).
+//   - array (recursive).
+//
 // Other fields are ignored.
 // A field may be explicitly skipped with `subtract:"-"` tag.
 func SubFields[T any](curr, prev T, diffPtr *T) {

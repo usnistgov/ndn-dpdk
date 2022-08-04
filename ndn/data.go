@@ -32,14 +32,14 @@ var (
 
 // MakeData creates a Data from flexible arguments.
 // Arguments can contain:
-//  - string or Name: set Name
-//  - ContentType
-//  - time.Duration: set Freshness
-//  - FinalBlock: set FinalBlock
-//  - FinalBlockFlag: set FinalBlock to the last name component, ignored if name is empty
-//  - []byte: set Content
-//  - LpL3: copy PitToken and CongMark
-//  - Interest or *Interest: copy Name, set FreshnessPeriod if Interest has MustBeFresh, inherit LpL3
+//   - string or Name: set Name
+//   - ContentType
+//   - time.Duration: set Freshness
+//   - FinalBlock: set FinalBlock
+//   - FinalBlockFlag: set FinalBlock to the last name component, ignored if name is empty
+//   - []byte: set Content
+//   - LpL3: copy PitToken and CongMark
+//   - Interest or *Interest: copy Name, set FreshnessPeriod if Interest has MustBeFresh, inherit LpL3
 func MakeData(args ...any) (data Data) {
 	data.packet = &Packet{}
 	hasFinalBlockFlag := false

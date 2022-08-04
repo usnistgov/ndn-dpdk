@@ -30,9 +30,9 @@ func ReplyNack(reason uint8) error {
 }
 
 // ProducerHandler is a producer handler function.
-//  - If it returns an error created with ReplyNack(), a Nack is sent in reply to the Interest.
-//  - If it returns a Data that satisfies the Interest, the Data is sent in reply to the Interest.
-//  - Otherwise, nothing is sent.
+//   - If it returns an error created with ReplyNack(), a Nack is sent in reply to the Interest.
+//   - If it returns a Data that satisfies the Interest, the Data is sent in reply to the Interest.
+//   - Otherwise, nothing is sent.
 type ProducerHandler func(ctx context.Context, interest ndn.Interest) (ndn.Data, error)
 
 // ProducerOptions contains arguments to Produce function.

@@ -26,7 +26,8 @@ func Named(pkg string) *zap.Logger {
 // New creates a logger initialized with configured log level.
 //
 // By NDN-DPDK codebase convention, this should appear in the same .go file as the package docstring:
-//  var logger = logging.New("Foo")
+//
+//	var logger = logging.New("Foo")
 func New(pkg string) *zap.Logger {
 	return Named(pkg).WithOptions(zap.IncreaseLevel(GetLevel(pkg).al))
 }

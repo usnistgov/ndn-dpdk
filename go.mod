@@ -1,6 +1,6 @@
 module github.com/usnistgov/ndn-dpdk
 
-go 1.18
+go 1.19
 
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
@@ -14,7 +14,7 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/graphql-go/graphql v0.8.0
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20220405231054-a1ae3e4bba26
-	github.com/jacobsa/fuse v0.0.0-20220718111527-9cc4ff0bc91d
+	github.com/jacobsa/fuse v0.0.0-20220726073400-226fec2ce902
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
@@ -32,7 +32,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
-	github.com/urfave/cli/v2 v2.11.0
+	github.com/urfave/cli/v2 v2.11.1
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zyedidia/generic v1.1.0
@@ -40,8 +40,8 @@ require (
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/exp v0.0.0-20220713135740-79cabaa25d75
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
+	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
+	golang.org/x/sys v0.0.0-20220803195053-6e608f9ce704
 )
 
 require (

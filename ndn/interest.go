@@ -38,15 +38,15 @@ var (
 
 // MakeInterest creates an Interest from flexible arguments.
 // Arguments can contain:
-//  - string or Name: set Name
-//  - CanBePrefixFlag: set CanBePrefix
-//  - MustBeFreshFlag: set MustBeFresh
-//  - ForwardingHint: set forwarding hint
-//  - Nonce: set Nonce
-//  - time.Duration: set Lifetime
-//  - HopLimit: set HopLimit
-//  - []byte: set AppParameters
-//  - LpL3: copy PitToken and CongMark
+//   - string or Name: set Name
+//   - CanBePrefixFlag: set CanBePrefix
+//   - MustBeFreshFlag: set MustBeFresh
+//   - ForwardingHint: set forwarding hint
+//   - Nonce: set Nonce
+//   - time.Duration: set Lifetime
+//   - HopLimit: set HopLimit
+//   - []byte: set AppParameters
+//   - LpL3: copy PitToken and CongMark
 func MakeInterest(args ...any) (interest Interest) {
 	interest.packet = &Packet{}
 	for _, arg := range args {

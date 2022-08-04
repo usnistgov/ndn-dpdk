@@ -87,9 +87,10 @@ func (hdr TxHdr) IPLen() int {
 }
 
 // Prepend prepends headers to an outgoing packet.
-//  newBurst: whether pkt is the first packet in a burst. It increments UDP source port in VXLAN
-//            headers. If NDN network layer packet is fragmented, only the first fragment might
-//            start a new burst, so that all fragments have the same UDP source port.
+//
+//	newBurst: whether pkt is the first packet in a burst. It increments UDP source port in VXLAN
+//	          headers. If NDN network layer packet is fragmented, only the first fragment might
+//	          start a new burst, so that all fragments have the same UDP source port.
 func (hdr TxHdr) Prepend(pkt *pktmbuf.Packet, newBurst bool) {
 	C.EthTxHdr_Prepend((*C.EthTxHdr)(&hdr), (*C.struct_rte_mbuf)(pkt.Ptr()), C.bool(newBurst))
 }

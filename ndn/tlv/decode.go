@@ -103,9 +103,10 @@ func (de DecodingElement) UnmarshalValue(u encoding.BinaryUnmarshaler) error {
 // UnmarshalNNI unmarshals TLV-VALUE as NNI and checks it's within [0:max] range.
 //
 // This function has an unusual set of parameters to allow for more compact calling code:
-//  if pkt.Field = uint32(de.UnmarshalNNI(math.MaxUint32, &e, tlv.ErrRange)); e != nil {
-//    return e
-//  }
+//
+//	if pkt.Field = uint32(de.UnmarshalNNI(math.MaxUint32, &e, tlv.ErrRange)); e != nil {
+//	  return e
+//	}
 func (de DecodingElement) UnmarshalNNI(max uint64, err *error, rangeErr error) (v uint64) {
 	var n NNI
 	if e := de.UnmarshalValue(&n); e != nil {

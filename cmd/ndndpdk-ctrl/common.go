@@ -270,11 +270,12 @@ func (r request) Print() error {
 }
 
 // clientDoPrint either runs a GraphQL query/mutation/subscription or prints the command to stdout.
-//  query: GraphQL document, which should contain exactly one GraphQL operation.
-//  vars: query variables.
-//  key: top-level JSON property key to extract from response.
-//  ptr: for query/mutation, pointer to a variable for receiving the response;
-//       for subscription, `func(T)` or `func(T) bool` for receiving each update, return false to unsubscribe.
+//
+//	query: GraphQL document, which should contain exactly one GraphQL operation.
+//	vars: query variables.
+//	key: top-level JSON property key to extract from response.
+//	ptr: for query/mutation, pointer to a variable for receiving the response;
+//	     for subscription, `func(T)` or `func(T) bool` for receiving each update, return false to unsubscribe.
 func clientDoPrint(ctx context.Context, query string, vars map[string]any, key string, ptr ...any) error {
 	r := request{
 		Query: query,

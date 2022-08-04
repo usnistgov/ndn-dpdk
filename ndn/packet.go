@@ -2,15 +2,16 @@
 // This is the top-level package of NDNgo, a minimal NDN library in pure Go.
 //
 // This package contains the following important types:
-//  Packet representation:
-//  - Interest
-//  - Data
-//  - Nack
-//  - Packet
 //
-//  Security abstraction:
-//  - Signer
-//  - Verifier
+//	Packet representation:
+//	- Interest
+//	- Data
+//	- Nack
+//	- Packet
+//
+//	Security abstraction:
+//	- Signer
+//	- Verifier
 package ndn
 
 import (

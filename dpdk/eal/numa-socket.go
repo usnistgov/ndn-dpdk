@@ -135,8 +135,10 @@ type WithNumaSocket interface {
 }
 
 // ClassifyByNumaSocket classifies items by NUMA socket.
-//  T: type that satisfies WithNumaSocket interface
-//  s: source []T
+//
+//	T: type that satisfies WithNumaSocket interface
+//	s: source []T
+//
 // Returns map[eal.NumaSocket][]T
 func ClassifyByNumaSocket[T WithNumaSocket, S ~[]T](s S, r RewriteAnyNumaSocket) (m map[NumaSocket]S) {
 	m = map[NumaSocket]S{}

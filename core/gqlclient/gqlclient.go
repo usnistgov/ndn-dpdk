@@ -53,11 +53,12 @@ func (c *Client) Close() error {
 }
 
 // Do runs a query or mutation on the GraphQL server.
-//  ctx: a Context for canceling the operation.
-//  query: a GraphQL document.
-//  vars: query variables.
-//  key: if non-empty, unmarshal result.data[key] instead of result.data.
-//  res: pointer to result struct.
+//
+//	ctx: a Context for canceling the operation.
+//	query: a GraphQL document.
+//	vars: query variables.
+//	key: if non-empty, unmarshal result.data[key] instead of result.data.
+//	res: pointer to result struct.
 func (c *Client) Do(ctx context.Context, query string, vars map[string]any, key string, res any) error {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -91,11 +92,12 @@ func (c *Client) Delete(ctx context.Context, id string) (deleted bool, e error) 
 }
 
 // Subscribe performs a subscription on the GraphQL server.
-//  ctx: a Context for canceling the subscription.
-//  query: a GraphQL document.
-//  vars: query variables.
-//  key: if non-empty, unmarshal result.data[key] instead of result.data.
-//  res: channel for sending updates.
+//
+//	ctx: a Context for canceling the subscription.
+//	query: a GraphQL document.
+//	vars: query variables.
+//	key: if non-empty, unmarshal result.data[key] instead of result.data.
+//	res: channel for sending updates.
 func (c *Client) Subscribe(ctx context.Context, query string, vars map[string]any, key string, res any) error {
 	c.wg.Add(1)
 	defer c.wg.Done()

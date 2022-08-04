@@ -107,7 +107,8 @@ func MakeNameComponent(typ uint32, value []byte) (comp NameComponent) {
 // If value encodes to an error, returns an invalid NameComponent.
 //
 // To create a name component with NonNegativeInteger as commonly used in naming conventions:
-//  NameComponentFrom(an.VersionNameComponent, tlv.NNI(1))
+//
+//	NameComponentFrom(an.VersionNameComponent, tlv.NNI(1))
 func NameComponentFrom(typ uint32, value tlv.Fielder) NameComponent {
 	v, e := value.Field().Encode(nil)
 	if e != nil {

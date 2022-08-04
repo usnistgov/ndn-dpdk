@@ -106,8 +106,8 @@ func (c Config) assignWorkers(filter eal.LCorePredicate) (m map[string]eal.LCore
 // RoleConfig contains lcore allocation config for a role.
 //
 // In JSON, it should be either:
-//  - a list of lcore IDs, which cannot overlap with other roles.
-//  - an object, where each key is a NUMA socket and each value is the number of lcores on this socket.
+//   - a list of lcore IDs, which cannot overlap with other roles.
+//   - an object, where each key is a NUMA socket and each value is the number of lcores on this socket.
 type RoleConfig struct {
 	LCores  []int
 	PerNuma map[int]int

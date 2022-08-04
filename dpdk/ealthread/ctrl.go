@@ -27,7 +27,9 @@ const sleepEnabled = C.ENABLE_THREADSLEEP > 0
 //
 // Initially, the sleep duration is SleepMin.
 // Once every SleepAdjustEvery consecutive empty polls, the sleep duration is adjusted as:
-//   d = MIN(SleepMax, d * SleepMultiply / SleepDivide + SleepAdd)
+//
+//	d = MIN(SleepMax, d * SleepMultiply / SleepDivide + SleepAdd)
+//
 // After a valid poll, i.e. processed non-zero packets, the sleep duration is reset to SleepMin.
 //
 // All durations are in nanoseconds unit.

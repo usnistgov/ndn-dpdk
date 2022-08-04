@@ -17,7 +17,8 @@ import (
 var makeAR = testenv.MakeAR
 
 // As of SPDK 22.01, explicitly calling a function in libspdk_env_dpdk.so is needed to prevent a linker error:
-//  /usr/local/lib/libspdk_util.so: undefined reference to `spdk_realloc'
+//
+//	/usr/local/lib/libspdk_util.so: undefined reference to `spdk_realloc'
 var _ = C.spdk_env_get_core_count()
 
 func ctestJSON(t *testing.T) {

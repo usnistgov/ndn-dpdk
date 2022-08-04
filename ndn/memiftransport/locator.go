@@ -120,8 +120,9 @@ func (loc Locator) rsize() uint8 {
 }
 
 // ToVDevArgs builds arguments for DPDK virtual device.
-//  key: a unique key for each memif vdev; creating vdev with duplicate key would fail.
-//  args: arguments passed to eal.NewVDev() function.
+//
+//	key: a unique key for each memif vdev; creating vdev with duplicate key would fail.
+//	args: arguments passed to eal.NewVDev() function.
 func (loc *Locator) ToVDevArgs() (args map[string]any, e error) {
 	if e = loc.Validate(); e != nil {
 		return nil, e

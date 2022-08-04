@@ -74,7 +74,8 @@ type Mempools C.PacketMempools
 // Assign creates mempools from templates.
 //
 // To use alternate templates:
-//  Assign([HeaderMempool[, PacketMempool]])
+//
+//	Assign([HeaderMempool[, PacketMempool]])
 func (mp *Mempools) Assign(socket eal.NumaSocket, tpl ...pktmbuf.Template) {
 	if len(tpl) < 1 {
 		tpl = append(tpl, HeaderMempool)

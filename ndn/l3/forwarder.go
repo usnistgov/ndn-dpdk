@@ -12,12 +12,12 @@ import (
 // Its main purpose is to demultiplex incoming packets among faces, where a 'face' is defined as a duplex stream of packets.
 //
 // This is a simplified forwarder with several limitations.
-//  - There is no loop prevention: no Nonce list and no decrementing HopLimit.
-//    If multiple uplinks have "/" route, Interests will be forwarded among them and might cause persistent loops.
-//    Thus, it is not recommended to connect to multiple uplinks with overlapping routes.
-//  - There is no pending Interest table. Instead, downstream 'face' ID is inserted as part of the PIT token.
-//    Since PIT token cannot exceed 32 octets, this takes away some space.
-//    Thus, consumers are allowed to use a PIT token up to 28 octets; Interests with longer PIT tokens may be dropped.
+//   - There is no loop prevention: no Nonce list and no decrementing HopLimit.
+//     If multiple uplinks have "/" route, Interests will be forwarded among them and might cause persistent loops.
+//     Thus, it is not recommended to connect to multiple uplinks with overlapping routes.
+//   - There is no pending Interest table. Instead, downstream 'face' ID is inserted as part of the PIT token.
+//     Since PIT token cannot exceed 32 octets, this takes away some space.
+//     Thus, consumers are allowed to use a PIT token up to 28 octets; Interests with longer PIT tokens may be dropped.
 type Forwarder interface {
 	// AddFace adds a Face to the forwarder.
 	// face.Rx() and face.Tx() should not be used after this operation.
