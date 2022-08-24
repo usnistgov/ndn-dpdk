@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
 	"github.com/usnistgov/ndn-dpdk/ndn/keychain"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
-	"go.uber.org/atomic"
 	"go4.org/must"
 )
 
@@ -92,9 +92,9 @@ func TestProducerConcurrent(t *testing.T) {
 			delay, _ := strconv.Atoi(string(interest.Name.Get(-1).Value))
 			select {
 			case <-time.After(time.Duration(delay) * time.Millisecond):
-				pCompleted.Inc()
+				pCompleted.Add(1)
 			case <-ctx.Done():
-				pCanceled.Inc()
+				pCanceled.Add(1)
 			}
 			return ndn.MakeData(interest), nil
 		},
@@ -111,9 +111,9 @@ func TestProducerConcurrent(t *testing.T) {
 			interest := ndn.MakeInterest(fmt.Sprintf("/A/%d", i), 300*time.Millisecond)
 			data, e := endpoint.Consume(context.Background(), interest, endpoint.ConsumerOptions{})
 			if data != nil {
-				cData.Inc()
+				cData.Add(1)
 			} else if assert.EqualError(e, endpoint.ErrExpire.Error()) {
-				cExpire.Inc()
+				cExpire.Add(1)
 			}
 		}(i)
 	}

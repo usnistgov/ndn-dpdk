@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/mgmt"
-	"go.uber.org/atomic"
 	"go4.org/must"
 )
 
@@ -42,7 +42,7 @@ func (c *Client) OpenMemif(loc memiftransport.Locator) (mgmt.Face, error) {
 			}
 		})
 		loc.SocketName = autoSocketName
-		loc.ID = int(autoMemifID.Inc())
+		loc.ID = int(autoMemifID.Add(1))
 		loc.SocketOwner = &[2]int{os.Getuid(), os.Getgid()}
 	}
 	loc.ApplyDefaults(memiftransport.RoleClient)

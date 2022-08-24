@@ -14,6 +14,7 @@ import (
 	"path"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -34,7 +35,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/segmented"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/zyedidia/generic"
-	"go.uber.org/atomic"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 )
@@ -277,7 +277,7 @@ type fuseFS struct {
 	fuseutil.NotImplementedFileSystem
 	ctime    time.Time
 	mtime    time.Time
-	mtimeZ   atomic.Time
+	mtimeZ   atomic.Int64
 	payloadY []byte
 	sizeZ    uint64
 }
@@ -326,7 +326,7 @@ func (fs *fuseFS) inoAttr(ino fuseops.InodeID, attr *fuseops.InodeAttributes) er
 		attr.Size = uint64(len(fs.payloadY))
 	case fuseInoFileZ:
 		attr.Size = fs.sizeZ
-		attr.Mtime = fs.mtimeZ.Load()
+		attr.Mtime = time.Unix(0, fs.mtimeZ.Load())
 	case fuseInoSymlinkP, fuseInoSymlinkQ:
 		attr.Mode |= iofs.ModeSymlink
 	case fuseInoSocket:
@@ -457,7 +457,7 @@ func TestFuse(t *testing.T) {
 
 	fs.ctime = time.Unix(1637712000, 0)
 	fs.mtime = time.Unix(1644624000, 0)
-	fs.mtimeZ.Store(fs.mtime)
+	fs.mtimeZ.Store(fs.mtime.UnixNano())
 	fs.payloadY = make([]byte, cfg.SegmentLen*15+1)
 	rand.Read(fs.payloadY)
 	fs.sizeZ = uint64(cfg.SegmentLen * 80000)
@@ -570,7 +570,7 @@ func TestFuse(t *testing.T) {
 			}
 
 			mtimeZ := fs.mtime.Add(8 * time.Second)
-			fs.mtimeZ.Store(mtimeZ)
+			fs.mtimeZ.Store(mtimeZ.UnixNano())
 			time.Sleep(2 * cfg.StatValidity.Duration())
 			var fetchOpts segmented.FetchOptions
 			fetchOpts.SegmentEnd = 1 + uint64(lastSeg)
@@ -580,7 +580,7 @@ func TestFuse(t *testing.T) {
 
 			m, e = f.RetrieveMetadata("/fs/Z")
 			require.NoError(e)
-			assert.Equal(mtimeZ, m.Mtime)
+			assert.Equal(mtimeZ.UnixNano(), m.Mtime.UnixNano())
 		})
 
 		for _, tt := range []struct {

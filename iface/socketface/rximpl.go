@@ -2,9 +2,9 @@ package socketface
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )
 
@@ -29,7 +29,7 @@ func (impl *rxImpl) String() string {
 func (impl *rxImpl) start(face *socketFace) error {
 	id, ctx := face.ID(), face.transport.Context()
 
-	if impl.nFaces.Inc() == 1 {
+	if impl.nFaces.Add(1) == 1 {
 		rxg, e := impl.create()
 		if e != nil {
 			return e
@@ -50,7 +50,7 @@ func (impl *rxImpl) start(face *socketFace) error {
 }
 
 func (impl *rxImpl) stop() {
-	if impl.nFaces.Dec() > 0 {
+	if impl.nFaces.Add(-1) > 0 {
 		return
 	}
 	rxg := impl.instance.Swap(impl.nilValue).(rxGroup)

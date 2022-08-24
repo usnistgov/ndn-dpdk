@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"time"
 
 	"github.com/coreos/go-systemd/v22/daemon"
@@ -21,7 +22,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/version"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
-	"go.uber.org/atomic"
 	"go.uber.org/zap"
 	"golang.org/x/sys/unix"
 )
@@ -78,7 +78,7 @@ func init() {
 					return
 				}
 
-				if !isActivated.CAS(false, true) {
+				if !isActivated.CompareAndSwap(false, true) {
 					e = errors.New("ndndpdk-svc is already activated")
 					return
 				}

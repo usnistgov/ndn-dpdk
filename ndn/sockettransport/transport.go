@@ -7,12 +7,12 @@ import (
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/sethvargo/go-retry"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/zyedidia/generic"
-	"go.uber.org/atomic"
 )
 
 // Config contains socket transport configuration.
@@ -168,7 +168,7 @@ func (tr *transport) doRW(f func() (n int, e error)) (n int, e error) {
 
 	tr.redialLock.Lock()
 	defer tr.redialLock.Unlock()
-	if !tr.nRedials.CAS(nRedialsEnter, nRedialsEnter+1) { // another goroutine performed redial
+	if !tr.nRedials.CompareAndSwap(nRedialsEnter, nRedialsEnter+1) { // another goroutine performed redial
 		return 0, nil
 	}
 

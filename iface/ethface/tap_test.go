@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -21,7 +22,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/ndnlayer"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/vishvananda/netlink"
-	"go.uber.org/atomic"
 	"go4.org/must"
 )
 
@@ -118,7 +118,7 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 					classify = &txVX
 				}
 			}
-			classify.Inc()
+			classify.Add(1)
 		}
 	}()
 

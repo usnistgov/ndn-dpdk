@@ -1,8 +1,9 @@
 package l3
 
 import (
+	"sync/atomic"
+
 	"github.com/usnistgov/ndn-dpdk/core/events"
-	"go.uber.org/atomic"
 )
 
 const (
