@@ -49,7 +49,7 @@ jobs:
           make
           sudo make install
         env:
-          UBPFCOMMIT: 48e526d87935f975abcf990e8d0fef9ee017323d
+          UBPFCOMMIT: af0194ff5beca77a71098837b2a5bcbe7177145a
       - name: Install liburing
         run: |
           mkdir -p $HOME/liburing
@@ -77,7 +77,7 @@ jobs:
           corepack pnpm install
           make
           sudo make install
-          for D in sample/activate sample/benchmark; do
+          for D in sample/activate sample/benchmark sample/status; do
             pushd $D
             corepack pnpm install
             popd
@@ -135,7 +135,7 @@ jobs:
           sudo dpkg -i tinygo_${TINYGO_VERSION}_amd64.deb
         working-directory: /tmp
         env:
-          TINYGO_VERSION: "0.24.0"
+          TINYGO_VERSION: "0.25.0"
       - uses: actions/checkout@v3
       - name: Build for Linux without cgo
         run: |
@@ -153,4 +153,4 @@ jobs:
       - name: Build with TinyGo
         run: |
           tinygo build -o /dev/null -target=wasm ./ndn/ndntestenv/tiny
-        continue-on-error: true  # https://github.com/tinygo-org/tinygo/issues/2951
+        continue-on-error: true  # https://github.com/tinygo-org/tinygo/issues/3002

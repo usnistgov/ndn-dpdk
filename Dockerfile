@@ -22,6 +22,7 @@ RUN rm -rf \
       /usr/local/bin/dpdk-test* \
       /usr/local/bin/meson \
       /usr/local/bin/pip* \
+      /usr/local/bin/readelf.py \
       /usr/local/bin/spdk_* \
       /usr/local/bin/wheel \
       /usr/local/etc \
