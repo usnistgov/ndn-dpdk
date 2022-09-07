@@ -1,6 +1,6 @@
 import { Component, h } from "preact";
 
-import { type ServerEnv, Benchmark, BenchmarkOptions } from "./benchmark";
+import { type BenchmarkOptions, type ServerEnv, Benchmark } from "./benchmark";
 import { BenchmarkOptionsEditor } from "./benchmark-options-editor";
 import { type ResultRecord, ResultTable } from "./result-table";
 import { TopologyView } from "./topology-view";

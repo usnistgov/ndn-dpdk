@@ -1,4 +1,4 @@
-import { Component, h, JSX } from "preact";
+import { type JSX, Component, h } from "preact";
 
 import type { BenchmarkOptions } from "./benchmark";
 

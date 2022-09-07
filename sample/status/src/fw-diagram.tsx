@@ -5,7 +5,7 @@ import { client, gql } from "./client";
 import { type FwDispatchCounters, FwDispatchQueues } from "./fw-dispatch-queues";
 import { type FwdPktQueueCounters, FwFwd } from "./fw-fwd";
 import { FwInput } from "./fw-input";
-import { Face, Worker } from "./model";
+import { type Face, Worker } from "./model";
 import { TimerRefreshComponent } from "./refresh-component";
 import { WorkerShape } from "./worker-shape";
 

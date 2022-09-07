@@ -53,7 +53,7 @@ interface Props {
 export class TgFace extends Component<Props> {
   override render() {
     const { id: faceID, nid, locator, txLoop, trafficgen: { id, rxLoops, producer, fileServer, consumer, fetcher } } = this.props.face;
-    const nElements = ((producer || fileServer ? 1 : 0) + (consumer || fetcher ? 1 : 0)) as 1 | 2;
+    const nElements = ((!!producer || !!fileServer ? 1 : 0) + (!!consumer || !!fetcher ? 1 : 0)) as 1 | 2;
     const [height, rxtxY, producerY, consumerY] = {
       1: [50, 0, 0, 0],
       2: [150, 50, 0, 100],

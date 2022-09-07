@@ -2,13 +2,14 @@
 
 import "dotenv/config"; // eslint-disable-line import/no-unassigned-import
 
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import FastifyExpress from "@fastify/express";
 import FastifyProxy from "@fastify/http-proxy";
 import FastifyStatic from "@fastify/static";
 import Environment from "@strattadb/environment";
 import Fastify from "fastify";
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import webpack from "webpack";
 import devMiddleware from "webpack-dev-middleware";
 

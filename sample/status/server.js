@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import FastifyExpress from "@fastify/express";
 import FastifyProxy from "@fastify/http-proxy";
 import FastifyStatic from "@fastify/static";
 import Fastify from "fastify";
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import urlParseLax from "url-parse-lax";
 import webpack from "webpack";
 import devMiddleware from "webpack-dev-middleware";

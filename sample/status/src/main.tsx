@@ -5,7 +5,7 @@ import { Component, Fragment, h, render } from "preact";
 import { client, gql } from "./client";
 import { FacesList } from "./faces-list";
 import { FwDiagram } from "./fw-diagram";
-import { Worker, WorkerRole, WorkersByRole } from "./model";
+import { type WorkerRole, type WorkersByRole, Worker } from "./model";
 import { TgDiagram } from "./tg-diagram";
 import { WorkersTable } from "./workers-table";
 
@@ -58,7 +58,7 @@ class App extends Component<{}, State> {
       }
       (sw[w.role] ??= []).push(w as Worker);
     }
-    const role = sw.FWD ? "fw" : (sw.PRODUCER || sw.CONSUMER) ? "tg" : "";
+    const role = sw.FWD ? "fw" : (!!sw.PRODUCER || !!sw.CONSUMER) ? "tg" : "";
     document.title = `NDN-DPDK ${roles[role]} status`;
     this.setState({
       role,
