@@ -275,6 +275,7 @@ var fuseRootDir = []fuseutil.Dirent{
 
 type fuseFS struct {
 	fuseutil.NotImplementedFileSystem
+	atime    time.Time
 	ctime    time.Time
 	mtime    time.Time
 	mtimeZ   atomic.Int64
@@ -314,6 +315,7 @@ func (fs *fuseFS) GetInodeAttributes(ctx context.Context, op *fuseops.GetInodeAt
 func (fs *fuseFS) inoAttr(ino fuseops.InodeID, attr *fuseops.InodeAttributes) error {
 	attr.Nlink = 1
 	attr.Mode = 0o777
+	attr.Atime = fs.atime
 	attr.Ctime = fs.ctime
 	attr.Mtime = fs.mtime
 
@@ -455,6 +457,7 @@ func TestFuse(t *testing.T) {
 	}
 	f := newFileServerFixture(t, cfg)
 
+	fs.atime = time.Unix(1643976000, 0)
 	fs.ctime = time.Unix(1637712000, 0)
 	fs.mtime = time.Unix(1644624000, 0)
 	fs.mtimeZ.Store(fs.mtime.UnixNano())

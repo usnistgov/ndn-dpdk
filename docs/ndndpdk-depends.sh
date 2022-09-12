@@ -161,6 +161,7 @@ DISTRO=$(lsb_release -sc)
 case $DISTRO in
   bionic) ;;
   focal) ;;
+  jammy) ;;
   bullseye) ;;
   *)
     echo "Distro ${DISTRO} is not supported by this script."
