@@ -85,13 +85,18 @@ jobs:
           sudo make uninstall
         env:
           NDNDPDK_MK_THREADSLEEP: 1
-      - name: Run unit tests
+      - name: Run required unit tests
         run: |
-          MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/ d" make test
-          MK_GOTEST_FILTER="/${TEST_ACCEPTABLE_FAILURES}/! d" make test || true
+          echo 'bdev|disk|ethface|fetch|fileserver|fwdp|memifface|memiftransport|tgconsumer|tgproducer' >~/acceptable-failures.txt
+          MK_GOTEST_FILTER="/$(cat ~/acceptable-failures.txt)/ d" make test
         env:
-          TEST_ACCEPTABLE_FAILURES: bdev|disk|ethface|fetch|fileserver|fwdp|memiftransport|tgconsumer|tgproducer
           NDNDPDK_MK_THREADSLEEP: 1
+      - name: Run optional unit tests
+        run: |
+          MK_GOTEST_FILTER="/$(cat ~/acceptable-failures.txt)/! d" make test
+        env:
+          NDNDPDK_MK_THREADSLEEP: 1
+        continue-on-error: true
       - name: Check code style
         run: |
           make lint

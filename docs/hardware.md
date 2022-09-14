@@ -90,6 +90,10 @@ CTPID=$(docker inspect -f '{{.State.Pid}}' ndndpdk-svc)
 sudo ip link set $NETIF netns $CTPID
 ```
 
+To use NVIDIA adapters in a KVM guest, passthrough the PCI device to the virtual machine.
+When creating the port, if you encounter `mlx5_common: Verbs device not found` error (seen in NDN-DPDK service logs), verify that mlx5\_ib kernel module is loaded.
+On Ubuntu, you can install `linux-image-generic` package (in place of `linux-image-virtual` found in some cloud images) to obtain this kernel module.
+
 #### RxFlow Feature
 
 Most NVIDIA adapters are compatible with NDN-DPDK RxFlow feature.
