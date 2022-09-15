@@ -10,9 +10,9 @@ var logger = logging.New("hwinfo")
 
 // CoreInfo describes a logical CPU core.
 type CoreInfo struct {
-	NumaSocket   int
-	PhysicalCore int
-	LogicalCore  int
+	ID          int // logical core ID
+	NumaSocket  int // NUMA socket number
+	PhysicalKey int // physical core key, same value for hyper-threads on a physical core
 }
 
 // Cores contains information about CPU cores.
@@ -36,11 +36,11 @@ func (cores Cores) MaxNumaSocket() int {
 	return maxSocket
 }
 
-// ByLogicalCore converts to map[LogicalCore]CoreInfo.
-func (cores Cores) ByLogicalCore() (m map[int]CoreInfo) {
+// ByID converts to map[ID]CoreInfo.
+func (cores Cores) ByID() (m map[int]CoreInfo) {
 	m = map[int]CoreInfo{}
 	for _, core := range cores {
-		m[core.LogicalCore] = core
+		m[core.ID] = core
 	}
 	return m
 }
@@ -56,13 +56,12 @@ func (cores Cores) ListSecondary() []int {
 }
 
 func (cores Cores) listHyperThread(secondary bool) (list []int) {
-	ht := map[[2]int]bool{}
+	ht := map[int]bool{}
 	for _, core := range cores {
-		key := [2]int{core.NumaSocket, core.PhysicalCore}
-		if ht[key] == secondary {
-			list = append(list, core.LogicalCore)
+		if ht[core.PhysicalKey] == secondary {
+			list = append(list, core.ID)
 		}
-		ht[key] = true
+		ht[core.PhysicalKey] = true
 	}
 	return list
 }

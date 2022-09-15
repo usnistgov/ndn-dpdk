@@ -107,7 +107,7 @@ func (cfg LCoreConfig) args(hwInfo hwinfo.Provider) (args []string, e error) {
 func (cfg LCoreConfig) gatherAvail(hwInfo hwinfo.Provider) (availBySocket map[int][]int) {
 	availBySocket = map[int][]int{}
 	if len(cfg.Cores) > 0 {
-		hwCores := hwInfo.Cores().ByLogicalCore()
+		hwCores := hwInfo.Cores().ByID()
 		for _, coreID := range cfg.Cores {
 			if hwCore, found := hwCores[coreID]; found {
 				availBySocket[hwCore.NumaSocket] = append(availBySocket[hwCore.NumaSocket], coreID)

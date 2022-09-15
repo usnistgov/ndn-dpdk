@@ -14,13 +14,13 @@ type testHwInfo struct{}
 func (testHwInfo) Cores() (cores hwinfo.Cores) {
 	for coreID := 0; coreID < 32; coreID++ {
 		core := hwinfo.CoreInfo{
-			NumaSocket:   coreID % 8,
-			PhysicalCore: coreID,
-			LogicalCore:  coreID,
+			ID:          coreID,
+			NumaSocket:  coreID % 8,
+			PhysicalKey: coreID,
 		}
 		switch {
 		case coreID >= 8 && coreID < 16, coreID >= 24:
-			core.PhysicalCore -= 8
+			core.PhysicalKey -= 8
 		}
 		cores = append(cores, core)
 	}

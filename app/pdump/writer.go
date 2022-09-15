@@ -135,7 +135,7 @@ func (w *Writer) putBlock(block []byte, blockType uint32, port uint16) {
 }
 
 // ThreadRole implements ealthread.ThreadWithRole interface.
-func (Writer) ThreadRole() string {
+func (*Writer) ThreadRole() string {
 	return Role
 }
 
