@@ -1,4 +1,4 @@
-// Package macaddr validates and classifies MAC-48 addresses.
+// Package macaddr validates MAC-48 addresses.
 package macaddr
 
 import (

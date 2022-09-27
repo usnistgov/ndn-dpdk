@@ -5,10 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding"
 	"encoding/binary"
+	"fmt"
 	"math"
 	"math/rand"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
@@ -89,15 +89,14 @@ func (interest Interest) ToPacket() (packet *Packet) {
 }
 
 func (interest Interest) String() string {
-	var b strings.Builder
-	b.WriteString(interest.Name.String())
+	b := []byte(interest.Name.String())
 	if interest.CanBePrefix {
-		b.WriteString("[P]")
+		b = fmt.Append(b, "[P]")
 	}
 	if interest.MustBeFresh {
-		b.WriteString("[F]")
+		b = fmt.Append(b, "[F]")
 	}
-	return b.String()
+	return string(b)
 }
 
 // ApplyDefaultLifetime updates Lifetime to the default if it is not set.

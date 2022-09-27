@@ -7,7 +7,7 @@ require (
 	github.com/FDio/vpp v1.0.1-0.20220629121349-0d352a97c5e3
 	github.com/bhoriuchi/graphql-go-tools v1.0.0
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
-	github.com/coreos/go-systemd/v22 v22.3.2
+	github.com/coreos/go-systemd/v22 v22.4.0
 	github.com/dylandreimerink/gobpfld v0.6.0
 	github.com/functionalfoundry/graphqlws v0.0.0-20200611113535-7bc58903ce7b
 	github.com/gogf/greuse v1.1.0
@@ -32,15 +32,15 @@ require (
 	github.com/stretchr/testify v1.8.0
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
-	github.com/urfave/cli/v2 v2.14.1
+	github.com/urfave/cli/v2 v2.16.3
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zyedidia/generic v1.1.0
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.23.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/exp v0.0.0-20220907003533-145caa8ea1d0
-	golang.org/x/sys v0.0.0-20220907062415-87db552b00fd
+	golang.org/x/exp v0.0.0-20220921164117-439092de6870
+	golang.org/x/sys v0.0.0-20220926163933-8cfa568d3c25
 )
 
 require (

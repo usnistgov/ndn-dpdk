@@ -71,11 +71,11 @@ func LoadGroup(groupFilename string) error {
 type groupError map[string]error
 
 func (e groupError) Error() string {
-	var b strings.Builder
+	var b []byte
 	delim := "dlopen.LoadGroup:"
 	for filename, err := range e {
-		fmt.Fprintf(&b, "%s %s (%v)", delim, filename, err)
+		b = fmt.Appendf(b, "%s %s (%v)", delim, filename, err)
 		delim = ","
 	}
-	return b.String()
+	return string(b)
 }

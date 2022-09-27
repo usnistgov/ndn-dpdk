@@ -7,7 +7,6 @@ package eal
 import "C"
 import (
 	"fmt"
-	"strings"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
@@ -18,20 +17,20 @@ import (
 // nil values are skipped.
 // As a special case, if the map has a "" key, its value would override all other arguments.
 func JoinDevArgs(m map[string]any) string {
-	var b strings.Builder
 	if s, ok := m[""]; ok {
-		fmt.Fprint(&b, s)
-	} else {
-		delim := ""
-		for k, v := range m {
-			if v == nil {
-				continue
-			}
-			fmt.Fprintf(&b, "%s%s=%v", delim, k, v)
-			delim = ","
-		}
+		return fmt.Sprint(s)
 	}
-	return b.String()
+
+	var b []byte
+	delim := ""
+	for k, v := range m {
+		if v == nil {
+			continue
+		}
+		b = fmt.Appendf(b, "%s%s=%v", delim, k, v)
+		delim = ","
+	}
+	return string(b)
 }
 
 // ProbePCI requests to probe a PCI device.

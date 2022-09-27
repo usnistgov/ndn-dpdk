@@ -1,4 +1,4 @@
-// Package ethnetif manages EthDevs associated with kernel network interfaces.
+// Package ethnetif manages DPDK Ethernet devices associated with kernel network interfaces.
 package ethnetif
 
 import (

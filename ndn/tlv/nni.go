@@ -2,6 +2,7 @@ package tlv
 
 import (
 	"encoding"
+	"encoding/binary"
 	"math"
 )
 
@@ -33,12 +34,11 @@ func (n NNI) Encode(b []byte) []byte {
 	case n <= math.MaxUint8:
 		b = append(b, byte(n))
 	case n <= math.MaxUint16:
-		b = append(b, byte(n>>8), byte(n))
+		b = binary.BigEndian.AppendUint16(b, uint16(n))
 	case n <= math.MaxUint32:
-		b = append(b, byte(n>>24), byte(n>>16), byte(n>>8), byte(n))
+		b = binary.BigEndian.AppendUint32(b, uint32(n))
 	default:
-		b = append(b, byte(n>>56), byte(n>>48), byte(n>>40), byte(n>>32),
-			byte(n>>24), byte(n>>16), byte(n>>8), byte(n))
+		b = binary.BigEndian.AppendUint64(b, uint64(n))
 	}
 	return b
 }
@@ -57,12 +57,11 @@ func (n *NNI) UnmarshalBinary(wire []byte) error {
 	case 1:
 		*n = NNI(wire[0])
 	case 2:
-		*n = (NNI(wire[0]) << 8) | NNI(wire[1])
+		*n = NNI(binary.BigEndian.Uint16(wire))
 	case 4:
-		*n = (NNI(wire[0]) << 24) | (NNI(wire[1]) << 16) | (NNI(wire[2]) << 8) | NNI(wire[3])
+		*n = NNI(binary.BigEndian.Uint32(wire))
 	case 8:
-		*n = (NNI(wire[0]) << 56) | (NNI(wire[1]) << 48) | (NNI(wire[2]) << 40) | (NNI(wire[3]) << 32) |
-			(NNI(wire[4]) << 24) | (NNI(wire[5]) << 16) | (NNI(wire[6]) << 8) | NNI(wire[7])
+		*n = NNI(binary.BigEndian.Uint64(wire))
 	default:
 		return ErrIncomplete
 	}

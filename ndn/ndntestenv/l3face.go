@@ -122,8 +122,7 @@ func (c *L3FaceTester) CheckL3Face(t testing.TB, faceA, faceB l3.Face) {
 			interest := ndn.MakeInterest(fmt.Sprintf("/A/%d", i))
 			var packet ndn.Packet
 			packet.Interest = &interest
-			packet.Lp.PitToken = make([]byte, 4)
-			binary.LittleEndian.PutUint32(packet.Lp.PitToken, uint32(i))
+			packet.Lp.PitToken = binary.LittleEndian.AppendUint32(nil, uint32(i))
 			txA <- &packet
 			time.Sleep(c.InterestInterval)
 		}

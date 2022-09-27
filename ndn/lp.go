@@ -78,10 +78,11 @@ func (frag LpFragment) Field() tlv.Field {
 	if frag.FragIndex < 0 || frag.FragIndex >= frag.FragCount {
 		return tlv.FieldError(ErrFragment)
 	}
-	seqNum := make([]byte, 8)
-	binary.BigEndian.PutUint64(seqNum, frag.SeqNum)
+
+	var seqNum [8]byte
+	binary.BigEndian.PutUint64(seqNum[:], frag.SeqNum)
 	return tlv.TLV(an.TtLpPacket,
-		tlv.TLVBytes(an.TtLpSeqNum, seqNum),
+		tlv.TLVBytes(an.TtLpSeqNum, seqNum[:]),
 		tlv.TLVNNI(an.TtFragIndex, frag.FragIndex),
 		tlv.TLVNNI(an.TtFragCount, frag.FragCount),
 		tlv.Bytes(frag.Header),

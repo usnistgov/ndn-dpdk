@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 )
@@ -31,21 +30,17 @@ type FwFace interface {
 	RemoveAnnouncement(name ndn.Name)
 }
 
-const tokenSize = int(unsafe.Sizeof(uint32(0)))
-
 func tokenInsertID(oldToken []byte, id uint32) (token []byte) {
-	token = make([]byte, tokenSize, tokenSize+len(oldToken))
+	token = make([]byte, 4, 4+len(oldToken))
 	binary.LittleEndian.PutUint32(token, id)
 	return append(token, oldToken...)
 }
 
 func tokenStripID(token []byte) (id uint32, newToken []byte) {
-	if len(token) < tokenSize {
+	if len(token) < 4 {
 		return 0, nil
 	}
-	id = binary.LittleEndian.Uint32(token)
-	newToken = token[tokenSize:]
-	return
+	return binary.LittleEndian.Uint32(token), token[4:]
 }
 
 type fwFace struct {

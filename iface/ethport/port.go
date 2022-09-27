@@ -1,4 +1,4 @@
-// Package ethport implements faces using DPDK ethdev as transport.
+// Package ethport implements faces using DPDK Ethernet device as transport.
 package ethport
 
 import (

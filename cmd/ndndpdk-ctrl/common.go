@@ -63,13 +63,12 @@ type schemaError struct {
 }
 
 func (e schemaError) Error() string {
-	var b strings.Builder
-	fmt.Fprintln(&b, "JSON document failed schema validation:")
+	b := fmt.Appendln(nil, "JSON document failed schema validation:")
 	for _, desc := range e.Result.Errors() {
-		fmt.Fprintln(&b, "-", desc)
+		b = fmt.Appendln(b, "-", desc)
 	}
-	fmt.Fprintln(&b, "Schema", e.SchemaURL)
-	return b.String()
+	b = fmt.Appendln(b, "Schema", e.SchemaURL)
+	return string(b)
 }
 
 func checkSchema(input gojsonschema.JSONLoader, schemaName string) error {

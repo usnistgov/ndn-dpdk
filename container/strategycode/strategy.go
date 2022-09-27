@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"os"
 	"runtime/cgo"
-	"strings"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/bpf"
@@ -78,12 +77,11 @@ func (sc *Strategy) ValidateParams(params map[string]any) error {
 	case result.Valid():
 		return nil
 	default:
-		var b strings.Builder
-		fmt.Fprintln(&b, "strategy parameters failed schema validation:")
+		b := fmt.Appendln(nil, "strategy parameters failed schema validation:")
 		for _, desc := range result.Errors() {
-			fmt.Fprintln(&b, "-", desc)
+			b = fmt.Appendln(b, "-", desc)
 		}
-		return errors.New(b.String())
+		return errors.New(string(b))
 	}
 }
 
