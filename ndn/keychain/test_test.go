@@ -11,6 +11,7 @@ import (
 
 var (
 	makeAR       = testenv.MakeAR
+	bytesFromHex = testenv.BytesFromHex
 	nameEqual    = ndntestenv.NameEqual
 	nameIsPrefix = ndntestenv.NameIsPrefix
 )

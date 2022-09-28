@@ -56,5 +56,8 @@ const (
 	TtNotBefore      = 0x00FE
 	TtNotAfter       = 0x00FF
 
+	TtSafeBag             = 0x80
+	TtSafeBagEncryptedKey = 0x81
+
 	_ = "enumgen"
 )

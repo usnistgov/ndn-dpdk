@@ -44,6 +44,7 @@ KeyChain
   * Ed25519: proof of concept only
   * Null: yes
 * [NDN certificates](https://named-data.net/doc/ndn-cxx/0.8.0/specs/certificate.html): basic support
+  * [SafeBag](https://named-data.net/doc/ndn-cxx/0.8.0/specs/safe-bag.html): import only
 * Persistent key and certificate storage: no
 * Trust schema: no
 

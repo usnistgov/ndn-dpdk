@@ -35,6 +35,7 @@ require (
 	github.com/urfave/cli/v2 v2.16.3
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
+	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	github.com/zyedidia/generic v1.1.0
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.23.0
