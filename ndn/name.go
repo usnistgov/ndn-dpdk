@@ -7,6 +7,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/zyedidia/generic"
+	"golang.org/x/exp/slices"
 )
 
 // Name represents a name.
@@ -80,10 +81,10 @@ func (name Name) GetPrefix(i int) Name {
 }
 
 // Append appends zero or more components to a copy of this name.
-func (name Name) Append(comps ...NameComponent) (copy Name) {
-	copy = append(copy, name...)
-	copy = append(copy, comps...)
-	return copy
+func (name Name) Append(comps ...NameComponent) (ret Name) {
+	ret = slices.Clone(name)
+	ret = append(ret, comps...)
+	return ret
 }
 
 // Equal determines whether two names are the same.

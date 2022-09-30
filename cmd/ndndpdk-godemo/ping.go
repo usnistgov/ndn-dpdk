@@ -53,10 +53,7 @@ func init() {
 				signer = ndn.DigestSigning
 			}
 
-			ctx, cancel := context.WithCancel(context.Background())
-			onInterrupt(cancel)
-
-			_, e := endpoint.Produce(ctx, endpoint.ProducerOptions{
+			_, e := endpoint.Produce(c.Context, endpoint.ProducerOptions{
 				Prefix:      ndn.ParseName(name),
 				NoAdvertise: !wantAdvertise,
 				Handler: func(ctx context.Context, interest ndn.Interest) (ndn.Data, error) {
@@ -69,7 +66,7 @@ func init() {
 				return e
 			}
 
-			<-ctx.Done()
+			<-c.Context.Done()
 			return nil
 		},
 	})
@@ -123,7 +120,7 @@ func init() {
 			var nData, nErrors atomic.Int64
 			for {
 				select {
-				case <-interrupt:
+				case <-c.Context.Done():
 					return nil
 				case timestamp := <-ticker.C:
 					go func(t0 time.Time, s uint64) {

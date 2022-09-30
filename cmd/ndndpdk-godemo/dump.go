@@ -55,7 +55,7 @@ func init() {
 
 			for {
 				select {
-				case <-interrupt:
+				case <-c.Context.Done():
 					return nil
 				case packet := <-f.Rx():
 					log.Println(packet)

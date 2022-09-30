@@ -89,6 +89,8 @@ func (pkt *Packet) Field() tlv.Field {
 func (pkt *Packet) encodeL3() (header, payload []byte, e error) {
 	var l3fielder tlv.Fielder
 	switch {
+	case len(pkt.l3value) > 0:
+		l3fielder = tlv.TLVBytes(pkt.l3type, pkt.l3value)
 	case pkt.Interest != nil:
 		l3fielder = pkt.Interest
 		pkt.l3digest = nil

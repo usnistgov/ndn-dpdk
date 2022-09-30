@@ -16,7 +16,7 @@ To build the NFD Docker image:
 
 ```bash
 cd docs/interop/nfd
-docker build -t nfd .
+docker build --pull -t nfd .
 ```
 
 NDN-DPDK should be installed as a systemd service, not a Docker container.
@@ -143,25 +143,49 @@ docker run -it --rm --network none \
 ## Local Communication over Unix Socket
 
 ```text
-|--------|        |---------|    Unix    |---------|        |--------|
-|consumer|---\    |NDN-DPDK |   socket   |         |    /---|producer|
-| /app/B |    \---|forwarder|------------|   NFD   |---/    | /app/B |
-|--------|        |  (A)    |            |   (B)   |        |--------|
-                  |---------|            |---------|
+|--------|                                                  |--------|
+|producer|                                                  |consumer|
+| /app/A |---\    |---------|    Unix    |---------|    /---| /app/A |
+|--------|    \---|NDN-DPDK |   socket   |         |---/    |--------|
+                  |forwarder|------------|   NFD   |
+|--------|    /---|  (A)    |            |   (B)   |---\    |--------|
+|consumer|---/    |---------|            |---------|    \---|producer|
+| /app/B |                                                  | /app/B |
+|--------|                                                  |--------|
 ```
 
 In this scenario, NDN-DPDK forwarder and NFD run on the same machine:
 
 * NDN-DPDK and NFD communicate over a Unix socket.
-* Producer for prefix `/app/B` connects to NFD.
-* Consumer for prefix `/app/B` connects to NDN-DPDK.
+* NDN-DPDK side has producer for prefix `/app/A` and consumer for prefix `/app/B`.
+* NFD side has producer for consumer for prefix `/app/A` and prefix `/app/B`.
 
 This scenario uses the following variables.
 You need to paste them on every terminal before entering commands.
 
 ```bash
-# name prefix of producer in NFD
+# name prefix of producer A
+A_NAME=/app/A
+# name prefix of producer B
 B_NAME=/app/B
+```
+
+Start NDN-DPDK and producer:
+
+```bash
+# (re)start NDN-DPDK service
+sudo ndndpdk-ctrl systemd restart
+
+# activate NDN-DPDK forwarder
+jq -n '
+{
+  eal: {
+    coresPerNuma: { "0": 4, "1": 4 }
+  }
+}' | ndndpdk-ctrl activate-forwarder
+
+# start the producer on NDN-DPDK side
+ndndpdk-godemo pingserver --name $A_NAME --payload 512
 ```
 
 Start NFD and producer:
@@ -178,16 +202,14 @@ docker run -d --rm --name nfd \
   -e 'NFD_CS_CAP=1024' \
   nfd
 
-# start the producer
+# start the producer on NFD side
 docker run -it --rm \
   --mount type=volume,source=run-ndn,target=/run/ndn \
   nfd \
   ndnpingserver --size 512 $B_NAME
 ```
 
-Start and activate NDN-DPDK forwarder: see [forwarder activation](../forwarder.md).
-
-Connect NDN-DPDK to NFD and run consumer:
+Connect NDN-DPDK to NFD and run consumer on NDN-DPDK side:
 
 ```bash
 # expose run-ndn volume on host machine
@@ -200,21 +222,27 @@ A_FACEID=$(jq -n '{
   remote: "/run/ndn/nfd.sock"
 }' | ndndpdk-ctrl create-face | tee /dev/stderr | jq -r .id)
 
-# insert FIB entry
-A_FIBID=$(ndndpdk-ctrl insert-fib --name $B_NAME --nh $A_FACEID | tee /dev/stderr | jq -r .id)
+# insert FIB entry for /app/B
+ndndpdk-ctrl insert-fib --name $B_NAME --nh $A_FACEID
 
-# run the consumer
+# run the consumer on NDN-DPDK side to retrieve from /app/B
 ndndpdk-godemo pingclient --name ${B_NAME}/ping --interval 10ms
 # press CTRL+C to stop the consumer
-
-# erase FIB entry and destroy face
-ndndpdk-ctrl erase-fib --id $A_FIBID
-ndndpdk-ctrl destroy-face --id $A_FACEID
 ```
 
-The procedure above runs a producer on NFD side and a consumer on NDN-DPDK side.
-Notice that it is necessary to create a FIB entry from NDN-DPDK to NFD, because each forwarder has a separate control plane.
+Register prefix from NFD to NDN-DPDK and run consumer on NFD side:
 
-It is also possible to run in the reverse direction, with a consumer on NFD side and a producer on NDN-DPDK side.
-In that case, you need to initiate face creation from NDN-DPDK side, let NFD accept the incoming connection and automatically create a face, and then insert the route on NFD side.
-One caveat is that you have to identify which Unix socket face on NFD side refers to the connection to NDN-DPDK, which could require some log parsing or guesswork.
+```bash
+# insert FIB entry in NDN-DPDK for /localhost/nfd
+# for passing NFD prefix registration commands
+ndndpdk-ctrl insert-fib --name /localhost/nfd --nh $A_FACEID
+
+# send NFD prefix registration command from NDN-DPDK
+ndndpdk-godemo nfdreg --command /localhost/nfd --origin 0 --register $A_NAME
+
+# run the consumer on NFD side to retrieve from /app/A
+docker run -it --rm --network none \
+  --mount type=volume,source=run-ndn,target=/run/ndn \
+  nfd \
+  ndnping -i 10 $A_NAME
+```

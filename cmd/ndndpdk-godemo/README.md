@@ -73,3 +73,10 @@ ndndpdk-godemo --mtu 6000 put --name /segmented/1GB.bin --file /tmp/1GB.bin --ch
 # (on another console) run consumer and compute downloaded digest
 ndndpdk-godemo --mtu 6000 get --name /segmented/1GB.bin | openssl sha256
 ```
+
+## NFD Management API
+
+[nfdreg.go](nfdreg.go) implements a prefix registration tool using [NFD management API](../../ndn/mgmt/nfdmgmt).
+This subcommand requires a local NDN-DPDK forwarder that connects to either local or remote NFD forwarder.
+It sends prefix registration commands to NFD so that Interests come to NDN-DPDK.
+See [NFD interop](../../docs/interop/NFD.md) for a usage example.

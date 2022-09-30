@@ -77,7 +77,7 @@ var (
 
 func makeDataFromBase64(input string) func() ndn.Data {
 	return func() ndn.Data {
-		input = strings.NewReplacer("\n", "", "\t", "").Replace(input)
+		input = strings.ReplaceAll(input, "\t", "")
 		wire, e := base64.StdEncoding.DecodeString(input)
 		if e != nil {
 			panic(e)

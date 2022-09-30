@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"io"
 	"log"
 	"math/rand"
@@ -28,10 +29,9 @@ var (
 	useNfd    bool
 	enableLog bool
 
-	interrupt = make(chan os.Signal, 1)
-	client    mgmt.Client
-	face      mgmt.Face
-	fwFace    l3.FwFace
+	client mgmt.Client
+	face   mgmt.Face
+	fwFace l3.FwFace
 )
 
 func openUplink(c *cli.Context) (e error) {
@@ -62,13 +62,6 @@ func openUplink(c *cli.Context) (e error) {
 	return nil
 }
 
-func onInterrupt(cb func()) {
-	go func() {
-		<-interrupt
-		cb()
-	}()
-}
-
 var app = &cli.App{
 	Version:              version.V.String(),
 	Usage:                "NDNgo library demo.",
@@ -87,7 +80,7 @@ var app = &cli.App{
 		},
 		&cli.BoolFlag{
 			Name:        "nfd",
-			Usage:       "connect to NFD or YaNFD (set FaceUri in NDN_CLIENT_TRANSPORT environment variable)",
+			Usage:       "connect to NFD or YaNFD instead of NDN-DPDK (set FaceUri in NDN_CLIENT_TRANSPORT environment variable)",
 			Destination: &useNfd,
 		},
 		&cli.BoolFlag{
@@ -101,7 +94,6 @@ var app = &cli.App{
 		if !enableLog {
 			log.SetOutput(io.Discard)
 		}
-		signal.Notify(interrupt, syscall.SIGINT)
 		if useNfd {
 			client, e = nfdmgmt.New()
 		} else {
@@ -124,7 +116,17 @@ func defineCommand(command *cli.Command) {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	sort.Sort(cli.CommandsByName(app.Commands))
-	e := app.Run(os.Args)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGINT)
+	go func() {
+		<-interrupt
+		cancel()
+	}()
+
+	e := app.RunContext(ctx, os.Args)
 	if e != nil {
 		log.Fatal(e)
 	}

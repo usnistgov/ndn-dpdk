@@ -1,6 +1,8 @@
 package tlv
 
-import "encoding"
+import (
+	"encoding"
+)
 
 // Unmarshaler is the interface implemented by an object that can decode an TLV element representation of itself.
 type Unmarshaler interface {

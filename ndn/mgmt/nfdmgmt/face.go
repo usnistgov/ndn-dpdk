@@ -1,6 +1,7 @@
 package nfdmgmt
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -8,7 +9,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
-	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )
 
 type nfdFace struct {
@@ -29,30 +29,31 @@ func (f *nfdFace) Close() error {
 }
 
 func (f *nfdFace) Advertise(name ndn.Name) error {
-	status, e := f.client.invoke(verbRibRegister,
-		name,
-		tlv.TLVNNI(ttOrigin, originClient),
-		tlv.TLVNNI(ttFlags, flagCapture),
-	)
+	cr, e := f.client.Invoke(context.TODO(), RibRegisterCommand{
+		Name:      name,
+		Origin:    RouteOriginClient,
+		NoInherit: true,
+		Capture:   true,
+	})
 	if e != nil {
 		return e
 	}
-	if status != 200 {
-		return fmt.Errorf("unexpected response status %d", status)
+	if cr.StatusCode != 200 {
+		return fmt.Errorf("unexpected response status %d", cr.StatusCode)
 	}
 	return nil
 }
 
 func (f *nfdFace) Withdraw(name ndn.Name) error {
-	status, e := f.client.invoke(verbRibUnregister,
-		name,
-		tlv.TLVNNI(ttOrigin, originClient),
-	)
+	cr, e := f.client.Invoke(context.TODO(), RibUnregisterCommand{
+		Name:   name,
+		Origin: RouteOriginClient,
+	})
 	if e != nil {
 		return e
 	}
-	if status != 200 {
-		return fmt.Errorf("unexpected response status %d", status)
+	if cr.StatusCode != 200 {
+		return fmt.Errorf("unexpected response status %d", cr.StatusCode)
 	}
 	return nil
 }

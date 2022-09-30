@@ -148,10 +148,8 @@ func (p *producer) handleInterest(ctx context.Context, wg *sync.WaitGroup, pkt *
 				return
 			}
 		}
-		reply = &ndn.Packet{
-			Lp:   pkt.Lp,
-			Data: &data,
-		}
+		reply = data.ToPacket()
+		reply.Lp = pkt.Lp
 	}
 
 	if reply == nil {

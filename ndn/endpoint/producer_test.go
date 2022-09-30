@@ -13,6 +13,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
 	"github.com/usnistgov/ndn-dpdk/ndn/keychain"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"go4.org/must"
 )
 
@@ -124,6 +126,45 @@ func TestProducerConcurrent(t *testing.T) {
 	assert.InDelta(150, pCompleted.Load(), 70)
 	assert.InDelta(pCompleted.Load(), cData.Load(), 70)
 	assert.InDelta(pCanceled.Load(), cExpire.Load(), 70)
+}
+
+func TestProducerPreEncoded(t *testing.T) {
+	assert, require := makeAR(t)
+	bridge := ndntestenv.NewBridge(ndntestenv.BridgeConfig{})
+
+	pWire := bytesFromHex(`
+		0615
+			0706080141080130
+			D4014D
+			1606
+				1B01C8
+				D2012D
+			1700
+	`)
+	var pPkt ndn.Packet
+	e := tlv.Decode(pWire, &pPkt)
+	require.NoError(e)
+	require.NotNil(pPkt.Data)
+	pData := *pPkt.Data
+
+	p, e := endpoint.Produce(context.Background(), endpoint.ProducerOptions{
+		Prefix: ndn.ParseName("/A"),
+		Handler: func(ctx context.Context, interest ndn.Interest) (ndn.Data, error) {
+			return pData, nil
+		},
+		Fw: bridge.FwA,
+	})
+	require.NoError(e)
+	defer p.Close()
+
+	cData, e := endpoint.Consume(context.Background(), ndn.MakeInterest("/A/0"), endpoint.ConsumerOptions{
+		Fw: bridge.FwB,
+	})
+	require.NoError(e)
+
+	cWire, e := cData.ToPacket().Field().Encode(nil)
+	require.NoError(e)
+	bytesEqual(assert, pWire, cWire)
 }
 
 var producerHandlerNever endpoint.ProducerHandler = func(ctx context.Context, interest ndn.Interest) (ndn.Data, error) {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 	"time"
@@ -47,15 +46,12 @@ func init() {
 			}
 			defer f.Close()
 
-			ctx, cancel := context.WithCancel(context.Background())
-			onInterrupt(cancel)
-
-			_, e = segmented.Serve(ctx, f, serveOptions)
+			_, e = segmented.Serve(c.Context, f, serveOptions)
 			if e != nil {
 				return e
 			}
 
-			<-ctx.Done()
+			<-c.Context.Done()
 			return nil
 		},
 	})
@@ -89,17 +85,13 @@ func init() {
 		},
 		Before: openUplink,
 		Action: func(c *cli.Context) error {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			onInterrupt(cancel)
-
 			fetcher := segmented.Fetch(ndn.ParseName(name), fetchOptions)
 			go func() {
 				ticker := time.NewTicker(time.Second)
 				defer ticker.Stop()
 				for {
 					select {
-					case <-ctx.Done():
+					case <-c.Context.Done():
 						return
 					case <-ticker.C:
 						cnt, total := fetcher.Count(), fetcher.EstimatedTotal()
@@ -113,7 +105,7 @@ func init() {
 			}()
 
 			t0 := time.Now()
-			e := fetcher.Pipe(ctx, os.Stdout)
+			e := fetcher.Pipe(c.Context, os.Stdout)
 			if e == nil {
 				log.Printf("finished %d segments in %v", fetcher.Count(), time.Since(t0).Truncate(time.Millisecond))
 			}
