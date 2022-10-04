@@ -4,7 +4,7 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/soh335/sliceflag"
+	"github.com/chaseisabelle/flagz"
 	"github.com/usnistgov/ndn-dpdk/core/hwinfo"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealconfig"
 )
@@ -232,12 +232,14 @@ func parseDeviceFlags(args []string) (p struct {
 	d, a     []string
 	noPci    bool
 }) {
+	var d, a flagz.Flagz
 	fset := makeBaseFlagSet()
 	fset.StringVar(&p.iovaMode, "iova-mode", "", "")
-	sliceflag.StringVar(fset, &p.d, "d", nil, "")
-	sliceflag.StringVar(fset, &p.a, "a", nil, "")
+	fset.Var(&d, "d", "")
+	fset.Var(&a, "a", "")
 	fset.BoolVar(&p.noPci, "no-pci", false, "")
 	fset.Parse(args)
+	p.d, p.a = d.Array(), a.Array()
 	return
 }
 

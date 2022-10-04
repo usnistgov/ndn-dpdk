@@ -102,7 +102,7 @@ $ FACEID=$(jq -n '{
 {"id":"7CLE6J8CP1Q8103O0Q6CPIQVR8"}
 
 $ ndndpdk-ctrl --gqlserver http://127.0.0.1:3030 insert-fib \
-    --name /fileserver --nexthop $FACEID
+    --name /fileserver --nh $FACEID
 {"id":"6GIU001CH13976H72E0CF7OFGJOIBQ1PJM9ES"}
 ```
 

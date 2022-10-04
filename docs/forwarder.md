@@ -143,7 +143,7 @@ It returns a JSON object that contains an `id` property, whose value is an opaqu
 Example command and output:
 
 ```shell
-A $ ndndpdk-ctrl insert-fib --name /example/P --nexthop 286d21ff
+A $ ndndpdk-ctrl insert-fib --name /example/P --nh 286d21ff
 {"id":"5aa50b21"}
 ```
 

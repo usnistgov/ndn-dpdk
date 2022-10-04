@@ -5,12 +5,13 @@ import (
 	"log"
 	"time"
 
+	"github.com/chaseisabelle/flagz"
 	"github.com/urfave/cli/v2"
 )
 
 func init() {
 	var filename, name string
-	var faces, ports cli.StringSlice
+	var faces, ports flagz.Flagz
 	var wantRX, wantTX, wantRxUnmatched bool
 	var sampleProb float64
 	var duration time.Duration
@@ -142,11 +143,11 @@ func init() {
 		Name:     "pdump-face",
 		Usage:    "Dump packet on a face",
 		Flags: append([]cli.Flag{
-			&cli.StringSliceFlag{
-				Name:        "face",
-				Usage:       "source face `ID` (repeatable)",
-				Destination: &faces,
-				Required:    true,
+			&cli.GenericFlag{
+				Name:     "face",
+				Usage:    "source face `ID` (repeatable)",
+				Value:    &faces,
+				Required: true,
 			},
 			&cli.BoolFlag{
 				Name:        "rx",
@@ -180,7 +181,7 @@ func init() {
 				return e
 			}
 
-			for _, face := range faces.Value() {
+			for _, face := range faces.Array() {
 				for dir, enabled := range map[string]bool{"RX": wantRX, "TX": wantTX} {
 					if !enabled {
 						continue
@@ -201,11 +202,11 @@ func init() {
 		Name:     "pdump-ethport",
 		Usage:    "Dump packet on an Ethernet port",
 		Flags: append([]cli.Flag{
-			&cli.StringSliceFlag{
-				Name:        "port",
-				Usage:       "source port `ID` (repeatable)",
-				Destination: &ports,
-				Required:    true,
+			&cli.GenericFlag{
+				Name:     "port",
+				Usage:    "source port `ID` (repeatable)",
+				Value:    &ports,
+				Required: true,
 			},
 			&cli.BoolFlag{
 				Name:        "rx-unmatched",
@@ -221,7 +222,7 @@ func init() {
 				return e
 			}
 
-			for _, port := range ports.Value() {
+			for _, port := range ports.Array() {
 				for grab, enabled := range map[string]bool{"RxUnmatched": wantRxUnmatched} {
 					if !enabled {
 						continue

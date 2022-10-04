@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chaseisabelle/flagz"
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -158,7 +159,7 @@ func (cmd *nfdReg) SendCommands(ctx context.Context) {
 
 func init() {
 	var commandPrefixURI, safeBagFile, safeBagPassphrase string
-	var serveCertSlice, registerSlice, unregisterSlice cli.StringSlice
+	var serveCertz, registerz, unregisterz flagz.Flagz
 	var cmd nfdReg
 
 	defineCommand(&cli.Command{
@@ -181,10 +182,10 @@ func init() {
 				Usage:       "Signer key SafeBag passphrase.",
 				Destination: &safeBagPassphrase,
 			},
-			&cli.StringSliceFlag{
-				Name:        "serve-cert",
-				Usage:       "Serve certificate(s).",
-				Destination: &serveCertSlice,
+			&cli.GenericFlag{
+				Name:  "serve-cert",
+				Usage: "Serve certificate(s).",
+				Value: &serveCertz,
 			},
 			&cli.IntFlag{
 				Name:        "origin",
@@ -198,15 +199,15 @@ func init() {
 				Value:       0,
 				Destination: &cmd.DefaultCost,
 			},
-			&cli.StringSliceFlag{
-				Name:        "register",
-				Usage:       "Register prefix(es).",
-				Destination: &registerSlice,
+			&cli.GenericFlag{
+				Name:  "register",
+				Usage: "Register prefix(es).",
+				Value: &registerz,
 			},
-			&cli.StringSliceFlag{
-				Name:        "unregister",
-				Usage:       "Unregister prefix(es).",
-				Destination: &unregisterSlice,
+			&cli.GenericFlag{
+				Name:  "unregister",
+				Usage: "Unregister prefix(es).",
+				Value: &unregisterz,
 			},
 			&cli.DurationFlag{
 				Name:        "interval",
@@ -231,18 +232,18 @@ func init() {
 			if e := cmd.SetSigner(safeBagFile, safeBagPassphrase); e != nil {
 				return fmt.Errorf("import signer SafeBag: %w", e)
 			}
-			for i, certFile := range serveCertSlice.Value() {
+			for i, certFile := range serveCertz.Array() {
 				if e := cmd.AddCert(certFile); e != nil {
 					return fmt.Errorf("add cert %d: %w", i, e)
 				}
 			}
 
-			for i, p := range unregisterSlice.Value() {
+			for i, p := range unregisterz.Array() {
 				if e := cmd.AddUnregisterCommand(p); e != nil {
 					return fmt.Errorf("unregister command %d: %w", i, e)
 				}
 			}
-			for i, p := range registerSlice.Value() {
+			for i, p := range registerz.Array() {
 				if e := cmd.AddRegisterCommand(p); e != nil {
 					return fmt.Errorf("register command %d: %w", i, e)
 				}

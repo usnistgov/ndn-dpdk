@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/chaseisabelle/flagz"
 	"github.com/urfave/cli/v2"
 )
 
@@ -33,7 +34,7 @@ func init() {
 
 func init() {
 	var name, strategy, params string
-	var nexthops cli.StringSlice
+	var nexthops flagz.Flagz
 	defineCommand(&cli.Command{
 		Category: "fib",
 		Name:     "insert-fib",
@@ -45,12 +46,11 @@ func init() {
 				Destination: &name,
 				Required:    true,
 			},
-			&cli.StringSliceFlag{
-				Name:        "nexthop",
-				Aliases:     []string{"nh"},
-				Usage:       "FIB nexthop face `ID` (repeatable)",
-				Destination: &nexthops,
-				Required:    true,
+			&cli.GenericFlag{
+				Name:     "nh",
+				Usage:    "FIB nexthop face `ID` (repeatable)",
+				Value:    &nexthops,
+				Required: true,
 			},
 			&cli.StringFlag{
 				Name:        "strategy",
@@ -66,7 +66,7 @@ func init() {
 		Action: func(c *cli.Context) error {
 			vars := map[string]any{
 				"name":     name,
-				"nexthops": nexthops.Value(),
+				"nexthops": nexthops.Array(),
 			}
 			if strategy != "" {
 				vars["strategy"] = strategy
