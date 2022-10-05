@@ -29,7 +29,6 @@ import "C"
 import (
 	"fmt"
 	"runtime/cgo"
-	"strings"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -169,8 +168,17 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 	}
 
 	bd.c.bufAlign = C.uint32_t(bdi.BufAlign())
-	if strings.HasPrefix(bdi.Name(), "nvme") {
-		bd.enableDwordAlign()
+	if nn, ok := device.(*NvmeNamespace); ok {
+		sgl, dwordAlign := nn.Controller().SglSupport()
+		if sgl {
+			if dwordAlign {
+				bd.enableDwordAlign()
+			}
+		} else {
+			logger.Error("not supported: NVMe device lacks SGL capability",
+				zap.Uintptr("desc", uintptr(unsafe.Pointer(bd.c.desc))),
+			)
+		}
 	}
 	logger.Info("device opened",
 		zap.Uintptr("desc", uintptr(unsafe.Pointer(bd.c.desc))),

@@ -199,15 +199,16 @@ func TestNvme(t *testing.T) {
 	defer must.Close(nvme)
 
 	require.Greater(len(nvme.Namespaces), 0)
-	bdi := nvme.Namespaces[0]
+	nn := nvme.Namespaces[0]
+	bdi := nn.DevInfo()
 	assert.True(bdi.HasIOType(bdev.IONvmeAdmin))
 	assert.True(bdi.HasIOType(bdev.IONvmeIO))
 
 	if os.Getenv("BDEVTEST_NVME_WRITE") == "1" {
-		rwt0, rwt1, rwt2 := makeRW3(bdi)
-		testBdev(t, bdi, bdev.ReadWrite, rwt0.Write, rwt1.Write, rwt2.Write, rwt0.Read, rwt1.Read, rwt2.Read, doUnmap)
+		rwt0, rwt1, rwt2 := makeRW3(nn)
+		testBdev(t, nn, bdev.ReadWrite, rwt0.Write, rwt1.Write, rwt2.Write, rwt0.Read, rwt1.Read, rwt2.Read, doUnmap)
 	} else {
 		t.Log("NVMe write test disabled; rerun test suite with BDEVTEST_NVME_WRITE=1 environ to enable (will destroy data).")
-		testBdev(t, bdi, bdev.ReadOnly)
+		testBdev(t, nn, bdev.ReadOnly)
 	}
 }

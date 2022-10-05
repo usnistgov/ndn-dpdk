@@ -251,3 +251,9 @@ docker run \
 NDN-DPDK can work with any Ethernet adapter supported by the Linux kernel via XDP and AF\_PACKET drivers.
 This allows the use of Ethernet adapters not supported by DPDK PCI drivers.
 See [face creation](face.md) for how to create an Ethernet port with these drivers.
+
+## NVMe Storage Device
+
+NDN-DPDK can use NVMe storage device as forwarder Content Store expansion.
+Current implementation is only compatible with NVMe controller that supports "scatter-gather lists" (SGLs) feature.
+Run `nvme id-ctrl /dev/nvme0 | grep sgls`, if the last two bits are either 01b or 10b, the NVMe controller supports SGLs feature.

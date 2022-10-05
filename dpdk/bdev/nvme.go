@@ -1,16 +1,35 @@
 package bdev
 
+/*
+#include "../../csrc/dpdk/bdev.h"
+#include <spdk/nvme.h>
+*/
+import "C"
 import (
+	"errors"
+
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 )
 
 // NvmeNamespace represents an NVMe namespace.
 type NvmeNamespace struct {
-	*Info
+	info *Info
+	nvme *Nvme
 }
 
 var _ Device = (*NvmeNamespace)(nil)
+
+// DevInfo implements Device interface.
+func (nn *NvmeNamespace) DevInfo() *Info {
+	return nn.info
+}
+
+// Controller returns NVMe controller.
+func (nn *NvmeNamespace) Controller() *Nvme {
+	return nn.nvme
+}
 
 // Nvme represents an NVMe controller.
 type Nvme struct {
@@ -18,11 +37,18 @@ type Nvme struct {
 	Namespaces []*NvmeNamespace
 
 	pciAddr pciaddr.PCIAddress
+	flags   uint64
 }
 
 // ControllerName returns NVMe controller name.
 func (nvme *Nvme) ControllerName() string {
 	return "nvme" + nvme.pciAddr.String()
+}
+
+// SglSupport reports whether NVMe controller supports scatter-gather lists and whether it requires dword alignment.
+func (nvme *Nvme) SglSupport() (supported, dwordAlign bool) {
+	return nvme.flags&C.SPDK_NVME_CTRLR_SGL_SUPPORTED != 0,
+		nvme.flags&C.SPDK_NVME_CTRLR_SGL_REQUIRES_DWORD_ALIGNMENT != 0
 }
 
 // Close detaches the NVMe controller.
@@ -32,8 +58,19 @@ func (nvme *Nvme) Close() error {
 
 // AttachNvme attaches block devices on an NVMe controller.
 func AttachNvme(pciAddr pciaddr.PCIAddress) (nvme *Nvme, e error) {
-	initBdevLib()
 	nvme = &Nvme{pciAddr: pciAddr}
+
+	var trid C.struct_spdk_nvme_transport_id
+	trid.trtype = C.SPDK_NVME_TRANSPORT_PCIE
+	copy(cptr.AsByteSlice(trid.traddr[:]), pciAddr.String())
+	ctrlr := C.spdk_nvme_connect(&trid, nil, 0)
+	if ctrlr == nil {
+		return nil, errors.New("spdk_nvme_connect error")
+	}
+	nvme.flags = uint64(C.spdk_nvme_ctrlr_get_flags(ctrlr))
+	C.spdk_nvme_detach(ctrlr)
+
+	initBdevLib()
 	args := struct {
 		Name   string `json:"name"`
 		TrType string `json:"trtype"`
@@ -49,8 +86,11 @@ func AttachNvme(pciAddr pciaddr.PCIAddress) (nvme *Nvme, e error) {
 		return nil, e
 	}
 
-	for _, namespace := range namespaces {
-		nvme.Namespaces = append(nvme.Namespaces, &NvmeNamespace{mustFind(namespace)})
+	for _, nn := range namespaces {
+		nvme.Namespaces = append(nvme.Namespaces, &NvmeNamespace{
+			info: mustFind(nn),
+			nvme: nvme,
+		})
 	}
 	return nvme, nil
 }

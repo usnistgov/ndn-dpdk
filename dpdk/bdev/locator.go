@@ -58,7 +58,8 @@ func (loc Locator) Create(minBlocks int64) (Device, io.Closer, error) {
 		}
 
 		for _, nn := range nvme.Namespaces {
-			if nn.BlockSize() == RequiredBlockSize && nn.CountBlocks() >= minBlocks {
+			bdi := nn.DevInfo()
+			if bdi.BlockSize() == RequiredBlockSize && bdi.CountBlocks() >= minBlocks {
 				return nn, nvme, nil
 			}
 		}

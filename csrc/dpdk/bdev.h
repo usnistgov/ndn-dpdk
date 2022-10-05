@@ -77,7 +77,7 @@ typedef struct Bdev
  * @param ch an SPDK I/O channel associated with the bdev and the current SPDK thread.
  * @param req request context. All fields must be kept alive until @c req->cb is called.
  *
- * @c req->pkt must be a uniquely owned, unsegmented, direct mbuf with succifient dataroom.
+ * @c req->pkt must be a uniquely owned, unsegmented, direct mbuf with sufficient dataroom.
  * @c req->pkt->data_off may be adjusted (either increased or decreased) to achieve proper
  * alignment as required by SPDK bdev driver.
  */
