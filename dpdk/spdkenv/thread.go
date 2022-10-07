@@ -90,7 +90,7 @@ func (th *Thread) Post(fn cptr.Function) {
 }
 
 // NewThread creates an SPDK thread.
-// The caller needs to assigned it a DPDK lcore and launch it.
+// The caller needs to assign it a DPDK lcore and launch it.
 func NewThread() (*Thread, error) {
 	initThreadLibOnce.Do(initThreadLib)
 

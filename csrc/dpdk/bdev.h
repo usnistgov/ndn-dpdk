@@ -3,6 +3,7 @@
 
 /** @file */
 
+#include "bdev-enum.h"
 #include "mbuf.h"
 #include <spdk/bdev.h>
 
@@ -60,6 +61,7 @@ struct BdevRequest
   struct rte_mbuf* pkt;
   BdevStoredPacket* sp;
   BdevRequestCb cb;
+  struct rte_mbuf* bounce_;
   struct iovec iov_[BdevMaxMbufSegs + 1];
 };
 
@@ -67,8 +69,9 @@ struct BdevRequest
 typedef struct Bdev
 {
   struct spdk_bdev_desc* desc;
+  struct rte_mempool* bounceMp;
   uint32_t bufAlign;
-  bool dwordAlign;
+  BdevWriteMode writeMode;
 } Bdev;
 
 /**

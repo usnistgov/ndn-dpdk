@@ -49,10 +49,7 @@ WriteEPB(PdumpWriter* w, struct rte_mbuf* pkt, PcapngEPB* epb, size_t hdrLen)
   rte_memcpy(MmapFd_At(&w->m, w->pos), epb, hdrLen);
 
   uint8_t* dst = MmapFd_At(&w->m, w->pos + hdrLen);
-  const uint8_t* readTo = rte_pktmbuf_read(pkt, 0, pkt->pkt_len, dst);
-  if (readTo != dst) {
-    rte_memcpy(dst, readTo, pkt->pkt_len);
-  }
+  Mbuf_ReadTo(pkt, 0, pkt->pkt_len, dst);
 
   PcapngTrailer trailer = {
     .totalLength = epb->totalLength,

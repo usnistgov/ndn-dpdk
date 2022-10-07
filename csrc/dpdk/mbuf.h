@@ -29,6 +29,19 @@ Mbuf_SetTimestamp(struct rte_mbuf* m, TscTime timestamp)
 }
 
 /**
+ * @brief Copy @c m[off:off+len] into @p dst .
+ * @param dst must have @p len room.
+ */
+__attribute__((nonnull)) static inline void
+Mbuf_ReadTo(struct rte_mbuf* m, uint32_t off, uint32_t len, void* dst)
+{
+  const uint8_t* readTo = rte_pktmbuf_read(m, off, len, dst);
+  if (readTo != dst) {
+    rte_memcpy(dst, readTo, len);
+  }
+}
+
+/**
  * @brief Chain @p tail onto @p head.
  * @param lastSeg must be rte_pktmbuf_lastseg(head)
  * @return whether success.

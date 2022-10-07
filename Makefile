@@ -17,6 +17,9 @@ build/build.ninja: csrc/meson.build mk/meson.build
 csrc/core/rttest-enum.h: core/rttest/rttest.go
 	mk/go.sh generate ./$(<D)
 
+csrc/bdev/thread-enum.h: dpdk/bdev/write-mode.go
+	mk/go.sh generate ./$(<D)
+
 csrc/dpdk/thread-enum.h: dpdk/ealthread/ctrl.go
 	mk/go.sh generate ./$(<D)
 
@@ -45,7 +48,7 @@ csrc/tgproducer/enum.h: app/tgproducer/config.go
 	mk/go.sh generate ./$(<D)
 
 .PHONY: build/libndn-dpdk-c.a
-build/libndn-dpdk-c.a: build/build.ninja csrc/core/rttest-enum.h csrc/dpdk/thread-enum.h csrc/fib/enum.h csrc/fileserver/an.h csrc/fileserver/enum.h csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h csrc/pdump/enum.h csrc/tgconsumer/enum.h csrc/tgproducer/enum.h
+build/libndn-dpdk-c.a: build/build.ninja csrc/core/rttest-enum.h csrc/bdev/thread-enum.h csrc/dpdk/thread-enum.h csrc/fib/enum.h csrc/fileserver/an.h csrc/fileserver/enum.h csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h csrc/pdump/enum.h csrc/tgconsumer/enum.h csrc/tgproducer/enum.h
 	ninja -C build
 
 build/cgodeps.done: build/build.ninja

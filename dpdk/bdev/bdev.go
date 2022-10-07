@@ -37,6 +37,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
+	"go4.org/must"
 )
 
 var logger = logging.New("bdev")
@@ -78,6 +79,9 @@ func (bd *Bdev) Close() error {
 			bd.ch = nil
 		}
 		C.spdk_bdev_close(bd.c.desc)
+		if bounceMp := bd.c.bounceMp; bounceMp != nil {
+			must.Close(pktmbuf.PoolFromPtr(unsafe.Pointer(bounceMp)))
+		}
 	})
 	logger.Info("device closed", zap.String("name", bd.DevInfo().Name()))
 	return nil
@@ -86,11 +90,6 @@ func (bd *Bdev) Close() error {
 // CopyToC copies to *C.Bdev.
 func (bd *Bdev) CopyToC(ptr unsafe.Pointer) {
 	*(*C.Bdev)(ptr) = bd.c
-}
-
-func (bd *Bdev) enableDwordAlign() {
-	bd.c.dwordAlign = true
-	bd.c.bufAlign = generic.Max(bd.c.bufAlign, 4)
 }
 
 func (bd *Bdev) do(pkt *pktmbuf.Packet, f func(breq *C.BdevRequest)) error {
@@ -155,6 +154,25 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 		return nil, fmt.Errorf("not supported: write unit size is %d, not 1", writeUnit)
 	}
 
+	bufAlign, wm, bounceMp := bdi.BufAlign(), WriteModeSimple, (*pktmbuf.Pool)(nil)
+	if wwm, ok := (device).(withWriteMode); ok {
+		wm = wwm.writeMode()
+	}
+	switch wm {
+	case WriteModeContiguous:
+		// TODO create pool in NUMA socket of NVMe PCI device
+		bounceMp, e = pktmbuf.NewPool(pktmbuf.PoolConfig{
+			Capacity: 65535, // typical NVMe supports 65536 commands per queue
+			Dataroom: bufAlign + C.BdevBlockSize*C.BdevMaxMbufSegs,
+		}, eal.NumaSocket{})
+		if e != nil {
+			return nil, fmt.Errorf("pktmbuf.NewPool: %w", e)
+		}
+		fallthrough
+	case WriteModeDwordAlign:
+		bufAlign = generic.Max(bufAlign, 4)
+	}
+
 	bd = &Bdev{Device: device}
 	eal.CallMain(func() {
 		if res := C.spdk_bdev_open_ext(C.spdk_bdev_get_name(bdi.ptr()), C.bool(mode),
@@ -164,34 +182,22 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 		}
 	})
 	if e != nil {
+		if bounceMp != nil {
+			must.Close(bounceMp)
+		}
 		return nil, e
 	}
 
-	bd.c.bufAlign = C.uint32_t(bdi.BufAlign())
-	if nn, ok := device.(*NvmeNamespace); ok {
-		sgl, dwordAlign := nn.Controller().SglSupport()
-		if sgl {
-			if dwordAlign {
-				bd.enableDwordAlign()
-			}
-		} else {
-			logger.Error("not supported: NVMe device lacks SGL capability",
-				zap.Uintptr("desc", uintptr(unsafe.Pointer(bd.c.desc))),
-			)
-		}
+	bd.c.bufAlign, bd.c.writeMode = C.uint32_t(bufAlign), C.BdevWriteMode(wm)
+	if bounceMp != nil {
+		bd.c.bounceMp = (*C.struct_rte_mempool)(bounceMp.Ptr())
 	}
 	logger.Info("device opened",
 		zap.Uintptr("desc", uintptr(unsafe.Pointer(bd.c.desc))),
-		zap.Bool("dword-align", bool(bd.c.dwordAlign)),
+		zap.Stringer("write-mode", wm),
 		zap.Inline(bdi),
 	)
 	return bd, nil
-}
-
-// ForceDwordAlign enables DwordAlign mode even if the driver does not require it.
-// This is mainly useful for unit testing.
-func ForceDwordAlign(bd *Bdev) {
-	bd.enableDwordAlign()
 }
 
 //export go_bdevEvent

@@ -255,5 +255,7 @@ See [face creation](face.md) for how to create an Ethernet port with these drive
 ## NVMe Storage Device
 
 NDN-DPDK can use NVMe storage device as forwarder Content Store expansion.
-Current implementation is only compatible with NVMe controller that supports "scatter-gather lists" (SGLs) feature.
-Run `nvme id-ctrl /dev/nvme0 | grep sgls`, if the last two bits are either 01b or 10b, the NVMe controller supports SGLs feature.
+It can work with most NVMe devices.
+
+Best efficiency is achieved on a NVMe controller that supports "scatter-gather lists" (SGLs) feature.
+Run `nvme id-ctrl -H /dev/nvme0` and look at "sgls" field to identify this feature.

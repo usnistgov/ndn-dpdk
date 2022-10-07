@@ -3,13 +3,12 @@
 uint8_t* BdevFiller_ = NULL;
 
 __attribute__((nonnull)) static inline void
-Bdev_Complete(struct spdk_bdev_io* io, bool success, void* req0)
+Bdev_Complete(struct spdk_bdev_io* io, int res, void* req0)
 {
   spdk_bdev_free_io(io);
   NULLize(io);
 
   BdevRequest* req = (BdevRequest*)req0;
-  int res = success ? 0 : EIO;
   req->cb(req, res);
 }
 
@@ -59,7 +58,7 @@ Bdev_ReadComplete(struct spdk_bdev_io* io, bool success, void* req0)
   if (likely(success)) {
     Bdev_ReadSuccess(req0);
   }
-  Bdev_Complete(io, success, req0);
+  Bdev_Complete(io, success ? 0 : EIO, req0);
 }
 
 void
@@ -87,19 +86,16 @@ Bdev_ReadPacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, Bdev
   }
 }
 
-bool
-Bdev_WritePrepare(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp)
+__attribute__((nonnull)) static bool
+Bdev_WritePrepare_Simple(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp)
 {
-  if (pkt->pkt_len == 0 || pkt->pkt_len >= UINT16_MAX || pkt->nb_segs > BdevMaxMbufSegs) {
-    return false;
-  }
+  sp->saveTotal = sp->pktLen;
+  return true;
+}
 
-  sp->pktLen = pkt->pkt_len;
-  if (!bd->dwordAlign) {
-    sp->saveTotal = sp->pktLen;
-    return true;
-  }
-
+__attribute__((nonnull)) static bool
+Bdev_WritePrepare_DwordAlign(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp)
+{
   uint32_t saveTotal = 0;
   int i = 0;
   for (struct rte_mbuf* m = pkt; m != NULL; m = m->next) {
@@ -123,34 +119,11 @@ Bdev_WritePrepare(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp)
   return true;
 }
 
-void
-Bdev_WritePacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, BdevRequest* req)
+__attribute__((nonnull)) static inline int
+Bdev_WriteIov_AppendFiller(BdevRequest* req, uint32_t totalLen, struct rte_mbuf* lastSeg,
+                           int iovcnt)
 {
-  BdevStoredPacket* sp = req->sp;
-  uint32_t blockCount = BdevStoredPacket_ComputeBlockCount(sp);
-  uint32_t totalLen = blockCount * BdevBlockSize;
-
-  struct rte_mbuf* pkt = req->pkt;
-  struct rte_mbuf* lastSeg = pkt;
-  int iovcnt = 0;
-  for (struct rte_mbuf* seg = pkt; seg != NULL; seg = seg->next) {
-    if (bd->dwordAlign) {
-      uint16_t headLen = sp->headTail[iovcnt] >> 4;
-      req->iov_[iovcnt] = (struct iovec){
-        .iov_base = rte_pktmbuf_mtod_offset(seg, void*, -headLen),
-        .iov_len = sp->saveLen[iovcnt],
-      };
-    } else {
-      req->iov_[iovcnt] = (struct iovec){
-        .iov_base = rte_pktmbuf_mtod(seg, void*),
-        .iov_len = seg->data_len,
-      };
-    }
-    ++iovcnt;
-    lastSeg = seg;
-  }
-
-  size_t fillerLen = totalLen - sp->saveTotal;
+  size_t fillerLen = totalLen - req->sp->saveTotal;
   if (likely(
         RTE_PTR_ADD(req->iov_[iovcnt - 1].iov_base, req->iov_[iovcnt - 1].iov_len + fillerLen) <=
         RTE_PTR_ADD(lastSeg->buf_addr, lastSeg->buf_len))) {
@@ -160,9 +133,131 @@ Bdev_WritePacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, Bde
     req->iov_[iovcnt].iov_len = fillerLen;
     ++iovcnt;
   }
+  return iovcnt;
+}
+
+__attribute__((nonnull)) static int
+Bdev_WriteIov_Simple(Bdev* bd, BdevRequest* req, uint32_t totalLen)
+{
+  struct rte_mbuf* pkt = req->pkt;
+  struct rte_mbuf* lastSeg = pkt;
+  int iovcnt = 0;
+  for (struct rte_mbuf* seg = pkt; seg != NULL; seg = seg->next) {
+    req->iov_[iovcnt] = (struct iovec){
+      .iov_base = rte_pktmbuf_mtod(seg, void*),
+      .iov_len = seg->data_len,
+    };
+    ++iovcnt;
+    lastSeg = seg;
+  }
+  iovcnt = Bdev_WriteIov_AppendFiller(req, totalLen, lastSeg, iovcnt);
+  return iovcnt;
+}
+
+__attribute__((nonnull)) static int
+Bdev_WriteIov_DwordAlign(Bdev* bd, BdevRequest* req, uint32_t totalLen)
+{
+  BdevStoredPacket* sp = req->sp;
+  struct rte_mbuf* pkt = req->pkt;
+  struct rte_mbuf* lastSeg = pkt;
+  int iovcnt = 0;
+  for (struct rte_mbuf* seg = pkt; seg != NULL; seg = seg->next) {
+    uint16_t headLen = sp->headTail[iovcnt] >> 4;
+    req->iov_[iovcnt] = (struct iovec){
+      .iov_base = rte_pktmbuf_mtod_offset(seg, void*, -headLen),
+      .iov_len = sp->saveLen[iovcnt],
+    };
+    ++iovcnt;
+    lastSeg = seg;
+  }
+  iovcnt = Bdev_WriteIov_AppendFiller(req, totalLen, lastSeg, iovcnt);
+  return iovcnt;
+}
+
+__attribute__((nonnull)) static int
+Bdev_WriteIov_Contiguous(Bdev* bd, BdevRequest* req, uint32_t totalLen)
+{
+  struct rte_mbuf* pkt = req->pkt;
+  void* pFirst = rte_pktmbuf_mtod(pkt, void*);
+  if (pkt->nb_segs == 1 && RTE_PTR_ALIGN_FLOOR(pFirst, bd->bufAlign) == pFirst &&
+      RTE_PTR_ADD(pFirst, totalLen) <= RTE_PTR_ADD(pkt->buf_addr, pkt->buf_len)) {
+    req->iov_[0] = (struct iovec){
+      .iov_base = pFirst,
+      .iov_len = totalLen,
+    };
+    return 1;
+  }
+
+  req->bounce_ = rte_pktmbuf_alloc(bd->bounceMp);
+  if (unlikely(req->bounce_ == NULL)) {
+    return -ENOMEM;
+  }
+
+  void* dst = RTE_PTR_ALIGN_CEIL(req->bounce_->buf_addr, bd->bufAlign);
+  Mbuf_ReadTo(pkt, 0, pkt->pkt_len, dst);
+  req->iov_[0] = (struct iovec){
+    .iov_base = dst,
+    .iov_len = totalLen,
+  };
+  return 1;
+}
+
+static const struct
+{
+  bool (*prepare)(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp);
+  int (*writeIov)(Bdev* bd, BdevRequest* req, uint32_t totalLen);
+} BdevWriteOps[] = {
+  [BdevWriteModeSimple] = {
+    .prepare = Bdev_WritePrepare_Simple,
+    .writeIov = Bdev_WriteIov_Simple,
+  },
+  [BdevWriteModeDwordAlign] = {
+    .prepare = Bdev_WritePrepare_DwordAlign,
+    .writeIov = Bdev_WriteIov_DwordAlign,
+  },
+  [BdevWriteModeContiguous] = {
+    .prepare = Bdev_WritePrepare_Simple,
+    .writeIov = Bdev_WriteIov_Contiguous,
+  },
+};
+
+bool
+Bdev_WritePrepare(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp)
+{
+  if (pkt->pkt_len == 0 || pkt->pkt_len >= UINT16_MAX || pkt->nb_segs > BdevMaxMbufSegs) {
+    return false;
+  }
+
+  sp->pktLen = pkt->pkt_len;
+  return BdevWriteOps[bd->writeMode].prepare(bd, pkt, sp);
+}
+
+__attribute__((nonnull)) static void
+Bdev_WriteComplete(struct spdk_bdev_io* io, bool success, void* req0)
+{
+  BdevRequest* req = (BdevRequest*)req0;
+  if (req->bounce_ != NULL) {
+    rte_pktmbuf_free(req->bounce_);
+    NULLize(req->bounce_);
+  }
+  Bdev_Complete(io, success ? 0 : EIO, req0);
+}
+
+void
+Bdev_WritePacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, BdevRequest* req)
+{
+  BdevStoredPacket* sp = req->sp;
+  uint32_t blockCount = BdevStoredPacket_ComputeBlockCount(sp);
+  uint32_t totalLen = blockCount * BdevBlockSize;
+
+  int iovcnt = BdevWriteOps[bd->writeMode].writeIov(bd, req, totalLen);
+  if (unlikely(iovcnt < 0)) {
+    req->cb(req, -iovcnt);
+    return;
+  }
 
   int res = spdk_bdev_writev_blocks(bd->desc, ch, req->iov_, iovcnt, blockOffset, blockCount,
-                                    Bdev_Complete, req);
+                                    Bdev_WriteComplete, req);
   if (unlikely(res != 0)) {
     req->cb(req, res);
   }

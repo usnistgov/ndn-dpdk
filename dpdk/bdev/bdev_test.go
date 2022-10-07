@@ -69,13 +69,15 @@ func (rwt *bdevRWTest) Read(t testing.TB, bd *bdev.Bdev) {
 	}
 }
 
-func makeRW3(device bdev.Device) (rwt0, rwt1, rwt2 bdevRWTest) {
+func makeRW4(device bdev.Device) (rwt0, rwt1, rwt2, rwt3 bdevRWTest) {
 	rwt0.headroom = 0
 	rwt0.assignSegs(2, 500, 400, 124)
 	rwt1.headroom = 1
 	rwt1.assignSegs(3, 500, 400, 135)
 	rwt2.headroom = 1
 	rwt2.assignSegs(1, 136)
+	rwt3.headroom = 4
+	rwt3.assignSegs(2, 768)
 
 	nBlocks := device.DevInfo().CountBlocks()
 	for len(map[int64]bool{
@@ -85,10 +87,13 @@ func makeRW3(device bdev.Device) (rwt0, rwt1, rwt2 bdevRWTest) {
 		rwt1.blockOffset + 1: true,
 		rwt1.blockOffset + 2: true,
 		rwt2.blockOffset + 0: true,
-	}) != 6 {
+		rwt3.blockOffset + 0: true,
+		rwt3.blockOffset + 1: true,
+	}) != 8 {
 		rwt0.blockOffset = rand.Int63n(nBlocks)
 		rwt1.blockOffset = rand.Int63n(nBlocks)
 		rwt2.blockOffset = rand.Int63n(nBlocks)
+		rwt3.blockOffset = rand.Int63n(nBlocks)
 	}
 	return
 }
@@ -121,14 +126,24 @@ func TestMalloc(t *testing.T) {
 	require.NoError(e)
 	defer must.Close(device)
 
-	checkSize(t, device)
-	rwt0, rwt1, rwt2 := makeRW3(device)
-	testBdev(t, device, bdev.ReadWrite, rwt0.Write, rwt1.Write, rwt2.Write, rwt0.Read, rwt1.Read, rwt2.Read, doUnmap)
+	t.Run("default", func(t *testing.T) {
+		checkSize(t, device)
+		rwt0, rwt1, rwt2, rwt3 := makeRW4(device)
+		testBdev(t, device, bdev.ReadWrite,
+			rwt0.Write, rwt1.Write, rwt2.Write, rwt3.Write,
+			rwt0.Read, rwt1.Read, rwt2.Read, rwt3.Read,
+			doUnmap)
+	})
 
-	rwt0, rwt1, rwt2 = makeRW3(device)
-	testBdev(t, device, bdev.ReadWrite, func(t testing.TB, bd *bdev.Bdev) {
-		bdev.ForceDwordAlign(bd)
-	}, rwt0.Write, rwt1.Write, rwt2.Write, rwt0.Read, rwt1.Read, rwt2.Read)
+	for _, wm := range []bdev.WriteMode{bdev.WriteModeSimple, bdev.WriteModeDwordAlign, bdev.WriteModeContiguous} {
+		t.Run(wm.String(), func(t *testing.T) {
+			d := bdev.OverrideWriteMode(device, wm)
+			rwt0, rwt1, rwt2, rwt3 := makeRW4(d)
+			testBdev(t, d, bdev.ReadWrite,
+				rwt0.Write, rwt1.Write, rwt2.Write, rwt3.Write,
+				rwt0.Read, rwt1.Read, rwt2.Read, rwt3.Read)
+		})
+	}
 }
 
 func TestDelayError(t *testing.T) {
@@ -152,35 +167,45 @@ func TestDelayError(t *testing.T) {
 	defer must.Close(errInj)
 
 	checkSize(t, errInj)
-	rwt0, rwt1, rwt2 := makeRW3(errInj)
-	testBdev(t, errInj, bdev.ReadWrite, rwt0.Write, rwt1.Write, rwt2.Write, rwt0.Read, rwt1.Read, rwt2.Read, doUnmap,
+	rwt0, rwt1, rwt2, rwt3 := makeRW4(errInj)
+	testBdev(t, errInj, bdev.ReadWrite,
+		rwt0.Write, rwt1.Write, rwt2.Write, rwt3.Write,
+		rwt0.Read, rwt1.Read, rwt2.Read, rwt3.Read,
 		func(t testing.TB, bd *bdev.Bdev) {
 			assert.NoError(errInj.Inject(bdev.IORead, 2))
 			pkt := mbuftestenv.DirectMempool().MustAlloc(1)[0]
 			defer pkt.Close()
 			e = bd.ReadPacket(rwt0.blockOffset, pkt, rwt0.sp)
 			assert.Error(e)
-		},
+		}, doUnmap,
 	)
 }
 
 func TestFile(t *testing.T) {
-	assert, require := makeAR(t)
+	_, require := makeAR(t)
 	filename := filepath.Join(t.TempDir(), "bdev.disk")
 	require.NoError(bdev.TruncateFile(filename, bdev.RequiredBlockSize*blockCount))
 
-	for _, ctor := range []func() (*bdev.File, error){
-		func() (*bdev.File, error) { return bdev.NewFile(filename) },
-		func() (*bdev.File, error) { return bdev.NewFileWithDriver(bdev.FileAio, filename) },
-		func() (*bdev.File, error) { return bdev.NewFileWithDriver(bdev.FileUring, filename) },
+	for _, tt := range []struct {
+		title string
+		ctor  func() (*bdev.File, error)
+	}{
+		{"default", func() (*bdev.File, error) { return bdev.NewFile(filename) }},
+		{"aio", func() (*bdev.File, error) { return bdev.NewFileWithDriver(bdev.FileAio, filename) }},
+		{"uring", func() (*bdev.File, error) { return bdev.NewFileWithDriver(bdev.FileUring, filename) }},
 	} {
-		device, e := ctor()
-		require.NoError(e)
-		assert.Equal(filename, device.Filename())
-		checkSize(t, device)
-		rwt0, rwt1, rwt2 := makeRW3(device)
-		testBdev(t, device, bdev.ReadWrite, rwt0.Write, rwt1.Write, rwt2.Write, rwt0.Read, rwt1.Read, rwt2.Read, doUnmap)
-		must.Close(device)
+		t.Run(tt.title, func(t *testing.T) {
+			assert, require := makeAR(t)
+			device, e := tt.ctor()
+			require.NoError(e)
+			assert.Equal(filename, device.Filename())
+			checkSize(t, device)
+			rwt0, rwt1, rwt2, rwt3 := makeRW4(device)
+			testBdev(t, device, bdev.ReadWrite,
+				rwt0.Write, rwt1.Write, rwt2.Write, rwt3.Write,
+				rwt0.Read, rwt1.Read, rwt2.Read, rwt3.Read, doUnmap)
+			must.Close(device)
+		})
 	}
 }
 
@@ -205,8 +230,10 @@ func TestNvme(t *testing.T) {
 	assert.True(bdi.HasIOType(bdev.IONvmeIO))
 
 	if os.Getenv("BDEVTEST_NVME_WRITE") == "1" {
-		rwt0, rwt1, rwt2 := makeRW3(nn)
-		testBdev(t, nn, bdev.ReadWrite, rwt0.Write, rwt1.Write, rwt2.Write, rwt0.Read, rwt1.Read, rwt2.Read, doUnmap)
+		rwt0, rwt1, rwt2, rwt3 := makeRW4(nn)
+		testBdev(t, nn, bdev.ReadWrite,
+			rwt0.Write, rwt1.Write, rwt2.Write, rwt3.Write,
+			rwt0.Read, rwt1.Read, rwt2.Read, rwt3.Read, doUnmap)
 	} else {
 		t.Log("NVMe write test disabled; rerun test suite with BDEVTEST_NVME_WRITE=1 environ to enable (will destroy data).")
 		testBdev(t, nn, bdev.ReadOnly)

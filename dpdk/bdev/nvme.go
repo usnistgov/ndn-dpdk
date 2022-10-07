@@ -19,7 +19,10 @@ type NvmeNamespace struct {
 	nvme *Nvme
 }
 
-var _ Device = (*NvmeNamespace)(nil)
+var (
+	_ Device        = (*NvmeNamespace)(nil)
+	_ withWriteMode = (*NvmeNamespace)(nil)
+)
 
 // DevInfo implements Device interface.
 func (nn *NvmeNamespace) DevInfo() *Info {
@@ -29,6 +32,17 @@ func (nn *NvmeNamespace) DevInfo() *Info {
 // Controller returns NVMe controller.
 func (nn *NvmeNamespace) Controller() *Nvme {
 	return nn.nvme
+}
+
+func (nn *NvmeNamespace) writeMode() WriteMode {
+	supported, dwordAlign := nn.Controller().SglSupport()
+	if supported {
+		if dwordAlign {
+			return WriteModeDwordAlign
+		}
+		return WriteModeSimple
+	}
+	return WriteModeContiguous
 }
 
 // Nvme represents an NVMe controller.
