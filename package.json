@@ -9,7 +9,7 @@
   "type": "module",
   "main": "build/js/mod.js",
   "types": "js/mod.ts",
-  "packageManager": "pnpm@7.12.2",
+  "packageManager": "pnpm@7.13.2",
   "dependencies": {
     "graphql": "^16.6.0",
     "graphql-request": "^5.0.0",
@@ -25,8 +25,8 @@
     "dockerfilelint": "^1.8.0",
     "json-stable-stringify": "^1.0.1",
     "markdownlint-cli": "^0.32.2",
-    "ts-json-schema-generator": "^1.1.1",
-    "typescript": "~4.8.3"
+    "ts-json-schema-generator": "^1.1.2",
+    "typescript": "~4.8.4"
   },
   "engines": {
     "node": "16.x"
