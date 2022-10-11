@@ -2,7 +2,7 @@ package bdev
 
 /*
 #include "../../csrc/dpdk/bdev.h"
-#include <spdk/accel_engine.h>
+#include <spdk/accel.h>
 
 extern void go_bdevInitialized(void* ctx, int rc);
 */
@@ -23,9 +23,9 @@ var initBdevLibOnce sync.Once
 // Initialize SPDK block device library.
 func initBdevLib() {
 	initBdevLibOnce.Do(func() {
-		logger.Info("initializing block device library and acceleration engine")
+		logger.Info("initializing block device library and accel framework")
 		eal.CallMain(func() {
-			C.spdk_accel_engine_initialize()
+			C.spdk_accel_initialize()
 			C.spdk_bdev_initialize(C.spdk_bdev_init_cb(C.go_bdevInitialized), nil)
 		})
 	})

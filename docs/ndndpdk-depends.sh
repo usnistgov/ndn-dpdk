@@ -37,14 +37,14 @@ fi
 DFLT_CODEROOT=$HOME/code
 DFLT_NODEVER=16.x
 DFLT_GOVER=latest
-DFLT_UBPFVER=af0194ff5beca77a71098837b2a5bcbe7177145a
-DFLT_XDPTOOLSVER=v1.2.6
+DFLT_UBPFVER=0afd63055b84808853e6e841771e14921aa2d29e
+DFLT_XDPTOOLSVER=v1.2.8
 DFLT_LIBBPFVER=v0.8.1
 DFLT_URINGVER=liburing-2.2
 DFLT_DPDKVER=v22.07
 DFLT_DPDKPATCH=
 DFLT_DPDKOPTS={}
-DFLT_SPDKVER=v22.05
+DFLT_SPDKVER=v22.09
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -374,10 +374,15 @@ fi
 
 if [[ $SPDKVER != 0 ]]; then
   cd "$(github_download spdk/spdk $SPDKVER)"
+  sed -i '/^\s*if .*isa-l\/autogen.sh/,/^\s*fi$/ s/.*/CONFIG[ISAL]=n/' configure
   ./configure --target-arch=${TARGETARCH} --with-shared \
     --disable-tests --disable-unit-tests --disable-examples --disable-apps \
     --with-dpdk --with-uring \
-    --without-crypto --without-fuse --without-isal --without-vhost
+    --without-idxd --without-crypto --without-fio --without-xnvme --without-vhost \
+    --without-virtio --without-vfio-user --without-pmdk --without-reduce --without-rbd \
+    --without-rdma --without-fc --without-daos --without-iscsi-initiator --without-vtune \
+    --without-ocf --without-fuse --without-nvme-cuse --without-raid5f --without-wpdk \
+    --without-usdt --without-sma
   make -j${NJOBS}
   $SUDO find /usr/local/lib -name 'libspdk_*' -delete
   $SUDO make install
