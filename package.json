@@ -9,7 +9,7 @@
   "type": "module",
   "main": "build/js/mod.js",
   "types": "js/mod.ts",
-  "packageManager": "pnpm@7.13.2",
+  "packageManager": "pnpm@7.13.4",
   "dependencies": {
     "graphql": "^16.6.0",
     "graphql-request": "^5.0.0",

@@ -21,18 +21,18 @@ extern uint8_t* BdevFiller_;
 /** @brief Length and alignment descriptor of a stored packet. */
 typedef struct BdevStoredPacket
 {
-  uint16_t pktLen;
-  uint16_t saveTotal;
-  uint16_t saveLen[BdevMaxMbufSegs];
-  uint8_t headTail[BdevMaxMbufSegs]; // (headLen << 4) | (headLen + tailLen)
+  uint16_t pktLen;                   ///< original packet length
+  uint16_t saveTotal;                ///< saved total length
+  uint16_t saveLen[BdevMaxMbufSegs]; ///< per-segment saved length, zero denotes ending
+  uint8_t headTail[BdevMaxMbufSegs]; ///< per-segment (headLen << 4) | (headLen + tailLen)
 } BdevStoredPacket;
 
 __attribute__((nonnull)) static __rte_always_inline void
 BdevStoredPacket_Copy(BdevStoredPacket* restrict dst, const BdevStoredPacket* restrict src)
 {
-  if (src->pktLen == src->saveTotal) {
+  if (src->pktLen == src->saveTotal) { // no head or tail
     goto COPY0;
-  } else if (src->saveLen[1] == 0) {
+  } else if (src->saveLen[1] == 0) { // single segment
     dst->headTail[0] = src->headTail[0];
     dst->headTail[1] = src->headTail[1];
   COPY0:
@@ -40,7 +40,7 @@ BdevStoredPacket_Copy(BdevStoredPacket* restrict dst, const BdevStoredPacket* re
     dst->saveTotal = src->saveTotal;
     dst->saveLen[0] = src->saveLen[0];
     dst->saveLen[1] = src->saveLen[1];
-  } else {
+  } else { // multiple segments
     *dst = *src;
   }
 }
