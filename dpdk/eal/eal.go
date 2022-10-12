@@ -7,6 +7,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
+	"github.com/zyedidia/generic/mapset"
 	"golang.org/x/exp/slices"
 )
 
@@ -41,19 +42,19 @@ func UpdateLCoreSockets(lcoreSockets map[int]int, mainLCoreID int) (undo func())
 
 	MainLCore, Workers, Sockets = LCoreFromID(mainLCoreID), nil, nil
 
-	socketIDs := map[int]bool{}
+	socketIDs := mapset.New[int]()
 	for lcID, socketID := range lcoreSockets {
 		lcoreToSocket[lcID] = socketID
-		socketIDs[socketID] = true
+		socketIDs.Put(socketID)
 		if lcID != mainLCoreID {
 			Workers = append(Workers, LCoreFromID(lcID))
 		}
 	}
 	slices.SortFunc(Workers, func(a, b LCore) bool { return a.v < b.v })
 
-	for socketID := range socketIDs {
+	socketIDs.Each(func(socketID int) {
 		Sockets = append(Sockets, NumaSocketFromID(socketID))
-	}
+	})
 	slices.SortFunc(Sockets, func(a, b NumaSocket) bool { return a.v < b.v })
 
 	return

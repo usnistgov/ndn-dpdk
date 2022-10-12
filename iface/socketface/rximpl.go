@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/usnistgov/ndn-dpdk/iface"
+	"github.com/zyedidia/generic/mapset"
 	"go.uber.org/zap"
 )
 
@@ -58,7 +59,7 @@ func (impl *rxImpl) stop() {
 }
 
 type rxFaceList struct {
-	set  map[*socketFace]bool
+	set  *mapset.Set[*socketFace]
 	lock sync.RWMutex
 }
 
@@ -66,13 +67,14 @@ func (fl *rxFaceList) faceListPut(face *socketFace) func() {
 	fl.lock.Lock()
 	defer fl.lock.Unlock()
 	if fl.set == nil {
-		fl.set = map[*socketFace]bool{}
+		s := mapset.New[*socketFace]()
+		fl.set = &s
 	}
-	fl.set[face] = true
+	fl.set.Put(face)
 	return func() {
 		fl.lock.Lock()
 		defer fl.lock.Unlock()
-		delete(fl.set, face)
+		fl.set.Remove(face)
 	}
 }
 
@@ -80,8 +82,8 @@ func (fl *rxFaceList) faceListPut(face *socketFace) func() {
 func (fl *rxFaceList) Faces() (list []iface.Face) {
 	fl.lock.RLock()
 	defer fl.lock.RUnlock()
-	for face := range fl.set {
+	fl.set.Each(func(face *socketFace) {
 		list = append(list, face)
-	}
+	})
 	return list
 }

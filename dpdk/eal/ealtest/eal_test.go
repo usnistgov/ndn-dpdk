@@ -6,6 +6,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
+	"github.com/zyedidia/generic/mapset"
 )
 
 func TestEal(t *testing.T) {
@@ -17,13 +18,13 @@ func TestEal(t *testing.T) {
 	assert.NotEmpty(eal.Sockets)
 
 	require.Len(eal.Workers, ealtestenv.WantLCores-1)
-	workersSet := map[eal.LCore]bool{}
+	workersSet := mapset.New[eal.LCore]()
 	for _, worker := range eal.Workers {
-		workersSet[worker] = true
+		workersSet.Put(worker)
 		assert.True(worker.Valid())
 		assert.False(worker.IsBusy())
 	}
-	require.Len(workersSet, ealtestenv.WantLCores-1)
+	require.Equal(ealtestenv.WantLCores-1, workersSet.Size())
 
 	isWorkerExecuted := false
 	eal.Workers[0].RemoteLaunch(cptr.Func0.Int(func() int {

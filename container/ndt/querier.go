@@ -30,12 +30,12 @@ func (ndq *Querier) Init(ndt *Ndt, socket eal.NumaSocket) {
 		ndt:   ndt.getReplica(socket).ptr(),
 		nHits: eal.ZmallocAligned[C.uint32_t]("NdtQuerier.nHits", C.sizeof_uint32_t*ndt.cfg.Capacity, 1, socket),
 	}
-	ndt.queriers[ndq] = true
+	ndt.queriers.Put(ndq)
 }
 
 // Clear releases memory allocated in Init.
 func (ndq *Querier) Clear(ndt *Ndt) {
-	delete(ndt.queriers, ndq)
+	ndt.queriers.Remove(ndq)
 	if ndq.nHits != nil {
 		eal.Free(ndq.nHits)
 	}

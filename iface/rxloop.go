@@ -182,7 +182,7 @@ var (
 	// Return nil to use default algorithm.
 	ChooseRxLoop = func(rxg RxGroup) RxLoop { return nil }
 
-	rxLoopThreads = map[RxLoop]bool{}
+	rxLoopThreads = map[RxLoop]bool{} // cannot use mapset because RxLoop is not 'comparable'
 	mapRxgRxl     = map[RxGroup]RxLoop{}
 	rxLoopLock    sync.Mutex
 )
@@ -192,7 +192,7 @@ func ListRxLoops() (list []RxLoop) {
 	rxLoopLock.Lock()
 	defer rxLoopLock.Unlock()
 
-	for rxl := range rxLoopThreads {
+	for rxl := range rxLoopThreads { // cannot use maps.Keys because RxLoop is not 'comparable'
 		list = append(list, rxl)
 	}
 	return list

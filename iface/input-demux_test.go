@@ -15,6 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 	"github.com/zyedidia/generic"
+	"github.com/zyedidia/generic/mapset"
 )
 
 type InputDemuxFixture struct {
@@ -161,17 +162,17 @@ func TestInputDemuxNdt(t *testing.T) {
 
 	prefix := "/..."
 	for {
-		indexSet := map[uint64]bool{}
+		indexSet := mapset.New[uint64]()
 		for i := uint8(0); i < 10; i++ {
 			name := prefix
 			if i < 9 {
 				name = fmt.Sprintf("%s/%d", prefix, i)
 			}
 			index := theNdt.IndexOfName(ndn.ParseName(name))
-			indexSet[index] = true
+			indexSet.Put(index)
 			theNdt.Update(index, i)
 		}
-		if len(indexSet) == 10 {
+		if indexSet.Size() == 10 {
 			break
 		}
 		prefix = fmt.Sprintf("/%d", rand.Int())

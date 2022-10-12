@@ -4,6 +4,7 @@ package hwinfo
 import (
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/zyedidia/generic"
+	"github.com/zyedidia/generic/mapset"
 )
 
 var logger = logging.New("hwinfo")
@@ -56,12 +57,12 @@ func (cores Cores) ListSecondary() []int {
 }
 
 func (cores Cores) listHyperThread(secondary bool) (list []int) {
-	ht := map[int]bool{}
+	physicalSet := mapset.New[int]()
 	for _, core := range cores {
-		if ht[core.PhysicalKey] == secondary {
+		if physicalSet.Has(core.PhysicalKey) == secondary {
 			list = append(list, core.ID)
 		}
-		ht[core.PhysicalKey] = true
+		physicalSet.Put(core.PhysicalKey)
 	}
 	return list
 }

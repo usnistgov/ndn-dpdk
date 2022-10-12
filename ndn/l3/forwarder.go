@@ -44,7 +44,7 @@ func NewForwarder() Forwarder {
 	fw := &forwarder{
 		faces:         map[uint32]*fwFace{},
 		announcements: multimap.NewMapSlice[string, *fwFace](),
-		readvertise:   map[ReadvertiseDestination]bool{},
+		readvertise:   map[ReadvertiseDestination]bool{}, // cannot use mapset because ReadvertiseDestination is not 'comparable'
 		cmd:           make(chan func()),
 		rx:            make(chan fwRxPkt),
 	}

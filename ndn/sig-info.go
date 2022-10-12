@@ -8,6 +8,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"github.com/zyedidia/generic/mapset"
 )
 
 // KeyLocator represents KeyLocator in SignatureInfo.
@@ -125,7 +126,7 @@ func (si *SigInfo) UnmarshalBinary(wire []byte) (e error) {
 				return e
 			}
 		default:
-			if sigInfoExtensionTypes[de.Type] {
+			if sigInfoExtensionTypes.Has(de.Type) {
 				si.Extensions = append(si.Extensions, de.Element)
 			} else if de.IsCriticalType() {
 				return tlv.ErrCritical
@@ -169,9 +170,9 @@ func (sim sigInfoFielder) Field() tlv.Field {
 	return tlv.TLVFrom(sim.typ, fields...)
 }
 
-var sigInfoExtensionTypes = map[uint32]bool{}
+var sigInfoExtensionTypes = mapset.New[uint32]()
 
 // RegisterSigInfoExtension registers an extension TLV-TYPE in SigInfo.
 func RegisterSigInfoExtension(typ uint32) {
-	sigInfoExtensionTypes[typ] = true
+	sigInfoExtensionTypes.Put(typ)
 }

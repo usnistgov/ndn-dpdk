@@ -6,6 +6,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/disk"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
+	"github.com/zyedidia/generic/mapset"
 )
 
 func TestAlloc(t *testing.T) {
@@ -18,14 +19,14 @@ func TestAlloc(t *testing.T) {
 	assert.EqualValues(min, aMin)
 	assert.EqualValues(max, aMax)
 
-	slots := map[uint64]bool{}
+	slots := mapset.New[uint64]()
 	expectAlloc := func(msgAndArgs ...any) uint64 {
 		slot, e := a.Alloc()
 		if assert.NoError(e, msgAndArgs...) {
 			assert.LessOrEqual(min, slot, msgAndArgs...)
 			assert.GreaterOrEqual(max, slot, msgAndArgs...)
-			assert.False(slots[slot], msgAndArgs...)
-			slots[slot] = true
+			assert.False(slots.Has(slot), msgAndArgs...)
+			slots.Put(slot)
 		}
 		return slot
 	}
@@ -33,19 +34,19 @@ func TestAlloc(t *testing.T) {
 	for i := 0; i < 500; i++ {
 		expectAlloc(i)
 	}
-	assert.Len(slots, 500)
+	assert.Equal(500, slots.Size())
 
 	_, e := a.Alloc()
 	assert.Error(e)
 
 	a.Free(515)
-	delete(slots, 515)
+	slots.Remove(515)
 	assert.EqualValues(515, expectAlloc(515))
 
 	a.Free(516)
-	delete(slots, 516)
+	slots.Remove(516)
 	a.Free(517)
-	delete(slots, 517)
+	slots.Remove(517)
 	expectAlloc()
 	expectAlloc()
 

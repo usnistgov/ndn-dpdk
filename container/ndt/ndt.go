@@ -7,6 +7,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/zyedidia/generic/mapset"
 )
 
 // Entry contains information from an NDT entry.
@@ -20,7 +21,7 @@ type Entry struct {
 type Ndt struct {
 	cfg      Config
 	replicas map[eal.NumaSocket]*replica
-	queriers map[*Querier]bool
+	queriers mapset.Set[*Querier]
 }
 
 // Config returns effective configuration.
@@ -44,10 +45,10 @@ func (ndt *Ndt) getReplica(socket eal.NumaSocket) *replica {
 
 // Close releases memory of all replicas and threads.
 func (ndt *Ndt) Close() error {
-	for ndq := range ndt.queriers {
+	ndt.queriers.Each(func(ndq *Querier) {
 		ndq.Clear(ndt)
-	}
-	ndt.queriers = nil
+	})
+	ndt.queriers = mapset.New[*Querier]() // TODO .Clear()
 	for _, ndtr := range ndt.replicas {
 		eal.Free(ndtr)
 	}
@@ -78,9 +79,9 @@ func (ndt *Ndt) IndexOfName(name ndn.Name) uint64 {
 // Get returns one entry.
 func (ndt *Ndt) Get(index uint64) (entry Entry) {
 	entry = ndt.firstReplica().Read(index)
-	for ndq := range ndt.queriers {
+	ndt.queriers.Each(func(ndq *Querier) {
 		entry.Hits += ndq.hitCounters(ndt.cfg.Capacity)[index]
-	}
+	})
 	return entry
 }
 
@@ -92,11 +93,11 @@ func (ndt *Ndt) List() (list []Entry) {
 		list[i] = ndtr.Read(i)
 	}
 
-	for ndq := range ndt.queriers {
+	ndt.queriers.Each(func(ndq *Querier) {
 		for index, hit := range ndq.hitCounters(ndt.cfg.Capacity) {
 			list[index].Hits += hit
 		}
-	}
+	})
 	return list
 }
 
@@ -127,7 +128,7 @@ func New(cfg Config, sockets []eal.NumaSocket) (ndt *Ndt) {
 	ndt = &Ndt{
 		cfg:      cfg,
 		replicas: map[eal.NumaSocket]*replica{},
-		queriers: map[*Querier]bool{},
+		queriers: mapset.New[*Querier](),
 	}
 
 	if len(sockets) == 0 {

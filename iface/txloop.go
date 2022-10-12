@@ -132,7 +132,7 @@ var (
 	// Return nil to use default algorithm.
 	ChooseTxLoop = func(face Face) TxLoop { return nil }
 
-	txLoopThreads = map[TxLoop]bool{}
+	txLoopThreads = map[TxLoop]bool{} // cannot use mapset because TxLoop is not 'comparable'
 	mapFaceTxl    = map[ID]TxLoop{}
 	txLoopLock    sync.Mutex
 )
@@ -142,7 +142,7 @@ func ListTxLoops() (list []TxLoop) {
 	txLoopLock.Lock()
 	defer txLoopLock.Unlock()
 
-	for txl := range txLoopThreads {
+	for txl := range txLoopThreads { // cannot use maps.Keys because TxLoop is not 'comparable'
 		list = append(list, txl)
 	}
 	return list

@@ -189,7 +189,7 @@ func TestServer(t *testing.T) {
 
 				dirEntries, e := os.ReadDir(tt.Dirname)
 				require.NoError(e)
-				dirEntryNames := map[string]bool{}
+				dirEntryNames := map[string]bool{} // filename=>isDir
 				for _, dirEntry := range dirEntries {
 					filename, mode := dirEntry.Name(), dirEntry.Type()
 					if mode&os.ModeSymlink != 0 {

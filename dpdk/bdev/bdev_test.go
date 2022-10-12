@@ -11,6 +11,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
+	"github.com/zyedidia/generic/mapset"
 	"go4.org/must"
 )
 
@@ -27,12 +28,14 @@ func checkSize(t testing.TB, device bdev.Device) {
 type bdevRWTest struct {
 	headroom    mbuftestenv.Headroom
 	blockOffset int64
+	nBlocks     int
 	segs        [][]byte
 
 	sp bdev.StoredPacket
 }
 
-func (rwt *bdevRWTest) assignSegs(expectedBlocks int, lengths ...int) {
+func (rwt *bdevRWTest) assignSegs(nBlocks int, lengths ...int) {
+	rwt.nBlocks = nBlocks
 	rwt.segs = make([][]byte, len(lengths))
 	size := 0
 	for i, length := range lengths {
@@ -42,7 +45,7 @@ func (rwt *bdevRWTest) assignSegs(expectedBlocks int, lengths ...int) {
 		rwt.segs[i] = seg
 	}
 
-	if !(bdev.RequiredBlockSize*(expectedBlocks-1) < size && size <= bdev.RequiredBlockSize*expectedBlocks) {
+	if !(bdev.RequiredBlockSize*(nBlocks-1) < size && size <= bdev.RequiredBlockSize*nBlocks) {
 		panic("wrong number of blocks")
 	}
 }
@@ -80,20 +83,18 @@ func makeRW4(device bdev.Device) (rwt0, rwt1, rwt2, rwt3 bdevRWTest) {
 	rwt3.assignSegs(2, 768)
 
 	nBlocks := device.DevInfo().CountBlocks()
-	for len(map[int64]bool{
-		rwt0.blockOffset + 0: true,
-		rwt0.blockOffset + 1: true,
-		rwt1.blockOffset + 0: true,
-		rwt1.blockOffset + 1: true,
-		rwt1.blockOffset + 2: true,
-		rwt2.blockOffset + 0: true,
-		rwt3.blockOffset + 0: true,
-		rwt3.blockOffset + 1: true,
-	}) != 8 {
-		rwt0.blockOffset = rand.Int63n(nBlocks)
-		rwt1.blockOffset = rand.Int63n(nBlocks)
-		rwt2.blockOffset = rand.Int63n(nBlocks)
-		rwt3.blockOffset = rand.Int63n(nBlocks)
+	for {
+		blockSet, totalBlocks := mapset.New[int64](), 0
+		for _, rwt := range []*bdevRWTest{&rwt0, &rwt1, &rwt2, &rwt3} {
+			rwt.blockOffset = rand.Int63n(nBlocks - int64(rwt.nBlocks) + 1)
+			for i := 0; i < rwt.nBlocks; i++ {
+				blockSet.Put(rwt.blockOffset + int64(i))
+				totalBlocks++
+			}
+		}
+		if blockSet.Size() == totalBlocks {
+			break
+		}
 	}
 	return
 }

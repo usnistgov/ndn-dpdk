@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/zyedidia/generic/mapset"
 )
 
 type lookupTestEntry struct {
@@ -93,8 +94,8 @@ func TestNdt(t *testing.T) {
 	defer table.Close()
 
 	var names []ndn.Name
-	var nameIndices map[uint64]bool
-	for len(nameIndices) != 7 {
+	var nameIndices mapset.Set[uint64]
+	for nameIndices.Size() != 7 {
 		suffix := "_" + strconv.FormatUint(rand.Uint64(), 16)
 		names = []ndn.Name{
 			ndn.ParseName("/"),
@@ -106,9 +107,9 @@ func TestNdt(t *testing.T) {
 			ndn.ParseName("/B" + suffix + "/2=C"),
 			ndn.ParseName("/B" + suffix + "/C"),
 		}
-		nameIndices = map[uint64]bool{}
+		nameIndices = mapset.New[uint64]()
 		for _, name := range names {
-			nameIndices[table.IndexOfName(name)] = true
+			nameIndices.Put(table.IndexOfName(name))
 		}
 	}
 
@@ -172,7 +173,7 @@ func TestNdt(t *testing.T) {
 	verifyCnt := func(list []ndt.Entry) {
 		require.Len(list, 256)
 		for i, entry := range list {
-			if nameIndices[uint64(i)] {
+			if nameIndices.Has(uint64(i)) {
 				assert.NotZero(entry.Hits, i)
 			} else {
 				assert.Zero(entry.Hits, i)

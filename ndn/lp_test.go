@@ -10,6 +10,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	"github.com/zyedidia/generic/mapset"
 )
 
 func TestLpFragmenter(t *testing.T) {
@@ -39,9 +40,9 @@ func TestLpReassembler(t *testing.T) {
 
 	fragmenter := ndn.NewLpFragmenter(999)
 	frames := [][]byte{}
-	packetSet := map[int]bool{}
+	packetSet := mapset.New[int]()
 	for i := 1000; i < 8000; i += 100 {
-		packetSet[i] = true
+		packetSet.Put(i)
 		data := ndn.MakeData(fmt.Sprint("/D/", i), bytes.Repeat([]byte{0xCC}, i))
 		pkt := data.ToPacket()
 		pkt.Lp.PitToken = []byte(strconv.Itoa(i))
@@ -67,9 +68,9 @@ func TestLpReassembler(t *testing.T) {
 			i := len(pkt.Data.Content)
 			pitTokenNum, _ := strconv.Atoi(string(pkt.Lp.PitToken))
 			assert.Equal(i, pitTokenNum)
-			assert.True(packetSet[i])
-			delete(packetSet, i)
+			assert.True(packetSet.Has(i))
+			packetSet.Remove(i)
 		}
 	}
-	assert.Len(packetSet, 0)
+	assert.Equal(0, packetSet.Size())
 }

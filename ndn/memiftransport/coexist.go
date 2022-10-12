@@ -1,10 +1,14 @@
 package memiftransport
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/zyedidia/generic/mapset"
+)
 
 type coexistEntry struct {
 	Role Role
-	IDs  map[int]bool
+	IDs  mapset.Set[int]
 }
 
 // CoexistMap determines whether two memif transports can coexist.
@@ -27,7 +31,7 @@ func (c CoexistMap) Check(loc Locator) error {
 	if entry.Role != loc.Role {
 		return errors.New("duplicate SocketName with different role")
 	}
-	if entry.IDs[loc.ID] {
+	if entry.IDs.Has(loc.ID) {
 		return errors.New("duplicate SocketName+ID")
 	}
 	return nil
@@ -39,18 +43,18 @@ func (c *CoexistMap) Add(loc Locator) {
 	if entry == nil {
 		entry = &coexistEntry{
 			Role: loc.Role,
-			IDs:  map[int]bool{},
+			IDs:  mapset.New[int](),
 		}
 		c.m[loc.SocketName] = entry
 	}
-	entry.IDs[loc.ID] = true
+	entry.IDs.Put(loc.ID)
 }
 
 // Remove deletes a transport.
 func (c *CoexistMap) Remove(loc Locator) {
 	entry := c.m[loc.SocketName]
-	delete(entry.IDs, loc.ID)
-	if len(entry.IDs) == 0 {
+	entry.IDs.Remove(loc.ID)
+	if entry.IDs.Size() == 0 {
 		delete(c.m, loc.SocketName)
 	}
 }
