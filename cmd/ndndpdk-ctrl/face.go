@@ -7,18 +7,21 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
-	"golang.org/x/exp/slices"
 )
 
 const gqlFaceCounters = "rxFrames rxInterests rxData rxNacks txFrames txInterests txData txNacks"
 
-const gqlCreateFace = `
-	mutation createFace($locator: JSON!) {
-		createFace(locator: $locator) {
-			id
+func createFace(c *cli.Context, loc any) error {
+	return clientDoPrint(c.Context, `
+		mutation createFace($locator: JSON!) {
+			createFace(locator: $locator) {
+				id
+			}
 		}
-	}
-`
+	`, map[string]any{
+		"locator": loc,
+	}, "createFace")
+}
 
 func init() {
 	var withCounters bool
@@ -97,9 +100,7 @@ func init() {
 		SchemaName: "locator",
 		ParamNoun:  "locator",
 		Action: func(c *cli.Context, arg map[string]any) error {
-			return clientDoPrint(c.Context, gqlCreateFace, map[string]any{
-				"locator": arg,
-			}, "createFace")
+			return createFace(c, arg)
 		},
 	})
 }
@@ -123,153 +124,142 @@ func init() {
 	}
 	loc.Remote.HardwareAddr = packettransport.MulticastAddressNDN
 
-	ethFlags := []cli.Flag{
-		&cli.StringFlag{
-			Name:        "port",
-			Usage:       "DPDK `port` name",
-			DefaultText: "search by local MAC address",
-			Destination: &loc.Port,
-		},
-		&cli.IntFlag{
-			Name:        "mtu",
-			Usage:       "face `MTU` (excluding all headers)",
-			DefaultText: "maximum",
-			Destination: &loc.MTU,
-		},
-		&cli.IntFlag{
-			Name:        "rx-queues",
-			Usage:       "number of RX queues",
-			DefaultText: "1",
-			Destination: &loc.NRxQueues,
-		},
-		&cli.GenericFlag{
-			Name:     "local",
-			Usage:    "local MAC `address`",
-			Value:    &loc.Local,
-			Required: true,
-		},
-		&cli.GenericFlag{
-			Name:  "remote",
-			Usage: "remote MAC `address`",
-			Value: &loc.Remote,
-		},
-		&cli.IntFlag{
-			Name:        "vlan",
-			Usage:       "`VLAN` identifier",
-			DefaultText: "no VLAN",
-			Destination: &loc.VLAN,
-		},
+	define := func(name, usage, scheme string, remoteRequired bool, addlFlags ...cli.Flag) {
+		defineCommand(&cli.Command{
+			Category: "face",
+			Name:     name,
+			Usage:    usage,
+			Flags: append([]cli.Flag{
+				&cli.StringFlag{
+					Name:        "port",
+					Usage:       "DPDK `port` name",
+					DefaultText: "search by local MAC address",
+					Destination: &loc.Port,
+				},
+				&cli.IntFlag{
+					Name:        "mtu",
+					Usage:       "face `MTU` (excluding all headers)",
+					DefaultText: "maximum",
+					Destination: &loc.MTU,
+				},
+				&cli.IntFlag{
+					Name:        "rx-queues",
+					Usage:       "number of RX queues",
+					DefaultText: "1",
+					Destination: &loc.NRxQueues,
+				},
+				&cli.GenericFlag{
+					Name:     "local",
+					Usage:    "local MAC `address`",
+					Value:    &loc.Local,
+					Required: true,
+				},
+				&cli.GenericFlag{
+					Name:     "remote",
+					Usage:    "remote MAC `address`",
+					Value:    &loc.Remote,
+					Required: remoteRequired,
+				},
+				&cli.IntFlag{
+					Name:        "vlan",
+					Usage:       "`VLAN` identifier",
+					DefaultText: "no VLAN",
+					Destination: &loc.VLAN,
+				},
+			}, addlFlags...),
+			Action: func(c *cli.Context) error {
+				loc.Scheme = scheme
+				return createFace(c, loc)
+			},
+		})
 	}
 
-	makeAction := func(scheme string) cli.ActionFunc {
-		return func(c *cli.Context) error {
-			loc.Scheme = scheme
-			return clientDoPrint(c.Context, gqlCreateFace, map[string]any{
-				"locator": loc,
-			}, "createFace")
+	define("create-ether-face", "Create an Ethernet face", "ether", false)
+
+	resolveUDPFlag := func(s string) (*netip.Addr, *int, error) {
+		addr, e := net.ResolveUDPAddr("udp", s)
+		if e != nil {
+			return nil, nil, e
 		}
+		ip := addr.AddrPort().Addr()
+		return &ip, &addr.Port, nil
 	}
-
-	defineCommand(&cli.Command{
-		Category: "face",
-		Name:     "create-ether-face",
-		Usage:    "Create an Ethernet face",
-		Flags:    ethFlags,
-		Action:   makeAction("ether"),
-	})
-
-	defineCommand(&cli.Command{
-		Category: "face",
-		Name:     "create-udp-face",
-		Usage:    "Create a UDP face (using EthDev)",
-		Flags: append(slices.Clone(ethFlags),
-			&cli.StringFlag{
-				Name:     "udp-local",
-				Usage:    "local UDP `host:port`",
-				Required: true,
+	define("create-udp-face", "Create a UDP face (using EthDev)", "udpe", true,
+		&cli.StringFlag{
+			Name:     "udp-local",
+			Usage:    "local UDP `host:port`",
+			Required: true,
+			Action: func(c *cli.Context, s string) (e error) {
+				loc.LocalIP, loc.LocalUDP, e = resolveUDPFlag(s)
+				return
 			},
-			&cli.StringFlag{
-				Name:     "udp-remote",
-				Usage:    "remote UDP `host:port`",
-				Required: true,
-			},
-		),
-		Before: func(c *cli.Context) error {
-			local, e := net.ResolveUDPAddr("udp", c.String("udp-local"))
-			if e != nil {
-				return e
-			}
-			localIP := local.AddrPort().Addr()
-			loc.LocalIP, loc.LocalUDP = &localIP, &local.Port
-
-			remote, e := net.ResolveUDPAddr("udp", c.String("udp-remote"))
-			if e != nil {
-				return e
-			}
-			remoteIP := remote.AddrPort().Addr()
-			loc.RemoteIP, loc.RemoteUDP = &remoteIP, &remote.Port
-
-			return nil
 		},
-		Action: makeAction("udpe"),
-	})
+		&cli.StringFlag{
+			Name:     "udp-remote",
+			Usage:    "remote UDP `host:port`",
+			Required: true,
+			Action: func(c *cli.Context, s string) (e error) {
+				loc.RemoteIP, loc.RemoteUDP, e = resolveUDPFlag(s)
+				return
+			},
+		},
+	)
 
+	resolveIPFlag := func(s string) (*netip.Addr, error) {
+		addr, e := net.ResolveIPAddr("ip", s)
+		if e != nil {
+			return nil, e
+		}
+		ip, _ := netip.AddrFromSlice(addr.IP)
+		return &ip, nil
+	}
 	var innerLocal, innerRemote macaddr.Flag
-	defineCommand(&cli.Command{
-		Category: "face",
-		Name:     "create-vxlan-face",
-		Usage:    "Create a VXLAN face",
-		Flags: append(slices.Clone(ethFlags),
-			&cli.StringFlag{
-				Name:     "ip-local",
-				Usage:    "local IP `host`",
-				Required: true,
+	define("create-vxlan-face", "Create a VXLAN face", "vxlan", true,
+		&cli.StringFlag{
+			Name:     "ip-local",
+			Usage:    "local IP `host`",
+			Required: true,
+			Action: func(c *cli.Context, s string) (e error) {
+				loc.LocalIP, e = resolveIPFlag(s)
+				return
 			},
-			&cli.StringFlag{
-				Name:     "ip-remote",
-				Usage:    "remote IP `host`",
-				Required: true,
-			},
-			&cli.IntFlag{
-				Name:        "vxlan",
-				Usage:       "`VXLAN` virtual network identifier",
-				Destination: &loc.VXLAN,
-				Required:    true,
-			},
-			&cli.GenericFlag{
-				Name:     "inner-local",
-				Usage:    "VXLAN inner local MAC `address`",
-				Value:    &innerLocal,
-				Required: true,
-			},
-			&cli.GenericFlag{
-				Name:     "inner-remote",
-				Usage:    "VXLAN inner remote MAC `address`",
-				Value:    &innerRemote,
-				Required: true,
-			},
-		),
-		Before: func(c *cli.Context) error {
-			local, e := net.ResolveIPAddr("ip", c.String("ip-local"))
-			if e != nil {
-				return e
-			}
-			localIP, _ := netip.AddrFromSlice(local.IP)
-			loc.LocalIP = &localIP
-
-			remote, e := net.ResolveIPAddr("ip", c.String("ip-remote"))
-			if e != nil {
-				return e
-			}
-			remoteIP, _ := netip.AddrFromSlice(remote.IP)
-			loc.RemoteIP = &remoteIP
-
-			loc.InnerLocal = &innerLocal
-			loc.InnerRemote = &innerRemote
-			return nil
 		},
-		Action: makeAction("vxlan"),
-	})
+		&cli.StringFlag{
+			Name:     "ip-remote",
+			Usage:    "remote IP `host`",
+			Required: true,
+			Action: func(c *cli.Context, s string) (e error) {
+				loc.RemoteIP, e = resolveIPFlag(s)
+				return
+			},
+		},
+		&cli.IntFlag{
+			Name:        "vxlan",
+			Usage:       "`VXLAN` virtual network identifier",
+			Destination: &loc.VXLAN,
+			Required:    true,
+		},
+		&cli.GenericFlag{
+			Name:     "inner-local",
+			Usage:    "VXLAN inner local MAC `address`",
+			Value:    &innerLocal,
+			Required: true,
+			Action: func(c *cli.Context, value any) error {
+				loc.InnerLocal = &innerLocal
+				return nil
+			},
+		},
+		&cli.GenericFlag{
+			Name:     "inner-remote",
+			Usage:    "VXLAN inner remote MAC `address`",
+			Value:    &innerRemote,
+			Required: true,
+			Action: func(c *cli.Context, value any) error {
+				loc.InnerRemote = &innerRemote
+				return nil
+			},
+		},
+	)
 }
 
 func init() {

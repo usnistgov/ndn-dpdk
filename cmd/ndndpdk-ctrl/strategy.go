@@ -44,9 +44,7 @@ func init() {
 
 func init() {
 	var name string
-	var elffile string
 	var elf []byte
-
 	defineCommand(&cli.Command{
 		Category: "strategy",
 		Name:     "load-strategy",
@@ -58,21 +56,20 @@ func init() {
 				Destination: &name,
 			},
 			&cli.StringFlag{
-				Name:        "elffile",
-				Usage:       "ELF program `file`",
-				Destination: &elffile,
-				Required:    true,
+				Name:     "elffile",
+				Usage:    "ELF program `file`",
+				Required: true,
+				Action: func(c *cli.Context, filename string) (e error) {
+					elf, e = os.ReadFile(filename)
+					if e != nil {
+						return e
+					}
+					if name == "" {
+						name = path.Base(filename)
+					}
+					return nil
+				},
 			},
-		},
-		Before: func(*cli.Context) (e error) {
-			elf, e = os.ReadFile(elffile)
-			if e != nil {
-				return e
-			}
-			if name == "" {
-				name = path.Base(elffile)
-			}
-			return nil
 		},
 		Action: func(c *cli.Context) error {
 			return clientDoPrint(c.Context, `
