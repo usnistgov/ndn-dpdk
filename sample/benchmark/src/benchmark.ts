@@ -16,6 +16,11 @@ export interface ServerEnv {
   G_CORES_SECONDARY: number[];
 }
 
+function splitPortVlan(s: string): [pciAddr: string, vlan: number | undefined] {
+  const [pciAddr, vlan] = s.split("+");
+  return [pciAddr, vlan === undefined ? undefined : Number.parseInt(vlan, 10)];
+}
+
 export interface BenchmarkOptions {
   faceScheme: "ether" | "vxlan";
   faceRxQueues: number;
@@ -97,12 +102,14 @@ export class Benchmark {
 
     const seenNdtIndices = new Set<number>();
     for (const [i, [label]] of DIRECTIONS.entries()) {
-      const port = await this.cF.createEthPort(this.env.F_PORTS[i]!);
+      const [pciAddr, vlan] = splitPortVlan(this.env.F_PORTS[i]!);
+      const port = await this.cF.createEthPort(pciAddr);
       const face = await this.cF.createFace({
         port,
         nRxQueues: faceRxQueues,
         local: macAddr("F", label),
         remote: macAddr("G", label),
+        vlan,
         ...(faceScheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
       });
       this.state.face[label] = face;
@@ -142,12 +149,14 @@ export class Benchmark {
     await this.cG.activate("trafficgen", arg);
 
     for (const [i, [label]] of DIRECTIONS.entries()) {
-      const port = await this.cG.createEthPort(this.env.G_PORTS[i]!);
+      const [pciAddr, vlan] = splitPortVlan(this.env.G_PORTS[i]!);
+      const port = await this.cG.createEthPort(pciAddr);
       const locator: FaceLocator = {
         port,
         nRxQueues: faceRxQueues,
         local: macAddr("G", label),
         remote: macAddr("F", label),
+        vlan,
         ...(faceScheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
       };
       const producer: TgpConfig = {
@@ -238,7 +247,7 @@ const vxlanLocatorFields: Omit<VxlanLocator, Exclude<keyof EtherLocator, "scheme
   scheme: "vxlan",
   localIP: "192.168.118.0",
   remoteIP: "192.168.118.0",
-  vxlan: 2,
+  vxlan: 0,
   innerLocal: "02:00:00:ff:ff:ff",
   innerRemote: "02:00:00:ff:ff:ff",
 };

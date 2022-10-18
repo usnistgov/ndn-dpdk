@@ -15,21 +15,21 @@ import devMiddleware from "webpack-dev-middleware";
 
 const { makeEnv, parsers, EnvironmentVariableError } = Environment;
 
-/** @type {Environment.Parser} */
-const parsePorts = (() => {
-const parseArray = parsers.array({ parser: parsers.regex(/^[\da-f]{2}:[\da-f]{2}\.[\da-f]$/i) });
-return (s) => {
-  const a = parseArray(s);
-  if (a.length !== 2) {
-    throw new EnvironmentVariableError("expect exactly two Ethernet adapters");
-  }
-  return a;
-};
-})();
+/** @returns {Environment.Parser<readonly string[]>} */
+function parsePorts() {
+  const parseArray = parsers.array({ parser: parsers.regex(/^[\da-f]{2}:[\da-f]{2}\.[\da-f](?:\+\d+)?$/i) });
+  return (s) => {
+    const a = parseArray(s);
+    if (a.length !== 2) {
+      throw new EnvironmentVariableError("expect exactly two Ethernet adapters");
+    }
+    return a;
+  };
+}
 
 /**
  * @param {number} min
- * @returns {Environment.Parser}
+ * @returns {Environment.Parser<readonly number[]>}
  */
 function parseCores(min) {
   const parseArray = parsers.array({ parser: parsers.nonNegativeInteger });
@@ -41,14 +41,15 @@ function parseCores(min) {
     return a;
   };
 }
+
 const env = makeEnv({
   F_GQLSERVER: { envVarName: "F_GQLSERVER", parser: parsers.url, required: true },
-  F_PORTS: { envVarName: "F_PORTS", parser: parsePorts, required: true },
+  F_PORTS: { envVarName: "F_PORTS", parser: parsePorts(), required: true },
   F_NUMA_PRIMARY: { envVarName: "F_NUMA_PRIMARY", parser: parsers.nonNegativeInteger, required: true },
   F_CORES_PRIMARY: { envVarName: "F_CORES_PRIMARY", parser: parseCores(5), required: true },
   F_CORES_SECONDARY: { envVarName: "F_CORES_SECONDARY", parser: parseCores(2), required: true },
   G_GQLSERVER: { envVarName: "G_GQLSERVER", parser: parsers.url, required: true },
-  G_PORTS: { envVarName: "G_PORTS", parser: parsePorts, required: true },
+  G_PORTS: { envVarName: "G_PORTS", parser: parsePorts(), required: true },
   G_NUMA_PRIMARY: { envVarName: "G_NUMA_PRIMARY", parser: parsers.nonNegativeInteger, required: true },
   G_CORES_PRIMARY: { envVarName: "G_CORES_PRIMARY", parser: parseCores(8), required: true },
   G_CORES_SECONDARY: { envVarName: "G_CORES_SECONDARY", parser: parseCores(1), required: true },

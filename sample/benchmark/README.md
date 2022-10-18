@@ -13,6 +13,8 @@ This is a web application that performs simple benchmark of NDN-DPDK forwarder.
   * The link must support MTU 9000.
 * At least 8 CPU cores on the same NUMA socket as the Ethernet adapters.
 * At least 2 CPU cores on any NUMA socket.
+* At least 12 GB hugepages.
+  More hugepages may be needed to enable more forwarding threads.
 
 ### NDN-DPDK Setup
 

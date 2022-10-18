@@ -14,7 +14,7 @@ class GqlControlBase {
 
   public async restart(): Promise<void> {
     await this.c.request(gql`mutation { shutdown(restart: true) }`);
-    await delay(5000);
+    await delay(20000);
     for (let i = 0; i < 30; ++i) {
       try {
         await delay(1000);
