@@ -9,7 +9,7 @@
   "type": "module",
   "main": "build/js/mod.js",
   "types": "js/mod.ts",
-  "packageManager": "pnpm@7.13.4",
+  "packageManager": "pnpm@7.14.0",
   "dependencies": {
     "graphql": "^16.6.0",
     "graphql-request": "^5.0.0",
@@ -17,7 +17,7 @@
     "it-pushable": "^3.1.0",
     "throat": "^6.0.1",
     "tslib": "^2.4.0",
-    "ws": "^8.9.0"
+    "ws": "^8.10.0"
   },
   "devDependencies": {
     "@types/ws": "^8.5.3",

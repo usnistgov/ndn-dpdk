@@ -94,7 +94,7 @@ func TestNdt(t *testing.T) {
 	defer table.Close()
 
 	var names []ndn.Name
-	var nameIndices mapset.Set[uint64]
+	nameIndices := mapset.New[uint64]()
 	for nameIndices.Size() != 7 {
 		suffix := "_" + strconv.FormatUint(rand.Uint64(), 16)
 		names = []ndn.Name{
@@ -107,7 +107,7 @@ func TestNdt(t *testing.T) {
 			ndn.ParseName("/B" + suffix + "/2=C"),
 			ndn.ParseName("/B" + suffix + "/C"),
 		}
-		nameIndices = mapset.New[uint64]()
+		nameIndices.Clear()
 		for _, name := range names {
 			nameIndices.Put(table.IndexOfName(name))
 		}

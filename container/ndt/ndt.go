@@ -14,7 +14,7 @@ import (
 type Entry struct {
 	Index uint64 `json:"index" gqldesc:"Entry index."`
 	Value uint8  `json:"value" gqldesc:"Entry value, i.e. forwarding thread index."`
-	Hits  uint32 `json:"hits" gqldesc:"Hit counter value, wrapping at uint32 limit."`
+	Hits  uint32 `json:"hits" gqldesc:"Hit counter value, uint32 wraparound."`
 }
 
 // Ndt represents a Name Dispatch Table (NDT).
@@ -48,7 +48,8 @@ func (ndt *Ndt) Close() error {
 	ndt.queriers.Each(func(ndq *Querier) {
 		ndq.Clear(ndt)
 	})
-	ndt.queriers = mapset.New[*Querier]() // TODO .Clear()
+	ndt.queriers.Clear()
+
 	for _, ndtr := range ndt.replicas {
 		eal.Free(ndtr)
 	}
