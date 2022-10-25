@@ -117,8 +117,8 @@ func (f *face) Tx() chan<- ndn.L3Packet {
 }
 
 func (f *face) rxLoop() {
+	buf := make([]byte, f.mtu)
 	for {
-		buf := make([]byte, f.mtu)
 		n, e := f.faceTr.Read(buf)
 		if e != nil {
 			break
@@ -140,6 +140,8 @@ func (f *face) rxLoop() {
 				f.rx <- full
 			}
 		}
+
+		buf = make([]byte, f.mtu)
 	}
 	close(f.rx)
 }
