@@ -1,14 +1,14 @@
 package keychain_test
 
 import (
+	"crypto/rand"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/keychain"
 )
 
-func testSafeBag(t testing.TB, sigType int, certName ndn.Name, wire, passphrase []byte) {
+func testImportSafeBag(t testing.TB, certName ndn.Name, wire, passphrase []byte) {
 	assert, _ := makeAR(t)
 
 	_, _, e := keychain.ImportSafeBag(wire, []byte{0x01})
@@ -21,8 +21,28 @@ func testSafeBag(t testing.TB, sigType int, certName ndn.Name, wire, passphrase 
 	nameEqual(assert, certName, cert.Name())
 }
 
+func testExportSafeBag(t testing.TB, newKeyPair func(name ndn.Name) (keychain.PrivateKey, keychain.PublicKey, error)) {
+	assert, _ := makeAR(t)
+
+	name := ndn.ParseName("/identity")
+	pvt, pub, e := newKeyPair(name)
+	assert.NoError(e)
+
+	cert, e := keychain.MakeCert(pub, pvt, keychain.MakeCertOptions{
+		IssuerID: keychain.ComponentSelfIssuer,
+	})
+	assert.NoError(e)
+
+	passphrase := make([]byte, 16)
+	rand.Read(passphrase)
+	wire, e := keychain.ExportSafeBag(pvt, cert, passphrase)
+	assert.NoError(e)
+
+	testImportSafeBag(t, cert.Name(), wire, passphrase)
+}
+
 func TestSafeBagECDSA(t *testing.T) {
-	testSafeBag(t, an.SigSha256WithEcdsa,
+	testImportSafeBag(t,
 		ndn.ParseName("/8=E/8=KEY/8=Ap%11%F9%1C%28%DA%DF/8=self/35=%00%00%01z%BA%9B%3C6"),
 		bytesFromHex(`
 			80FD020F06FD011A072208014508034B45590808417011F91C28DADF0804
@@ -44,12 +64,13 @@ func TestSafeBagECDSA(t *testing.T) {
 			A53A351D58F48266BBFF3024D6FFBD54410DB2511FC718AAEE6167ED5D25
 			DE8F0F89C56005138871A8FD2A9B0B8576FDE5BCAA`),
 		[]byte("tS5VVFQES"),
-	)
-	// test vector created with ndn-cxx 0.7.1-39-g74cb28f6
+	) // test vector created with ndn-cxx 0.7.1-39-g74cb28f6
+
+	testExportSafeBag(t, keychain.NewECDSAKeyPair)
 }
 
 func TestSafeBagRSA(t *testing.T) {
-	testSafeBag(t, an.SigSha256WithRsa,
+	testImportSafeBag(t,
 		ndn.ParseName("/8=R/8=KEY/8=%84%C5%FF%F6d%DBm%CF/8=self/35=%00%00%01z%BA%96%8E%3A"),
 		bytesFromHex(`
 			80FD07DB06FD02A2072208015208034B4559080884C5FFF664DB6DCF0804
@@ -121,6 +142,11 @@ func TestSafeBagRSA(t *testing.T) {
 			9F5BAA8BBE331C0566A5D44FD917BFEB5987B0EA618500C32007E3DDBE26
 			E23AF32FDC`),
 		[]byte("dyJSpodm"),
-	)
-	// test vector created with ndn-cxx 0.7.1-39-g74cb28f6
+	) // test vector created with ndn-cxx 0.7.1-39-g74cb28f6
+
+	testExportSafeBag(t, keychain.NewRSAKeyPair)
+}
+
+func TestSafeBagEd25519(t *testing.T) {
+	testExportSafeBag(t, keychain.NewEd25519KeyPair)
 }

@@ -2,6 +2,7 @@ package keychain
 
 import (
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"errors"
 
@@ -10,6 +11,23 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/youmark/pkcs8"
 )
+
+// ExportSafeBag exports a private key to ndn-cxx exported credentials.
+// https://named-data.net/doc/ndn-cxx/0.8.0/specs/safe-bag.html
+func ExportSafeBag(pvt PrivateKey, cert *Certificate, passphrase []byte) (wire []byte, e error) {
+	p, ok := pvt.(*privateKey)
+	if !ok {
+		return nil, errors.New("unsupported private key type")
+	}
+	encryptedKey, e := pkcs8.MarshalPrivateKey(p.key, passphrase, nil)
+	if e != nil {
+		return nil, e
+	}
+	return tlv.Encode(tlv.TLVFrom(an.TtSafeBag,
+		cert.Data(),
+		tlv.TLVBytes(an.TtSafeBagEncryptedKey, encryptedKey),
+	))
+}
 
 // ImportSafeBag imports a private key from ndn-cxx exported credentials.
 // https://named-data.net/doc/ndn-cxx/0.8.0/specs/safe-bag.html
@@ -53,6 +71,8 @@ func ImportSafeBag(wire, passphrase []byte) (pvt PrivateKey, cert *Certificate, 
 		pvt, e = NewECDSAPrivateKey(keyName, pvtKey)
 	case *rsa.PrivateKey:
 		pvt, e = NewRSAPrivateKey(keyName, pvtKey)
+	case ed25519.PrivateKey:
+		pvt, e = NewEd25519PrivateKey(keyName, pvtKey)
 	default:
 		e = errors.New("unsupported private key type")
 	}
