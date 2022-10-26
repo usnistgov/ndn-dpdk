@@ -11,6 +11,7 @@ import (
 
 	"github.com/FDio/vpp/extras/gomemif/memif"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"golang.org/x/sys/unix"
 )
 
 var handleCoexist = NewCoexistMap()
@@ -81,10 +82,11 @@ type handle struct {
 	intf       *memif.Interface
 	setState   func(l3.TransportState)
 
-	mutex  sync.RWMutex
-	rxq    *memif.Queue
-	txq    *memif.Queue
-	closed bool
+	mutex         sync.RWMutex
+	rxq           *memif.Queue
+	txq           *memif.Queue
+	lastReadEmpty bool
+	closed        bool
 }
 
 var _ io.ReadWriteCloser = &handle{}
@@ -137,7 +139,17 @@ func (hdl *handle) Read(buf []byte) (n int, e error) {
 	}
 
 	if hdl.rxq != nil {
+		if hdl.lastReadEmpty {
+			if fd, e := hdl.rxq.GetEventFd(); e == nil {
+				unix.Poll([]unix.PollFd{{
+					Fd:     int32(fd),
+					Events: unix.POLLIN,
+				}}, 1)
+			}
+		}
+
 		n, e = hdl.rxq.ReadPacket(buf)
+		hdl.lastReadEmpty = n == 0
 	}
 	return n, e
 }
