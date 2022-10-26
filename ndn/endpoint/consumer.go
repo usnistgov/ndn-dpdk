@@ -41,6 +41,7 @@ func (opts *ConsumerOptions) applyDefaults() {
 // Consume retrieves a single piece of Data.
 func Consume(ctx context.Context, interest ndn.Interest, opts ConsumerOptions) (data *ndn.Data, e error) {
 	opts.applyDefaults()
+	interest.ApplyDefaultLifetime()
 	face, e := NewLFace(opts.Fw)
 	if e != nil {
 		return nil, e
@@ -50,7 +51,7 @@ func Consume(ctx context.Context, interest ndn.Interest, opts ConsumerOptions) (
 	c := &consumer{
 		face:     face,
 		interest: interest,
-		retxIter: opts.Retx.IntervalIterable(interest.ApplyDefaultLifetime()),
+		retxIter: opts.Retx.IntervalIterable(interest.Lifetime),
 	}
 	for !c.retxEnd {
 		data, e = c.once(ctx)

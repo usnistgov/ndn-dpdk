@@ -13,6 +13,7 @@ import (
 	_ "github.com/usnistgov/ndn-dpdk/ndn/rdr/ndn6file"
 	_ "github.com/usnistgov/ndn-dpdk/ndn/segmented"
 	_ "github.com/usnistgov/ndn-dpdk/ndn/tlv"
+	_ "github.com/usnistgov/ndn-dpdk/ndn/wasmtransport"
 )
 
 func main() {

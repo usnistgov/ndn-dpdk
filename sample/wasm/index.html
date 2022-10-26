@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>NDNgo WebAssembly ndnping demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kognise/water.css@latest/dist/light.min.css">
+<form id="app_form">
+  <fieldset>
+    <legend>NDNgo WebAssembly ndnping demo</legend>
+    <label>
+      router
+      <input id="app_router" type="text" value="wss://hobo.cs.arizona.edu/ws/">
+    </label>
+    <label>
+      name prefix
+      <input id="app_prefix" type="text" value="/ndn/edu/arizona/ping">
+    </label>
+    <input id="app_button" type="submit" value="ping" disabled>
+  </fieldset>
+</form>
+<pre id="app_log">Refer to browser developer console for application logs.</pre>
+<script src="wasm_exec.js"></script>
+<script type="module">
+const $form = document.querySelector("#app_form");
+const $button = document.querySelector("#app_button");
+$form.addEventListener("submit", async (evt) => {
+  evt.preventDefault();
+  $button.disabled = true;
+  const go = new Go();
+  const { instance } = await WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject);
+  await go.run(instance);
+  $button.disabled = false;
+});
+$button.disabled = false;
+</script>

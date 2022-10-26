@@ -158,3 +158,4 @@ jobs:
       - name: Build with TinyGo
         run: |
           tinygo build -o /dev/null -target=wasm ./ndn/ndntestenv/tiny
+          make -C sample/wasm
