@@ -112,23 +112,24 @@ FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
 
   FileServerFd* fd = FileServerFd_Open(p, &pi->name, ctx->now);
   if (unlikely(fd == NULL)) {
-    N_LOGD("I drop=no-fd");
+    N_LOGD("Read drop=no-fd");
     goto DROP;
   }
   if (unlikely(fd == FileServer_NotFound)) {
-    N_LOGD("I drop=file-not-found");
+    N_LOGD("Read drop=file-not-found");
     goto DROP;
   }
   if (unlikely(!FileServerFd_IsFile(fd))) {
-    N_LOGD("I drop=mode-not-file");
+    N_LOGD("Read fd=%d drop=mode-not-file", fd->fd);
     goto UNREF;
   }
-  if (unlikely(fd->version != rn.version)) {
-    N_LOGD("I drop=version-changed");
+  if (unlikely(rn.version != fd->version)) {
+    N_LOGD("Read fd=%d drop=version-changed rn-version=%" PRIu64 " fd-version=%" PRIu64, fd->fd,
+           rn.version, fd->version);
     goto UNREF;
   }
   if (unlikely(rn.segment > fd->lastSeg)) {
-    N_LOGD("I fd=%d drop=segment-out-of-range segment=%" PRIu64 " lastseg=%" PRIu64, fd->fd,
+    N_LOGD("Read fd=%d drop=segment-out-of-range rn-segment=%" PRIu64 " lastseg=%" PRIu64, fd->fd,
            rn.segment, fd->lastSeg);
     goto UNREF;
   }
@@ -146,6 +147,7 @@ ADD_IOV:
   return;
 UNREF:
   FileServerFd_Unref(p, fd);
+  NULLize(fd);
 DROP:
   ctx->discard[ctx->discardIndex++] = interest;
 }
@@ -169,18 +171,25 @@ FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     return;
   }
   if (unlikely(!FileServerFd_IsDir(fd))) {
-    N_LOGD("Ls drop=not-dir");
+    N_LOGD("Ls fd=%d drop=mode-not-dir", fd->fd);
     goto UNREF;
   }
-  if (unlikely(fd->version != rn.version)) {
-    N_LOGD("I drop=version-changed");
+  if (unlikely(rn.version != fd->version)) {
+    N_LOGD("Ls fd=%d drop=version-changed rn-version=%" PRIu64 " fd-version=%" PRIu64, fd->fd,
+           rn.version, fd->version);
     goto UNREF;
   }
   if (fd->lsL == UINT32_MAX) {
     bool ok = FileServerFd_GenerateLs(p, fd);
     if (unlikely(!ok)) {
+      N_LOGD("Ls fd=%d drop=ls-error", fd->fd);
       goto UNREF;
     }
+  }
+  if (unlikely(rn.segment > fd->lastSeg)) {
+    N_LOGD("Ls fd=%d drop=segment-out-of-range rn-segment=%" PRIu64 " lastseg=%" PRIu64, fd->fd,
+           rn.segment, fd->lastSeg);
+    goto UNREF;
   }
 
   uint32_t valueOffset = rn.segment * p->segmentLen;
@@ -205,6 +214,7 @@ ENCERR:
   rte_pktmbuf_reset(payload);
 UNREF:
   FileServerFd_Unref(p, fd);
+  NULLize(fd);
 }
 
 __attribute__((nonnull)) static __rte_noinline void
@@ -231,10 +241,12 @@ FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     metaInfo = &MetaInfo_Nack;
   } else if (unlikely((rn.kind & FileServerRequestLs) != 0 && !FileServerFd_IsDir(fd))) {
     FileServerFd_Unref(p, fd);
+    NULLize(fd);
     metaInfo = &MetaInfo_Nack;
   } else {
     bool ok = FileServerFd_EncodeMetadata(p, fd, payload);
     FileServerFd_Unref(p, fd);
+    NULLize(fd);
     if (unlikely(!ok)) {
       goto ENCERR;
     }
@@ -289,7 +301,7 @@ FileServerRx_ProcessInterest(FileServer* p, RxBurstCtx* ctx)
       FileServerRx_Metadata(p, ctx, rn);
       break;
     default:
-      N_LOGD("I drop=bad-name rn.kind=%" PRIx32, (uint32_t)rn.kind);
+      N_LOGD("I drop=bad-name rn-kind=%" PRIx32, (uint32_t)rn.kind);
       ctx->discard[ctx->discardIndex++] = interest;
       break;
   }

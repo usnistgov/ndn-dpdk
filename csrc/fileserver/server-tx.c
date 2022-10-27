@@ -96,6 +96,7 @@ FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx, uint32_t index)
 
 FINISH:
   FileServerFd_Unref(p, fd);
+  NULLize(fd);
 }
 
 uint32_t

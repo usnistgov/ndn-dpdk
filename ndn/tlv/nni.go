@@ -28,7 +28,7 @@ func (n NNI) Size() int {
 	}
 }
 
-// Encode encodes this number.
+// Encode encodes this number, appending to buffer.
 func (n NNI) Encode(b []byte) []byte {
 	switch {
 	case n <= math.MaxUint8:

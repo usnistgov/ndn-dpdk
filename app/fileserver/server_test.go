@@ -70,7 +70,18 @@ func (FileServerFixture) LastSeg(t testing.TB, finalBlock ndn.NameComponent) (la
 	return
 }
 
-func (f *FileServerFixture) FetchPayload(m ndn6file.Metadata, lastSeg *tlv.NNI) (payload []byte, e error) {
+func (FileServerFixture) DecrementVersion(name ndn.Name) ndn.Name {
+	name = slices.Clone(name)
+	versionComp := &name[len(name)-1]
+	var version tlv.NNI
+	if version.UnmarshalBinary(versionComp.Value) == nil {
+		version--
+		versionComp.Value = version.Encode(nil)
+	}
+	return name
+}
+
+func (f *FileServerFixture) FetchPayload(name ndn.Name, lastSeg *tlv.NNI) (payload []byte, e error) {
 	opts := segmented.FetchOptions{
 		RetxLimit: 3,
 		MaxCwnd:   256,
@@ -78,17 +89,17 @@ func (f *FileServerFixture) FetchPayload(m ndn6file.Metadata, lastSeg *tlv.NNI) 
 	if lastSeg != nil {
 		opts.SegmentEnd = 1 + uint64(*lastSeg)
 	}
-	return f.FetchPayloadOpts(m, opts)
+	return f.FetchPayloadOpts(name, opts)
 }
 
-func (f *FileServerFixture) FetchPayloadOpts(m ndn6file.Metadata, opts segmented.FetchOptions) (payload []byte, e error) {
+func (f *FileServerFixture) FetchPayloadOpts(name ndn.Name, opts segmented.FetchOptions) (payload []byte, e error) {
 	opts.Fw = f.fw
-	fetcher := segmented.Fetch(m.Name, opts)
+	fetcher := segmented.Fetch(name, opts)
 	return fetcher.Payload(f.timeout)
 }
 
-func (f *FileServerFixture) ListDirectory(m ndn6file.Metadata) (ls ndn6file.DirectoryListing, e error) {
-	payload, e := f.FetchPayload(m, nil)
+func (f *FileServerFixture) ListDirectory(name ndn.Name) (ls ndn6file.DirectoryListing, e error) {
+	payload, e := f.FetchPayload(name, nil)
 	if e != nil {
 		return ls, e
 	}
@@ -168,7 +179,7 @@ func TestServer(t *testing.T) {
 				if !tt.SetSegmentEnd {
 					fetcherLastSeg = nil
 				}
-				payload, e := f.FetchPayload(m, fetcherLastSeg)
+				payload, e := f.FetchPayload(m.Name, fetcherLastSeg)
 				require.NoError(e)
 				assert.Len(payload, len(content))
 				assert.Equal(digest, sha256.Sum256(payload))
@@ -210,7 +221,7 @@ func TestServer(t *testing.T) {
 				assert.False(m.FinalBlock.Valid())
 				assert.False(m.Mtime.IsZero())
 
-				ls, e := f.ListDirectory(m)
+				ls, e := f.ListDirectory(m.Name)
 				require.NoError(e)
 
 				for _, entry := range ls {
@@ -472,7 +483,7 @@ func TestFuse(t *testing.T) {
 
 			m, e := f.RetrieveMetadata("/fs")
 			require.NoError(e)
-			ls, e := f.ListDirectory(m)
+			ls, e := f.ListDirectory(m.Name)
 			require.NoError(e)
 
 			require.Len(ls, 6)
@@ -501,9 +512,29 @@ func TestFuse(t *testing.T) {
 			assert.Equal(fs.ctime, m.Ctime)
 			assert.Equal(fs.mtime, m.Mtime)
 
-			ls, e := f.ListDirectory(m)
+			ls, e := f.ListDirectory(m.Name)
 			require.NoError(e)
 			assert.Len(ls, int(fuseInoAHi-fuseInoALo+1))
+
+			t.Run("not-file", func(t *testing.T) {
+				t.Parallel()
+				assert, _ := makeAR(t)
+
+				name := slices.Clone(m.Name)
+				assert.True(name[len(name)-2].Equal(ndn6file.KeywordLs))
+				name = slices.Delete(name, len(name)-2, len(name)-1)
+				_, e := f.FetchPayloadOpts(name, segmented.FetchOptions{})
+				assert.Error(e)
+			})
+
+			t.Run("wrong-version", func(t *testing.T) {
+				t.Parallel()
+				assert, _ := makeAR(t)
+
+				name := f.DecrementVersion(m.Name)
+				_, e := f.FetchPayloadOpts(name, segmented.FetchOptions{})
+				assert.Error(e)
+			})
 		})
 
 		for _, suffix := range []string{"B", "P"} {
@@ -517,7 +548,7 @@ func TestFuse(t *testing.T) {
 				assert.False(m.IsFile())
 				assert.True(m.IsDir())
 
-				ls, e := f.ListDirectory(m)
+				ls, e := f.ListDirectory(m.Name)
 				require.NoError(e)
 				assert.Len(ls, 0)
 			})
@@ -532,7 +563,7 @@ func TestFuse(t *testing.T) {
 			assert.EqualValues(0, m.Size)
 			assert.EqualValues(0, f.LastSeg(t, m.FinalBlock))
 
-			payload, e := f.FetchPayload(m, nil)
+			payload, e := f.FetchPayload(m.Name, nil)
 			require.NoError(e)
 			assert.Len(payload, 0)
 		})
@@ -550,9 +581,28 @@ func TestFuse(t *testing.T) {
 			assert.Equal(fs.ctime, m.Ctime)
 			assert.Equal(fs.mtime, m.Mtime)
 
-			payload, e := f.FetchPayload(m, nil)
+			payload, e := f.FetchPayload(m.Name, nil)
 			require.NoError(e)
 			assert.Equal(fs.payloadY, payload)
+
+			t.Run("not-dir", func(t *testing.T) {
+				t.Parallel()
+				assert, _ := makeAR(t)
+
+				name := slices.Clone(m.Name)
+				name = slices.Insert(name, len(name)-1, ndn6file.KeywordLs)
+				_, e := f.FetchPayloadOpts(name, segmented.FetchOptions{})
+				assert.Error(e)
+			})
+
+			t.Run("wrong-version", func(t *testing.T) {
+				t.Parallel()
+				assert, _ := makeAR(t)
+
+				name := f.DecrementVersion(m.Name)
+				_, e := f.FetchPayloadOpts(name, segmented.FetchOptions{})
+				assert.Error(e)
+			})
 		})
 
 		t.Run("Z", func(t *testing.T) {
@@ -567,7 +617,7 @@ func TestFuse(t *testing.T) {
 			assert.Equal(fs.mtime, m.Mtime)
 
 			lastSeg := tlv.NNI(3)
-			payload, e := f.FetchPayload(m, &lastSeg)
+			payload, e := f.FetchPayload(m.Name, &lastSeg)
 			if assert.NoError(e) {
 				assert.Len(payload, cfg.SegmentLen*4)
 			}
@@ -578,7 +628,7 @@ func TestFuse(t *testing.T) {
 			var fetchOpts segmented.FetchOptions
 			fetchOpts.SegmentEnd = 1 + uint64(lastSeg)
 			fetchOpts.RetxLimit = 1
-			_, e = f.FetchPayloadOpts(m, fetchOpts)
+			_, e = f.FetchPayloadOpts(m.Name, fetchOpts)
 			assert.Error(e)
 
 			m, e = f.RetrieveMetadata("/fs/Z")
@@ -606,20 +656,53 @@ func TestFuse(t *testing.T) {
 			tt := tt
 			t.Run(tt.Name, func(t *testing.T) {
 				t.Parallel()
-				assert, _ := makeAR(t)
 
-				name := tt.Name
+				nameUri := tt.Name
 				if tt.Name[0] != '/' {
-					name = "/fs/" + tt.Name
+					nameUri = "/fs/" + tt.Name
 				}
 
-				expectedErr := endpoint.ErrExpire
-				if tt.ExpectNack {
-					expectedErr = ndn.ErrContentType
+				t.Run("metadata", func(t *testing.T) {
+					t.Parallel()
+					assert, _ := makeAR(t)
+
+					expectedErr := endpoint.ErrExpire
+					if tt.ExpectNack {
+						expectedErr = ndn.ErrContentType
+					}
+
+					_, e := f.RetrieveMetadata(nameUri)
+					assert.ErrorIs(e, expectedErr)
+				})
+
+				if tt.Name != "nonexistent" {
+					return
 				}
 
-				_, e := f.RetrieveMetadata(name)
-				assert.ErrorIs(e, expectedErr)
+				t.Run("ls", func(t *testing.T) {
+					t.Parallel()
+					assert, _ := makeAR(t)
+
+					name := ndn.ParseName(nameUri).Append(
+						ndn6file.KeywordLs,
+						ndn.MakeNameComponent(an.TtVersionNameComponent, tlv.NNI(1).Encode(nil)),
+						ndn.MakeNameComponent(an.TtSegmentNameComponent, tlv.NNI(0).Encode(nil)),
+					)
+					_, e := f.FetchPayloadOpts(name, segmented.FetchOptions{})
+					assert.Error(e)
+				})
+
+				t.Run("read", func(t *testing.T) {
+					t.Parallel()
+					assert, _ := makeAR(t)
+
+					name := ndn.ParseName(nameUri).Append(
+						ndn.MakeNameComponent(an.TtVersionNameComponent, tlv.NNI(1).Encode(nil)),
+						ndn.MakeNameComponent(an.TtSegmentNameComponent, tlv.NNI(0).Encode(nil)),
+					)
+					_, e := f.FetchPayloadOpts(name, segmented.FetchOptions{})
+					assert.Error(e)
+				})
 			})
 		}
 

@@ -87,7 +87,7 @@ FileServerFd_InvokeStatx(FileServer* p, FileServerFd* entry, int dfd, const char
 }
 
 __attribute__((nonnull)) static inline void
-FileServerFd_PrepapeVersionedName(FileServer* p, FileServerFd* entry)
+FileServerFd_PrepareVersionedName(FileServer* p, FileServerFd* entry)
 {
   uint16_t nameL = entry->prefixL;
   if (unlikely(FileServerFd_IsDir(entry))) {
@@ -103,7 +103,7 @@ FileServerFd_PrepapeVersionedName(FileServer* p, FileServerFd* entry)
 }
 
 __attribute__((nonnull)) static inline void
-FileServerFd_PrepapeMetaInfo(FileServer* p, FileServerFd* entry, uint64_t size)
+FileServerFd_PrepareMetaInfo(FileServer* p, FileServerFd* entry, uint64_t size)
 {
   entry->lastSeg = SPDK_CEIL_DIV(size, p->segmentLen) - (uint64_t)(size > 0);
 
@@ -138,8 +138,8 @@ FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
            " changed=%d",
            entry->fd, entry->refcnt, entry->version, (uint64_t)entry->st.stx_size, (int)changed);
     if (changed) {
-      FileServerFd_PrepapeVersionedName(p, entry);
-      FileServerFd_PrepapeMetaInfo(p, entry, entry->st.stx_size);
+      FileServerFd_PrepareVersionedName(p, entry);
+      FileServerFd_PrepareMetaInfo(p, entry, entry->st.stx_size);
       entry->lsL = UINT32_MAX;
     }
   }
@@ -199,8 +199,8 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
   entry->lsL = UINT32_MAX;
   entry->prefixL = prefix.length;
   rte_memcpy(entry->nameV, prefix.value, prefix.length);
-  FileServerFd_PrepapeVersionedName(p, entry);
-  FileServerFd_PrepapeMetaInfo(p, entry, entry->st.stx_size);
+  FileServerFd_PrepareVersionedName(p, entry);
+  FileServerFd_PrepareMetaInfo(p, entry, entry->st.stx_size);
 
   HASH_ADD_BYHASHVALUE(hh, p->fdHt, self, 0, hash, entry);
   N_LOGD("New mount=%d dfd=%d filename=%s fd=%d version=%" PRIu64 " size=%" PRIu64, mount, dfd,
@@ -416,7 +416,7 @@ FileServerFd_GenerateLs(FileServer* p, FileServerFd* entry)
   }
 
 FULL:
-  FileServerFd_PrepapeMetaInfo(p, entry, entry->lsL);
+  FileServerFd_PrepareMetaInfo(p, entry, entry->lsL);
   N_LOGD("Ls generated fd=%d version=%" PRIu64 " length=%" PRIu32 " full=%d", entry->fd,
          entry->version, entry->lsL, (int)isFull);
   return true;
