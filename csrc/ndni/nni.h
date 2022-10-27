@@ -61,4 +61,17 @@ Nni_Encode(uint8_t* room, uint64_t n)
   return 1;
 }
 
+/**
+ * @brief Encode a name component whose TLV-VALUE is NonNegativeInteger.
+ * @param[out] room output buffer, must have 10 octets.
+ * @return actual size.
+ */
+__attribute__((nonnull)) static __rte_always_inline uint8_t
+Nni_EncodeNameComponent(uint8_t* room, uint8_t typ, uint64_t n)
+{
+  room[0] = typ;
+  room[1] = Nni_Encode(RTE_PTR_ADD(room, 2), n);
+  return 2 + room[1];
+}
+
 #endif // NDNDPDK_NDNI_NNI_H

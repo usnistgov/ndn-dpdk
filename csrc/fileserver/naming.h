@@ -25,6 +25,7 @@ enum
     NameMaxLength - sizeof(FileServer_KeywordLs) - sizeof(FileServer_KeywordMetadata) - 10 - 10,
 };
 
+/** @brief Indicate what components are present in Interest name. */
 typedef enum FileServerRequestKind
 {
   FileServerRequestNone = 0,

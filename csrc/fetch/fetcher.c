@@ -9,9 +9,10 @@ __attribute__((nonnull)) static inline void
 FetchTask_EncodeInterest(FetchTask* fp, FetchThread* fth, struct rte_mbuf* pkt, uint64_t segNum)
 {
   uint8_t suffix[10];
-  suffix[0] = TtSegmentNameComponent;
-  suffix[1] = Nni_Encode(RTE_PTR_ADD(suffix, 2), segNum);
-  LName nameSuffix = { .length = suffix[1] + 2, .value = suffix };
+  LName nameSuffix = {
+    .length = Nni_EncodeNameComponent(suffix, TtSegmentNameComponent, segNum),
+    .value = suffix,
+  };
 
   uint32_t nonce = pcg32_random_r(&fth->nonceRng);
   Packet* npkt = InterestTemplate_Encode(&fp->tpl, pkt, nameSuffix, nonce);

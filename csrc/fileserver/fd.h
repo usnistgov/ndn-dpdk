@@ -10,6 +10,12 @@
 #include <linux/stat.h>
 #include <sys/stat.h>
 
+/**
+ * @brief Convert timestamp to uint64_t nanoseconds.
+ * @param t struct statx_timestamp or struct timespec.
+ */
+#define FileServerFd_StatTime(t) ((uint64_t)(t).tv_sec * SPDK_SEC_TO_NSEC + (uint64_t)(t).tv_nsec)
+
 /** @brief File descriptor related information in the file server. */
 typedef struct FileServerFd
 {

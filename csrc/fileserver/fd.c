@@ -60,12 +60,6 @@ FileServerFd_HasStatBit(const FileServerFd* entry, uint32_t bit)
   return (entry->st.stx_mask & bit) == bit;
 }
 
-static __rte_always_inline uint64_t
-FileServerFd_StatTime(struct statx_timestamp t)
-{
-  return (uint64_t)t.tv_sec * SPDK_SEC_TO_NSEC + (uint64_t)t.tv_nsec;
-}
-
 static __rte_always_inline int
 FileServerFd_InvokeStatx(FileServer* p, FileServerFd* entry, int dfd, const char* restrict pathname,
                          TscTime now)
@@ -97,9 +91,8 @@ FileServerFd_PrepareVersionedName(FileServer* p, FileServerFd* entry)
   }
 
   uint8_t* version = RTE_PTR_ADD(entry->nameV, nameL);
-  version[0] = TtVersionNameComponent;
-  version[1] = Nni_Encode(&version[2], entry->version);
-  entry->versionedL = (nameL += 2 + version[1]);
+  uint8_t sizeofVersion = Nni_EncodeNameComponent(version, TtVersionNameComponent, entry->version);
+  entry->versionedL = (nameL += sizeofVersion);
 }
 
 __attribute__((nonnull)) static inline void
@@ -108,10 +101,11 @@ FileServerFd_PrepareMetaInfo(FileServer* p, FileServerFd* entry, uint64_t size)
   entry->lastSeg = SPDK_CEIL_DIV(size, p->segmentLen) - (uint64_t)(size > 0);
 
   uint8_t segment[10];
-  segment[0] = TtSegmentNameComponent;
-  segment[1] = Nni_Encode(&segment[2], entry->lastSeg);
-  DataEnc_PrepareMetaInfo(&entry->meta, ContentBlob, 0,
-                          ((LName){ .length = 2 + segment[1], .value = segment }));
+  LName finalBlock = (LName){
+    .length = Nni_EncodeNameComponent(segment, TtSegmentNameComponent, entry->lastSeg),
+    .value = segment,
+  };
+  DataEnc_PrepareMetaInfo(&entry->meta, ContentBlob, 0, finalBlock);
 }
 
 __attribute__((nonnull)) static inline FileServerFd*
