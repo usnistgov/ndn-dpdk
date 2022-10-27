@@ -5,21 +5,21 @@ Included are a network forwarder, a traffic generator, and a file server.
 
 ![NDN-DPDK logo](docs/NDN-DPDK-logo.svg)
 
-This software is developed at the [Advanced Network Technologies Division](https://www.nist.gov/itl/antd) of the [National Institute of Standards and Technology](https://www.nist.gov/).
-It is in pre-release stage and will continue to be updated.
+This software is developed at the [Smart Connected Systems Division](https://www.nist.gov/ctl/smart-connected-systems-division) of the [National Institute of Standards and Technology](https://www.nist.gov/).
+It is in beta stage and will continue to be updated.
 
 ## Documentation
 
-* [NDN-DPDK installation guide](docs/INSTALL.md)
-* [NDN-DPDK Docker container](docs/Docker.md)
-* [NDN-DPDK forwarder activation and usage](docs/forwarder.md)
-* [NDN-DPDK traffic generator activation and usage](docs/trafficgen.md)
-* [NDN-DPDK file server activation and usage](docs/fileserver.md)
-* [hardware known to work with NDN-DPDK](docs/hardware.md)
-* [NDN-DPDK face creation](docs/face.md)
-* [NDN-DPDK performance tuning](docs/tuning.md)
-* [NDN-DPDK interoperability with other NDN software](docs/interop)
-* [NDN-DPDK publications and presentations](docs/publication.md)
+* [Installation guide](docs/INSTALL.md)
+* [Docker container](docs/Docker.md)
+* [Forwarder activation and usage](docs/forwarder.md)
+* [Traffic generator activation and usage](docs/trafficgen.md)
+* [File server activation and usage](docs/fileserver.md)
+* [Hardware known to work](docs/hardware.md)
+* [Face creation](docs/face.md)
+* [Performance tuning](docs/tuning.md)
+* [Interoperability with other NDN software](docs/interop)
+* [Related publications and presentations](docs/publication.md)
 * [Doxygen reference](https://ndn-dpdk.ndn.today/doxygen/)
 * [Go reference](https://pkg.go.dev/github.com/usnistgov/ndn-dpdk)
 
@@ -76,4 +76,4 @@ Management
 * [sample](sample): control plane samples.
 * [docs](docs): documentation.
 
-These is a `README.md` file in most directories of this codebase that explains the relevant module.
+There is a `README.md` file in most directories of this codebase that describes the corresponding module.
