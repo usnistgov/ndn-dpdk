@@ -5,10 +5,10 @@
     "start": "node --loader tsm",
     "typecheck": "tsc"
   },
-  "packageManager": "pnpm@7.14.0",
+  "packageManager": "pnpm@7.16.0",
   "dependencies": {
     "stdout-stream": "^2.0.0",
-    "tslib": "^2.4.0",
+    "tslib": "^2.4.1",
     "tsm": "^2.2.2",
     "typescript": "~4.8.4"
   },

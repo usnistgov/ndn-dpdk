@@ -78,6 +78,13 @@ func (loc Locator) Validate() error {
 	if loc.ID < MinID || loc.ID > MaxID {
 		return errors.New("invalid ID")
 	}
+	if owner := loc.SocketOwner; owner != nil {
+		for _, id := range owner {
+			if id < 0 || id >= math.MaxUint32 {
+				return errors.New("invalid owner uid/gid")
+			}
+		}
+	}
 	return nil
 }
 
@@ -129,7 +136,7 @@ func (loc *Locator) ToVDevArgs() (args map[string]any, e error) {
 	}
 	loc.ApplyDefaults(RoleServer)
 
-	return map[string]any{
+	args = map[string]any{
 		"id":              loc.ID,
 		"role":            string(loc.Role),
 		"bsize":           loc.Dataroom,
@@ -137,7 +144,12 @@ func (loc *Locator) ToVDevArgs() (args map[string]any, e error) {
 		"socket":          loc.SocketName,
 		"socket-abstract": "no",
 		"mac":             "F2:6D:65:6D:69:66", // F2:"memif"
-	}, nil
+	}
+	if owner := loc.SocketOwner; loc.Role == RoleServer && owner != nil {
+		args["owner-uid"] = owner[0]
+		args["owner-gid"] = owner[1]
+	}
+	return args, nil
 }
 
 // ToCreateFaceLocator builds a JSON object suitable for NDN-DPDK face creation API.

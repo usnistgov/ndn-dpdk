@@ -1,21 +1,14 @@
 package ethdev
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path"
-	"time"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 	"go.uber.org/zap"
-	"golang.org/x/sys/unix"
 )
-
-const memifChownDeadline = 5 * time.Second
 
 var memifCoexist = memiftransport.NewCoexistMap()
 
@@ -38,18 +31,8 @@ func NewMemif(loc memiftransport.Locator) (EthDev, error) {
 		return nil, fmt.Errorf("ethvdev.New %w", e)
 	}
 
-	var chownCancel context.CancelFunc
-	if isFirst && loc.Role == memiftransport.RoleServer && loc.SocketOwner != nil {
-		timeout, cancel := context.WithTimeout(context.TODO(), memifChownDeadline)
-		go memifChown(timeout, cancel, loc.SocketName, *loc.SocketOwner)
-		chownCancel = cancel
-	}
-
 	memifCoexist.Add(loc)
 	OnClose(dev, func() {
-		if chownCancel != nil {
-			chownCancel()
-		}
 		memifCoexist.Remove(loc)
 	})
 	return dev, nil
@@ -87,38 +70,4 @@ func memifCheckSocket(role memiftransport.Role, socketName string, isFirst bool)
 			logEntry.Warn("socket file does not exist or it is not a Unix socket; if ethdev creation fails, ensure the memif server is running")
 		}
 	}
-}
-
-func memifChown(ctx context.Context, cancel context.CancelFunc, socketName string, owner [2]int) {
-	defer cancel()
-	uid, gid := owner[0], owner[1]
-	logEntry := logger.With(zap.String("socketName", socketName), zap.Int("uid", uid), zap.Int("gid", gid))
-	tick := time.NewTicker(time.Millisecond)
-	defer tick.Stop()
-
-WAIT:
-	for {
-		select {
-		case <-ctx.Done():
-			logEntry.Warn("memif SocketOwner socket file did not show up within deadline", zap.Duration("deadline", memifChownDeadline))
-			return
-		case <-tick.C:
-			_, e := os.Stat(socketName)
-			switch {
-			case e == nil:
-				break WAIT
-			case errors.Is(e, fs.ErrNotExist):
-				continue WAIT
-			default:
-				logEntry.Warn("memif SocketOwner stat error", zap.Error(e))
-				return
-			}
-		}
-	}
-
-	if e := unix.Chown(socketName, owner[0], owner[1]); e != nil {
-		logEntry.Warn("memif SocketOwner chown error", zap.Error(e))
-		return
-	}
-	logEntry.Info("memif SocketOwner changed")
 }
