@@ -17,7 +17,7 @@ import (
 // Read rte_flow_error into Go error.
 func readFlowErr(e C.struct_rte_flow_error) error {
 	if e._type == C.RTE_FLOW_ERROR_TYPE_NONE {
-		return nil
+		return eal.GetErrno()
 	}
 
 	message := C.GoString(e.message)

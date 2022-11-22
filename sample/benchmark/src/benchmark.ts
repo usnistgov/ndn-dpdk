@@ -22,14 +22,22 @@ function splitPortVlan(s: string): [pciAddr: string, vlan: number | undefined] {
 }
 
 export interface BenchmarkOptions {
-  faceScheme: "ether" | "vxlan";
-  faceRxQueues: number;
+  faceAScheme: BenchmarkOptions.FaceScheme;
+  faceARxQueues: number;
+  faceBScheme: BenchmarkOptions.FaceScheme;
+  faceBRxQueues: number;
   nFwds: number;
+  producerKind: BenchmarkOptions.ProducerKind;
   interestNameLen: number;
-  dataMatch: "exact" | "prefix";
+  dataMatch: BenchmarkOptions.DataMatch;
   payloadLen: number;
   warmup: number;
   duration: number;
+}
+export namespace BenchmarkOptions {
+  export type FaceScheme = "ether" | "vxlan";
+  export type ProducerKind = "pingserver" | "fileserver";
+  export type DataMatch = "exact" | "prefix";
 }
 
 export interface BenchmarkState {
@@ -67,20 +75,21 @@ export class Benchmark {
     await this.cF.restart();
 
     const {
-      faceScheme,
-      faceRxQueues,
+      faceARxQueues,
+      faceBRxQueues,
       nFwds,
     } = this.opts;
+    const alloc = this.env.F_CORES_PRIMARY.concat();
     const arg: ActivateFwArgs = {
       eal: {
         cores: [...this.env.F_CORES_PRIMARY, ...this.env.F_CORES_SECONDARY],
         lcoreMain: this.env.F_CORES_SECONDARY[0],
-        memPerNuma: { [this.env.F_NUMA_PRIMARY]: 16384 },
+        // memPerNuma: { [this.env.F_NUMA_PRIMARY]: 16384 },
       },
       lcoreAlloc: {
-        RX: this.env.F_CORES_PRIMARY.slice(-2 * faceRxQueues),
-        TX: this.env.F_CORES_PRIMARY.slice(0, 2),
-        FWD: this.env.F_CORES_PRIMARY.slice(2, 2 + nFwds),
+        RX: alloc.splice(0, faceARxQueues + faceBRxQueues),
+        TX: alloc.splice(0, 2),
+        FWD: alloc.splice(0, nFwds),
         CRYPTO: [this.env.F_CORES_SECONDARY[1]],
       },
       mempool: {
@@ -104,14 +113,7 @@ export class Benchmark {
     for (const [i, [label]] of DIRECTIONS.entries()) {
       const [pciAddr, vlan] = splitPortVlan(this.env.F_PORTS[i]!);
       const port = await this.cF.createEthPort(pciAddr);
-      const face = await this.cF.createFace({
-        port,
-        nRxQueues: faceRxQueues,
-        local: macAddr("F", label),
-        remote: macAddr("G", label),
-        vlan,
-        ...(faceScheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
-      });
+      const face = await this.cF.createFace(this.makeLocator(port, vlan, "F", "G", label));
       this.state.face[label] = face;
 
       for (let j = 0; j < nFwds; ++j) {
@@ -129,8 +131,6 @@ export class Benchmark {
     await this.cG.restart();
 
     const {
-      faceScheme,
-      faceRxQueues,
       nFwds,
       dataMatch,
       payloadLen,
@@ -139,7 +139,7 @@ export class Benchmark {
       eal: {
         cores: [...this.env.G_CORES_PRIMARY, ...this.env.G_CORES_SECONDARY],
         lcoreMain: this.env.G_CORES_SECONDARY[0],
-        memPerNuma: { [this.env.G_NUMA_PRIMARY]: 16384 },
+        // memPerNuma: { [this.env.G_NUMA_PRIMARY]: 16384 },
       },
       mempool: {
         DIRECT: { capacity: 1048575, dataroom: 9146 },
@@ -151,14 +151,7 @@ export class Benchmark {
     for (const [i, [label]] of DIRECTIONS.entries()) {
       const [pciAddr, vlan] = splitPortVlan(this.env.G_PORTS[i]!);
       const port = await this.cG.createEthPort(pciAddr);
-      const locator: FaceLocator = {
-        port,
-        nRxQueues: faceRxQueues,
-        local: macAddr("G", label),
-        remote: macAddr("F", label),
-        vlan,
-        ...(faceScheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
-      };
+      const locator = this.makeLocator(port, vlan, "G", "F", label);
       const producer: TgpConfig = {
         nThreads: 1,
         patterns: [],
@@ -180,6 +173,19 @@ export class Benchmark {
       const result = await this.cG.startTrafficGen(locator, producer, fetcher);
       this.state.fetcher[label] = result.fetcher;
     }
+  }
+
+  private makeLocator(port: string, vlan: number | undefined, localNode: string, remoteNode: string, faceLabel: string): FaceLocator {
+    const scheme = this.opts[`face${faceLabel as "A" | "B"}Scheme`];
+    const nRxQueues = this.opts[`face${faceLabel as "A" | "B"}RxQueues`];
+    return {
+      port,
+      nRxQueues,
+      local: macAddr(localNode, faceLabel),
+      remote: macAddr(remoteNode, faceLabel),
+      vlan,
+      ...(scheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
+    };
   }
 
   public async run(): Promise<Throughput> {

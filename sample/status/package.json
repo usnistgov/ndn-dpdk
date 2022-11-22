@@ -4,7 +4,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@7.16.0",
+  "packageManager": "pnpm@7.17.0",
   "dependencies": {
     "@fastify/express": "^2.1.0",
     "@fastify/http-proxy": "^8.3.0",

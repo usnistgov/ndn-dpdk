@@ -34,12 +34,14 @@ export class TopologyView extends Component<Props> {
           <text x="0" y="0" text-anchor="start">{stripVlan(fPortA)}</text>
           <text x="200" y="0" text-anchor="end">{stripVlan(gPortA)}</text>
           <text x="200" y="20" text-anchor="end">/A</text>
+          <text x="100" y="20" text-anchor="middle">face A</text>
           <line x1="0" y1="5" x2="200" y2="5" stroke="#001f3f" stroke-width="2"/>
         </g>
         <g transform="translate(100 150)">
           <text x="0" y="0" text-anchor="start">{stripVlan(fPortB)}</text>
           <text x="200" y="0" text-anchor="end">{stripVlan(gPortB)}</text>
           <text x="200" y="20" text-anchor="end">/B</text>
+          <text x="100" y="20" text-anchor="middle">face B</text>
           <line x1="0" y1="5" x2="200" y2="5" stroke="#001f3f" stroke-width="2"/>
         </g>
       </svg>

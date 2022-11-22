@@ -17,9 +17,12 @@ export class App extends Component<{}, State> {
   state: State = {
     message: "",
     opts: {
-      faceScheme: "ether",
-      faceRxQueues: 1,
+      faceAScheme: "ether",
+      faceARxQueues: 1,
+      faceBScheme: "ether",
+      faceBRxQueues: 1,
       nFwds: 4,
+      producerKind: "pingserver",
       interestNameLen: 3,
       dataMatch: "exact",
       payloadLen: 1000,
@@ -69,8 +72,8 @@ export class App extends Component<{}, State> {
   private readonly handleStart = () => {
     this.setState(
       ({ env, opts }) => {
-        const fDemand = 2 * opts.faceRxQueues + 2 + opts.nFwds;
-        const gDemand = 2 * opts.faceRxQueues + 2 + 2 + 2;
+        const fDemand = 2 * opts.faceARxQueues + 2 + opts.nFwds;
+        const gDemand = 2 * opts.faceARxQueues + 2 + 2 + 2;
         if (fDemand > env!.F_CORES_PRIMARY.length || gDemand > env!.G_CORES_PRIMARY.length) {
           return {
             message: `insufficient CPU cores: need ${fDemand} on forwarder and ${gDemand} on traffic gen`,
