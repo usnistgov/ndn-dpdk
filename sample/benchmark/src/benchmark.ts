@@ -35,7 +35,7 @@ export interface BenchmarkOptions {
   duration: number;
 }
 export namespace BenchmarkOptions {
-  export type FaceScheme = "ether" | "vxlan";
+  export type FaceScheme = "ether" | "vxlan" | "memif";
   export type ProducerKind = "pingserver" | "fileserver";
   export type DataMatch = "exact" | "prefix";
 }
@@ -84,7 +84,6 @@ export class Benchmark {
       eal: {
         cores: [...this.env.F_CORES_PRIMARY, ...this.env.F_CORES_SECONDARY],
         lcoreMain: this.env.F_CORES_SECONDARY[0],
-        // memPerNuma: { [this.env.F_NUMA_PRIMARY]: 16384 },
       },
       lcoreAlloc: {
         RX: alloc.splice(0, faceARxQueues + faceBRxQueues),
@@ -111,9 +110,7 @@ export class Benchmark {
 
     const seenNdtIndices = new Set<number>();
     for (const [i, [label]] of DIRECTIONS.entries()) {
-      const [pciAddr, vlan] = splitPortVlan(this.env.F_PORTS[i]!);
-      const port = await this.cF.createEthPort(pciAddr);
-      const face = await this.cF.createFace(this.makeLocator(port, vlan, "F", "G", label));
+      const face = await this.cF.createFace(await this.prepareLocator(this.cF, this.env.F_PORTS[i]!, label));
       this.state.face[label] = face;
 
       for (let j = 0; j < nFwds; ++j) {
@@ -139,7 +136,6 @@ export class Benchmark {
       eal: {
         cores: [...this.env.G_CORES_PRIMARY, ...this.env.G_CORES_SECONDARY],
         lcoreMain: this.env.G_CORES_SECONDARY[0],
-        // memPerNuma: { [this.env.G_NUMA_PRIMARY]: 16384 },
       },
       mempool: {
         DIRECT: { capacity: 1048575, dataroom: 9146 },
@@ -149,9 +145,10 @@ export class Benchmark {
     await this.cG.activate("trafficgen", arg);
 
     for (const [i, [label]] of DIRECTIONS.entries()) {
-      const [pciAddr, vlan] = splitPortVlan(this.env.G_PORTS[i]!);
-      const port = await this.cG.createEthPort(pciAddr);
-      const locator = this.makeLocator(port, vlan, "G", "F", label);
+      while (!this.state.face[label]) {
+        await delay(100);
+      }
+      const locator = await this.prepareLocator(this.cG, this.env.G_PORTS[i]!, label);
       const producer: TgpConfig = {
         nThreads: 1,
         patterns: [],
@@ -175,14 +172,28 @@ export class Benchmark {
     }
   }
 
-  private makeLocator(port: string, vlan: number | undefined, localNode: string, remoteNode: string, faceLabel: string): FaceLocator {
-    const scheme = this.opts[`face${faceLabel as "A" | "B"}Scheme`];
-    const nRxQueues = this.opts[`face${faceLabel as "A" | "B"}RxQueues`];
+  private async prepareLocator(ctrl: GqlFwControl | GqlGenControl, portVlan: string, faceLabel: "A" | "B"): Promise<FaceLocator> {
+    const isForwarder = ctrl === this.cF;
+    const scheme = this.opts[`face${faceLabel}Scheme`];
+    if (scheme === "memif") {
+      return {
+        scheme: "memif",
+        role: isForwarder ? "server" : "client",
+        socketName: "/run/ndn/ndndpdk-benchmark-memif.sock",
+        id: faceLabel.codePointAt(0)!,
+        dataroom: 9000,
+      };
+    }
+
+    const [pciAddr, vlan] = splitPortVlan(portVlan);
+    const port = await ctrl.createEthPort(pciAddr);
+    const nRxQueues = this.opts[`face${faceLabel}RxQueues`];
+    const macAddrLastOctet = faceLabel.codePointAt(0)!.toString(16).padStart(2, "0");
     return {
       port,
       nRxQueues,
-      local: macAddr(localNode, faceLabel),
-      remote: macAddr(remoteNode, faceLabel),
+      local: `02:00:00:00:${isForwarder ? "00" : "01"}:${macAddrLastOctet}`,
+      remote: `02:00:00:00:${isForwarder ? "01" : "00"}:${macAddrLastOctet}`,
       vlan,
       ...(scheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
     };
@@ -239,15 +250,7 @@ const initialState: BenchmarkState = {
   tasks: {},
 };
 
-const DIRECTIONS = [["A", "B"], ["B", "A"]];
-
-function hexDigit(s: string): string {
-  return s.codePointAt(0)!.toString(16).padStart(2, "0");
-}
-
-function macAddr(node: string, intf: string): string {
-  return `02:00:00:00:${hexDigit(node)}:${hexDigit(intf)}`;
-}
+const DIRECTIONS = [["A", "B"], ["B", "A"]] as const;
 
 const vxlanLocatorFields: Omit<VxlanLocator, Exclude<keyof EtherLocator, "scheme">> = {
   scheme: "vxlan",

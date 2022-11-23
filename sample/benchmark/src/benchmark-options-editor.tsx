@@ -59,6 +59,7 @@ export class BenchmarkOptionsEditor extends Component<Props> {
           <select id={`${this.id}.faceAScheme`} value={faceAScheme} disabled={disabled} onChange={this.handleUpdate("faceAScheme", parseToString, alsoUpdateRxQueues("faceARxQueues"))}>
             <option value="ether">Ethernet</option>
             <option value="vxlan">VXLAN</option>
+            <option value="memif">memif</option>
           </select>
         </div>
         <div class="pure-control-group" hidden={faceAScheme !== "vxlan"}>
@@ -70,6 +71,7 @@ export class BenchmarkOptionsEditor extends Component<Props> {
           <select id={`${this.id}.faceBScheme`} value={faceBScheme} disabled={disabled} onChange={this.handleUpdate("faceBScheme", parseToString, alsoUpdateRxQueues("faceBRxQueues"))}>
             <option value="ether">Ethernet</option>
             <option value="vxlan">VXLAN</option>
+            <option value="memif">memif</option>
           </select>
         </div>
         <div class="pure-control-group" hidden={faceBScheme !== "vxlan"}>
