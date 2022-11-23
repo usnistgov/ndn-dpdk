@@ -79,7 +79,7 @@ FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx, uint32_t index)
     totalLen -= segmentLen;
     rte_pktmbuf_append(payload, segmentLen);
 
-    Packet* data = DataEnc_EncodePayload(name, (LName){ 0 }, &fd->meta, payload);
+    Packet* data = DataEnc_EncodePayload(name, (LName){ 0 }, fd->meta, payload);
     if (unlikely(data == NULL)) {
       N_LOGD("CQE drop=dataenc-error");
       ctx->discard[--ctx->discardPayloadIndex] = payload;

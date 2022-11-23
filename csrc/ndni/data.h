@@ -58,54 +58,43 @@ __attribute__((nonnull)) bool
 DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt);
 
 /**
- * @brief Declare a buffer for preparing Data MetaInfo.
- * @param capacity maximum MetaInfo TLV-LENGTH.
- *
- * Specified @p capacity must have room for:
- * @li MetaInfo TLV-TYPE and TLV-LENGTH, 2 octets
- * @li ContentType TLV, 3 octets.
- * @li FreshnessPeriod TLV, 6 octets.
- * @li FinalBlockId TLV, 2 octets + maximum @c finalBlock.length .
- *
- * Additional requirements for @p capacity :
- * @li @p capacity may be zero, which allow arbitrary size. Otherwise the following applies.
- * @li @c capacity+1 must be a multiple of 8, for alignment.
- * @li @c capacity-2 must be less than 0xFD, because MetaInfo TLV-LENGTH is assumed as 1-octet.
- */
-#define DataEnc_MetaInfoBuffer(capacity)                                                           \
-  struct                                                                                           \
-  {                                                                                                \
-    uint8_t size;                                                                                  \
-    uint8_t value[capacity];                                                                       \
-    static_assert(capacity == 0 || (capacity - 2 < 0xFD && capacity % 8 == 7), "");                \
-  }
-
-__attribute__((nonnull)) void
-DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_t freshness,
-                         LName finalBlock);
-
-/**
  * @brief Prepare Data MetaInfo.
- * @param metaBuf pointer to DataEnc_MetaInfoBuffer; must have enough capacity.
+ * @param room output buffer; must have enough capacity.
  * @param ct ContentType numeric value.
  * @param freshness FreshnessPeriod numeric value.
  * @param finalBlock FinalBlockId TLV-VALUE.
- * @post @c metaBuf->value contains MetaInfo TLV.
+ * @post @c room contains MetaInfo TLV.
+ *
+ * Required @p room capacity is the sum of:
+ * @li MetaInfo TLV-TYPE and TLV-LENGTH, 2 octets
+ * @li ContentType TLV, 3 octets.
+ * @li FreshnessPeriod TLV, 6 octets.
+ * @li FinalBlockId TLV, 2 octets + @c finalBlock.length .
  */
-#define DataEnc_PrepareMetaInfo(metaBuf, ct, freshness, finalBlock)                                \
-  DataEnc_PrepareMetaInfo_((metaBuf), sizeof((metaBuf)->value), (ct), (freshness), (finalBlock))
+__attribute__((nonnull)) void
+DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName finalBlock);
+
+/**
+ * @brief Returned size of MetaInfo TLV.
+ * @param meta prepared MetaInfo buffer.
+ */
+__attribute__((nonnull)) inline uint16_t
+DataEnc_SizeofMetaInfo(const uint8_t* meta)
+{
+  return 2 + meta[1];
+}
 
 /**
  * @brief Encode Data with payload.
  * @param prefix Data name prefix.
  * @param suffix Data name suffix.
- * @param metaBuf prepared DataEnc_MetaInfoBuffer.
+ * @param meta prepared MetaInfo buffer.
  * @param m a uniquely owned, unsegmented, direct mbuf of Content payload.
  * @return encoded packet, same as @p m .
  * @retval NULL insufficient headroom or tailroom.
  */
 __attribute__((nonnull)) Packet*
-DataEnc_EncodePayload(LName prefix, LName suffix, const void* metaBuf, struct rte_mbuf* m);
+DataEnc_EncodePayload(LName prefix, LName suffix, const uint8_t* meta, struct rte_mbuf* m);
 
 /** @brief Data encoder optimized for traffic generator. */
 typedef struct DataGen

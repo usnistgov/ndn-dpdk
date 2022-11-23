@@ -8,16 +8,15 @@
 
 N_LOG_INIT(FileServer);
 
-static DataEnc_MetaInfoBuffer(15) MetaInfo_Metadata;
-static DataEnc_MetaInfoBuffer(15) MetaInfo_Nack;
+static uint8_t MetaInfo_Metadata[16];
+static uint8_t MetaInfo_Nack[16];
 
 RTE_INIT(InitMetaInfo)
 {
   uint8_t segment0[] = { TtSegmentNameComponent, 1, 0 };
   LName finalBlock0 = (LName){ .length = sizeof(segment0), .value = segment0 };
-  DataEnc_PrepareMetaInfo(&MetaInfo_Metadata, ContentBlob, FileServerMetadataFreshness,
-                          finalBlock0);
-  DataEnc_PrepareMetaInfo(&MetaInfo_Nack, ContentNack, FileServerMetadataFreshness, (LName){ 0 });
+  DataEnc_PrepareMetaInfo(MetaInfo_Metadata, ContentBlob, FileServerMetadataFreshness, finalBlock0);
+  DataEnc_PrepareMetaInfo(MetaInfo_Nack, ContentNack, FileServerMetadataFreshness, (LName){ 0 });
 }
 
 typedef struct RxBurstCtx
@@ -207,7 +206,7 @@ FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
   payload->data_off = p->payloadHeadroom;
   rte_memcpy(rte_pktmbuf_append(payload, valueLen), RTE_PTR_ADD(fd->lsV, valueOffset), valueLen);
 
-  Packet* data = DataEnc_EncodePayload(name, (LName){ 0 }, &fd->meta, payload);
+  Packet* data = DataEnc_EncodePayload(name, (LName){ 0 }, fd->meta, payload);
   if (unlikely(data == NULL)) {
     goto ENCERR;
   }
@@ -244,14 +243,14 @@ FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
 
   struct rte_mbuf* payload = ctx->payload[ctx->payloadIndex];
   payload->data_off = p->payloadHeadroom;
-  const void* metaInfo = NULL;
+  const uint8_t* metaInfo = NULL;
 
   if (unlikely(fd == FileServer_NotFound)) {
-    metaInfo = &MetaInfo_Nack;
+    metaInfo = MetaInfo_Nack;
   } else if (unlikely((rn.kind & FileServerRequestLs) != 0 && !FileServerFd_IsDir(fd))) {
     FileServerFd_Unref(p, fd);
     NULLize(fd);
-    metaInfo = &MetaInfo_Nack;
+    metaInfo = MetaInfo_Nack;
   } else {
     bool ok = FileServerFd_EncodeMetadata(p, fd, payload);
     FileServerFd_Unref(p, fd);
@@ -259,7 +258,7 @@ FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     if (unlikely(!ok)) {
       goto ENCERR;
     }
-    metaInfo = &MetaInfo_Metadata;
+    metaInfo = MetaInfo_Metadata;
   }
 
   struct timespec utcNow;

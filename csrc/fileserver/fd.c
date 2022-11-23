@@ -105,7 +105,7 @@ FileServerFd_PrepareMetaInfo(FileServer* p, FileServerFd* entry, uint64_t size)
     .length = Nni_EncodeNameComponent(segment, TtSegmentNameComponent, entry->lastSeg),
     .value = segment,
   };
-  DataEnc_PrepareMetaInfo(&entry->meta, ContentBlob, 0, finalBlock);
+  DataEnc_PrepareMetaInfo(entry->meta, ContentBlob, 0, finalBlock);
 }
 
 __attribute__((nonnull)) static inline FileServerFd*
@@ -297,9 +297,9 @@ FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf*
   off += entry->versionedL;
 
   if (likely(FileServerFd_IsFile(entry))) {
-    NDNDPDK_ASSERT(entry->meta.value[2] == TtFinalBlock);
-    rte_memcpy(&value[off], &entry->meta.value[2], entry->meta.value[1]);
-    off += entry->meta.value[1];
+    NDNDPDK_ASSERT(entry->meta[2] == TtFinalBlock);
+    rte_memcpy(&value[off], &entry->meta[2], entry->meta[1]);
+    off += entry->meta[1];
     APPEND_NNI(SegmentSize, 16, p->segmentLen);
     if (HAS_STAT_BIT(STATX_SIZE)) {
       APPEND_NNI(Size, 64, entry->st.stx_size);

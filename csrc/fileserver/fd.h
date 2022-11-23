@@ -23,7 +23,7 @@ typedef struct FileServerFd
   struct statx st;                 ///< statx result
   UT_hash_handle hh;               ///< fdHt hashtable handle
   struct cds_list_head queueNode;  ///< fdQ node
-  DataEnc_MetaInfoBuffer(15) meta; ///< MetaInfo (FinalBlockId only)
+  uint8_t meta[16];                ///< MetaInfo (FinalBlockId only)
   uint64_t version;                ///< version number
   uint64_t lastSeg;                ///< last segment number
   int fd;                          ///< file descriptor

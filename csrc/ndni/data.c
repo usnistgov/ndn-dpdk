@@ -186,16 +186,14 @@ DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt)
 }
 
 void
-DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_t freshness,
-                         LName finalBlock)
+DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName finalBlock)
 {
-  DataEnc_MetaInfoBuffer(0)* meta = metaBuf;
-  meta->size = 2;
+  room[0] = TtMetaInfo;
+  room[1] = 0;
 #define APPEND(ptr, extraLength)                                                                   \
   do {                                                                                             \
-    NDNDPDK_ASSERT((size_t)meta->size + sizeof(*ptr) + (extraLength) <= capacity);                 \
-    ptr = RTE_PTR_ADD(meta->value, meta->size);                                                    \
-    meta->size += sizeof(*ptr) + (extraLength);                                                    \
+    ptr = RTE_PTR_ADD(room, 2 + room[1]);                                                          \
+    room[1] += sizeof(*ptr) + (extraLength);                                                       \
   } while (false)
 
   if (unlikely(ct != ContentBlob)) {
@@ -234,8 +232,6 @@ DataEnc_PrepareMetaInfo_(void* metaBuf, size_t capacity, ContentType ct, uint32_
   }
 
 #undef APPEND
-  meta->value[0] = TtMetaInfo;
-  meta->value[1] = meta->size - 2;
 }
 
 __attribute__((nonnull, returns_nonnull)) static inline Packet*
@@ -250,17 +246,17 @@ Encode_Finish(struct rte_mbuf* m)
 }
 
 Packet*
-DataEnc_EncodePayload(LName prefix, LName suffix, const void* metaBuf, struct rte_mbuf* m)
+DataEnc_EncodePayload(LName prefix, LName suffix, const uint8_t* meta, struct rte_mbuf* m)
 {
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(m) && rte_pktmbuf_is_contiguous(m) &&
                  rte_mbuf_refcnt_read(m) == 1);
-  const DataEnc_MetaInfoBuffer(0)* meta = metaBuf;
 
   uint16_t nameL = prefix.length + suffix.length;
   uint16_t sizeofNameL = TlvEncoder_SizeofVarNum(nameL);
+  uint16_t sizeofMeta = DataEnc_SizeofMetaInfo(meta);
   uint32_t contentL = m->pkt_len;
   uint16_t sizeofContentL = TlvEncoder_SizeofVarNum(contentL);
-  uint16_t sizeofHeadroom = 1 + sizeofNameL + nameL + meta->size + 1 + sizeofContentL;
+  uint16_t sizeofHeadroom = 1 + sizeofNameL + nameL + sizeofMeta + 1 + sizeofContentL;
 
   uint8_t* sig = (uint8_t*)rte_pktmbuf_append(m, sizeof(NullSig));
   if (unlikely(sig == NULL || rte_pktmbuf_headroom(m) < L3TypeLengthHeadroom + sizeofHeadroom)) {
@@ -275,8 +271,8 @@ DataEnc_EncodePayload(LName prefix, LName suffix, const void* metaBuf, struct rt
   head += prefix.length;
   rte_memcpy(head, suffix.value, suffix.length);
   head += suffix.length;
-  rte_memcpy(head, meta->value, meta->size);
-  head += meta->size;
+  rte_memcpy(head, meta, sizeofMeta);
+  head += sizeofMeta;
   *head++ = TtContent;
   head += TlvEncoder_WriteVarNum(head, contentL);
 
