@@ -40,6 +40,15 @@ typedef struct RxBurstCtx
 } RxBurstCtx;
 static_assert(RTE_DIM(((RxBurstCtx*)NULL)->discard) <= UINT8_MAX, "");
 
+__attribute__((nonnull)) static __rte_always_inline bool
+FileServerRx_CheckVersion(FileServer* p, FileServerFd* fd, FileServerRequestName rn)
+{
+  if (likely(rn.version == fd->version)) {
+    return true;
+  }
+  return p->versionBypassHi != 0 && (rn.version >> 32) == p->versionBypassHi;
+}
+
 /**
  * @brief Handle SQE unavailable error.
  * @return false.
@@ -123,7 +132,7 @@ FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     N_LOGD("Read fd=%d drop=mode-not-file", fd->fd);
     goto UNREF;
   }
-  if (unlikely(rn.version != fd->version)) {
+  if (unlikely(!FileServerRx_CheckVersion(p, fd, rn))) {
     N_LOGD("Read fd=%d drop=version-changed rn-version=%" PRIu64 " fd-version=%" PRIu64, fd->fd,
            rn.version, fd->version);
     goto UNREF;
@@ -174,7 +183,7 @@ FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     N_LOGD("Ls fd=%d drop=mode-not-dir", fd->fd);
     goto UNREF;
   }
-  if (unlikely(rn.version != fd->version)) {
+  if (unlikely(!FileServerRx_CheckVersion(p, fd, rn))) {
     N_LOGD("Ls fd=%d drop=version-changed rn-version=%" PRIu64 " fd-version=%" PRIu64, fd->fd,
            rn.version, fd->version);
     goto UNREF;

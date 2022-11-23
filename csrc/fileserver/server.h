@@ -36,6 +36,7 @@ typedef struct FileServer
   FileServerFd* fdHt;
   struct cds_list_head fdQ;
   TscDuration statValidity;
+  uint32_t versionBypassHi;
 
   uint32_t uringCongestionLbound;
   uint32_t uringWaitLbound;

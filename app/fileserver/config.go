@@ -1,6 +1,8 @@
 package fileserver
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
@@ -77,7 +79,7 @@ type Config struct {
 	UringCapacity int `json:"uringCapacity,omitempty" gqldesc:"uring submission queue size."`
 
 	// UringCongestionThres is the uring occupancy threshold to start inserting congestion marks.
-	// If uring occupancy ratio exceeds this threshold, congestion marks are added to some outgoing Data packets
+	// If uring occupancy ratio exceeds this threshold, congestion marks are added to some outgoing Data packets.
 	// This must be between 0.0 (exclusive) and 1.0 (exclusive); it should be smaller than UringWaitThres.
 	UringCongestionThres float64 `json:"uringCongestionThres,omitempty" gqldesc:"uring occupancy threshold to start inserting congestion marks."`
 
@@ -98,9 +100,14 @@ type Config struct {
 	// StatValidity is the validity period of statx result.
 	StatValidity nnduration.Nanoseconds `json:"statValidity,omitempty" gqldesc:"statx result validity period."`
 
+	// WantVersionBypass allows setting special values in version component to bypass version check.
+	// This is intended for fileserver benchmarks and should not be set in normal operation.
+	WantVersionBypass bool `json:"wantVersionBypass,omitempty" gqldesc:"Allow bypassing version check in benchmarks."`
+
 	payloadHeadroom       int
 	uringCongestionLbound int
 	uringWaitLbound       int
+	versionBypassHi       uint32
 }
 
 // Validate applies defaults and validates the configuration.
@@ -159,6 +166,14 @@ func (cfg *Config) Validate() error {
 		return e
 	}
 
+	if cfg.WantVersionBypass {
+		var value [4]byte
+		rand.Read(value[:])
+		cfg.versionBypassHi = binary.LittleEndian.Uint32(value[:]) | 0xFF000000
+	} else {
+		cfg.versionBypassHi = 0
+	}
+
 	return nil
 }
 
@@ -182,20 +197,20 @@ func (cfg *Config) checkPayloadMempool() error {
 		)
 	}
 
-	suggest := pktmbuf.DefaultHeadroom + ndni.NameMaxLength +
+	suggestDataroom := pktmbuf.DefaultHeadroom + ndni.NameMaxLength +
 		generic.Max(cfg.SegmentLen, ndni.NameMaxLength+EstimatedMetadataSize) + ndni.DataEncNullSigLen + 64
-	if tpl.Dataroom < suggest {
+	if tpl.Dataroom < suggestDataroom {
 		logger.Warn("PAYLOAD dataroom too small for configured segmentLen, Interests with long names may be dropped",
 			zap.Int("configured-dataroom", tpl.Dataroom),
 			zap.Int("configured-segmentlen", cfg.SegmentLen),
-			zap.Int("suggested-dataroom", suggest),
+			zap.Int("suggested-dataroom", suggestDataroom),
 		)
 	}
 
 	cfg.payloadHeadroom = tpl.Dataroom - ndni.DataEncNullSigLen - generic.Max(cfg.SegmentLen, EstimatedMetadataSize)
 	if cfg.payloadHeadroom < pktmbuf.DefaultHeadroom {
 		return fmt.Errorf("PAYLOAD dataroom %d too small for segmentLen %d; increase PAYLOAD dataroom to %d",
-			tpl.Dataroom, cfg.SegmentLen, suggest)
+			tpl.Dataroom, cfg.SegmentLen, suggestDataroom)
 	}
 	return nil
 }

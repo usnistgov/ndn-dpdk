@@ -126,7 +126,7 @@ func defineStdinJSONCommand(opts stdinJSONCommand) {
 			loader, stdin := gojsonschema.NewReaderLoader(os.Stdin)
 			decoder := json.NewDecoder(stdin)
 
-			hasInput := make(chan bool, 1)
+			hasInput := make(chan struct{})
 			go func() {
 				delay := time.NewTimer(2 * time.Second)
 				defer delay.Stop()
@@ -138,7 +138,7 @@ func defineStdinJSONCommand(opts stdinJSONCommand) {
 			}()
 
 			e := decoder.Decode(&arg)
-			hasInput <- true
+			close(hasInput)
 			if e != nil {
 				return e
 			}
@@ -202,7 +202,7 @@ func (r request) subscribe(ctx context.Context, cb reflect.Value) error {
 		if cb.IsNil() {
 			break
 		}
-		if t := cb.Type(); t.NumIn() == 1 && (t.NumOut() == 0 || (t.NumOut() == 1 && t.Out(0) == reflect.TypeOf(true))) {
+		if t := cb.Type(); t.NumIn() == 1 && (t.NumOut() == 0 || (t.NumOut() == 1 && t.Out(0).Kind() == reflect.Bool)) {
 			elemTyp = t.In(0)
 			break
 		}

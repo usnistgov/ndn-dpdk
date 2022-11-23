@@ -70,12 +70,12 @@ func (FileServerFixture) LastSeg(t testing.TB, finalBlock ndn.NameComponent) (la
 	return
 }
 
-func (FileServerFixture) DecrementVersion(name ndn.Name) ndn.Name {
+func (FileServerFixture) ChangeVersion(name ndn.Name, f func(uint64) uint64) ndn.Name {
 	name = slices.Clone(name)
 	versionComp := &name[len(name)-1]
 	var version tlv.NNI
 	if version.UnmarshalBinary(versionComp.Value) == nil {
-		version--
+		version = tlv.NNI(f(uint64(version)))
 		versionComp.Value = version.Encode(nil)
 	}
 	return name
@@ -148,6 +148,7 @@ func TestServer(t *testing.T) {
 		KeepFds:      100,
 	}
 	f := newFileServerFixture(t, cfg)
+	assert.Zero(f.p.VersionBypassHi)
 
 	t.Run("_", func(t *testing.T) {
 		for _, tt := range []struct {
@@ -461,12 +462,14 @@ func TestFuse(t *testing.T) {
 		Mounts: []fileserver.Mount{
 			{Prefix: ndn.ParseName("/fs"), Path: dir},
 		},
-		SegmentLen:   1200,
-		StatValidity: nnduration.Nanoseconds(100 * time.Millisecond),
-		OpenFds:      500,
-		KeepFds:      12,
+		SegmentLen:        1200,
+		StatValidity:      nnduration.Nanoseconds(100 * time.Millisecond),
+		OpenFds:           500,
+		KeepFds:           12,
+		WantVersionBypass: true,
 	}
 	f := newFileServerFixture(t, cfg)
+	assert.NotZero(f.p.VersionBypassHi)
 
 	fs.atime = time.Unix(1643976000, 0)
 	fs.ctime = time.Unix(1637712000, 0)
@@ -531,7 +534,7 @@ func TestFuse(t *testing.T) {
 				t.Parallel()
 				assert, _ := makeAR(t)
 
-				name := f.DecrementVersion(m.Name)
+				name := f.ChangeVersion(m.Name, func(version uint64) uint64 { return version - 1 })
 				_, e := f.FetchPayloadOpts(name, segmented.FetchOptions{})
 				assert.Error(e)
 			})
@@ -599,9 +602,19 @@ func TestFuse(t *testing.T) {
 				t.Parallel()
 				assert, _ := makeAR(t)
 
-				name := f.DecrementVersion(m.Name)
+				name := f.ChangeVersion(m.Name, func(version uint64) uint64 { return version - 1 })
 				_, e := f.FetchPayloadOpts(name, segmented.FetchOptions{})
 				assert.Error(e)
+			})
+
+			t.Run("bypass-version", func(t *testing.T) {
+				t.Parallel()
+				assert, _ := makeAR(t)
+
+				name := f.ChangeVersion(m.Name, func(version uint64) uint64 { return uint64(f.p.VersionBypassHi)<<32 | uint64(rand.Uint32()) })
+				lastSeg := tlv.NNI(0)
+				_, e := f.FetchPayload(name, &lastSeg)
+				assert.NoError(e)
 			})
 		})
 

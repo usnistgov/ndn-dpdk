@@ -62,6 +62,17 @@ func init() {
 					return p.Source.(*Server).Counters(), nil
 				},
 			},
+			"versionBypassHi": &graphql.Field{
+				Description: "High 32 bits of special version values to bypass version check in benchmarks.",
+				Type:        gqlserver.Uint64,
+				Resolve: func(p graphql.ResolveParams) (any, error) {
+					server := p.Source.(*Server)
+					if server.VersionBypassHi == 0 {
+						return nil, nil
+					}
+					return server.VersionBypassHi, nil
+				},
+			},
 		}),
 	}, tggql.NodeConfig(&GqlRetrieveByFaceID))
 }

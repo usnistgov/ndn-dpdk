@@ -17,6 +17,7 @@ export interface FileServerConfig {
   openFds?: Uint;
   keepFds?: Uint;
   statValidity?: NNNanoseconds;
+  wantVersionBypass?: boolean;
 }
 
 /**

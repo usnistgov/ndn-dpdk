@@ -14,8 +14,9 @@ var logger = logging.New("fileserver")
 
 // Server represents a file server.
 type Server struct {
-	workers []*worker
-	mounts  []Mount
+	mounts          []Mount
+	workers         []*worker
+	VersionBypassHi uint32
 }
 
 var _ tgdef.Producer = &Server{}
@@ -83,7 +84,10 @@ func New(face iface.Face, cfg Config) (p *Server, e error) {
 
 	faceID, socket := face.ID(), face.NumaSocket()
 
-	p = &Server{}
+	p = &Server{
+		VersionBypassHi: cfg.versionBypassHi,
+	}
+
 	for _, m := range cfg.Mounts {
 		if e := m.openDirectory(); e != nil {
 			must.Close(p)
