@@ -23,6 +23,16 @@ This is a web application that performs simple benchmark of NDN-DPDK forwarder.
 2. Setup CPU isolation, see [performance tuning](../../docs/tuning.md) "CPU isolation" section.
 3. Follow through [forwarder activation](../../docs/forwarder.md) "ndnping" scenario to ensure the forwarder works.
 
+### File Server Preparation
+
+If fileserver benchmark is desired, create a directory on the traffic generator host, and populate the files with these commands:
+
+```bash
+mkdir _
+dd if=/dev/urandom of=_/32GB.bin bs=1G count=32
+for I in $(seq 0 11); do ln -s _ $I; done
+```
+
 ### Usage
 
 1. Run `corepack pnpm install` to install dependencies.

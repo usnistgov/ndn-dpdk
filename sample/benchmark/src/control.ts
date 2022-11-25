@@ -1,4 +1,4 @@
-import { type ActivateFwArgs, type ActivateGenArgs, type FaceLocator, type FetchCounters, type FetcherConfig, type FetchTaskDef, type TgpConfig, gql, GqlClient } from "@usnistgov/ndn-dpdk";
+import { type ActivateFwArgs, type ActivateGenArgs, type FaceLocator, type FetchCounters, type FetcherConfig, type FetchTaskDef, type FileServerConfig, type TgpConfig, gql, GqlClient } from "@usnistgov/ndn-dpdk";
 import delay from "delay";
 
 class GqlControlBase {
@@ -94,35 +94,53 @@ export class GqlFwControl extends GqlControlBase {
 }
 
 export class GqlGenControl extends GqlControlBase {
-  public async startTrafficGen(face: FaceLocator, producer: TgpConfig, fetcher: FetcherConfig): Promise<{ id: string; face: string; producer: string; fetcher: string }> {
+  public async startTrafficGen(vars: {
+    face: FaceLocator;
+    producer?: TgpConfig;
+    fileServer?: FileServerConfig;
+    fetcher?: FetcherConfig;
+  }): Promise<{
+        id: string;
+        face: string;
+        producer?: string;
+        fileServer?: string;
+        fileServerVersionByPassHi?: number;
+        fetcher?: string;
+      }> {
     const result = await this.c.request<{
       id: string;
       face: { id: string };
-      producer: { id: string };
-      fetcher: { id: string };
+      producer?: { id: string };
+      fileServer?: { id: string; versionBypassHi: number };
+      fetcher?: { id: string };
     }>(gql`
       mutation startTrafficGen(
         $face: JSON!
-        $producer: TgpConfigInput!
-        $fetcher: FetcherConfigInput!
+        $producer: TgpConfigInput
+        $fileServer: FileServerConfigInput
+        $fetcher: FetcherConfigInput
       ) {
         startTrafficGen(
           face: $face
           producer: $producer
+          fileServer: $fileServer
           fetcher: $fetcher
         ) {
           id
           face { id }
           producer { id }
+          fileServer { id versionBypassHi }
           fetcher { id }
         }
       }
-    `, { face, producer, fetcher }, { key: "startTrafficGen" });
+    `, vars, { key: "startTrafficGen" });
     return {
       id: result.id,
       face: result.face.id,
-      producer: result.producer.id,
-      fetcher: result.fetcher.id,
+      producer: result.producer?.id,
+      fileServer: result.fileServer?.id,
+      fileServerVersionByPassHi: result.fileServer?.versionBypassHi,
+      fetcher: result.fetcher?.id,
     };
   }
 

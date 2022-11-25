@@ -16,7 +16,7 @@ function parseToInteger(s: string): any {
   return Number.parseInt(s, 10);
 }
 
-function alsoUpdateRxQueues(field: keyof BenchmarkOptions) {
+function onFaceSchemeChange(field: keyof BenchmarkOptions) {
   return (scheme: BenchmarkOptions.FaceScheme): Partial<BenchmarkOptions> | undefined => {
     if (scheme !== "vxlan") {
       return { [field]: 1 };
@@ -25,9 +25,9 @@ function alsoUpdateRxQueues(field: keyof BenchmarkOptions) {
   };
 }
 
-function alsoUpdateDataMatch(producerKind: BenchmarkOptions.ProducerKind): Partial<BenchmarkOptions> | undefined {
+function onProducerKindChange(producerKind: BenchmarkOptions.ProducerKind): Partial<BenchmarkOptions> | undefined {
   if (producerKind !== "pingserver") {
-    return { dataMatch: "exact" };
+    return { interestNameLen: 5, dataMatch: "exact" };
   }
   return undefined;
 }
@@ -56,7 +56,7 @@ export class BenchmarkOptionsEditor extends Component<Props> {
       <fieldset class="benchmark-options-editor">
         <div class="pure-control-group">
           <label for={`${this.id}.faceAScheme`}>face A scheme</label>
-          <select id={`${this.id}.faceAScheme`} value={faceAScheme} disabled={disabled} onChange={this.handleUpdate("faceAScheme", parseToString, alsoUpdateRxQueues("faceARxQueues"))}>
+          <select id={`${this.id}.faceAScheme`} value={faceAScheme} disabled={disabled} onChange={this.handleUpdate("faceAScheme", parseToString, onFaceSchemeChange("faceARxQueues"))}>
             <option value="ether">Ethernet</option>
             <option value="vxlan">VXLAN</option>
             <option value="memif">memif</option>
@@ -68,7 +68,7 @@ export class BenchmarkOptionsEditor extends Component<Props> {
         </div>
         <div class="pure-control-group">
           <label for={`${this.id}.faceBScheme`}>face B scheme</label>
-          <select id={`${this.id}.faceBScheme`} value={faceBScheme} disabled={disabled} onChange={this.handleUpdate("faceBScheme", parseToString, alsoUpdateRxQueues("faceBRxQueues"))}>
+          <select id={`${this.id}.faceBScheme`} value={faceBScheme} disabled={disabled} onChange={this.handleUpdate("faceBScheme", parseToString, onFaceSchemeChange("faceBRxQueues"))}>
             <option value="ether">Ethernet</option>
             <option value="vxlan">VXLAN</option>
             <option value="memif">memif</option>
@@ -84,17 +84,16 @@ export class BenchmarkOptionsEditor extends Component<Props> {
         </div>
         <div class="pure-control-group">
           <label for={`${this.id}.producerKind`}>producer kind</label>
-          <select id={`${this.id}.producerKind`} value={producerKind} disabled={disabled} onChange={this.handleUpdate("producerKind", parseToString, alsoUpdateDataMatch)}>
+          <select id={`${this.id}.producerKind`} value={producerKind} disabled={disabled} onChange={this.handleUpdate("producerKind", parseToString, onProducerKindChange)}>
             <option value="pingserver">pingserver</option>
             <option value="fileserver">fileserver</option>
           </select>
-          <span class="pure-form-message-inline">not implemented</span>
         </div>
         <div class="pure-control-group">
           <label for={`${this.id}.payloadLen`}>payload length</label>
           <input id={`${this.id}.payloadLen`} type="number" min="100" max="8000" step="100" value={payloadLen} disabled={disabled} onChange={this.handleUpdate("payloadLen", parseToInteger)}/>
         </div>
-        <div class="pure-control-group">
+        <div class="pure-control-group" hidden={producerKind !== "pingserver"}>
           <label for={`${this.id}.interestNameLen`}>Interest name length</label>
           <input id={`${this.id}.interestNameLen`} type="number" min="3" max="15" value={interestNameLen} disabled={disabled} onChange={this.handleUpdate("interestNameLen", parseToInteger)}/>
         </div>

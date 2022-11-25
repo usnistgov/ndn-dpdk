@@ -53,6 +53,7 @@ const env = makeEnv({
   G_NUMA_PRIMARY: { envVarName: "G_NUMA_PRIMARY", parser: parsers.nonNegativeInteger, required: true },
   G_CORES_PRIMARY: { envVarName: "G_CORES_PRIMARY", parser: parseCores(8), required: true },
   G_CORES_SECONDARY: { envVarName: "G_CORES_SECONDARY", parser: parseCores(1), required: true },
+  G_FILESERVER_PATH: { envVarName: "G_FILESERVER_PATH", parser: parsers.string, required: true },
 });
 
 const publicDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "public");

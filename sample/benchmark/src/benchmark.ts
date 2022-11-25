@@ -1,4 +1,4 @@
-import { type ActivateFwArgs, type ActivateGenArgs, type EtherLocator, type FaceLocator, type FetcherConfig, type FetchTaskDef, type TgpConfig, type VxlanLocator } from "@usnistgov/ndn-dpdk";
+import { type ActivateFwArgs, type ActivateGenArgs, type EtherLocator, type FaceLocator, type FetchTaskDef, type FileServerConfig, type TgpConfig, type VxlanLocator } from "@usnistgov/ndn-dpdk";
 import delay from "delay";
 
 import { GqlFwControl, GqlGenControl } from "./control";
@@ -14,11 +14,7 @@ export interface ServerEnv {
   G_NUMA_PRIMARY: number;
   G_CORES_PRIMARY: number[];
   G_CORES_SECONDARY: number[];
-}
-
-function splitPortVlan(s: string): [pciAddr: string, vlan: number | undefined] {
-  const [pciAddr, vlan] = s.split("+");
-  return [pciAddr, vlan === undefined ? undefined : Number.parseInt(vlan, 10)];
+  G_FILESERVER_PATH: string;
 }
 
 export interface BenchmarkOptions {
@@ -44,6 +40,7 @@ export interface BenchmarkState {
   face: Record<string, string>;
   ndtDuplicate: boolean;
   fetcher: Record<string, string>;
+  fileServerVersionByPassBase: Record<string, bigint>;
   tasks: Record<string, string[]>;
 }
 
@@ -127,11 +124,6 @@ export class Benchmark {
   public async setupTrafficGen(): Promise<void> {
     await this.cG.restart();
 
-    const {
-      nFwds,
-      dataMatch,
-      payloadLen,
-    } = this.opts;
     const arg: ActivateGenArgs = {
       eal: {
         cores: [...this.env.G_CORES_PRIMARY, ...this.env.G_CORES_SECONDARY],
@@ -140,6 +132,7 @@ export class Benchmark {
       mempool: {
         DIRECT: { capacity: 1048575, dataroom: 9146 },
         INDIRECT: { capacity: 2097151 },
+        PAYLOAD: { capacity: 16383 },
       },
     };
     await this.cG.activate("trafficgen", arg);
@@ -149,26 +142,16 @@ export class Benchmark {
         await delay(100);
       }
       const locator = await this.prepareLocator(this.cG, this.env.G_PORTS[i]!, label);
-      const producer: TgpConfig = {
-        nThreads: 1,
-        patterns: [],
-      };
-      for (let j = 0; j < nFwds; ++j) {
-        producer.patterns.push({
-          prefix: `/${label}/${j}`,
-          replies: [{
-            suffix: dataMatch === "exact" ? undefined : "/d",
-            payloadLen,
-            freshnessPeriod: 1,
-          }],
-        });
-      }
-      const fetcher: FetcherConfig = {
-        nThreads: 1,
-        nTasks: nFwds,
-      };
-      const result = await this.cG.startTrafficGen(locator, producer, fetcher);
-      this.state.fetcher[label] = result.fetcher;
+      const result = await this.cG.startTrafficGen({
+        face: locator,
+        ...this.makeProducerConfig(label),
+        fetcher: {
+          nThreads: 1,
+          nTasks: this.opts.nFwds,
+        },
+      });
+      this.state.fetcher[label] = result.fetcher!;
+      this.state.fileServerVersionByPassBase[label] = BigInt(result.fileServerVersionByPassHi ?? 0) << 32n;
     }
   }
 
@@ -185,7 +168,7 @@ export class Benchmark {
       };
     }
 
-    const [pciAddr, vlan] = splitPortVlan(portVlan);
+    const [pciAddr, vlan] = portVlan.split("+");
     const port = await ctrl.createEthPort(pciAddr);
     const nRxQueues = this.opts[`face${faceLabel}RxQueues`];
     const macAddrLastOctet = faceLabel.codePointAt(0)!.toString(16).padStart(2, "0");
@@ -194,39 +177,69 @@ export class Benchmark {
       nRxQueues,
       local: `02:00:00:00:${isForwarder ? "00" : "01"}:${macAddrLastOctet}`,
       remote: `02:00:00:00:${isForwarder ? "01" : "00"}:${macAddrLastOctet}`,
-      vlan,
+      vlan: vlan === undefined ? undefined : Number.parseInt(vlan, 10),
       ...(scheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
     };
   }
 
-  public async run(): Promise<Throughput> {
+  private makeProducerConfig(label: string): { producer?: TgpConfig; fileServer?: FileServerConfig } {
     const {
       nFwds,
-      interestNameLen,
+      producerKind,
       dataMatch,
+      payloadLen,
+    } = this.opts;
+
+    switch (producerKind) {
+      case "pingserver": {
+        const producer: TgpConfig = {
+          nThreads: 1,
+          patterns: [],
+        };
+        for (let j = 0; j < nFwds; ++j) {
+          producer.patterns.push({
+            prefix: `/${label}/${j}`,
+            replies: [{
+              suffix: dataMatch === "exact" ? undefined : "/d",
+              payloadLen,
+              freshnessPeriod: 1,
+            }],
+          });
+        }
+        return { producer };
+      }
+      case "fileserver": {
+        const fileServer: FileServerConfig = {
+          nThreads: 1,
+          mounts: [{
+            prefix: `/${label}`,
+            path: this.env.G_FILESERVER_PATH,
+          }],
+          segmentLen: payloadLen,
+          wantVersionBypass: true,
+        };
+        return { fileServer };
+      }
+    }
+  }
+
+  public async run(): Promise<Throughput> {
+    const {
       payloadLen,
       warmup,
       duration,
     } = this.opts;
-    await Promise.all(DIRECTIONS.map(async ([label, dest]) => {
-      const tasks: FetchTaskDef[] = [];
-      for (let j = 0; j < nFwds; ++j) {
-        tasks.push({
-          prefix: `/${dest}/${j}${"/i".repeat(interestNameLen - 3)}`,
-          canBePrefix: dataMatch === "prefix",
-          mustBeFresh: true,
-        });
-      }
-      this.state.tasks[label] = await this.cG.startFetch(this.state.fetcher[label], tasks);
-    }));
+
+    await this.fetchStart();
+
     await delay(1000 * warmup);
     const cnts0 = await Promise.all(DIRECTIONS.map(([label]) => this.cG.getFetchProgress(this.state.tasks[label])));
     await delay(1000 * duration);
     const cnts1 = await Promise.all(DIRECTIONS.map(([label]) => this.cG.getFetchProgress(this.state.tasks[label])));
     await Promise.all(DIRECTIONS.map(([label]) => this.cG.stopFetch(this.state.tasks[label])));
 
-    let totalPackets = 0; let
-      totalElapsedSeconds = 0;
+    let totalPackets = 0;
+    let totalElapsedSeconds = 0;
     for (const [i, cnt0d] of cnts0.entries()) {
       for (const [j, cnt0] of cnt0d.entries()) {
         const cnt1 = cnts1[i]![j]!;
@@ -241,12 +254,46 @@ export class Benchmark {
       bps: pps * payloadLen * 8,
     };
   }
+
+  private async fetchStart(): Promise<void> {
+    const fileVersionTime = BigInt.asUintN(24, BigInt(Math.trunc(Date.now() / 1000))) << 8n;
+    const {
+      nFwds,
+      producerKind,
+      interestNameLen,
+      dataMatch,
+    } = this.opts;
+    await Promise.all(DIRECTIONS.map(async ([label, dest]) => {
+      const tasks: FetchTaskDef[] = [];
+      for (let j = 0; j < nFwds; ++j) {
+        switch (producerKind) {
+          case "pingserver":
+            tasks.push({
+              prefix: `/${dest}/${j}${"/i".repeat(interestNameLen - 3)}`,
+              canBePrefix: dataMatch === "prefix",
+              mustBeFresh: true,
+            });
+            break;
+          case "fileserver": {
+            const fileVersion = this.state.fileServerVersionByPassBase[dest] | fileVersionTime | BigInt(j);
+            const fileVersionCompV = fileVersion.toString(16).toUpperCase().padStart(16, "0").replace(/[\dA-F]{2}/g, "%$&");
+            tasks.push({
+              prefix: `/${dest}/${j}/32GB.bin/54=${fileVersionCompV}`,
+            });
+            break;
+          }
+        }
+      }
+      this.state.tasks[label] = await this.cG.startFetch(this.state.fetcher[label], tasks);
+    }));
+  }
 }
 
 const initialState: BenchmarkState = {
   face: {},
   ndtDuplicate: false,
   fetcher: {},
+  fileServerVersionByPassBase: {},
   tasks: {},
 };
 

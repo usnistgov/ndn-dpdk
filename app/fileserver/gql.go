@@ -64,7 +64,7 @@ func init() {
 			},
 			"versionBypassHi": &graphql.Field{
 				Description: "High 32 bits of special version values to bypass version check in benchmarks.",
-				Type:        gqlserver.Uint64,
+				Type:        gqlserver.Uint32,
 				Resolve: func(p graphql.ResolveParams) (any, error) {
 					server := p.Source.(*Server)
 					if server.VersionBypassHi == 0 {

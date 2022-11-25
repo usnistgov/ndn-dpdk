@@ -14,10 +14,12 @@ var (
 	Bytes  = go2gql_scalars.GraphQLBytesScalar
 	Uint64 = go2gql_scalars.GraphQLUInt64Scalar
 	Int64  = go2gql_scalars.GraphQLInt64Scalar
+	Uint32 = go2gql_scalars.GraphQLUInt32Scalar
 
 	NonNullJSON    = graphql.NewNonNull(JSON)
 	NonNullUint64  = graphql.NewNonNull(Uint64)
 	NonNullInt64   = graphql.NewNonNull(Int64)
+	NonNullUint32  = graphql.NewNonNull(Uint64)
 	NonNullID      = graphql.NewNonNull(graphql.ID)
 	NonNullBoolean = graphql.NewNonNull(graphql.Boolean)
 	NonNullInt     = graphql.NewNonNull(graphql.Int)
