@@ -15,17 +15,7 @@ import devMiddleware from "webpack-dev-middleware";
 
 const { makeEnv, parsers, EnvironmentVariableError } = Environment;
 
-/** @returns {Environment.Parser<readonly string[]>} */
-function parsePorts() {
-  const parseArray = parsers.array({ parser: parsers.regex(/^[\da-f]{2}:[\da-f]{2}\.[\da-f](?:\+\d+)?$/i) });
-  return (s) => {
-    const a = parseArray(s);
-    if (a.length !== 2) {
-      throw new EnvironmentVariableError("expect exactly two Ethernet adapters");
-    }
-    return a;
-  };
-}
+const parsePort = parsers.regex(/^[\da-f]{2}:[\da-f]{2}\.[\da-f](?:\+\d+)?$/i);
 
 /**
  * @param {number} min
@@ -44,16 +34,23 @@ function parseCores(min) {
 
 const env = makeEnv({
   F_GQLSERVER: { envVarName: "F_GQLSERVER", parser: parsers.url, required: true },
-  F_PORTS: { envVarName: "F_PORTS", parser: parsePorts(), required: true },
+  F_PORT_A: { envVarName: "F_PORT_A", parser: parsePort, required: true },
+  F_PORT_B: { envVarName: "F_PORT_B", parser: parsePort, required: true },
   F_NUMA_PRIMARY: { envVarName: "F_NUMA_PRIMARY", parser: parsers.nonNegativeInteger, required: true },
   F_CORES_PRIMARY: { envVarName: "F_CORES_PRIMARY", parser: parseCores(5), required: true },
   F_CORES_SECONDARY: { envVarName: "F_CORES_SECONDARY", parser: parseCores(2), required: true },
-  G_GQLSERVER: { envVarName: "G_GQLSERVER", parser: parsers.url, required: true },
-  G_PORTS: { envVarName: "G_PORTS", parser: parsePorts(), required: true },
-  G_NUMA_PRIMARY: { envVarName: "G_NUMA_PRIMARY", parser: parsers.nonNegativeInteger, required: true },
-  G_CORES_PRIMARY: { envVarName: "G_CORES_PRIMARY", parser: parseCores(8), required: true },
-  G_CORES_SECONDARY: { envVarName: "G_CORES_SECONDARY", parser: parseCores(1), required: true },
-  G_FILESERVER_PATH: { envVarName: "G_FILESERVER_PATH", parser: parsers.string, required: true },
+  A_GQLSERVER: { envVarName: "A_GQLSERVER", parser: parsers.url, required: true },
+  A_PORT_F: { envVarName: "A_PORT_F", parser: parsePort, required: true },
+  A_NUMA_PRIMARY: { envVarName: "A_NUMA_PRIMARY", parser: parsers.nonNegativeInteger, required: true },
+  A_CORES_PRIMARY: { envVarName: "A_CORES_PRIMARY", parser: parseCores(5), required: true },
+  A_CORES_SECONDARY: { envVarName: "A_CORES_SECONDARY", parser: parseCores(1), required: true },
+  A_FILESERVER_PATH: { envVarName: "A_FILESERVER_PATH", parser: parsers.string, required: true },
+  B_GQLSERVER: { envVarName: "B_GQLSERVER", parser: parsers.url, required: true },
+  B_PORT_F: { envVarName: "B_PORT_F", parser: parsePort, required: true },
+  B_NUMA_PRIMARY: { envVarName: "B_NUMA_PRIMARY", parser: parsers.nonNegativeInteger, required: true },
+  B_CORES_PRIMARY: { envVarName: "B_CORES_PRIMARY", parser: parseCores(5), required: true },
+  B_CORES_SECONDARY: { envVarName: "B_CORES_SECONDARY", parser: parseCores(1), required: true },
+  B_FILESERVER_PATH: { envVarName: "B_FILESERVER_PATH", parser: parsers.string, required: true },
 });
 
 const publicDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "public");
@@ -88,7 +85,8 @@ await fastify.register(FastifyStatic, { root: publicDir });
 
 for (const u of [
   { upstream: env.F_GQLSERVER, prefix: "/F" },
-  { upstream: env.G_GQLSERVER, prefix: "/G" },
+  { upstream: env.A_GQLSERVER, prefix: "/A" },
+  { upstream: env.B_GQLSERVER, prefix: "/B" },
 ]) {
   await fastify.register(FastifyProxy, {
     ...u,
@@ -100,7 +98,8 @@ for (const u of [
 fastify.get("/env.json", () => ({
   ...env,
   F_GQLSERVER: "/F",
-  G_GQLSERVER: "/G",
+  A_GQLSERVER: "/A",
+  B_GQLSERVER: env.A_GQLSERVER === env.B_GQLSERVER ? "/A" : "/B",
 }));
 
 await fastify.listen({

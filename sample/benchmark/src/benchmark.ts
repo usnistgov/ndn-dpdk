@@ -5,16 +5,23 @@ import { GqlFwControl, GqlGenControl } from "./control";
 
 export interface ServerEnv {
   F_GQLSERVER: string;
-  F_PORTS: string[];
+  F_PORT_A: string;
+  F_PORT_B: string;
   F_NUMA_PRIMARY: number;
   F_CORES_PRIMARY: number[];
   F_CORES_SECONDARY: number[];
-  G_GQLSERVER: string;
-  G_PORTS: string[];
-  G_NUMA_PRIMARY: number;
-  G_CORES_PRIMARY: number[];
-  G_CORES_SECONDARY: number[];
-  G_FILESERVER_PATH: string;
+  A_GQLSERVER: string;
+  A_PORT_F: string;
+  A_NUMA_PRIMARY: number;
+  A_CORES_PRIMARY: number[];
+  A_CORES_SECONDARY: number[];
+  A_FILESERVER_PATH: string;
+  B_GQLSERVER: string;
+  B_PORT_F: string;
+  B_NUMA_PRIMARY: number;
+  B_CORES_PRIMARY: number[];
+  B_CORES_SECONDARY: number[];
+  B_FILESERVER_PATH: string;
 }
 
 export interface BenchmarkOptions {
@@ -56,16 +63,19 @@ export class Benchmark {
       signal: AbortSignal,
   ) {
     this.cF = new GqlFwControl(env.F_GQLSERVER);
-    this.cG = new GqlGenControl(env.G_GQLSERVER);
+    this.cA = new GqlGenControl(env.A_GQLSERVER);
+    this.cB = env.A_GQLSERVER === env.B_GQLSERVER ? this.cA : new GqlGenControl(env.B_GQLSERVER);
     this.state = JSON.parse(JSON.stringify(initialState));
     signal.addEventListener("abort", () => {
       this.cF.close();
-      this.cG.close();
+      this.cA.close();
+      this.cB.close();
     });
   }
 
   private readonly cF: GqlFwControl;
-  private readonly cG: GqlGenControl;
+  private readonly cA: GqlGenControl;
+  private readonly cB: GqlGenControl;
   private state: BenchmarkState;
 
   public async setupForwarder(): Promise<void> {
@@ -106,8 +116,8 @@ export class Benchmark {
     await this.cF.activate("forwarder", arg);
 
     const seenNdtIndices = new Set<number>();
-    for (const [i, [label]] of DIRECTIONS.entries()) {
-      const face = await this.cF.createFace(await this.prepareLocator(this.cF, this.env.F_PORTS[i]!, label));
+    for (const [label] of DIRECTIONS) {
+      const face = await this.cF.createFace(await this.prepareLocator(this.cF, this.env[`F_PORT_${label}`], label));
       this.state.face[label] = face;
 
       for (let j = 0; j < nFwds; ++j) {
@@ -122,27 +132,33 @@ export class Benchmark {
   }
 
   public async setupTrafficGen(): Promise<void> {
-    await this.cG.restart();
+    await Promise.all([
+      this.cA.restart(),
+      this.cA === this.cB ? undefined : this.cB.restart(),
+    ]);
 
-    const arg: ActivateGenArgs = {
-      eal: {
-        cores: [...this.env.G_CORES_PRIMARY, ...this.env.G_CORES_SECONDARY],
-        lcoreMain: this.env.G_CORES_SECONDARY[0],
-      },
-      mempool: {
-        DIRECT: { capacity: 1048575, dataroom: 9146 },
-        INDIRECT: { capacity: 2097151 },
-        PAYLOAD: { capacity: 16383 },
-      },
-    };
-    await this.cG.activate("trafficgen", arg);
+    for (const [label] of DIRECTIONS) {
+      const arg: ActivateGenArgs = {
+        eal: {
+          cores: [...this.env[`${label}_CORES_PRIMARY`], ...this.env[`${label}_CORES_SECONDARY`]],
+          lcoreMain: this.env[`${label}_CORES_SECONDARY`][0],
+        },
+        mempool: {
+          DIRECT: { capacity: 65535, dataroom: 9146 },
+          INDIRECT: { capacity: 1048575 },
+          PAYLOAD: { capacity: 16383 },
+        },
+      };
+      await this[`c${label}`].activate("trafficgen", arg);
+    }
 
-    for (const [i, [label]] of DIRECTIONS.entries()) {
+    for (const [label] of DIRECTIONS) {
+      const ctrl = this[`c${label}`];
       while (!this.state.face[label]) {
         await delay(100);
       }
-      const locator = await this.prepareLocator(this.cG, this.env.G_PORTS[i]!, label);
-      const result = await this.cG.startTrafficGen({
+      const locator = await this.prepareLocator(ctrl, this.env[`${label}_PORT_F`], label);
+      const result = await ctrl.startTrafficGen({
         face: locator,
         ...this.makeProducerConfig(label),
         fetcher: {
@@ -213,7 +229,7 @@ export class Benchmark {
           nThreads: 1,
           mounts: [{
             prefix: `/${label}`,
-            path: this.env.G_FILESERVER_PATH,
+            path: this.env[`${label}_FILESERVER_PATH`],
           }],
           segmentLen: payloadLen,
           wantVersionBypass: true,
@@ -233,10 +249,10 @@ export class Benchmark {
     await this.fetchStart();
 
     await delay(1000 * warmup);
-    const cnts0 = await Promise.all(DIRECTIONS.map(([label]) => this.cG.getFetchProgress(this.state.tasks[label])));
+    const cnts0 = await Promise.all(DIRECTIONS.map(([label]) => this[`c${label}`].getFetchProgress(this.state.tasks[label])));
     await delay(1000 * duration);
-    const cnts1 = await Promise.all(DIRECTIONS.map(([label]) => this.cG.getFetchProgress(this.state.tasks[label])));
-    await Promise.all(DIRECTIONS.map(([label]) => this.cG.stopFetch(this.state.tasks[label])));
+    const cnts1 = await Promise.all(DIRECTIONS.map(([label]) => this[`c${label}`].getFetchProgress(this.state.tasks[label])));
+    await Promise.all(DIRECTIONS.map(([label]) => this[`c${label}`].stopFetch(this.state.tasks[label])));
 
     let totalPackets = 0;
     let totalElapsedSeconds = 0;
@@ -284,7 +300,7 @@ export class Benchmark {
           }
         }
       }
-      this.state.tasks[label] = await this.cG.startFetch(this.state.fetcher[label], tasks);
+      this.state.tasks[label] = await this[`c${label}`].startFetch(this.state.fetcher[label], tasks);
     }));
   }
 }

@@ -71,12 +71,28 @@ export class App extends Component<{}, State> {
 
   private readonly handleStart = () => {
     this.setState(
-      ({ env, opts }) => {
-        const fDemand = 2 * opts.faceARxQueues + 2 + opts.nFwds;
-        const gDemand = 2 * opts.faceARxQueues + 2 + 2 + 2;
-        if (fDemand > env!.F_CORES_PRIMARY.length || gDemand > env!.G_CORES_PRIMARY.length) {
+      ({ env, opts: { faceARxQueues, faceBRxQueues, nFwds } }) => {
+        const demands = {
+          F: faceARxQueues + faceBRxQueues + 2 + nFwds,
+          A: faceARxQueues + 1 + 2,
+          B: faceBRxQueues + 1 + 2,
+        };
+        const nodeLabels = ["F", "A", "B"] as const;
+        if (env!.A_GQLSERVER === env!.B_GQLSERVER) {
+          demands.A += demands.B;
+          (nodeLabels as unknown as string[]).pop();
+        }
+        const errs: string[] = [];
+        for (const label of nodeLabels) {
+          const demand = demands[label];
+          const avail = env![`${label}_CORES_PRIMARY`].length;
+          if (demand > avail) {
+            errs.push(`need ${demand} on ${label} but only ${avail} assigned`);
+          }
+        }
+        if (errs.length > 0) {
           return {
-            message: `insufficient CPU cores: need ${fDemand} on forwarder and ${gDemand} on traffic gen`,
+            message: `insufficient CPU cores: ${errs.join(", ")}`,
           };
         }
 
