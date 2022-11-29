@@ -22,6 +22,7 @@ export class App extends Component<{}, State> {
       faceBScheme: "ether",
       faceBRxQueues: 1,
       nFwds: 4,
+      trafficDir: 2,
       producerKind: "pingserver",
       interestNameLen: 3,
       dataMatch: "exact",

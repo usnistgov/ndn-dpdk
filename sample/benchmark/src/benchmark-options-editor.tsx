@@ -43,6 +43,7 @@ export class BenchmarkOptionsEditor extends Component<Props> {
         faceBScheme,
         faceBRxQueues,
         nFwds,
+        trafficDir,
         producerKind,
         interestNameLen,
         dataMatch,
@@ -81,6 +82,14 @@ export class BenchmarkOptionsEditor extends Component<Props> {
         <div class="pure-control-group">
           <label for={`${this.id}.nFwds`}>forwarding threads</label>
           <input id={`${this.id}.nFwds`} type="number" min="1" max="12" value={nFwds} disabled={disabled} onChange={this.handleUpdate("nFwds", parseToInteger)}/>
+        </div>
+        <div class="pure-control-group">
+          <label for={`${this.id}.trafficDir`}>traffic direction</label>
+          <select id={`${this.id}.trafficDir`} value={trafficDir} disabled={disabled} onChange={this.handleUpdate("trafficDir", parseToInteger)}>
+            <option value="2">bidirectional</option>
+            <option value="1">unidirectional</option>
+          </select>
+          <span class="pure-form-message-inline" hidden={trafficDir !== 1}>producer A and consumer B</span>
         </div>
         <div class="pure-control-group">
           <label for={`${this.id}.producerKind`}>producer kind</label>

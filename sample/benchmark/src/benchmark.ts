@@ -1,4 +1,4 @@
-import { type ActivateFwArgs, type ActivateGenArgs, type EtherLocator, type FaceLocator, type FetchTaskDef, type FileServerConfig, type TgpConfig, type VxlanLocator } from "@usnistgov/ndn-dpdk";
+import type { ActivateFwArgs, ActivateGenArgs, EtherLocator, FaceLocator, FetchCounters, FetchTaskDef, FileServerConfig, TgpConfig, VxlanLocator } from "@usnistgov/ndn-dpdk";
 import delay from "delay";
 
 import { GqlFwControl, GqlGenControl } from "./control";
@@ -30,6 +30,7 @@ export interface BenchmarkOptions {
   faceBScheme: BenchmarkOptions.FaceScheme;
   faceBRxQueues: number;
   nFwds: number;
+  trafficDir: BenchmarkOptions.TrafficDir;
   producerKind: BenchmarkOptions.ProducerKind;
   interestNameLen: number;
   dataMatch: BenchmarkOptions.DataMatch;
@@ -39,6 +40,7 @@ export interface BenchmarkOptions {
 }
 export namespace BenchmarkOptions {
   export type FaceScheme = "ether" | "vxlan" | "memif";
+  export type TrafficDir = 2 | 1;
   export type ProducerKind = "pingserver" | "fileserver";
   export type DataMatch = "exact" | "prefix";
 }
@@ -116,7 +118,7 @@ export class Benchmark {
     await this.cF.activate("forwarder", arg);
 
     const seenNdtIndices = new Set<number>();
-    for (const [label] of DIRECTIONS) {
+    for (const label of tgNodeLabels) {
       const face = await this.cF.createFace(await this.prepareLocator(this.cF, this.env[`F_PORT_${label}`], label));
       this.state.face[label] = face;
 
@@ -132,12 +134,14 @@ export class Benchmark {
   }
 
   public async setupTrafficGen(): Promise<void> {
-    await Promise.all([
-      this.cA.restart(),
-      this.cA === this.cB ? undefined : this.cB.restart(),
-    ]);
+    await Promise.all(tgNodeLabels.map(async (label) => {
+      const ctrl = this[`c${label}`];
+      if (label !== "A" && this.cA === ctrl) {
+        return;
+      }
 
-    for (const [label] of DIRECTIONS) {
+      await ctrl.restart();
+
       const arg: ActivateGenArgs = {
         eal: {
           cores: [...this.env[`${label}_CORES_PRIMARY`], ...this.env[`${label}_CORES_SECONDARY`]],
@@ -149,10 +153,10 @@ export class Benchmark {
           PAYLOAD: { capacity: 16383 },
         },
       };
-      await this[`c${label}`].activate("trafficgen", arg);
-    }
+      await ctrl.activate("trafficgen", arg);
+    }));
 
-    for (const [label] of DIRECTIONS) {
+    for (const label of tgNodeLabels) {
       const ctrl = this[`c${label}`];
       while (!this.state.face[label]) {
         await delay(100);
@@ -171,7 +175,7 @@ export class Benchmark {
     }
   }
 
-  private async prepareLocator(ctrl: GqlFwControl | GqlGenControl, portVlan: string, faceLabel: "A" | "B"): Promise<FaceLocator> {
+  private async prepareLocator(ctrl: GqlFwControl | GqlGenControl, portVlan: string, faceLabel: TgNodeLabel): Promise<FaceLocator> {
     const isForwarder = ctrl === this.cF;
     const scheme = this.opts[`face${faceLabel}Scheme`];
     if (scheme === "memif") {
@@ -201,10 +205,15 @@ export class Benchmark {
   private makeProducerConfig(label: string): { producer?: TgpConfig; fileServer?: FileServerConfig } {
     const {
       nFwds,
+      trafficDir,
       producerKind,
       dataMatch,
       payloadLen,
     } = this.opts;
+
+    if (!trafficDirProducers[trafficDir].includes(label as any)) {
+      return {};
+    }
 
     switch (producerKind) {
       case "pingserver": {
@@ -249,10 +258,10 @@ export class Benchmark {
     await this.fetchStart();
 
     await delay(1000 * warmup);
-    const cnts0 = await Promise.all(DIRECTIONS.map(([label]) => this[`c${label}`].getFetchProgress(this.state.tasks[label])));
+    const cnts0 = await this.fetchProgressCnts();
     await delay(1000 * duration);
-    const cnts1 = await Promise.all(DIRECTIONS.map(([label]) => this[`c${label}`].getFetchProgress(this.state.tasks[label])));
-    await Promise.all(DIRECTIONS.map(([label]) => this[`c${label}`].stopFetch(this.state.tasks[label])));
+    const cnts1 = await this.fetchProgressCnts();
+    await Promise.all(this.eachTrafficDir((cLabel) => this[`c${cLabel}`].stopFetch(this.state.tasks[cLabel])));
 
     let totalPackets = 0;
     let totalElapsedSeconds = 0;
@@ -271,6 +280,13 @@ export class Benchmark {
     };
   }
 
+  private eachTrafficDir<R>(f: (cLabel: TgNodeLabel, pLabel: TgNodeLabel) => R): R[] {
+    return trafficDirProducers[this.opts.trafficDir].map((pLabel: TgNodeLabel) => {
+      const cLabel = trafficDirProducerToConsumer[pLabel];
+      return f(cLabel, pLabel);
+    });
+  }
+
   private async fetchStart(): Promise<void> {
     const fileVersionTime = BigInt.asUintN(24, BigInt(Math.trunc(Date.now() / 1000))) << 8n;
     const {
@@ -279,29 +295,33 @@ export class Benchmark {
       interestNameLen,
       dataMatch,
     } = this.opts;
-    await Promise.all(DIRECTIONS.map(async ([label, dest]) => {
+    await Promise.all(this.eachTrafficDir(async (cLabel, pLabel) => {
       const tasks: FetchTaskDef[] = [];
       for (let j = 0; j < nFwds; ++j) {
         switch (producerKind) {
           case "pingserver":
             tasks.push({
-              prefix: `/${dest}/${j}${"/i".repeat(interestNameLen - 3)}`,
+              prefix: `/${pLabel}/${j}${"/i".repeat(interestNameLen - 3)}`,
               canBePrefix: dataMatch === "prefix",
               mustBeFresh: true,
             });
             break;
           case "fileserver": {
-            const fileVersion = this.state.fileServerVersionByPassBase[dest] | fileVersionTime | BigInt(j);
+            const fileVersion = this.state.fileServerVersionByPassBase[pLabel] | fileVersionTime | BigInt(j);
             const fileVersionCompV = fileVersion.toString(16).toUpperCase().padStart(16, "0").replace(/[\dA-F]{2}/g, "%$&");
             tasks.push({
-              prefix: `/${dest}/${j}/32GB.bin/54=${fileVersionCompV}`,
+              prefix: `/${pLabel}/${j}/32GB.bin/54=${fileVersionCompV}`,
             });
             break;
           }
         }
       }
-      this.state.tasks[label] = await this[`c${label}`].startFetch(this.state.fetcher[label], tasks);
+      this.state.tasks[cLabel] = await this[`c${cLabel}`].startFetch(this.state.fetcher[cLabel], tasks);
     }));
+  }
+
+  private fetchProgressCnts(): Promise<FetchCounters[][]> {
+    return Promise.all(this.eachTrafficDir((cLabel) => this[`c${cLabel}`].getFetchProgress(this.state.tasks[cLabel])));
   }
 }
 
@@ -313,7 +333,19 @@ const initialState: BenchmarkState = {
   tasks: {},
 };
 
-const DIRECTIONS = [["A", "B"], ["B", "A"]] as const;
+type TgNodeLabel = "A" | "B";
+
+const tgNodeLabels: readonly TgNodeLabel[] = ["A", "B"];
+
+const trafficDirProducers: Record<BenchmarkOptions.TrafficDir, readonly TgNodeLabel[]> = {
+  1: ["A"],
+  2: ["A", "B"],
+};
+
+const trafficDirProducerToConsumer: Record<TgNodeLabel, TgNodeLabel> = {
+  A: "B",
+  B: "A",
+};
 
 const vxlanLocatorFields: Omit<VxlanLocator, Exclude<keyof EtherLocator, "scheme">> = {
   scheme: "vxlan",

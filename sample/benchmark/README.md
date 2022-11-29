@@ -31,6 +31,7 @@ The traffic generator **A** is setup as follows:
   Otherwise, Data name is same as Interest name.
 
 The traffic generator **B** is setup similarly.
+If unidirectional traffic is selected on the webapp, only producer **A** and consumer **B** are active.
 
 [benchmark.ts](src/benchmark.ts) implements the core benchmark logic:
 
