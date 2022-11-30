@@ -1,9 +1,10 @@
 import { Component, h } from "preact";
 
-export interface ResultRecord {
+import type { BenchmarkResult } from "./benchmark";
+
+export interface ResultRecord extends BenchmarkResult {
+  i: number;
   dt: Date;
-  pps: number;
-  bps: number;
 }
 
 interface Props {
@@ -15,19 +16,22 @@ const floatFmt = new Intl.NumberFormat([], { maximumFractionDigits: 3 });
 
 export class ResultTable extends Component<Props> {
   override render() {
+    const { records } = this.props;
     return (
       <table class="pure-table">
         <thead>
           <tr>
-            <th>timestamp</th>
-            <th>Data packets throughput</th>
-            <th>goodput</th>
+            <th title="run completion time">timestamp</th>
+            <th title="duration to finish file download, averaged over all parallel flows">duration</th>
+            <th title="retrieved Data packets per second">Data packets throughput</th>
+            <th title="retrieved Data payload bits per second">goodput</th>
           </tr>
         </thead>
         <tbody>
-          {this.props.records.map(({ dt, pps, bps }) => (
-            <tr key={dt.getTime()}>
+          {records.map(({ i, dt, duration, pps, bps }) => (
+            <tr key={i}>
               <td>{timeFmt.format(dt)}</td>
+              <td>{floatFmt.format(duration)} s</td>
               <td>{floatFmt.format(pps / 1e6)} Mpps</td>
               <td>{floatFmt.format(bps / 1e9)} Gbps</td>
             </tr>

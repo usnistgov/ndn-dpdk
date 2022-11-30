@@ -48,6 +48,8 @@ export class BenchmarkOptionsEditor extends Component<Props> {
         interestNameLen,
         dataMatch,
         payloadLen,
+        segmentEnd,
+        warmup,
         duration,
       },
       disabled,
@@ -98,10 +100,6 @@ export class BenchmarkOptionsEditor extends Component<Props> {
             <option value="fileserver">fileserver</option>
           </select>
         </div>
-        <div class="pure-control-group">
-          <label for={`${this.id}.payloadLen`}>payload length</label>
-          <input id={`${this.id}.payloadLen`} type="number" min="100" max="8000" step="100" value={payloadLen} disabled={disabled} onChange={this.handleUpdate("payloadLen", parseToInteger)}/>
-        </div>
         <div class="pure-control-group" hidden={producerKind !== "pingserver"}>
           <label for={`${this.id}.interestNameLen`}>Interest name length</label>
           <input id={`${this.id}.interestNameLen`} type="number" min="3" max="15" value={interestNameLen} disabled={disabled} onChange={this.handleUpdate("interestNameLen", parseToInteger)}/>
@@ -114,8 +112,31 @@ export class BenchmarkOptionsEditor extends Component<Props> {
           </select>
         </div>
         <div class="pure-control-group">
+          <label for={`${this.id}.payloadLen`}>payload length</label>
+          <input id={`${this.id}.payloadLen`} type="number" min="100" max="8000" step="100" value={payloadLen} disabled={disabled} onChange={this.handleUpdate("payloadLen", parseToInteger)}/>
+          <span class="pure-form-message-inline">
+            <input type="button" class="pure-button adjust-button" disabled={disabled} value="max" onClick={() => this.props.onChange({ payloadLen: 8000 })}/>
+          </span>
+        </div>
+        <div class="pure-control-group">
+          <label for={`${this.id}.segmentEnd`}>segment count</label>
+          <input id={`${this.id}.segmentEnd`} type="number" min="0" max="1000000000000000" value={segmentEnd} disabled={disabled} onChange={this.handleUpdate("segmentEnd", parseToInteger)}/>
+          <span class="pure-form-message-inline">
+            {segmentEnd === 0 ? "infinite" : `${Math.round(payloadLen * segmentEnd / (1024 ** 2))} MB`}
+            {" "}
+            <input type="button" class="pure-button adjust-button" disabled={disabled} value="-GB" onClick={() => this.adjustSegmentCount(-1)}/>
+            {" "}
+            <input type="button" class="pure-button adjust-button" disabled={disabled} value="+GB" onClick={() => this.adjustSegmentCount(+1)}/>
+          </span>
+        </div>
+        <div class="pure-control-group">
+          <label for={`${this.id}.duration`}>warmup duration</label>
+          <input id={`${this.id}.duration`} type="number" min="0" max="30" step="5" value={warmup} disabled={disabled} onChange={this.handleUpdate("warmup", parseToInteger)}/>
+          <span class="pure-form-message-inline">seconds</span>
+        </div>
+        <div class="pure-control-group">
           <label for={`${this.id}.duration`}>trial duration</label>
-          <input id={`${this.id}.duration`} type="number" min="10" max="300" value={duration} disabled={disabled} onChange={this.handleUpdate("duration", parseToInteger)}/>
+          <input id={`${this.id}.duration`} type="number" min="10" max="300" step="5" value={duration} disabled={disabled} onChange={this.handleUpdate("duration", parseToInteger)}/>
           <span class="pure-form-message-inline">seconds</span>
         </div>
         {this.props.children}
@@ -133,5 +154,16 @@ export class BenchmarkOptionsEditor extends Component<Props> {
       Object.assign(update, also?.(value));
       this.props.onChange(update);
     };
+  }
+
+  private adjustSegmentCount(change: number): void {
+    const {
+      opts: { payloadLen, segmentEnd },
+      onChange,
+    } = this.props;
+    let gb = Math.round(payloadLen * segmentEnd / (1024 ** 3));
+    gb += change;
+    gb = Math.min(Math.max(0, gb), 32);
+    onChange({ segmentEnd: Math.ceil(gb * (1024 ** 3) / payloadLen) });
   }
 }

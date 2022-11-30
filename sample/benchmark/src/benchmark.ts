@@ -35,6 +35,7 @@ export interface BenchmarkOptions {
   interestNameLen: number;
   dataMatch: BenchmarkOptions.DataMatch;
   payloadLen: number;
+  segmentEnd: number;
   warmup: number;
   duration: number;
 }
@@ -53,7 +54,8 @@ export interface BenchmarkState {
   tasks: Record<string, string[]>;
 }
 
-export interface Throughput {
+export interface BenchmarkResult {
+  duration: number;
   pps: number;
   bps: number;
 }
@@ -248,7 +250,7 @@ export class Benchmark {
     }
   }
 
-  public async run(): Promise<Throughput> {
+  public async run(): Promise<BenchmarkResult> {
     const {
       payloadLen,
       warmup,
@@ -258,23 +260,24 @@ export class Benchmark {
     await this.fetchStart();
 
     await delay(1000 * warmup);
-    const cnts0 = await this.fetchProgressCnts();
+    const cnts0 = warmup === 0 ? undefined : await this.fetchProgressCnts();
     await delay(1000 * duration);
     const cnts1 = await this.fetchProgressCnts();
     await Promise.all(this.eachTrafficDir((cLabel) => this[`c${cLabel}`].stopFetch(this.state.tasks[cLabel])));
 
     let totalPackets = 0;
-    let totalElapsedSeconds = 0;
-    for (const [i, cnt0d] of cnts0.entries()) {
-      for (const [j, cnt0] of cnt0d.entries()) {
-        const cnt1 = cnts1[i]![j]!;
+    let totalSeconds = 0;
+    for (const [i, cnt1d] of cnts1.entries()) {
+      for (const [j, cnt1] of cnt1d.entries()) {
+        const cnt0: Pick<FetchCounters, "elapsed" | "finished" | "nRxData"> = cnts0?.[i]?.[j] ?? { elapsed: 0, nRxData: 0 };
         totalPackets += Number(cnt1.nRxData) - Number(cnt0.nRxData);
-        totalElapsedSeconds += (Number(cnt1.elapsed) - Number(cnt0.elapsed)) / 1e9;
+        totalSeconds += (Number(cnt1.finished ?? cnt1.elapsed) - Number(cnt0.finished ?? cnt0.elapsed)) / 1e9;
       }
     }
-    const avgElapsedSeconds = totalElapsedSeconds / cnts0.length / cnts0[0]!.length;
-    const pps = totalPackets / avgElapsedSeconds;
+    const avgSeconds = totalSeconds / cnts1.length / cnts1[0]!.length;
+    const pps = totalPackets / avgSeconds;
     return {
+      duration: avgSeconds,
       pps,
       bps: pps * payloadLen * 8,
     };
@@ -294,6 +297,7 @@ export class Benchmark {
       producerKind,
       interestNameLen,
       dataMatch,
+      segmentEnd,
     } = this.opts;
     await Promise.all(this.eachTrafficDir(async (cLabel, pLabel) => {
       const tasks: FetchTaskDef[] = [];
@@ -304,6 +308,7 @@ export class Benchmark {
               prefix: `/${pLabel}/${j}${"/i".repeat(interestNameLen - 3)}`,
               canBePrefix: dataMatch === "prefix",
               mustBeFresh: true,
+              segmentEnd,
             });
             break;
           case "fileserver": {
@@ -311,6 +316,7 @@ export class Benchmark {
             const fileVersionCompV = fileVersion.toString(16).toUpperCase().padStart(16, "0").replace(/[\dA-F]{2}/g, "%$&");
             tasks.push({
               prefix: `/${pLabel}/${j}/32GB.bin/54=${fileVersionCompV}`,
+              segmentEnd,
             });
             break;
           }

@@ -23,30 +23,33 @@ The traffic generator **A** is setup as follows:
 * It has a producer and a consumer, attached to the same face that is connected to the forwarder's face A.
 * The producer is either [traffic generator producer](../../app/tgproducer) or [file server](../../app/fileserver).
   * If using a traffic generator producer, it replies to each Interest with fixed-length Data packets, simulating infinite-length "files".
-  * If using a file server, it serves a pre-generated file, under many different names through symbolic links.
+  * If using a file server, it serves a pre-generated file, under several different names via symbolic links.
 * The consumer is [congestion aware fetcher](../../app/fetch).
-  * It retrieves *n* files from the producer on traffic generator **B** through the forwarder.
+  * It retrieves *n* files from producer B through the forwarder.
+  * Each file retrieval stops when the time limit or segment count limit is reached, whichever occurs earlier.
 * An Interest name looks like `/A/0/i/i/i/seg=202`, in which `/i` is repeated to make up desired name length.
 * If Data "prefix match" is selected, Data name is Interest name plus `/d` suffix.
   Otherwise, Data name is same as Interest name.
 
 The traffic generator **B** is setup similarly.
-If unidirectional traffic is selected on the webapp, only producer **A** and consumer **B** are active.
+If unidirectional traffic is selected on the webapp, only producer A and consumer B are active.
 
 [benchmark.ts](src/benchmark.ts) implements the core benchmark logic:
 
 1. Restart NDN-DPDK service instances, to clear states from any prior benchmarks.
 2. Activate the forwarder and traffic generators.
 3. Start the fetchers to retrieve *n* files in parallel.
-4. Calculate throughput from counters after a pre-determined duration.
+4. Read counters once after warmup period (skipped if warmup period is zero), and again after trial duration.
 5. Stop the fetchers.
-6. Go to step 3.
+6. Calculate throughput from the difference between two sets of counters.
+7. Go to step 3.
 
+Notably, the forwarder and producers are not restarted between consecutive trials.
 Read the code to understand the exact parameters, or use it as a starting point for developing other benchmarks.
 
 ## Hardware Requirements
 
-The benchmark involves either two or three NDN-DPDK service instances:
+The benchmark controls either two or three NDN-DPDK service instances via GraphQL:
 
 * The forwarder needs one NDN-DPDK service instance.
 * If two traffic generators are on the same host machine, they can run in the same NDN-DPDK service instance.
