@@ -24,6 +24,7 @@ export class App extends Component<{}, State> {
       nFwds: 4,
       trafficDir: 2,
       producerKind: "pingserver",
+      nProducerThreads: 1,
       interestNameLen: 3,
       dataMatch: "exact",
       payloadLen: 1000,

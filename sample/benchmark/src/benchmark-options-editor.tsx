@@ -45,6 +45,7 @@ export class BenchmarkOptionsEditor extends Component<Props> {
         nFwds,
         trafficDir,
         producerKind,
+        nProducerThreads,
         interestNameLen,
         dataMatch,
         payloadLen,
@@ -99,6 +100,10 @@ export class BenchmarkOptionsEditor extends Component<Props> {
             <option value="pingserver">pingserver</option>
             <option value="fileserver">fileserver</option>
           </select>
+        </div>
+        <div class="pure-control-group">
+          <label for={`${this.id}.nProducerThreads`}>producer threads</label>
+          <input id={`${this.id}.nProducerThreads`} type="number" min="1" max="2" value={nProducerThreads} disabled={disabled} onChange={this.handleUpdate("nProducerThreads", parseToInteger)}/>
         </div>
         <div class="pure-control-group" hidden={producerKind !== "pingserver"}>
           <label for={`${this.id}.interestNameLen`}>Interest name length</label>

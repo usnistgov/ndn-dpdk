@@ -32,6 +32,7 @@ export interface BenchmarkOptions {
   nFwds: number;
   trafficDir: BenchmarkOptions.TrafficDir;
   producerKind: BenchmarkOptions.ProducerKind;
+  nProducerThreads: number;
   interestNameLen: number;
   dataMatch: BenchmarkOptions.DataMatch;
   payloadLen: number;
@@ -209,6 +210,7 @@ export class Benchmark {
       nFwds,
       trafficDir,
       producerKind,
+      nProducerThreads,
       dataMatch,
       payloadLen,
     } = this.opts;
@@ -220,7 +222,7 @@ export class Benchmark {
     switch (producerKind) {
       case "pingserver": {
         const producer: TgpConfig = {
-          nThreads: 1,
+          nThreads: nProducerThreads,
           patterns: [],
         };
         for (let j = 0; j < nFwds; ++j) {
@@ -237,7 +239,7 @@ export class Benchmark {
       }
       case "fileserver": {
         const fileServer: FileServerConfig = {
-          nThreads: 1,
+          nThreads: nProducerThreads,
           mounts: [{
             prefix: `/${label}`,
             path: this.env[`${label}_FILESERVER_PATH`],
