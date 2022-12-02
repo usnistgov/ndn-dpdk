@@ -50,7 +50,7 @@ export class App extends Component<{}, State> {
     }
     return (
       <section>
-        <TopologyView env={env}/>
+        <TopologyView env={env} opts={opts}/>
         <form class="pure-form pure-form-aligned">
           <BenchmarkOptionsEditor opts={opts} disabled={running} onChange={this.handleOptsChange}>
             <div class="pure-controls">
