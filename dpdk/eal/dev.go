@@ -3,6 +3,7 @@ package eal
 /*
 #include "../../csrc/core/common.h"
 #include <rte_bus_vdev.h>
+#include <rte_dev.h>
 */
 import "C"
 import (

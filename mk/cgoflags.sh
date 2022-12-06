@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 if [[ -z $MESON_SOURCE_ROOT ]] || [[ -z $MESON_BUILD_ROOT ]] || [[ $# -lt 1 ]]; then
-  echo 'USAGE: ninja -C build cgoflags' >/dev/stderr
+  echo 'USAGE: meson compile -C build cgoflags' >/dev/stderr
   exit 1
 fi
 cd "$MESON_SOURCE_ROOT"

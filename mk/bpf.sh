@@ -2,7 +2,7 @@
 set -euo pipefail
 XDP=$1
 if [[ -z $MESON_SOURCE_ROOT ]] || [[ -z $MESON_BUILD_ROOT ]] || [[ -z $XDP ]]; then
-  echo 'USAGE: ninja -C build bpf' >/dev/stderr
+  echo 'USAGE: meson compile -C build bpf' >/dev/stderr
   exit 1
 fi
 

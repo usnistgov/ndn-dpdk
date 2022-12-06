@@ -80,7 +80,7 @@ func (gen *DataGen) Encode(prefix ndn.Name, mp *Mempools, fragmentPayloadSize in
 	defer prefixP.Free()
 
 	pktC := C.DataGen_Encode(gen.ptr(), prefixP.lname(),
-		(*C.PacketMempools)(unsafe.Pointer(mp)),
+		(*C.PacketMempools)(mp),
 		C.PacketTxAlign{
 			linearize:           fragmentPayloadSize > 0,
 			fragmentPayloadSize: C.uint16_t(fragmentPayloadSize),

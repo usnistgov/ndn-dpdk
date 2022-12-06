@@ -37,14 +37,14 @@ fi
 DFLT_CODEROOT=$HOME/code
 DFLT_NODEVER=16.x
 DFLT_GOVER=latest
-DFLT_UBPFVER=57c842f31259bcb4e7d6c1ff7e6e15ac43cf862f
+DFLT_UBPFVER=012c600e641519b2fb5428bf484edf11ff609e93
+DFLT_LIBBPFVER=v1.0.1
 DFLT_XDPTOOLSVER=v1.2.8
-DFLT_LIBBPFVER=v0.8.1
 DFLT_URINGVER=liburing-2.3
-DFLT_DPDKVER=v22.07
+DFLT_DPDKVER=v22.11
 DFLT_DPDKPATCH=25787
 DFLT_DPDKOPTS={}
-DFLT_SPDKVER=v22.09
+DFLT_SPDKVER=5497616e8ff768313a441980d44f439558509b4f
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -361,13 +361,14 @@ if [[ $DPDKVER != 0 ]]; then
   cd "$(github_download DPDK/dpdk $DPDKVER)"
   echo -n "$DPDKPATCH" | xargs -d, --no-run-if-empty -I{} \
     sh -c "curl -fsLS ${NDNDPDK_DL_DPDK_PATCHES}/series/{}/mbox/ | patch -p1"
-  meson $(echo "$DPDKOPTS" | jq -r --arg arch "$TARGETARCH" \
-          '{ debug:true, cpu_instruction_set:$arch, optimization:3, tests:false } + .
-           | to_entries[] | "-D"+.key+"="+(.value|tostring)') --libdir=lib build
-  cd build
-  ninja -j${NJOBS}
+  meson setup \
+    $(echo "$DPDKOPTS" | jq -r --arg arch "$TARGETARCH" '
+      { debug:true, cpu_instruction_set:$arch, optimization:3, tests:false } + .
+      | to_entries[] | "-D"+.key+"="+(.value|tostring)
+    ') --libdir=lib build
+  meson compile -C build -j ${NJOBS}
   $SUDO find /usr/local/lib -name 'librte_*' -delete
-  $SUDO ninja install
+  $SUDO $(command -v meson) install -C build
   $SUDO find /usr/local/lib -name 'librte_*.a' -delete
   $SUDO ldconfig
 fi

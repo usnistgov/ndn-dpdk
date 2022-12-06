@@ -12,7 +12,7 @@ csrc/meson.build mk/meson.build:
 	mk/update-list.sh
 
 build/build.ninja: csrc/meson.build mk/meson.build
-	bash -c 'source mk/cflags.sh; meson build $$MESONFLAGS'
+	bash -c 'source mk/cflags.sh; meson setup $$MESONFLAGS build'
 
 csrc/core/rttest-enum.h: core/rttest/rttest.go
 	mk/go.sh generate ./$(<D)
@@ -49,14 +49,14 @@ csrc/tgproducer/enum.h: app/tgproducer/config.go
 
 .PHONY: build/libndn-dpdk-c.a
 build/libndn-dpdk-c.a: build/build.ninja csrc/core/rttest-enum.h csrc/dpdk/bdev-enum.h csrc/dpdk/thread-enum.h csrc/fib/enum.h csrc/fileserver/an.h csrc/fileserver/enum.h csrc/ndni/an.h csrc/ndni/enum.h csrc/iface/enum.h csrc/pcct/cs-enum.h csrc/pdump/enum.h csrc/tgconsumer/enum.h csrc/tgproducer/enum.h
-	ninja -C build
+	meson compile -C build
 
 build/cgodeps.done: build/build.ninja
-	ninja -C build cgoflags cgostruct cgotest schema
+	meson compile -C build cgoflags cgostruct cgotest schema
 	touch $@
 
 build/bpf.done: build/build.ninja bpf/**/*.c csrc/strategyapi/* csrc/fib/enum.h csrc/ndni/an.h csrc/pcct/pit-const.h
-	ninja -C build bpf
+	meson compile -C build bpf
 	touch $@
 
 .PHONY: cmds
@@ -99,7 +99,7 @@ test: godeps
 
 .PHONY: coverage
 coverage:
-	ninja -C build coverage-html
+	meson compile -C build coverage-html
 
 .PHONY: clean
 clean:

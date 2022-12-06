@@ -6,13 +6,12 @@
 #include "../core/common.h"
 #include <rte_cryptodev.h>
 
-__attribute__((nonnull)) struct rte_cryptodev_sym_session*
-CryptoDev_NewSha256DigestSession(struct rte_mempool* mp, uint8_t dev);
+extern struct rte_crypto_sym_xform CryptoDev_Sha256Xform;
 
 /** @brief Crypto queue pair. */
 typedef struct CryptoQueuePair
 {
-  struct rte_cryptodev_sym_session* sha256;
+  void* sha256sess;
   uint8_t dev;
   uint16_t qp;
 } CryptoQueuePair;
@@ -35,7 +34,7 @@ CryptoQueuePair_PrepareSha256(CryptoQueuePair* cqp, struct rte_crypto_op* op, st
   op->sym->auth.data.offset = offset;
   op->sym->auth.data.length = length;
   op->sym->auth.digest.data = output;
-  int res = rte_crypto_op_attach_sym_session(op, cqp->sha256);
+  int res = rte_crypto_op_attach_sym_session(op, cqp->sha256sess);
   NDNDPDK_ASSERT(res == 0);
 }
 

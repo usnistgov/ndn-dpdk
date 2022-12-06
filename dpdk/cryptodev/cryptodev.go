@@ -116,20 +116,19 @@ func New(dev device, cfg Config) (cd *CryptoDev, e error) {
 	var qpConf C.struct_rte_cryptodev_qp_conf
 	qpConf.nb_descriptors = C.uint32_t(cfg.NQueueDescriptors)
 	qpConf.mp_session = mpC
-	qpConf.mp_session_private = mpC
 	for i := range cd.queuePairs {
 		if res := C.rte_cryptodev_queue_pair_setup(cd.id, C.uint16_t(i), &qpConf, socketC); res < 0 {
 			return nil, fmt.Errorf("rte_cryptodev_queue_pair_setup(%d) error %w", i, eal.MakeErrno(res))
 		}
-		sha256sess := C.CryptoDev_NewSha256DigestSession(mpC, cd.id)
+		sha256sess := C.rte_cryptodev_sym_session_create(cd.id, &C.CryptoDev_Sha256Xform, mpC)
 		if sha256sess == nil {
-			return nil, fmt.Errorf("CryptoDev_NewSha256DigestSession(%d) error %w", i, eal.GetErrno())
+			return nil, fmt.Errorf("rte_cryptodev_sym_session_create(%d) error %w", i, eal.GetErrno())
 		}
 		cd.queuePairs[i] = &QueuePair{
 			c: C.CryptoQueuePair{
-				sha256: sha256sess,
-				dev:    cd.id,
-				qp:     C.uint16_t(i),
+				sha256sess: sha256sess,
+				dev:        cd.id,
+				qp:         C.uint16_t(i),
 			},
 			dev: cd,
 		}

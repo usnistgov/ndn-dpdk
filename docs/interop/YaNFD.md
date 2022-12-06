@@ -98,6 +98,7 @@ A_FACEID=$(ndndpdk-ctrl create-udp-face --local $A_HWADDR --remote $B_HWADDR \
 A_FIBID=$(ndndpdk-ctrl insert-fib --name $B_NAME --nh $A_FACEID | tee /dev/stderr | jq -r .id)
 
 # start the producer
+sudo mkdir -p /run/ndn
 ndndpdk-godemo pingserver --name $A_NAME --payload 512
 ```
 

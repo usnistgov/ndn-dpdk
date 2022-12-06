@@ -20,7 +20,7 @@ struct
   __type(value, int32_t);
 } face_map SEC(".maps");
 
-SEC("xdp_sock") int xdp_sock_prog(struct xdp_md* ctx)
+SEC("xdp") int xdp_prog(struct xdp_md* ctx)
 {
   const void* pkt = (const void*)(long)ctx->data;
   EthXdpLocator loc = { 0 };

@@ -39,7 +39,7 @@ jobs:
           sudo update-alternatives --remove-all python || true
           sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
           pip install meson
-          echo '::set-output name=meson::'$(meson --version)
+          echo meson=$(meson --version) >> $GITHUB_OUTPUT
       - name: Install uBPF
         run: |
           mkdir -p $HOME/ubpf
@@ -49,7 +49,7 @@ jobs:
           make
           sudo make install
         env:
-          UBPFCOMMIT: 0afd63055b84808853e6e841771e14921aa2d29e
+          UBPFCOMMIT: 012c600e641519b2fb5428bf484edf11ff609e93
       - name: Install liburing
         run: |
           mkdir -p $HOME/liburing
@@ -60,17 +60,17 @@ jobs:
           sudo make install
         env:
           CXX: false
-          URINGVER: liburing-2.2
+          URINGVER: liburing-2.3
       - name: Cache DPDK and SPDK
         uses: actions/cache@v3
         with:
           path: ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20221116
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20221205
       - uses: yoursunny/setup-dpdk@main
         with:
-          dpdk-version: '22.07'
+          dpdk-version: v22.11
           dpdk-patches: 25787
-          spdk-version: '22.09'
+          spdk-version: 5497616e8ff768313a441980d44f439558509b4f
           target-arch: haswell
       - uses: actions/checkout@v3
       - name: Build NDN-DPDK in debug mode
