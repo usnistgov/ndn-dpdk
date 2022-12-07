@@ -1,17 +1,12 @@
 package memifface_test
 
 import (
-	"io"
-	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/iface/memifface"
 	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
-	"go4.org/must"
 	"golang.org/x/sys/unix"
 )
 
@@ -35,47 +30,21 @@ func TestMemif(t *testing.T) {
 	faceB, e := locB.CreateFace()
 	require.NoError(e)
 
-	helper := exec.Command(os.Args[0], memifbridgeArg, socketName)
-	helperIn, e := helper.StdinPipe()
-	require.NoError(e)
-	helper.Stdout = os.Stdout
-	helper.Stderr = os.Stderr
-	require.NoError(helper.Start())
-	defer helper.Process.Kill()
-	time.Sleep(1 * time.Second)
-
-	fixture.RunTest(faceA, faceB)
-	fixture.CheckCounters()
-
-	var st unix.Stat_t
-	require.NoError(unix.Stat(socketName, &st))
-	assert.EqualValues(0, st.Uid)
-	assert.EqualValues(8000, st.Gid)
-
-	helperIn.Write([]byte("."))
-	assert.NoError(helper.Wait())
-}
-
-const memifbridgeArg = "memifbridge"
-
-func memifbridgeHelper() {
-	socketName := os.Args[2]
-	locA := memiftransport.Locator{
+	require.NoError(memiftransport.ForkBridgeHelper(memiftransport.Locator{
 		Role:       memiftransport.RoleClient,
 		SocketName: socketName,
 		ID:         7655,
-	}
-	locB := memiftransport.Locator{
+	}, memiftransport.Locator{
 		Role:       memiftransport.RoleClient,
 		SocketName: socketName,
 		ID:         1891,
-	}
+	}, func() {
+		fixture.RunTest(faceA, faceB)
+		fixture.CheckCounters()
 
-	bridge, e := memiftransport.NewBridge(locA, locB)
-	if e != nil {
-		panic(e)
-	}
-
-	io.ReadAtLeast(os.Stdin, make([]byte, 1), 1)
-	must.Close(bridge)
+		var st unix.Stat_t
+		require.NoError(unix.Stat(socketName, &st))
+		assert.EqualValues(0, st.Uid)
+		assert.EqualValues(8000, st.Gid)
+	}))
 }

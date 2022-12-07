@@ -111,7 +111,7 @@ The default is `clang-11`.
 
 C code (including DPDK and SPDK, excluding eBPF) is compiled with `-march=native` flag by default.
 It selects the CPU instruction sets available on the local machine, and makes the compiled binaries incompatible with any other CPU model.
-Pass `--arch=`*CPU-type* argument to the `ndndpdk-install.sh` to change the target CPU architecture.
+Pass `--arch=`*CPU-type* argument to the `ndndpdk-depends.sh` to change the target CPU architecture.
 See [GCC - x86 options](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html) for available options.
 To switch this setting, you need to rerun the dependency installation script before recompiling NDN-DPDK.
 

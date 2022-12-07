@@ -65,11 +65,11 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20221205
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20221207
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: v22.11
-          dpdk-patches: 25787
+          dpdk-patches: 26031
           spdk-version: 5497616e8ff768313a441980d44f439558509b4f
           target-arch: haswell
       - uses: actions/checkout@v3

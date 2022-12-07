@@ -1,19 +1,15 @@
 package memifface_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
+	"github.com/usnistgov/ndn-dpdk/ndn/memiftransport"
 )
 
 func TestMain(m *testing.M) {
-	if len(os.Args) >= 2 && os.Args[1] == memifbridgeArg {
-		memifbridgeHelper()
-		os.Exit(0)
-	}
-
+	memiftransport.ExecBridgeHelper()
 	ealtestenv.Init()
 	testenv.Exit(m.Run())
 }
