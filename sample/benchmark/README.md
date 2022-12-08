@@ -27,8 +27,12 @@ The traffic generator **A** is setup as follows:
 * The consumer is [congestion aware fetcher](../../app/fetch).
   * It retrieves *n* files from producer B through the forwarder.
   * Each file retrieval stops when the time limit or segment count limit is reached, whichever occurs earlier.
-* An Interest name looks like `/A/0/i/i/i/seg=202`, in which `/i` is repeated to make up desired name length.
-* If Data "prefix match" is selected, Data name is Interest name plus `/d` suffix.
+* An Interest name looks like `/A/`*i*`/`*j*`/I/I/I/`*seg*, where:
+  * *i* is the forwarding thread index, to balance load among forwarding threads.
+  * *j* is a random number between 0 and 1023, unique among different flows during a run, to balance load among producer threads.
+  * `/I` is repeated to make up desired name length.
+  * *s* is file segment number.
+* If Data "prefix match" is selected, Data name is Interest name plus `/D` suffix.
   Otherwise, Data name is same as Interest name.
 
 The traffic generator **B** is setup similarly.
@@ -65,13 +69,13 @@ The forwarder needs, at minimum:
 * 2 CPU cores on any NUMA socket
 * 12 GB hugepages
 
-When each traffic generator runs its own NDN-DPDK service instance, it needs, at minimum:
+When each traffic generator has its own NDN-DPDK service instance, it needs, at minimum:
 
 * 5 CPU cores on the primary NUMA socket
 * 1 CPU core on any NUMA socket
 * 8 GB hugepages
 
-When two traffic generators run in the same NDN-DPDK service instance, it needs, at minimum:
+When two traffic generators share the same NDN-DPDK service instance, it needs, at minimum:
 
 * 10 CPU cores on the primary NUMA socket
 * 1 CPU core on any NUMA socket
@@ -108,9 +112,10 @@ If using memif virtual interfaces:
 If fileserver usage is desired, create a directory on the traffic generator host, and populate the files with these commands:
 
 ```bash
-mkdir _
-dd if=/dev/urandom of=_/32GB.bin bs=1G count=32
-for I in $(seq 0 11); do ln -s _ $I; done
+fallocate -l 32G F
+mkdir T
+for I in $(seq 0 1023); do ln -s ../F T/$I; done
+for I in $(seq 0 11); do ln -s T $I; done
 ```
 
 ### Usage

@@ -104,7 +104,7 @@ export class GqlGenControl extends GqlControlBase {
         face: string;
         producer?: string;
         fileServer?: string;
-        fileServerVersionByPassHi?: number;
+        fileServerVersionBypassHi?: number;
         fetcher?: string;
       }> {
     const result = await this.c.request<{
@@ -139,7 +139,7 @@ export class GqlGenControl extends GqlControlBase {
       face: result.face.id,
       producer: result.producer?.id,
       fileServer: result.fileServer?.id,
-      fileServerVersionByPassHi: result.fileServer?.versionBypassHi,
+      fileServerVersionBypassHi: result.fileServer?.versionBypassHi,
       fetcher: result.fetcher?.id,
     };
   }

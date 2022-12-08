@@ -1,4 +1,4 @@
-import { Component, h } from "preact";
+import { Component, createRef, h } from "preact";
 
 import { type BenchmarkOptions, type ServerEnv, Benchmark } from "./benchmark";
 import { BenchmarkOptionsEditor } from "./benchmark-options-editor";
@@ -25,11 +25,12 @@ export class App extends Component<{}, State> {
       trafficDir: 2,
       producerKind: "pingserver",
       nProducerThreads: 1,
-      interestNameLen: 3,
+      nFlows: 4,
+      interestNameLen: 4,
       dataMatch: "exact",
       payloadLen: 1000,
       segmentEnd: 0,
-      warmup: 5,
+      warmup: 0,
       duration: 30,
     },
     running: false,
@@ -37,6 +38,7 @@ export class App extends Component<{}, State> {
   };
 
   private abort?: AbortController;
+  private readonly $form = createRef<HTMLFormElement>();
 
   override async componentDidMount() {
     const env = await (await fetch("/env.json")).json();
@@ -51,7 +53,7 @@ export class App extends Component<{}, State> {
     return (
       <section>
         <TopologyView env={env} opts={opts}/>
-        <form class="pure-form pure-form-aligned">
+        <form ref={this.$form} class="pure-form pure-form-aligned">
           <BenchmarkOptionsEditor opts={opts} disabled={running} onChange={this.handleOptsChange}>
             <div class="pure-controls">
               <button type="button" class="pure-button pure-button-primary" hidden={running} onClick={this.handleStart}>START</button>
@@ -73,6 +75,9 @@ export class App extends Component<{}, State> {
   };
 
   private readonly handleStart = () => {
+    if (!this.$form.current?.reportValidity()) {
+      return;
+    }
     this.setState(
       ({ env, opts: { faceARxQueues, faceBRxQueues, nFwds } }) => {
         const demands = {
@@ -114,10 +119,7 @@ export class App extends Component<{}, State> {
     try {
       const b = new Benchmark(this.state.env!, this.state.opts, abort.signal);
       this.setState({ message: "starting forwarder and traffic generator" });
-      await Promise.all([
-        b.setupForwarder(),
-        b.setupTrafficGen(),
-      ]);
+      await b.setup();
 
       let i = 0;
       while (this.state.running) {

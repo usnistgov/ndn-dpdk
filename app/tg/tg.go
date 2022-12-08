@@ -196,6 +196,10 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 		}
 	}(gen)
 
+	// mutex also prevents parallel creations causing ChooseRx/TxLoop conflict
+	mapFaceGenMutex.Lock()
+	defer mapFaceGenMutex.Unlock()
+
 	iface.RxParseFor = ndni.ParseForApp
 	defer saveChooseRxlTxl()()
 	iface.ChooseRxLoop = func(rxg iface.RxGroup) iface.RxLoop {
@@ -262,8 +266,6 @@ func New(cfg Config) (gen *TrafficGen, e error) {
 		return nil, fmt.Errorf("error allocating gen.workers %w", e)
 	}
 
-	mapFaceGenMutex.Lock()
-	defer mapFaceGenMutex.Unlock()
 	mapFaceGen[gen.face.ID()] = gen
 	return gen, nil
 }

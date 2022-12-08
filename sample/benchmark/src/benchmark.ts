@@ -1,7 +1,9 @@
 import type { ActivateFwArgs, ActivateGenArgs, EtherLocator, FaceLocator, FetchCounters, FetchTaskDef, FileServerConfig, TgpConfig, VxlanLocator } from "@usnistgov/ndn-dpdk";
 import delay from "delay";
+import assert from "minimalistic-assert";
 
 import { GqlFwControl, GqlGenControl } from "./control";
+import { hexPad, uniqueRandomVector } from "./util";
 
 export interface ServerEnv {
   F_GQLSERVER: string;
@@ -33,6 +35,7 @@ export interface BenchmarkOptions {
   trafficDir: BenchmarkOptions.TrafficDir;
   producerKind: BenchmarkOptions.ProducerKind;
   nProducerThreads: number;
+  nFlows: number;
   interestNameLen: number;
   dataMatch: BenchmarkOptions.DataMatch;
   payloadLen: number;
@@ -45,14 +48,6 @@ export namespace BenchmarkOptions {
   export type TrafficDir = 2 | 1;
   export type ProducerKind = "pingserver" | "fileserver";
   export type DataMatch = "exact" | "prefix";
-}
-
-export interface BenchmarkState {
-  face: Record<string, string>;
-  ndtDuplicate: boolean;
-  fetcher: Record<string, string>;
-  fileServerVersionByPassBase: Record<string, bigint>;
-  tasks: Record<string, string[]>;
 }
 
 export interface BenchmarkResult {
@@ -70,7 +65,6 @@ export class Benchmark {
     this.cF = new GqlFwControl(env.F_GQLSERVER);
     this.cA = new GqlGenControl(env.A_GQLSERVER);
     this.cB = env.A_GQLSERVER === env.B_GQLSERVER ? this.cA : new GqlGenControl(env.B_GQLSERVER);
-    this.state = JSON.parse(JSON.stringify(initialState));
     signal.addEventListener("abort", () => {
       this.cF.close();
       this.cA.close();
@@ -81,9 +75,18 @@ export class Benchmark {
   private readonly cF: GqlFwControl;
   private readonly cA: GqlGenControl;
   private readonly cB: GqlGenControl;
-  private state: BenchmarkState;
+  private state = makeInitialState();
 
-  public async setupForwarder(): Promise<void> {
+  public async setup(): Promise<void> {
+    await Promise.all([
+      this.activateForwarder(),
+      this.activateTrafficGen("A"),
+      this.cA === this.cB ? undefined : this.activateTrafficGen("B"),
+    ]);
+    await Promise.all(tgNodeLabels.map((label) => this.startTrafficGen(label)));
+  }
+
+  private async activateForwarder(): Promise<void> {
     await this.cF.restart();
 
     const {
@@ -136,46 +139,37 @@ export class Benchmark {
     }
   }
 
-  public async setupTrafficGen(): Promise<void> {
-    await Promise.all(tgNodeLabels.map(async (label) => {
-      const ctrl = this[`c${label}`];
-      if (label !== "A" && this.cA === ctrl) {
-        return;
-      }
+  private async activateTrafficGen(label: TgNodeLabel): Promise<void> {
+    const ctrl = this[`c${label}`];
+    await ctrl.restart();
 
-      await ctrl.restart();
+    const arg: ActivateGenArgs = {
+      eal: {
+        cores: [...this.env[`${label}_CORES_PRIMARY`], ...this.env[`${label}_CORES_SECONDARY`]],
+        lcoreMain: this.env[`${label}_CORES_SECONDARY`][0],
+      },
+      mempool: {
+        DIRECT: { capacity: 65535, dataroom: 9146 },
+        INDIRECT: { capacity: 1048575 },
+        PAYLOAD: { capacity: 16383 },
+      },
+    };
+    await ctrl.activate("trafficgen", arg);
+  }
 
-      const arg: ActivateGenArgs = {
-        eal: {
-          cores: [...this.env[`${label}_CORES_PRIMARY`], ...this.env[`${label}_CORES_SECONDARY`]],
-          lcoreMain: this.env[`${label}_CORES_SECONDARY`][0],
-        },
-        mempool: {
-          DIRECT: { capacity: 65535, dataroom: 9146 },
-          INDIRECT: { capacity: 1048575 },
-          PAYLOAD: { capacity: 16383 },
-        },
-      };
-      await ctrl.activate("trafficgen", arg);
-    }));
-
-    for (const label of tgNodeLabels) {
-      const ctrl = this[`c${label}`];
-      while (!this.state.face[label]) {
-        await delay(100);
-      }
-      const locator = await this.prepareLocator(ctrl, this.env[`${label}_PORT_F`], label);
-      const result = await ctrl.startTrafficGen({
-        face: locator,
-        ...this.makeProducerConfig(label),
-        fetcher: {
-          nThreads: 1,
-          nTasks: this.opts.nFwds,
-        },
-      });
-      this.state.fetcher[label] = result.fetcher!;
-      this.state.fileServerVersionByPassBase[label] = BigInt(result.fileServerVersionByPassHi ?? 0) << 32n;
-    }
+  private async startTrafficGen(label: TgNodeLabel): Promise<void> {
+    const ctrl = this[`c${label}`];
+    const locator = await this.prepareLocator(ctrl, this.env[`${label}_PORT_F`], label);
+    const result = await ctrl.startTrafficGen({
+      face: locator,
+      ...this.makeProducerConfig(label),
+      fetcher: {
+        nThreads: 1,
+        nTasks: this.opts.nFlows,
+      },
+    });
+    this.state.fetcher[label] = result.fetcher!;
+    this.state.fileServerVersionBypassHi[label] = BigInt(result.fileServerVersionBypassHi ?? 0);
   }
 
   private async prepareLocator(ctrl: GqlFwControl | GqlGenControl, portVlan: string, faceLabel: TgNodeLabel): Promise<FaceLocator> {
@@ -194,7 +188,7 @@ export class Benchmark {
     const [pciAddr, vlan] = portVlan.split("+");
     const port = await ctrl.createEthPort(pciAddr);
     const nRxQueues = this.opts[`face${faceLabel}RxQueues`];
-    const macAddrLastOctet = faceLabel.codePointAt(0)!.toString(16).padStart(2, "0");
+    const macAddrLastOctet = hexPad(faceLabel.codePointAt(0)!, 2);
     return {
       port,
       nRxQueues,
@@ -229,7 +223,7 @@ export class Benchmark {
           producer.patterns.push({
             prefix: `/${label}/${j}`,
             replies: [{
-              suffix: dataMatch === "exact" ? undefined : "/d",
+              suffix: dataMatch === "exact" ? undefined : "/D",
               payloadLen,
               freshnessPeriod: 1,
             }],
@@ -297,27 +291,31 @@ export class Benchmark {
     const {
       nFwds,
       producerKind,
+      nFlows,
       interestNameLen,
       dataMatch,
       segmentEnd,
     } = this.opts;
+    const comp2 = uniqueRandomVector(nFlows, 1024);
     await Promise.all(this.eachTrafficDir(async (cLabel, pLabel) => {
       const tasks: FetchTaskDef[] = [];
-      for (let j = 0; j < nFwds; ++j) {
+      for (let j = 0; j < nFlows; ++j) {
+        const prefix3 = `/${pLabel}/${j % nFwds}/${comp2[j]}`;
         switch (producerKind) {
           case "pingserver":
             tasks.push({
-              prefix: `/${pLabel}/${j}${"/i".repeat(interestNameLen - 3)}`,
+              prefix: `${prefix3}${"/I".repeat(interestNameLen - 4)}`,
               canBePrefix: dataMatch === "prefix",
               mustBeFresh: true,
               segmentEnd,
             });
             break;
           case "fileserver": {
-            const fileVersion = this.state.fileServerVersionByPassBase[pLabel] | fileVersionTime | BigInt(j);
-            const fileVersionCompV = fileVersion.toString(16).toUpperCase().padStart(16, "0").replace(/[\dA-F]{2}/g, "%$&");
+            const fileVersion = (this.state.fileServerVersionBypassHi[pLabel] << 32n) | fileVersionTime | BigInt(j);
+            assert(fileVersion > 0xFFFFFFFFn);
+            const fileVersionCompV = hexPad(fileVersion, 16).replace(/[\dA-F]{2}/g, "%$&");
             tasks.push({
-              prefix: `/${pLabel}/${j}/32GB.bin/54=${fileVersionCompV}`,
+              prefix: `${prefix3}/54=${fileVersionCompV}`,
               segmentEnd,
             });
             break;
@@ -333,13 +331,28 @@ export class Benchmark {
   }
 }
 
-const initialState: BenchmarkState = {
-  face: {},
-  ndtDuplicate: false,
-  fetcher: {},
-  fileServerVersionByPassBase: {},
-  tasks: {},
-};
+interface State {
+  /** TgNodeLabel => forwarder side face ID */
+  face: Record<string, string>;
+  /** whether NDT duplicates are detected */
+  ndtDuplicate: boolean;
+  /** TgNodeLabel => fetcher ID */
+  fetcher: Record<string, string>;
+  /** TgNodeLabel => fileserver versionBypassHi */
+  fileServerVersionBypassHi: Record<string, bigint>;
+  /** TgNodeLabel => fetcher task IDs */
+  tasks: Record<string, string[]>;
+}
+
+function makeInitialState(): State {
+  return {
+    face: {},
+    ndtDuplicate: false,
+    fetcher: {},
+    fileServerVersionBypassHi: {},
+    tasks: {},
+  };
+}
 
 type TgNodeLabel = "A" | "B";
 
