@@ -98,7 +98,7 @@ Unless indicated otherwise, you must run `make clean` when switching compile-tim
 `NDNDPDK_MK_RELEASE=1` environment variable selects release mode that disables assertions and verbose logging in C code.
 
 `NDNDPDK_MK_THREADSLEEP=1` environment variable causes a polling thread to sleep for a short duration if it processed zero packets in a loop iteration.
-This reduces CPU utilization when running on a machine with fewer CPU cores, but may negatively impact performance.
+This reduces CPU utilization when running on a machine with fewer CPU cores, but may impair performance.
 
 `NDNDPDK_MK_COVERAGE=1` environment variable enables C code coverage collection.
 After running unit tests, you can generate coverage report with `make coverage` (requires `lcov` dependency).
@@ -113,7 +113,7 @@ C code (including DPDK and SPDK, excluding eBPF) is compiled with `-march=native
 It selects the CPU instruction sets available on the local machine, and makes the compiled binaries incompatible with any other CPU model.
 Pass `--arch=`*CPU-type* argument to the `ndndpdk-depends.sh` to change the target CPU architecture.
 See [GCC - x86 options](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html) for available options.
-To switch this setting, you need to rerun the dependency installation script before recompiling NDN-DPDK.
+To switch this setting, you need to rerun the dependency installation script and rebuild NDN-DPDK.
 
 `GOAMD64` environment variable selects the x86-64 architecture level for Go code.
 See [Go Minimum Requirements - amd64](https://github.com/golang/go/wiki/MinimumRequirements#amd64) for available options.

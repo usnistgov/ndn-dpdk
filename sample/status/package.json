@@ -4,9 +4,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@7.18.1",
+  "packageManager": "pnpm@7.18.2",
   "dependencies": {
-    "@fastify/express": "^2.2.0",
+    "@fastify/express": "^2.3.0",
     "@fastify/http-proxy": "^8.4.0",
     "@fastify/static": "^6.6.0",
     "@typescript/lib-dom": "npm:@types/web@0.0.84",

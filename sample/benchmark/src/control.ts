@@ -157,22 +157,28 @@ export class GqlGenControl extends GqlControlBase {
     }));
   }
 
-  public getFetchProgress(ids: readonly string[]): Promise<FetchCounters[]> {
-    return Promise.all(ids.map(async (id) => {
-      const { counters } = await this.c.request<{ counters: FetchCounters }>(gql`
-        query fetchCounters($id: ID!) {
-          node(id: $id) {
-            ... on FetchTaskContext {
-              counters
-            }
-          }
-        }
-      `, { id }, { key: "node" });
-      return counters;
-    }));
+  public async waitFetchProgress(id: string, signal: AbortSignal, t1: number, t2: number): Promise<[c1: GqlGenControl.FetchCountersInitial, c2: FetchCounters]> {
+    let c1: GqlGenControl.FetchCountersInitial = { elapsed: 0, nRxData: 0 };
+    const sub = this.c.subscribe<FetchCounters>(gql`
+      subscription fetchCounters($id: ID!) {
+        fetchCounters(id: $id, interval: "100ms")
+      }
+    `, { id }, { signal, key: "fetchCounters" });
+    for await (const cnt of sub) {
+      if (t1 > 0 && cnt.elapsed >= t1) {
+        c1 = cnt;
+      }
+      if (cnt.elapsed >= t2 || cnt.finished) {
+        return [c1, cnt];
+      }
+    }
+    throw new Error("unexpected unsubscribe");
   }
 
   public async stopFetch(ids: readonly string[]): Promise<void> {
     await Promise.all(ids.map((id) => this.c.del(id)));
   }
+}
+export namespace GqlGenControl {
+  export type FetchCountersInitial = Pick<FetchCounters, "elapsed" | "finished" | "nRxData">;
 }

@@ -1,5 +1,4 @@
-import type { ActivateFwArgs, ActivateGenArgs, EtherLocator, FaceLocator, FetchCounters, FetchTaskDef, FileServerConfig, TgpConfig, VxlanLocator } from "@usnistgov/ndn-dpdk";
-import delay from "delay";
+import type { ActivateFwArgs, ActivateGenArgs, EtherLocator, FaceLocator, FetchTaskDef, FileServerConfig, TgpConfig, VxlanLocator } from "@usnistgov/ndn-dpdk";
 import assert from "minimalistic-assert";
 
 import { GqlFwControl, GqlGenControl } from "./control";
@@ -255,22 +254,20 @@ export class Benchmark {
 
     await this.fetchStart();
 
-    await delay(1000 * warmup);
-    const cnts0 = warmup === 0 ? undefined : await this.fetchProgressCnts();
-    await delay(1000 * duration);
-    const cnts1 = await this.fetchProgressCnts();
+    const abort = new AbortController();
+    const t1 = warmup * 1e9;
+    const t2 = (warmup + duration) * 1e9;
+    const cnts = await Promise.all(this.listFetchTasks().map(([ctrl, id]) => ctrl.waitFetchProgress(id, abort.signal, t1, t2)));
+    abort.abort();
     await Promise.all(this.eachTrafficDir((cLabel) => this[`c${cLabel}`].stopFetch(this.state.tasks[cLabel])));
 
     let totalPackets = 0;
     let totalSeconds = 0;
-    for (const [i, cnt1d] of cnts1.entries()) {
-      for (const [j, cnt1] of cnt1d.entries()) {
-        const cnt0: Pick<FetchCounters, "elapsed" | "finished" | "nRxData"> = cnts0?.[i]?.[j] ?? { elapsed: 0, nRxData: 0 };
-        totalPackets += Number(cnt1.nRxData) - Number(cnt0.nRxData);
-        totalSeconds += (Number(cnt1.finished ?? cnt1.elapsed) - Number(cnt0.finished ?? cnt0.elapsed)) / 1e9;
-      }
+    for (const [cnt1, cnt2] of cnts) {
+      totalPackets += Number(cnt2.nRxData) - Number(cnt1.nRxData);
+      totalSeconds += (Number(cnt2.finished ?? cnt2.elapsed) - Number(cnt1.finished ?? cnt1.elapsed)) / 1e9;
     }
-    const avgSeconds = totalSeconds / cnts1.length / cnts1[0]!.length;
+    const avgSeconds = totalSeconds / cnts.length;
     const pps = totalPackets / avgSeconds;
     return {
       duration: avgSeconds,
@@ -326,8 +323,15 @@ export class Benchmark {
     }));
   }
 
-  private fetchProgressCnts(): Promise<FetchCounters[][]> {
-    return Promise.all(this.eachTrafficDir((cLabel) => this[`c${cLabel}`].getFetchProgress(this.state.tasks[cLabel])));
+  private listFetchTasks(): Array<[ctrl: GqlGenControl, id: string]> {
+    const list: Array<[ctrl: GqlGenControl, id: string]> = [];
+    this.eachTrafficDir((cLabel) => {
+      const ctrl = this[`c${cLabel}`];
+      for (const id of this.state.tasks[cLabel]) {
+        list.push([ctrl, id]);
+      }
+    });
+    return list;
   }
 }
 

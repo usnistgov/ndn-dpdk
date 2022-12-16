@@ -13,9 +13,9 @@ The benchmark topology consists of three logical nodes, connected linearly:
 The forwarder is setup as follows:
 
 * There are *n* forwarding threads.
-* Face A has FIB prefixes `/A/0`, `/A/1`, &hellip;, `/A/`*n-1*.
-* Face B has FIB prefixes `/B/0`, `/B/1`, &hellip;, `/B/`*n-1*.
-* NDT is setup so that traffic is balanced: `/A/`*i* and `/B/`*i* prefixes are dispatched to forwarding thread #*i*.
+* Face A has FIB prefixes `/A/0`, `/A/1`, &hellip;, `/A/<n-1>`.
+* Face B has FIB prefixes `/B/0`, `/B/1`, &hellip;, `/B/<n-1>`.
+* NDT is setup so that traffic is balanced: `/A/<i>` and `/B/<i>` prefixes are dispatched to forwarding thread #*i*.
 * Caching is minimal and cache hits are not expected.
 
 The traffic generator **A** is setup as follows:
@@ -27,11 +27,11 @@ The traffic generator **A** is setup as follows:
 * The consumer is [congestion aware fetcher](../../app/fetch).
   * It retrieves *n* files from producer B through the forwarder.
   * Each file retrieval stops when the time limit or segment count limit is reached, whichever occurs earlier.
-* An Interest name looks like `/A/`*i*`/`*j*`/I/I/I/`*seg*, where:
+* An Interest name looks like `/A/<i>/<j>/I/I/I/<seg>`, where:
   * *i* is the forwarding thread index, to balance load among forwarding threads.
   * *j* is a random number between 0 and 1023, unique among different flows during a run, to balance load among producer threads.
   * `/I` is repeated to make up desired name length.
-  * *s* is file segment number.
+  * *seg* is file segment number.
 * If Data "prefix match" is selected, Data name is Interest name plus `/D` suffix.
   Otherwise, Data name is same as Interest name.
 
@@ -43,9 +43,9 @@ If unidirectional traffic is selected on the webapp, only producer A and consume
 1. Restart NDN-DPDK service instances, to clear states from any prior benchmarks.
 2. Activate the forwarder and traffic generators.
 3. Start the fetchers to retrieve *n* files in parallel.
-4. Read counters once after warmup period (skipped if warmup period is zero), and again after trial duration.
+4. Subscribe to fetch counters, save the counters (1) after warmup period (2) upon retrieval completion or at the end of trial duration.
 5. Stop the fetchers.
-6. Calculate throughput from the difference between two sets of counters.
+6. Calculate throughput from the difference between two sets of counters, reporting the average among all flows.
 7. Go to step 3.
 
 Notably, the forwarder and producers are not restarted between consecutive trials.
@@ -112,10 +112,10 @@ If using memif virtual interfaces:
 If fileserver usage is desired, create a directory on the traffic generator host, and populate the files with these commands:
 
 ```bash
-fallocate -l 32G F
+fallocate -xl 32G F
 mkdir T
-for I in $(seq 0 1023); do ln -s ../F T/$I; done
-for I in $(seq 0 11); do ln -s T $I; done
+for I in {0..1023}; do ln -s ../F T/$I; done
+for I in {0..11}; do ln -s T $I; done
 ```
 
 ### Usage

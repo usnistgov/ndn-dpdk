@@ -140,14 +140,14 @@ export class BenchmarkOptionsEditor extends Component<Props> {
           </span>
         </div>
         <div class="pure-control-group">
-          <label for={`${this.id}.duration`}>warmup duration</label>
-          <input id={`${this.id}.duration`} type="number" min="0" max="30" step="5" value={warmup} disabled={disabled} onChange={this.handleUpdate("warmup")}/>
+          <label for={`${this.id}.warmup`}>warmup duration</label>
+          <input id={`${this.id}.warmup`} type="number" min="0" max="30" step="5" value={warmup} disabled={disabled} onChange={this.handleUpdate("warmup")}/>
           <span class="pure-form-message-inline">seconds</span>
         </div>
         <div class="pure-control-group">
           <label for={`${this.id}.duration`}>trial duration</label>
           <input id={`${this.id}.duration`} type="number" min="10" max="300" step="5" value={duration} disabled={disabled} onChange={this.handleUpdate("duration")}/>
-          <span class="pure-form-message-inline">seconds</span>
+          <span class="pure-form-message-inline">seconds {segmentEnd > 0 ? "or retrieval completion" : ""}</span>
         </div>
         {this.props.children}
       </fieldset>
