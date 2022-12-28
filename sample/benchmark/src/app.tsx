@@ -31,7 +31,7 @@ export class App extends Component<{}, State> {
       payloadLen: 1000,
       segmentEnd: 0,
       warmup: 0,
-      duration: 30,
+      duration: 60,
     },
     running: false,
     results: [],

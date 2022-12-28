@@ -9,19 +9,19 @@ export interface ServerEnv {
   F_PORT_A: string;
   F_PORT_B: string;
   F_NUMA_PRIMARY: number;
-  F_CORES_PRIMARY: number[];
-  F_CORES_SECONDARY: number[];
+  F_CORES_PRIMARY: readonly number[];
+  F_CORES_SECONDARY: readonly number[];
   A_GQLSERVER: string;
   A_PORT_F: string;
   A_NUMA_PRIMARY: number;
-  A_CORES_PRIMARY: number[];
-  A_CORES_SECONDARY: number[];
+  A_CORES_PRIMARY: readonly number[];
+  A_CORES_SECONDARY: readonly number[];
   A_FILESERVER_PATH: string;
   B_GQLSERVER: string;
   B_PORT_F: string;
   B_NUMA_PRIMARY: number;
-  B_CORES_PRIMARY: number[];
-  B_CORES_SECONDARY: number[];
+  B_CORES_PRIMARY: readonly number[];
+  B_CORES_SECONDARY: readonly number[];
   B_FILESERVER_PATH: string;
 }
 
