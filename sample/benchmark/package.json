@@ -4,14 +4,14 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@7.18.2",
+  "packageManager": "pnpm@7.20.0",
   "dependencies": {
     "@fastify/express": "^2.3.0",
     "@fastify/http-proxy": "^8.4.0",
     "@fastify/static": "^6.6.0",
     "@strattadb/environment": "^8.0.2",
     "@types/minimalistic-assert": "^1.0.1",
-    "@typescript/lib-dom": "npm:@types/web@0.0.84",
+    "@typescript/lib-dom": "npm:@types/web@0.0.86",
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz",
     "delay": "^5.0.0",
     "dotenv": "^16.0.3",

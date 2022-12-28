@@ -112,7 +112,7 @@ func ForkBridgeHelper(locA, locB Locator, f func()) error {
 // ExecBridgeHelper runs the bridge helper if os.Args requests it.
 // In unit test binary, this should be invoked in TestMain() function.
 func ExecBridgeHelper() {
-	if len(os.Args) == 4 || os.Args[1] == bridgeArg {
+	if len(os.Args) == 4 && os.Args[1] == bridgeArg {
 		res := runBridgeHelper()
 		os.Exit(res)
 	}

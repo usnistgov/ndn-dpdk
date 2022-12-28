@@ -7,6 +7,7 @@ import (
 	"github.com/suzuki-shunsuke/go-dataeq/dataeq"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"golang.org/x/exp/slices"
 )
 
 // EntryBody contains logical FIB entry contents except name.
@@ -18,12 +19,7 @@ type EntryBody struct {
 
 // HasNextHop determines whether a nexthop face exists.
 func (entry EntryBody) HasNextHop(id iface.ID) bool {
-	for _, nh := range entry.Nexthops {
-		if nh == id {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(entry.Nexthops, id)
 }
 
 // EntryBodyEquals determines whether two EntryBody records have the same values.
