@@ -1,3 +1,4 @@
+import getStdin from "get-stdin";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -11,11 +12,11 @@ await yargs(hideBin(process.argv))
     async (argv) => {
       await serve(argv.port);
     },
-  ).command("benchmark [opts]", "run benchmark on CLI",
+  ).command("benchmark", "run benchmark on CLI (pass BenchmarkOptions to stdin)",
     (argv) => argv
-      .option("count", { alias: "c", default: 1e3, desc: "iteration count", type: "number" })
-      .positional("opts", { coerce: (s) => JSON.parse(s), demandOption: true, type: "string" }),
+      .option("count", { alias: "c", default: 1e3, desc: "iteration count", type: "number" }),
     async (argv) => {
-      await runBenchmark(argv.opts, argv.count);
+      const opts = JSON.parse(await getStdin());
+      await runBenchmark(opts, argv.count);
     },
   ).parseAsync();

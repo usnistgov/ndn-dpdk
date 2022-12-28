@@ -1,5 +1,4 @@
 import { Component, createRef, h } from "preact";
-import { quote as shellQuote } from "shell-split";
 
 import { type BenchmarkOptions, type BenchmarkResult, type ServerEnv, Benchmark } from "./benchmark";
 import { BenchmarkOptionsEditor } from "./benchmark-options-editor";
@@ -149,9 +148,10 @@ export class App extends Component<{}, State> {
   };
 
   private readonly handleCopy = async () => {
-    await navigator.clipboard.writeText(shellQuote([
-      "corepack", "pnpm", "-s", "benchmark", JSON.stringify(this.state.opts), "--count", "10",
-    ]));
+    await navigator.clipboard.writeText([
+      "jq", "-n", `'${JSON.stringify(this.state.opts)}'`, "|",
+      "corepack", "pnpm", "-s", "benchmark", "--count", "10",
+    ].join(" "));
     this.setState({ message: "CLI command copied to clipboard" });
   };
 }
