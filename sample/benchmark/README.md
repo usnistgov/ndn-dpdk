@@ -124,5 +124,6 @@ for I in {0..11}; do ln -s T $I; done
 2. Copy `sample.env` as `.env`, and then edit `.env` according to the comments within.
 3. Start NDN-DPDK service instances.
 4. Start SSH tunnels for reaching remote NDN-DPDK service instances, as necessary.
-5. Run `corepack pnpm start` to start the web application.
+5. Run `corepack pnpm serve` to start the web application.
 6. Visit `http://127.0.0.1:3333` (via SSH tunnel) in your browser.
+7. To run the benchmark in command line instead of webpage, use the *CLI* button in the webapp.

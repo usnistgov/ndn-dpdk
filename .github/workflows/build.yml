@@ -108,7 +108,7 @@ jobs:
         run: mk/netlify.sh
         if: ${{ matrix.compiler == 'gcc-7' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
       - name: Deploy docs site
-        uses: nwtgck/actions-netlify@v1.2
+        uses: nwtgck/actions-netlify@v2
         with:
           publish-dir: ./build/netlify/
           production-deploy: true

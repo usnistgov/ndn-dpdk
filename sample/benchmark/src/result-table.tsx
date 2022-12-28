@@ -2,13 +2,8 @@ import { Component, h } from "preact";
 
 import type { BenchmarkResult } from "./benchmark";
 
-export interface ResultRecord extends BenchmarkResult {
-  i: number;
-  dt: Date;
-}
-
 interface Props {
-  records: ResultRecord[];
+  records: BenchmarkResult[];
 }
 
 const timeFmt = new Intl.DateTimeFormat([], { timeStyle: "medium" });

@@ -1,8 +1,9 @@
 import { Component, createRef, h } from "preact";
+import { quote as shellQuote } from "shell-split";
 
-import { type BenchmarkOptions, type ServerEnv, Benchmark } from "./benchmark";
+import { type BenchmarkOptions, type BenchmarkResult, type ServerEnv, Benchmark } from "./benchmark";
 import { BenchmarkOptionsEditor } from "./benchmark-options-editor";
-import { type ResultRecord, ResultTable } from "./result-table";
+import { ResultTable } from "./result-table";
 import { TopologyView } from "./topology-view";
 
 interface State {
@@ -10,7 +11,7 @@ interface State {
   message: string;
   opts: BenchmarkOptions;
   running: boolean;
-  results: ResultRecord[];
+  results: BenchmarkResult[];
 }
 
 export class App extends Component<{}, State> {
@@ -57,6 +58,7 @@ export class App extends Component<{}, State> {
           <BenchmarkOptionsEditor opts={opts} disabled={running} onChange={this.handleOptsChange}>
             <div class="pure-controls">
               <button type="button" class="pure-button pure-button-primary" hidden={running} onClick={this.handleStart}>START</button>
+              <button type="button" class="pure-button copy-button" hidden={running} onClick={this.handleCopy}>CLI</button>
               <button type="button" class="pure-button stop-button" hidden={!running} onClick={this.handleStop}>STOP</button>
             </div>
           </BenchmarkOptionsEditor>
@@ -125,10 +127,8 @@ export class App extends Component<{}, State> {
       while (this.state.running) {
         this.setState({ message: `running trial ${++i}` });
         const result = await b.run();
-        const dt = new Date();
-        const record = { i, dt, ...result };
-        console.log(record);
-        this.setState(({ results }) => ({ results: [...results, record] }));
+        console.log(result);
+        this.setState(({ results }) => ({ results: [...results, result] }));
       }
     } catch (err: unknown) {
       console.error(err);
@@ -146,5 +146,12 @@ export class App extends Component<{}, State> {
         this.abort = undefined;
       },
     );
+  };
+
+  private readonly handleCopy = async () => {
+    await navigator.clipboard.writeText(shellQuote([
+      "corepack", "pnpm", "-s", "benchmark", JSON.stringify(this.state.opts), "--count", "10",
+    ]));
+    this.setState({ message: "CLI command copied to clipboard" });
   };
 }

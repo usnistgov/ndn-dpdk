@@ -4,6 +4,10 @@ import assert from "minimalistic-assert";
 import { GqlFwControl, GqlGenControl } from "./control";
 import { hexPad, uniqueRandomVector } from "./util";
 
+/**
+ * Server-side environment variables.
+ * See explanation in sample.env file.
+ */
 export interface ServerEnv {
   F_GQLSERVER: string;
   F_PORT_A: string;
@@ -25,6 +29,10 @@ export interface ServerEnv {
   B_FILESERVER_PATH: string;
 }
 
+/**
+ * Benchmark options entered in BenchmarkOptionsEditor.
+ * This type must be JSON serializable.
+ */
 export interface BenchmarkOptions {
   faceAScheme: BenchmarkOptions.FaceScheme;
   faceARxQueues: number;
@@ -49,12 +57,27 @@ export namespace BenchmarkOptions {
   export type DataMatch = "exact" | "prefix";
 }
 
+/**
+ * Result of a single benchmark run.
+ */
 export interface BenchmarkResult {
+  /** Run index. */
+  i: number;
+
+  /** End timestamp in milliseconds. */
+  dt: number;
+
+  /** Data retrieval duration. */
   duration: number;
+
+  /** Throughput in pps. */
   pps: number;
+
+  /** Goodput in bps. */
   bps: number;
 }
 
+/** Core benchmark logic. */
 export class Benchmark {
   constructor(
       private readonly env: ServerEnv,
@@ -71,11 +94,13 @@ export class Benchmark {
     });
   }
 
+  private nRuns = 0;
   private readonly cF: GqlFwControl;
   private readonly cA: GqlGenControl;
   private readonly cB: GqlGenControl;
   private state = makeInitialState();
 
+  /** Start forwarder and traffic generators for benchmark environment. */
   public async setup(): Promise<void> {
     await Promise.all([
       this.activateForwarder(),
@@ -245,6 +270,7 @@ export class Benchmark {
     }
   }
 
+  /** Run data retrievals once. */
   public async run(): Promise<BenchmarkResult> {
     const {
       payloadLen,
@@ -270,6 +296,8 @@ export class Benchmark {
     const avgSeconds = totalSeconds / cnts.length;
     const pps = totalPackets / avgSeconds;
     return {
+      i: this.nRuns++,
+      dt: Date.now(),
       duration: avgSeconds,
       pps,
       bps: pps * payloadLen * 8,
