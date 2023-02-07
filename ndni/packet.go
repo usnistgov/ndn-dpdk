@@ -6,6 +6,7 @@ package ndni
 */
 import "C"
 import (
+	"bytes"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -61,9 +62,7 @@ func (pkt *Packet) PName() *PName {
 // PitToken retrieves the PIT token.
 func (pkt *Packet) PitToken() (token []byte) {
 	tokenC := &C.Packet_GetLpL3Hdr(pkt.ptr()).pitToken
-	token = make([]byte, tokenC.length)
-	copy(token, cptr.AsByteSlice(tokenC.value[:]))
-	return
+	return bytes.Clone(cptr.AsByteSlice(tokenC.value[:tokenC.length]))
 }
 
 // SetPitToken updates the PIT token.

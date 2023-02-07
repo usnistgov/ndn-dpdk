@@ -5,6 +5,8 @@ package pit
 */
 import "C"
 import (
+	"bytes"
+
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -24,9 +26,8 @@ func (dn DnRecord) FaceID() iface.ID {
 
 // PitToken returns the last received PIT token.
 func (dn DnRecord) PitToken() (token []byte) {
-	token = make([]byte, dn.c.token.length)
-	copy(token, cptr.AsByteSlice(dn.c.token.value[:]))
-	return
+	tokenC := &dn.c.token
+	return bytes.Clone(cptr.AsByteSlice(tokenC.value[:tokenC.length]))
 }
 
 // Nonce returns the last received Nonce.

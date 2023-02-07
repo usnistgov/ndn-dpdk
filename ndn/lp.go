@@ -9,7 +9,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/zyedidia/generic/cache"
-	"golang.org/x/exp/slices"
 )
 
 func lpIsCritical(typ uint32) bool {
@@ -54,7 +53,7 @@ func (lph LpL3) encode() (fields []tlv.Field) {
 }
 
 func (lph *LpL3) inheritFrom(src LpL3) {
-	lph.PitToken = slices.Clone(src.PitToken)
+	lph.PitToken = bytes.Clone(src.PitToken)
 	lph.CongMark = src.CongMark
 }
 

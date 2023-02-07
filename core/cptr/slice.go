@@ -35,5 +35,5 @@ func FirstPtr[R, T any, A ~[]T](value A) *R {
 		return nil
 	}
 	_ = [1]byte{}[unsafe.Sizeof(value[0])-unsafe.Sizeof(unsafe.Pointer(nil))] // sizeof(T)==sizeof(void*)
-	return (*R)(unsafe.Pointer(&value[0]))
+	return (*R)(unsafe.Pointer(unsafe.SliceData([]T(value))))
 }
