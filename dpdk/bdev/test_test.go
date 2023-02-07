@@ -18,4 +18,5 @@ func TestMain(m *testing.M) {
 var (
 	makeAR     = testenv.MakeAR
 	makePacket = mbuftestenv.MakePacket
+	randBytes  = testenv.RandBytes
 )

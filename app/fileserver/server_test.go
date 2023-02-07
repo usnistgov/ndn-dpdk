@@ -371,7 +371,7 @@ func (fs *fuseFS) ReadFile(ctx context.Context, op *fuseops.ReadFileOp) (e error
 		}
 		return e
 	case fuseInoFileZ:
-		rand.Read(op.Dst)
+		randBytes(op.Dst)
 		op.BytesRead = generic.Min(len(op.Dst), int(fs.sizeZ-uint64(op.Offset)))
 		return nil
 	default:
@@ -476,7 +476,7 @@ func TestFuse(t *testing.T) {
 	fs.mtime = time.Unix(1644624000, 0)
 	fs.mtimeZ.Store(fs.mtime.UnixNano())
 	fs.payloadY = make([]byte, cfg.SegmentLen*15+1)
-	rand.Read(fs.payloadY)
+	randBytes(fs.payloadY)
 	fs.sizeZ = uint64(cfg.SegmentLen * 80000)
 
 	t.Run("_", func(t *testing.T) {

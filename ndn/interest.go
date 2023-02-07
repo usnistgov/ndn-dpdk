@@ -2,12 +2,12 @@ package ndn
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding"
 	"encoding/binary"
 	"fmt"
 	"math"
-	"math/rand"
 	"reflect"
 	"time"
 

@@ -38,6 +38,7 @@ var (
 	makeAR       = testenv.MakeAR
 	makePacket   = mbuftestenv.MakePacket
 	makeInterest = ndnitestenv.MakeInterest
+	randBytes    = testenv.RandBytes
 )
 
 // createVNet creates a VNet from config template, and schedules its cleanup.

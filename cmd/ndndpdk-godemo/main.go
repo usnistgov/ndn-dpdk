@@ -5,12 +5,10 @@ import (
 	"context"
 	"io"
 	"log"
-	"math/rand"
 	"os"
 	"os/signal"
 	"sort"
 	"syscall"
-	"time"
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
@@ -114,7 +112,6 @@ func defineCommand(command *cli.Command) {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
 	sort.Sort(cli.CommandsByName(app.Commands))
 
 	ctx, cancel := context.WithCancel(context.Background())

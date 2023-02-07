@@ -3,11 +3,9 @@ package main
 
 import (
 	"log"
-	"math/rand"
 	"net"
 	"net/rpc"
 	"os"
-	"time"
 
 	"github.com/powerman/rpc-codec/jsonrpc2"
 	"github.com/urfave/cli/v2"
@@ -64,7 +62,6 @@ func main() {
 }
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
 	rpc.Register(Version{})
 	rpc.Register(Face{})
 	rpc.Register(Fib{})

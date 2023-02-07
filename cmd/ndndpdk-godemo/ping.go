@@ -47,7 +47,7 @@ func init() {
 		Before: openUplink,
 		Action: func(c *cli.Context) error {
 			payload := make([]byte, payloadLen)
-			rand.Read(payload)
+			rand.New(rand.NewSource(rand.Int63())).Read(payload)
 			var signer ndn.Signer
 			if wantSign {
 				signer = ndn.DigestSigning

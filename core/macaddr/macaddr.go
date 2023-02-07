@@ -3,7 +3,7 @@ package macaddr
 
 import (
 	"bytes"
-	"math/rand"
+	"crypto/rand"
 	"net"
 )
 

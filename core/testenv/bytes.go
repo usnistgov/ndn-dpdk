@@ -3,10 +3,16 @@ package testenv
 import (
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"strings"
 
 	"github.com/stretchr/testify/assert"
 )
+
+// RandBytes fills []byte with non-crypto-safe random bytes.
+func RandBytes(p []byte) {
+	rand.New(rand.NewSource(rand.Int63())).Read(p)
+}
 
 // BytesFromHex converts a hexadecimal string to a byte slice.
 // The octets must be written as upper case.

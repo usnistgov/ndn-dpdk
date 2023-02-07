@@ -1,8 +1,8 @@
 package fwdptest
 
 import (
+	"crypto/rand"
 	"encoding/binary"
-	"math/rand"
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/core/testenv"

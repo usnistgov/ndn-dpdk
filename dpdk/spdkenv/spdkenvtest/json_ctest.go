@@ -6,7 +6,6 @@ package spdkenvtest
 */
 import "C"
 import (
-	"math/rand"
 	"testing"
 	"unsafe"
 
@@ -14,7 +13,10 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 )
 
-var makeAR = testenv.MakeAR
+var (
+	makeAR    = testenv.MakeAR
+	randBytes = testenv.RandBytes
+)
 
 // As of SPDK 22.01, explicitly calling a function in libspdk_env_dpdk.so is needed to prevent a linker error:
 //
@@ -25,7 +27,7 @@ func ctestJSON(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	content := make([]byte, 1048576)
-	rand.Read(content)
+	randBytes(content)
 
 	var obj struct {
 		N int    `json:"n"`

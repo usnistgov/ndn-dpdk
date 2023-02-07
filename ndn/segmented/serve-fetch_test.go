@@ -3,7 +3,6 @@ package segmented_test
 import (
 	"bytes"
 	"context"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -14,7 +13,10 @@ import (
 	"go4.org/must"
 )
 
-var makeAR = testenv.MakeAR
+var (
+	makeAR    = testenv.MakeAR
+	randBytes = testenv.RandBytes
+)
 
 const fetchTimeout = 10 * time.Second
 
@@ -45,7 +47,7 @@ func (f *ServeFetchFixture) EnableBridge() {
 
 func (f *ServeFetchFixture) Prepare(payloadLen, chunkSize int) {
 	f.Payload = make([]byte, payloadLen)
-	rand.Read(f.Payload)
+	randBytes(f.Payload)
 	f.SOpt.ChunkSize = chunkSize
 }
 

@@ -17,4 +17,7 @@ func TestMain(m *testing.M) {
 	testenv.Exit(m.Run())
 }
 
-var makeAR = testenv.MakeAR
+var (
+	makeAR    = testenv.MakeAR
+	randBytes = testenv.RandBytes
+)

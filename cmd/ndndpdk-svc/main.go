@@ -5,7 +5,6 @@ package main
 import (
 	"bytes"
 	"errors"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -164,8 +163,6 @@ var app = &cli.App{
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-
 	var uname unix.Utsname
 	unix.Uname(&uname)
 	logger.Info("NDN-DPDK service starting",

@@ -5,7 +5,6 @@ package cptrtest
 */
 import "C"
 import (
-	"math/rand"
 	"testing"
 	"unsafe"
 
@@ -16,7 +15,7 @@ func ctestFileDump(t *testing.T) {
 	assert, _ := makeAR(t)
 
 	content := make([]byte, 1048576)
-	rand.Read(content)
+	randBytes(content)
 
 	data, e := cptr.CaptureFileDump(func(fp unsafe.Pointer) {
 		C.fwrite(unsafe.Pointer(&content[0]), C.size_t(len(content)), 1, (*C.FILE)(fp))

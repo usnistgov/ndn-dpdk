@@ -2,7 +2,6 @@
 package ifacetestenv
 
 import (
-	"math/rand"
 	"testing"
 	"time"
 	"unsafe"
@@ -111,7 +110,7 @@ func (fixture *Fixture) recvCheck(pkt *pktmbuf.Packet) (increment int) {
 
 func (fixture *Fixture) sendProc() {
 	content := make([]byte, fixture.PayloadLen)
-	rand.Read(content)
+	testenv.RandBytes(content)
 	mp := ndnitestenv.MakeMempools()
 	txAlign := fixture.txFace.TxAlign()
 

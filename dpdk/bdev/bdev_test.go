@@ -41,7 +41,7 @@ func (rwt *bdevRWTest) assignSegs(nBlocks int, lengths ...int) {
 	for i, length := range lengths {
 		size += length
 		seg := make([]byte, length)
-		rand.Read(seg)
+		randBytes(seg)
 		rwt.segs[i] = seg
 	}
 

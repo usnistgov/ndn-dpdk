@@ -2,7 +2,6 @@ package ethface_test
 
 import (
 	"fmt"
-	"math/rand"
 	"net"
 	"testing"
 	"time"
@@ -131,7 +130,7 @@ func TestFragmentationChained(t *testing.T) {
 func TestReassembly(t *testing.T) {
 	assert, require := makeAR(t)
 	payload := make([]byte, 6000)
-	rand.Read(payload)
+	randBytes(payload)
 
 	vnet := createVNet(t, ethringdev.VNetConfig{NNodes: 2})
 	defer iface.CloseAll()

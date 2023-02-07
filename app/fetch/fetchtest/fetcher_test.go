@@ -38,7 +38,7 @@ func TestFetcher(t *testing.T) {
 	defA.SegmentBegin, defA.SegmentEnd = 0, 5000
 	defA.Filename, defA.SegmentLen = filepath.Join(t.TempDir(), "A.bin"), 100
 	payloadA := make([]byte, int(defA.SegmentEnd)*defA.SegmentLen)
-	rand.Read(payloadA)
+	randBytes(payloadA)
 	defB.Prefix = ndn.ParseName("/B")
 	defB.SegmentBegin, defB.SegmentEnd = 1000, 4000
 	const finalBlockB = 1800
