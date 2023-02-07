@@ -44,7 +44,7 @@ DFLT_URINGVER=liburing-2.3
 DFLT_DPDKVER=v22.11
 DFLT_DPDKPATCH=26034
 DFLT_DPDKOPTS={}
-DFLT_SPDKVER=5497616e8ff768313a441980d44f439558509b4f
+DFLT_SPDKVER=v23.01
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -380,7 +380,7 @@ if [[ $SPDKVER != 0 ]]; then
     --disable-tests --disable-unit-tests --disable-examples --disable-apps \
     --with-dpdk --with-uring \
     --without-idxd --without-crypto --without-fio --without-xnvme --without-vhost \
-    --without-virtio --without-vfio-user --without-pmdk --without-reduce --without-rbd \
+    --without-virtio --without-vfio-user --without-rbd \
     --without-rdma --without-fc --without-daos --without-iscsi-initiator --without-vtune \
     --without-ocf --without-fuse --without-nvme-cuse --without-raid5f --without-wpdk \
     --without-usdt --without-sma

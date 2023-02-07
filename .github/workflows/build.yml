@@ -8,7 +8,7 @@ on:
 permissions: {}
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         compiler:
@@ -28,17 +28,13 @@ jobs:
       - id: compilers
         name: Install compilers and tools
         run: |
-          wget https://apt.llvm.org/llvm.sh
-          sudo bash ./llvm.sh 11
-          sudo apt-get install $CC clang-format-11 doxygen gcc-multilib llvm-11 libelf-dev libpcap-dev liburcu-dev linux-libc-dev python3.8 python3-setuptools
+          sudo apt-get install $CC doxygen gcc-multilib libelf-dev libpcap-dev liburcu-dev linux-libc-dev python3-setuptools
           for C in go gofmt node; do
             sudo update-alternatives --remove-all $C || true
             sudo update-alternatives --install /usr/bin/$C $C $(command -v $C) 1
           done
           go install honnef.co/go/tools/cmd/staticcheck@latest
-          sudo update-alternatives --remove-all python || true
-          sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
-          pip install meson
+          sudo pip install meson
           echo meson=$(meson --version) >> $GITHUB_OUTPUT
       - name: Install uBPF
         run: |
@@ -70,7 +66,7 @@ jobs:
         with:
           dpdk-version: v22.11
           dpdk-patches: 26031
-          spdk-version: 5497616e8ff768313a441980d44f439558509b4f
+          spdk-version: v23.01
           target-arch: haswell
       - uses: actions/checkout@v3
       - name: Build NDN-DPDK in debug mode

@@ -18,10 +18,12 @@ const roles = {
 const tabs = {
   diagram: ({ role }: State) => {
     switch (role) {
-      case "fw":
+      case "fw": {
         return <FwDiagram/>;
-      case "tg":
+      }
+      case "tg": {
         return <TgDiagram/>;
+      }
     }
     return undefined;
   },

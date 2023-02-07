@@ -3,6 +3,7 @@ package bdev
 /*
 #include "../../csrc/dpdk/bdev.h"
 #include <spdk/accel.h>
+#include <spdk/thread.h>
 
 extern void go_bdevInitialized(void* ctx, int rc);
 */
@@ -25,7 +26,12 @@ func initBdevLib() {
 	initBdevLibOnce.Do(func() {
 		logger.Info("initializing block device library and accel framework")
 		eal.CallMain(func() {
-			C.spdk_accel_initialize()
+			if res := C.spdk_iobuf_initialize(); res != 0 {
+				logger.Fatal("spdk_iobuf_initialize error", zap.Error(eal.MakeErrno(res)))
+			}
+			if res := C.spdk_accel_initialize(); res != 0 {
+				logger.Fatal("spdk_accel_initialize error", zap.Error(eal.MakeErrno(res)))
+			}
 			C.spdk_bdev_initialize(C.spdk_bdev_init_cb(C.go_bdevInitialized), nil)
 		})
 	})

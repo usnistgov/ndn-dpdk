@@ -9,24 +9,24 @@
   "type": "module",
   "main": "build/js/mod.js",
   "types": "js/mod.ts",
-  "packageManager": "pnpm@7.20.0",
+  "packageManager": "pnpm@7.26.3",
   "dependencies": {
     "graphql": "^16.6.0",
     "graphql-request": "^5.1.0",
     "isomorphic-ws": "^5.0.0",
     "it-pushable": "^3.1.2",
-    "throat": "^6.0.1",
-    "tslib": "^2.4.1",
-    "ws": "^8.11.0"
+    "throat": "^6.0.2",
+    "tslib": "^2.5.0",
+    "ws": "^8.12.0"
   },
   "devDependencies": {
-    "@types/ws": "^8.5.3",
-    "@yoursunny/xo-config": "0.52.1",
+    "@types/ws": "^8.5.4",
+    "@yoursunny/xo-config": "0.53.0",
     "dockerfilelint": "^1.8.0",
     "json-stable-stringify": "^1.0.2",
-    "markdownlint-cli": "^0.32.2",
+    "markdownlint-cli": "^0.33.0",
     "ts-json-schema-generator": "^1.2.0",
-    "typescript": "~4.9.4"
+    "typescript": "~4.9.5"
   },
   "engines": {
     "node": "16.x"

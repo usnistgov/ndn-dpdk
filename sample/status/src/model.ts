@@ -26,20 +26,26 @@ export namespace Face {
 
 export function describeFaceLocator(loc: FaceLocator): string {
   switch (loc.scheme) {
-    case "ether":
+    case "ether": {
       return `Ethernet ${loc.remote}${loc.vlan ? ` VLAN ${loc.vlan}` : ""}`;
-    case "udpe":
+    }
+    case "udpe": {
       return `UDP [${loc.remoteIP}]:${loc.remoteUDP}`;
-    case "vxlan":
+    }
+    case "vxlan": {
       return `VXLAN ${loc.remoteIP} ${loc.vxlan}`;
+    }
     case "unix":
     case "udp":
-    case "tcp":
+    case "tcp": {
       return `${loc.scheme.toUpperCase()} socket ${loc.remote}`;
-    case "memif":
+    }
+    case "memif": {
       return `memif ${loc.socketName} ${loc.id}`;
-    default:
+    }
+    default: {
       return JSON.stringify(loc);
+    }
   }
 }
 

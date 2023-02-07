@@ -327,7 +327,7 @@ export class Benchmark {
       for (let j = 0; j < nFlows; ++j) {
         const prefix3 = `/${pLabel}/${j % nFwds}/${comp2[j]}`;
         switch (producerKind) {
-          case "pingserver":
+          case "pingserver": {
             tasks.push({
               prefix: `${prefix3}${"/I".repeat(interestNameLen - 4)}`,
               canBePrefix: dataMatch === "prefix",
@@ -335,6 +335,7 @@ export class Benchmark {
               segmentEnd,
             });
             break;
+          }
           case "fileserver": {
             const fileVersion = (this.state.fileServerVersionBypassHi[pLabel] << 32n) | fileVersionTime | BigInt(j);
             assert(fileVersion > 0xFFFFFFFFn);

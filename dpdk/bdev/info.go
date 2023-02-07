@@ -142,9 +142,14 @@ func List() (list []*Info) {
 // Find finds a block device by name.
 func Find(name string) *Info {
 	initBdevLib()
-	nameC := C.CString(name)
-	defer C.free(unsafe.Pointer(nameC))
-	return (*Info)(C.spdk_bdev_get_by_name(nameC))
+	for d := C.spdk_bdev_first(); d != nil; d = C.spdk_bdev_next(d) {
+		bdi := (*Info)(d)
+		if bdi.Name() == name {
+			return bdi
+		}
+	}
+	return nil
+	// C.spdk_bdev_get_by_name is only available in SPDK thread
 }
 
 func mustFind(name string) *Info {

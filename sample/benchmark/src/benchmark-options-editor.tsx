@@ -162,14 +162,17 @@ export class BenchmarkOptionsEditor extends Component<Props> {
       const { opts, onChange } = this.props;
       let value: any;
       switch (typeof opts[field]) {
-        case "string":
+        case "string": {
           value = evt.currentTarget.value.trim();
           break;
-        case "number":
+        }
+        case "number": {
           value = Number.parseInt(evt.currentTarget.value, 10);
           break;
-        default:
+        }
+        default: {
           assert(false);
+        }
       }
       const update: Partial<BenchmarkOptions> = { [field]: value };
       Object.assign(update, also?.(value, opts));
