@@ -2,6 +2,7 @@
 package fwdp
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/zyedidia/generic"
-	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
@@ -188,7 +188,7 @@ func (dp *DataPlane) Close() error {
 	}
 
 	ealthread.AllocFree(lcores...)
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // New creates and launches forwarder data plane.

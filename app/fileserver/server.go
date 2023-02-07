@@ -2,11 +2,12 @@
 package fileserver
 
 import (
+	"errors"
+
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
@@ -73,7 +74,7 @@ func (p *Server) Close() error {
 		errs = append(errs, m.closeDirectory())
 	}
 	p.mounts = nil
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // New creates a Server.

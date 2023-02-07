@@ -2,13 +2,13 @@
 package tgproducer
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
@@ -73,7 +73,7 @@ func (p *Producer) Close() error {
 		errs = append(errs, w.close())
 	}
 	p.workers = nil
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // New creates a Producer.

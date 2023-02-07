@@ -11,6 +11,7 @@ enum { c_offsetof_TgcTxPattern_DigestSeqNumOffset = offsetof(TgcTxPattern, diges
 import "C"
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -29,7 +30,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
@@ -211,7 +211,7 @@ func (c *Consumer) StopDelay(delay time.Duration) error {
 	eTx := c.tx.Stop()
 	time.Sleep(delay)
 	eRx := c.rx.Stop()
-	return multierr.Append(eTx, eRx)
+	return errors.Join(eTx, eRx)
 }
 
 // Close closes the consumer.

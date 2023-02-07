@@ -23,7 +23,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
@@ -59,7 +58,7 @@ func (cfg WriterConfig) validate() error {
 	if cfg.MaxSize < MinFileSize {
 		errs = append(errs, fmt.Errorf("file size is less than %d", MinFileSize))
 	}
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // Writer is a packet dump writer thread.

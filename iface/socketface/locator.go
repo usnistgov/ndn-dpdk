@@ -1,9 +1,10 @@
 package socketface
 
 import (
+	"errors"
+
 	"github.com/gogf/greuse"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"go.uber.org/multierr"
 )
 
 const (
@@ -35,7 +36,7 @@ func (loc Locator) Validate() error {
 	if loc.Local != "" && !(loc.Network == schemeUnix && loc.Local == "@") {
 		_, eL = greuse.ResolveAddr(loc.Network, loc.Local)
 	}
-	return multierr.Append(eR, eL)
+	return errors.Join(eR, eL)
 }
 
 // CreateFace creates a face from this Locator.

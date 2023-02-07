@@ -1,13 +1,13 @@
 package ethringdev
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
-	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
@@ -74,7 +74,7 @@ func (pair *Pair) Close() error {
 	for _, r := range pair.rings {
 		errs = append(errs, r.Close())
 	}
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // NewPair creates a pair of connected EthDevs.

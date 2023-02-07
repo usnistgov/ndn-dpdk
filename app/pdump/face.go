@@ -22,7 +22,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 )
@@ -115,7 +114,7 @@ func (cfg *FaceConfig) validate() error {
 		}
 	}
 
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // NameFilterEntry matches a name prefix and specifies its sample rate.

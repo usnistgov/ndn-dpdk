@@ -5,6 +5,7 @@ package fwdp
 */
 import "C"
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -17,7 +18,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
@@ -109,7 +109,7 @@ func (fwdisk *Disk) Close() error {
 		fwdisk.Thread = nil
 	}
 	eal.Free(fwdisk.c)
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // ThreadRole implements ealthread.ThreadWithRole interface.

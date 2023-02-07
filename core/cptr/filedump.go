@@ -10,7 +10,6 @@ import (
 	"os"
 	"unsafe"
 
-	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
 )
 
@@ -54,7 +53,7 @@ func (p *FilePipeCGo) CloseWriter() error {
 
 // Close closes both reader and writer.
 func (p *FilePipeCGo) Close() error {
-	return multierr.Append(
+	return errors.Join(
 		p.CloseWriter(),
 		p.CloseReader(),
 	)

@@ -2,6 +2,7 @@
 package tg
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -17,7 +18,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/multierr"
 )
 
 // Thread roles.
@@ -136,7 +136,7 @@ func (gen *TrafficGen) Stop() error {
 	if gen.fetcher != nil {
 		errs = append(errs, gen.fetcher.Stop())
 	}
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // Close releases resources.
@@ -178,7 +178,7 @@ func (gen *TrafficGen) Close() error {
 	ealthread.AllocFree(lcores...)
 
 	*gen = TrafficGen{}
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // New creates a traffic generator.

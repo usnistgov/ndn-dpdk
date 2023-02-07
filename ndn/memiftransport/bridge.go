@@ -4,6 +4,7 @@ package memiftransport
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	stdlog "log"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/zyedidia/generic"
-	"go.uber.org/multierr"
 )
 
 // Bridge bridges two memif interfaces.
@@ -46,7 +46,7 @@ func (bridge *Bridge) transferLoop(src, dst *handle) {
 // Close stops the bridge.
 func (bridge *Bridge) Close() error {
 	close(bridge.closing)
-	return multierr.Append(bridge.hdlA.Close(), bridge.hdlB.Close())
+	return errors.Join(bridge.hdlA.Close(), bridge.hdlB.Close())
 }
 
 // NewBridge creates a Bridge.

@@ -10,7 +10,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/app/tgconsumer"
 	"github.com/usnistgov/ndn-dpdk/app/tgproducer"
 	"github.com/usnistgov/ndn-dpdk/iface"
-	"go.uber.org/multierr"
 )
 
 // Config describes traffic generator configuration.
@@ -58,5 +57,5 @@ func (cfg *Config) Validate() error {
 		errs = append(errs, errors.New("at least one producer or consumer module should be enabled"))
 	}
 
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }

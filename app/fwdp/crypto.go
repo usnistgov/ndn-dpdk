@@ -5,6 +5,7 @@ package fwdp
 */
 import "C"
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/multierr"
 )
 
 // CryptoConfig contains crypto helper thread configuration.
@@ -112,7 +112,7 @@ func (fwcsh *CryptoShared) ConnectTo(fwd *Fwd) {
 
 // Close deletes resources.
 func (fwcsh *CryptoShared) Close() error {
-	return multierr.Append(
+	return errors.Join(
 		fwcsh.dev.Close(),
 		fwcsh.input.Close(),
 	)

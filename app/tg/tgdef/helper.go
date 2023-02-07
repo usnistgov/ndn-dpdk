@@ -1,8 +1,9 @@
 package tgdef
 
 import (
+	"errors"
+
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
-	"go.uber.org/multierr"
 )
 
 // GatherWorkers helps implementing Module.Workers.
@@ -26,5 +27,5 @@ func StopWorkers[W ealthread.Thread](workers []W) error {
 	for _, w := range workers {
 		errs = append(errs, w.Stop())
 	}
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }

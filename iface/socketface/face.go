@@ -18,7 +18,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
@@ -143,5 +142,5 @@ func (face *socketFace) rawControl(cb func(ctx context.Context, fd int) error) e
 	e0 := raw.Control(func(fd uintptr) {
 		e1 = cb(face.transport.Context(), int(fd))
 	})
-	return multierr.Append(e0, e1)
+	return errors.Join(e0, e1)
 }

@@ -6,6 +6,7 @@ package fwdp
 */
 import "C"
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
@@ -20,7 +21,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/multierr"
 	"go4.org/must"
 )
 
@@ -43,7 +43,7 @@ var (
 // Close stops and releases the thread.
 func (fwd *Fwd) Close() error {
 	defer eal.Free(fwd.c)
-	return multierr.Combine(
+	return errors.Join(
 		fwd.Stop(),
 		fwd.queueI.Close(),
 		fwd.queueD.Close(),

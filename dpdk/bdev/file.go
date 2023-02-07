@@ -1,12 +1,12 @@
 package bdev
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/spdkenv"
-	"go.uber.org/multierr"
 )
 
 // FileDriver indicates a file-backed block device driver.
@@ -73,7 +73,7 @@ func NewFile(filename string) (*File, error) {
 	if e1 == nil {
 		return device, nil
 	}
-	return nil, multierr.Append(e0, e1)
+	return nil, errors.Join(e0, e1)
 }
 
 // TruncateFile creates and truncates a file.

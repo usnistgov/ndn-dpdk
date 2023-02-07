@@ -1,6 +1,6 @@
 package iface
 
-import "go.uber.org/multierr"
+import "errors"
 
 var gFaces [MaxID + 1]Face
 
@@ -36,5 +36,5 @@ func CloseAll() error {
 		errs = append(errs, txl.Close())
 	}
 	emitter.Emit(evtCloseAll)
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }

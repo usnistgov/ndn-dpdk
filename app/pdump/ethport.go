@@ -18,7 +18,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 )
 
@@ -58,7 +57,7 @@ func (cfg *EthPortConfig) validate() error {
 		errs = append(errs, errors.New("grab not supported"))
 	}
 
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // EthPortSource is a packet dump source attached to an Ethernet port on a grab opportunity.

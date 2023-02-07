@@ -6,6 +6,7 @@ package fileserver
 */
 import "C"
 import (
+	"errors"
 	"unsafe"
 
 	binutils "github.com/jfoster/binary-utilities"
@@ -16,7 +17,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/multierr"
 )
 
 type worker struct {
@@ -57,7 +57,7 @@ func (w *worker) close() error {
 	errs = append(errs, w.rxQueue().Close())
 	eal.Free(w.c)
 	w.c = nil
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 func (w worker) addToCounters(cnt *Counters) {

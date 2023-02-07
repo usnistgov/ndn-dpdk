@@ -15,7 +15,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/zyedidia/generic"
-	"go.uber.org/multierr"
 	"golang.org/x/exp/maps"
 )
 
@@ -163,7 +162,7 @@ func (fetcher *Fetcher) Close() error {
 	for _, w := range fetcher.workers {
 		eal.Free(w.c)
 	}
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // New creates a Fetcher.

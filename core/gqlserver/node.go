@@ -3,6 +3,7 @@ package gqlserver
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base32"
 	"errors"
 	"fmt"
@@ -22,8 +23,8 @@ var (
 )
 
 func xorID(value []byte) []byte {
-	for i, b := range value {
-		value[i] = b ^ idKey[i%len(idKey)]
+	for off := 0; off < len(value); off += len(idKey) {
+		subtle.XORBytes(value[off:], value[off:], idKey[:])
 	}
 	return value
 }

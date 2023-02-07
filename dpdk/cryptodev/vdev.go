@@ -1,10 +1,10 @@
 package cryptodev
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"go.uber.org/multierr"
 )
 
 // VDevConfig configures a virtual crypto device.
@@ -44,7 +44,7 @@ func CreateVDev(cfg VDevConfig) (cd *CryptoDev, e error) {
 		drvErrors = append(drvErrors, fmt.Errorf("cryptodev[%s] %w", drv, e))
 	}
 	if vdev == nil {
-		return nil, multierr.Combine(drvErrors...)
+		return nil, errors.Join(drvErrors...)
 	}
 
 	if cd, e = New(vdev, cfg.Config); e != nil {

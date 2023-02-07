@@ -2,11 +2,11 @@ package ealthread
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/rickb777/plural"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
-	"go.uber.org/multierr"
 )
 
 var (
@@ -35,7 +35,7 @@ func (c Config) ValidateRoles(roles map[string]int) error {
 		}
 	}
 
-	return multierr.Combine(errs...)
+	return errors.Join(errs...)
 }
 
 // Extract moves specified roles to another Config, and validates their minimums.
@@ -100,7 +100,7 @@ func (c Config) assignWorkers(filter eal.LCorePredicate) (m map[string]eal.LCore
 		}
 	}
 
-	return m, multierr.Combine(errs...)
+	return m, errors.Join(errs...)
 }
 
 // RoleConfig contains lcore allocation config for a role.
@@ -148,8 +148,5 @@ func (c *RoleConfig) UnmarshalJSON(j []byte) error {
 		return nil
 	}
 
-	return multierr.Append(
-		fmt.Errorf("decode as lcore list: %w", e0),
-		fmt.Errorf("decode as socket=>count map: %w", e1),
-	)
+	return fmt.Errorf("decode as lcore list: %w\ndecode as socket=>count map: %w", e0, e1)
 }

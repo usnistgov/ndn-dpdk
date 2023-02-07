@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/zyedidia/generic"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 
 	"github.com/usnistgov/ndn-dpdk/core/logging"
@@ -136,7 +135,7 @@ func (port *Port) closeWithPortsMutex() error {
 		port.rxBouncePool = nil
 	}
 
-	if e := multierr.Combine(errs...); e != nil {
+	if e := errors.Join(errs...); e != nil {
 		port.logger.Warn("port closed with errors", zap.Error(e))
 	} else {
 		port.logger.Info("port closed")
