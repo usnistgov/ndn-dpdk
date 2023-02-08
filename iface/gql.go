@@ -191,11 +191,11 @@ func init() {
 
 			lc := p.Source.(eal.LCore)
 			var txl TxLoop
-			for t := range txLoopThreads {
+			txLoopThreads.Each(func(t TxLoop) {
 				if t.LCore() == lc {
 					txl = t
 				}
-			}
+			})
 			if txl == nil {
 				return nil, nil
 			}

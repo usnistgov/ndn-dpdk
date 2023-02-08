@@ -6,6 +6,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/zyedidia/generic/multimap"
+	"github.com/zyedidia/generic/set"
 )
 
 // Forwarder is a logical forwarding plane.
@@ -44,7 +45,7 @@ func NewForwarder() Forwarder {
 	fw := &forwarder{
 		faces:         map[uint32]*fwFace{},
 		announcements: multimap.NewMapSlice[string, *fwFace](),
-		readvertise:   map[ReadvertiseDestination]bool{}, // cannot use mapset because ReadvertiseDestination is not 'comparable'
+		readvertise:   set.NewMapset[ReadvertiseDestination](),
 		cmd:           make(chan func()),
 		rx:            make(chan fwRxPkt),
 	}
@@ -60,7 +61,7 @@ type fwRxPkt struct {
 type forwarder struct {
 	faces         map[uint32]*fwFace
 	announcements multimap.MultiMap[string, *fwFace]
-	readvertise   map[ReadvertiseDestination]bool
+	readvertise   set.Set[ReadvertiseDestination]
 	cmd           chan func()
 	rx            chan fwRxPkt
 }
@@ -96,19 +97,13 @@ func (fw *forwarder) AddFace(face Face) (ff FwFace, e error) {
 
 func (fw *forwarder) AddReadvertiseDestination(dest ReadvertiseDestination) {
 	fw.do(func() {
-		if fw.readvertise[dest] {
-			return
-		}
-		fw.readvertise[dest] = true
+		fw.readvertise.Put(dest)
 	})
 }
 
 func (fw *forwarder) RemoveReadvertiseDestination(dest ReadvertiseDestination) {
 	fw.do(func() {
-		if !fw.readvertise[dest] {
-			return
-		}
-		delete(fw.readvertise, dest)
+		fw.readvertise.Remove(dest)
 	})
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/zyedidia/generic/set"
 	"go.uber.org/zap"
 )
 
@@ -70,7 +71,7 @@ func NewRxLoop(socket eal.NumaSocket) RxLoop {
 		cptr.Func0.C(C.RxLoop_Run, rxl.c),
 		unsafe.Pointer(&rxl.c.ctrl),
 	)
-	rxLoopThreads[rxl] = true
+	rxLoopThreads.Put(rxl)
 	logger.Info("RxLoop created",
 		zap.Uintptr("rxl-ptr", uintptr(unsafe.Pointer(rxl.c))),
 	)
@@ -97,7 +98,7 @@ func (rxl *rxLoop) Close() error {
 	defer rxLoopLock.Unlock()
 
 	rxl.Stop()
-	delete(rxLoopThreads, rxl)
+	rxLoopThreads.Remove(rxl)
 	logger.Info("RxLoop closed",
 		zap.Uintptr("rxl-ptr", uintptr(unsafe.Pointer(rxl.c))),
 	)
@@ -182,20 +183,16 @@ var (
 	// Return nil to use default algorithm.
 	ChooseRxLoop = func(rxg RxGroup) RxLoop { return nil }
 
-	rxLoopThreads = map[RxLoop]bool{} // cannot use mapset because RxLoop is not 'comparable'
+	rxLoopThreads = set.NewMapset[RxLoop]()
 	mapRxgRxl     = map[RxGroup]RxLoop{}
 	rxLoopLock    sync.Mutex
 )
 
 // ListRxLoops returns a list of RxLoops.
-func ListRxLoops() (list []RxLoop) {
+func ListRxLoops() []RxLoop {
 	rxLoopLock.Lock()
 	defer rxLoopLock.Unlock()
-
-	for rxl := range rxLoopThreads { // cannot use maps.Keys because RxLoop is not 'comparable'
-		list = append(list, rxl)
-	}
-	return list
+	return rxLoopThreads.Keys()
 }
 
 // ActivateRxGroup selects an RxLoop and adds the RxGroup to it.
@@ -213,7 +210,7 @@ func ActivateRxGroup(rxg RxGroup) RxLoop {
 	}
 
 	socket := rxg.NumaSocket()
-	if len(rxLoopThreads) == 0 {
+	if rxLoopThreads.Size() == 0 {
 		rxl := NewRxLoop(socket)
 		if e := ealthread.AllocLaunch(rxl); e != nil {
 			logger.Panic("no RxLoop available and cannot launch new RxLoop", zap.Error(e))
@@ -224,7 +221,7 @@ func ActivateRxGroup(rxg RxGroup) RxLoop {
 
 	var bestRxl RxLoop
 	bestScore := math.MaxInt32
-	for rxl := range rxLoopThreads {
+	rxLoopThreads.Each(func(rxl RxLoop) {
 		score := rxl.CountRxGroups()
 		if !socket.Match(rxl.NumaSocket()) {
 			score += 1000000
@@ -232,7 +229,7 @@ func ActivateRxGroup(rxg RxGroup) RxLoop {
 		if score <= bestScore {
 			bestRxl, bestScore = rxl, score
 		}
-	}
+	})
 	bestRxl.Add(rxg)
 	return bestRxl
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
+	"github.com/zyedidia/generic/set"
 	"go.uber.org/zap"
 )
 
@@ -43,7 +44,7 @@ func NewTxLoop(socket eal.NumaSocket) TxLoop {
 		cptr.Func0.C(C.TxLoop_Run, txl.c),
 		unsafe.Pointer(&txl.c.ctrl),
 	)
-	txLoopThreads[txl] = true
+	txLoopThreads.Put(txl)
 	logger.Info("TxLoop created",
 		zap.Uintptr("txl-ptr", uintptr(unsafe.Pointer(txl.c))),
 	)
@@ -70,7 +71,7 @@ func (txl *txLoop) Close() error {
 	defer txLoopLock.Unlock()
 
 	txl.Stop()
-	delete(txLoopThreads, txl)
+	txLoopThreads.Remove(txl)
 	logger.Info("TxLoop closed",
 		zap.Uintptr("txl-ptr", uintptr(unsafe.Pointer(txl.c))),
 	)
@@ -132,7 +133,7 @@ var (
 	// Return nil to use default algorithm.
 	ChooseTxLoop = func(face Face) TxLoop { return nil }
 
-	txLoopThreads = map[TxLoop]bool{} // cannot use mapset because TxLoop is not 'comparable'
+	txLoopThreads = set.NewMapset[TxLoop]()
 	mapFaceTxl    = map[ID]TxLoop{}
 	txLoopLock    sync.Mutex
 )
@@ -141,11 +142,7 @@ var (
 func ListTxLoops() (list []TxLoop) {
 	txLoopLock.Lock()
 	defer txLoopLock.Unlock()
-
-	for txl := range txLoopThreads { // cannot use maps.Keys because TxLoop is not 'comparable'
-		list = append(list, txl)
-	}
-	return list
+	return txLoopThreads.Keys()
 }
 
 // ActivateTxFace selects an TxLoop and adds the face to it.
@@ -163,7 +160,7 @@ func ActivateTxFace(face Face) TxLoop {
 	}
 
 	socket := face.NumaSocket()
-	if len(txLoopThreads) == 0 {
+	if txLoopThreads.Size() == 0 {
 		txl := NewTxLoop(socket)
 		if e := ealthread.AllocLaunch(txl); e != nil {
 			logger.Panic("no RxLoop available and cannot launch new RxLoop", zap.Error(e))
@@ -174,7 +171,7 @@ func ActivateTxFace(face Face) TxLoop {
 
 	var bestTxl TxLoop
 	bestScore := math.MaxInt32
-	for txl := range txLoopThreads {
+	txLoopThreads.Each(func(txl TxLoop) {
 		score := txl.CountFaces()
 		if !socket.Match(txl.NumaSocket()) {
 			score += 1000000
@@ -182,7 +179,7 @@ func ActivateTxFace(face Face) TxLoop {
 		if score <= bestScore {
 			bestTxl, bestScore = txl, score
 		}
-	}
+	})
 	bestTxl.Add(face)
 	return bestTxl
 }
