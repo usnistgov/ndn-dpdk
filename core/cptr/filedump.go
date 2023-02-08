@@ -22,7 +22,7 @@ type FilePipeConfig struct {
 // FilePipeCGo is a pipe from *C.FILE writer to *os.File reader.
 type FilePipeCGo struct {
 	Reader *os.File
-	Writer unsafe.Pointer
+	Writer unsafe.Pointer // *C.FILE
 }
 
 // ReadAll reads from the pipe until EOF.
@@ -80,7 +80,7 @@ func NewFilePipeCGo(cfg FilePipeConfig) (p *FilePipeCGo, e error) {
 	p = &FilePipeCGo{}
 
 	wMode := []C.char{'w', 0}
-	p.Writer = unsafe.Pointer(C.fdopen(C.int(pipefd[1]), &wMode[0]))
+	p.Writer = unsafe.Pointer(C.fdopen(C.int(pipefd[1]), unsafe.SliceData(wMode)))
 	if p.Writer == nil {
 		return nil, errors.New("fdopen error")
 	}

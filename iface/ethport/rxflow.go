@@ -112,14 +112,10 @@ func (impl *rxFlow) Start(face *Face) error {
 }
 
 func (impl *rxFlow) setupFlow(face *Face, queues []uint16) error {
-	var cQueues []C.uint16_t
-	for _, q := range queues {
-		cQueues = append(cQueues, C.uint16_t(q))
-	}
-
-	cLoc := face.loc.EthCLocator()
+	queuesC := (*C.uint16_t)(unsafe.Pointer(unsafe.SliceData(queues)))
+	locC := face.loc.EthCLocator()
 	var flowErr C.struct_rte_flow_error
-	face.flow = C.EthFace_SetupFlow(face.priv, &cQueues[0], C.int(len(queues)), cLoc.ptr(), C.bool(impl.isolated), &flowErr)
+	face.flow = C.EthFace_SetupFlow(face.priv, queuesC, C.int(len(queues)), locC.ptr(), C.bool(impl.isolated), &flowErr)
 	if face.flow == nil {
 		return readFlowErr(flowErr)
 	}

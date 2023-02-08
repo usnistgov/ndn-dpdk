@@ -13,7 +13,8 @@ func AsByteSlice[T ~uint8 | ~int8, A ~[]T](value A) (b []byte) {
 	if len(value) == 0 {
 		return nil
 	}
-	return unsafe.Slice((*byte)(unsafe.Pointer(&value[0])), len(value))
+	ptr := unsafe.SliceData([]T(value))
+	return unsafe.Slice((*byte)(unsafe.Pointer(ptr)), len(value))
 }
 
 // GetString interprets []byte as nil-terminated string.
@@ -35,5 +36,6 @@ func FirstPtr[R, T any, A ~[]T](value A) *R {
 		return nil
 	}
 	_ = [1]byte{}[unsafe.Sizeof(value[0])-unsafe.Sizeof(unsafe.Pointer(nil))] // sizeof(T)==sizeof(void*)
-	return (*R)(unsafe.Pointer(unsafe.SliceData([]T(value))))
+	ptr := unsafe.SliceData([]T(value))
+	return (*R)(unsafe.Pointer(ptr))
 }

@@ -19,10 +19,10 @@ func (loc *CLocator) ptr() *C.EthLocator {
 	return (*C.EthLocator)(unsafe.Pointer(loc))
 }
 
-func (loc CLocator) toXDP() (b []byte) {
-	b = make([]byte, C.sizeof_EthXdpLocator)
-	C.EthXdpLocator_Prepare((*C.EthXdpLocator)(unsafe.Pointer(&b[0])), loc.ptr())
-	return
+func (loc CLocator) toXDP() []byte {
+	var buf [C.sizeof_EthXdpLocator]byte
+	C.EthXdpLocator_Prepare((*C.EthXdpLocator)(unsafe.Pointer(&buf)), loc.ptr())
+	return buf[:]
 }
 
 // Locator is an Ethernet-based face locator.
@@ -69,8 +69,8 @@ func (match RxMatch) HdrLen() int {
 
 // NewRxMatch creates RxMatch from a locator.
 func NewRxMatch(loc Locator) (match RxMatch) {
-	cLoc := loc.EthCLocator()
-	C.EthRxMatch_Prepare((*C.EthRxMatch)(&match), cLoc.ptr())
+	locC := loc.EthCLocator()
+	C.EthRxMatch_Prepare((*C.EthRxMatch)(&match), locC.ptr())
 	return
 }
 

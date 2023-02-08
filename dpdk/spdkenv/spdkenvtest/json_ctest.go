@@ -35,8 +35,8 @@ func ctestJSON(t *testing.T) {
 		valueV := []C.char{'v', 'a', 'l', 'u', 'e', 0}
 
 		w := (*C.struct_spdk_json_write_ctx)(w0)
-		C.spdk_json_write_named_int32(w, &keyN[0], -2048)
-		C.spdk_json_write_named_string(w, &keyV[0], &valueV[0])
+		C.spdk_json_write_named_int32(w, unsafe.SliceData(keyN), -2048)
+		C.spdk_json_write_named_string(w, unsafe.SliceData(keyV), unsafe.SliceData(valueV))
 	}), &obj)
 	assert.NoError(e)
 	assert.Equal(obj.N, -2048)

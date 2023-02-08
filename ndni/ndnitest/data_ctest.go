@@ -98,14 +98,14 @@ func ctestDataEncMinimal(t *testing.T) {
 	assert, require := makeAR(t)
 
 	var meta [16]C.uint8_t
-	C.DataEnc_PrepareMetaInfo(&meta[0], an.ContentBlob, 0, C.LName{})
+	C.DataEnc_PrepareMetaInfo(unsafe.SliceData(meta[:]), an.ContentBlob, 0, C.LName{})
 
 	nameP := ndni.NewPName(ndn.ParseName("/DataEnc/minimal"))
 	defer nameP.Free()
 
 	m := makePacket(mbuftestenv.Headroom(256))
 	defer m.Close()
-	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), C.LName{}, &meta[0], m.mbuf)
+	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), C.LName{}, unsafe.SliceData(meta[:]), m.mbuf)
 	assert.Equal(m.npkt, npkt)
 
 	data := ndni.PacketFromPtr(m.Ptr()).ToNPacket().Data
@@ -125,7 +125,7 @@ func ctestDataEncFull(t *testing.T) {
 	finalBlock := ndn.NameComponentFrom(an.TtSegmentNameComponent, tlv.NNI(math.MaxUint32+1))
 	finalBlockP := ndni.NewPName(ndn.Name{finalBlock})
 	defer finalBlockP.Free()
-	C.DataEnc_PrepareMetaInfo(&meta[0], an.ContentKey, 3600_000, *(*C.LName)(finalBlockP.Ptr()))
+	C.DataEnc_PrepareMetaInfo(unsafe.SliceData(meta[:]), an.ContentKey, 3600_000, *(*C.LName)(finalBlockP.Ptr()))
 
 	nameP := ndni.NewPName(ndn.ParseName("/DataEnc/full"))
 	defer nameP.Free()
@@ -134,7 +134,7 @@ func ctestDataEncFull(t *testing.T) {
 
 	m := makePacket(mbuftestenv.Headroom(256), content)
 	defer m.Close()
-	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), *(*C.LName)(finalBlockP.Ptr()), &meta[0], m.mbuf)
+	npkt := C.DataEnc_EncodePayload(*(*C.LName)(nameP.Ptr()), *(*C.LName)(finalBlockP.Ptr()), unsafe.SliceData(meta[:]), m.mbuf)
 	assert.Equal(m.npkt, npkt)
 
 	data := ndni.PacketFromPtr(m.Ptr()).ToNPacket().Data

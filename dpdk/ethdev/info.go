@@ -127,10 +127,10 @@ func (stats Stats) X() (m map[string]any) {
 		return nil
 	}
 	names, xstats := make([]C.struct_rte_eth_xstat_name, n), make([]C.struct_rte_eth_xstat, n)
-	if res := C.rte_eth_xstats_get_names(stats.dev.cID(), &names[0], C.unsigned(n)); res != n {
+	if res := C.rte_eth_xstats_get_names(stats.dev.cID(), unsafe.SliceData(names), C.unsigned(n)); res != n {
 		return nil
 	}
-	if res := C.rte_eth_xstats_get(stats.dev.cID(), &xstats[0], C.unsigned(n)); res != n {
+	if res := C.rte_eth_xstats_get(stats.dev.cID(), unsafe.SliceData(xstats), C.unsigned(n)); res != n {
 		return nil
 	}
 

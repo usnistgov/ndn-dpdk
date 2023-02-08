@@ -27,8 +27,9 @@ func ZmallocAligned[T any, S constraints.Integer](dbgtype string, size S, align 
 func zmallocImpl(dbgtype string, size uintptr, align int, socket NumaSocket) unsafe.Pointer {
 	var typ [32]byte
 	copy(typ[:len(typ)-1], []byte(dbgtype))
+	typC := (*C.char)(unsafe.Pointer(unsafe.SliceData(typ[:])))
 
-	ptr := C.rte_zmalloc_socket((*C.char)(unsafe.Pointer(&typ[0])), C.size_t(size), C.uint(align*C.RTE_CACHE_LINE_SIZE), C.int(socket.ID()))
+	ptr := C.rte_zmalloc_socket(typC, C.size_t(size), C.uint(align*C.RTE_CACHE_LINE_SIZE), C.int(socket.ID()))
 	if ptr == nil {
 		logger.Panic(
 			"zmalloc failed",

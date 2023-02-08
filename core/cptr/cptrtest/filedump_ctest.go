@@ -18,7 +18,7 @@ func ctestFileDump(t *testing.T) {
 	randBytes(content)
 
 	data, e := cptr.CaptureFileDump(func(fp unsafe.Pointer) {
-		C.fwrite(unsafe.Pointer(&content[0]), C.size_t(len(content)), 1, (*C.FILE)(fp))
+		C.fwrite(unsafe.Pointer(unsafe.SliceData(content)), C.size_t(len(content)), 1, (*C.FILE)(fp))
 	})
 	assert.NoError(e)
 	assert.Equal(content, data)

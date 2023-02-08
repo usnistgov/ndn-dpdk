@@ -80,12 +80,13 @@ func (dev ethDev) String() string {
 }
 
 func (dev ethDev) Name() string {
-	var ifname [C.RTE_ETH_NAME_MAX_LEN]C.char
-	res := C.rte_eth_dev_get_name_by_port(dev.cID(), &ifname[0])
+	var buf [C.RTE_ETH_NAME_MAX_LEN]C.char
+	ifnameC := unsafe.SliceData(buf[:])
+	res := C.rte_eth_dev_get_name_by_port(dev.cID(), ifnameC)
 	if res != 0 {
 		return ""
 	}
-	return C.GoString(&ifname[0])
+	return C.GoString(ifnameC)
 }
 
 func (dev ethDev) NumaSocket() (socket eal.NumaSocket) {

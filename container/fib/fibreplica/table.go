@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
@@ -61,7 +62,7 @@ func (t *Table) allocBulk(entries []*Entry) error {
 	if len(entries) == 0 {
 		return nil
 	}
-	if !C.Fib_AllocBulk(t.mpC, (**C.FibEntry)(unsafe.Pointer(&entries[0])), C.uint(len(entries))) {
+	if !C.Fib_AllocBulk(t.mpC, cptr.FirstPtr[*C.FibEntry](entries), C.uint(len(entries))) {
 		return errors.New("allocation failure")
 	}
 	return nil

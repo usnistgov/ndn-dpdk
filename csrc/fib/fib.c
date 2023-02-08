@@ -28,6 +28,7 @@ Fib_Clear(Fib* fib)
 bool
 Fib_AllocBulk(struct rte_mempool* fibMp, FibEntry* entries[], unsigned count)
 {
+  NDNDPDK_ASSERT(count > 0);
   int res = rte_mempool_get_bulk(fibMp, (void**)entries, count);
   if (unlikely(res != 0)) {
     return false;

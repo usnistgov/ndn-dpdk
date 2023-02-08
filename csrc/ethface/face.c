@@ -36,7 +36,7 @@ EthRxFlow_RxBurst_Checked(RxGroup* rxg, RxGroupBurstCtx* ctx)
 }
 
 struct rte_flow*
-EthFace_SetupFlow(EthFacePriv* priv, uint16_t queues[], int nQueues, const EthLocator* loc,
+EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const EthLocator* loc,
                   bool isolated, struct rte_flow_error* error)
 {
   EthLocatorClass c = EthLocator_Classify(loc);
