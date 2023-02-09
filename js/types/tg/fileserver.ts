@@ -41,9 +41,9 @@ export interface FileServerCounters {
   fdNotFound: Counter;
   fdUpdateStat: Counter;
   fdClose: Counter;
-  uringSubmit: Counter;
+  uringAllocErrs: Counter;
+  uringSubmitted: Counter;
   uringSubmitNonBlock: Counter;
   uringSubmitWait: Counter;
-  sqeSubmit: Counter;
   cqeFail: Counter;
 }

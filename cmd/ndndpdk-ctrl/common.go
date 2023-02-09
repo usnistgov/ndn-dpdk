@@ -263,7 +263,7 @@ func (r request) Print() error {
 		jqArgs = append(jqArgs, ".data."+r.Key)
 	}
 
-	fmt.Println("npx", "-y", "graphqurl", shellquote.Join(gqArgs...), "|", "jq", shellquote.Join(jqArgs...))
+	fmt.Println("corepack", "pnpm", "-s", "dlx", "graphqurl", shellquote.Join(gqArgs...), "|", "jq", shellquote.Join(jqArgs...))
 	fmt.Println()
 	return nil
 }

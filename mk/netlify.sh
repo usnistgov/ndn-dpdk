@@ -13,7 +13,7 @@ find build/share/ndn-dpdk -name '*.json' | xargs cp -t build/netlify/schema/
 
 build/bin/ndndpdk-svc &
 NDNDPDK_SVC_PID=$!
-corepack pnpx graphqurl http://127.0.0.1:3030 --introspect > build/netlify/schema/ndndpdk-svc.graphql
+corepack pnpm -s dlx graphqurl http://127.0.0.1:3030 --introspect > build/netlify/schema/ndndpdk-svc.graphql
 kill $NDNDPDK_SVC_PID
 
 cp docs/favicon.ico build/netlify/

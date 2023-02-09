@@ -96,7 +96,10 @@ func init() {
 							fdNotFound
 							fdUpdateStat
 							fdClose
-							sqeSubmit
+							uringAllocErrs
+							uringSubmitted
+							uringSubmitNonBlock
+							uringSubmitWait
 							cqeFail
 						}
 						consumer {

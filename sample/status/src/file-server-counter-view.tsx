@@ -11,7 +11,7 @@ interface Props {
 const counters = [
   "reqRead", "reqLs", "reqMetadata",
   "fdNew", "fdNotFound", "fdUpdateStat", "fdClose",
-  "uringSubmit", "uringSubmitNonBlock", "uringSubmitWait", "sqeSubmit", "cqeFail",
+  "uringAllocErrs", "uringSubmitted", "uringSubmitNonBlock", "uringSubmitWait", "cqeFail",
 ] as const;
 
 interface State {
@@ -55,10 +55,10 @@ export class FileServerCounterView extends AbortableComponent<Props, State> {
         </table>
         <table class="pure-table pure-table-horizontal" style="margin: 0 1em;">
           <caption>io_uring</caption>
-          {this.renderCounter(cnt.uringSubmit, "submit bursts")}
+          {this.renderCounter(Number(cnt.uringSubmitNonBlock) + Number(cnt.uringSubmitWait), "submit bursts")}
           {this.renderCounter(cnt.uringSubmitNonBlock, "(non-blocking)")}
           {this.renderCounter(cnt.uringSubmitWait, "(with wait)", "Some I/O requests are submitted with waiting for completions due to insufficient I/O bandwidth.")}
-          {this.renderCounter(cnt.sqeSubmit, "submit SQEs")}
+          {this.renderCounter(cnt.uringSubmitted, "submit SQEs")}
           {this.renderCounter(cnt.cqeFail, "failed CQEs", "Some I/O requests are failing.")}
         </table>
       </div>
