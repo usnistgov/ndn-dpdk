@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 NFD_CS_CAP=${NFD_CS_CAP:-65536}
 NFD_ENABLE_ETHER=${NFD_ENABLE_ETHER:-0}
 NFD_ENABLE_UDP=${NFD_ENABLE_UDP:-0}
@@ -10,7 +10,7 @@ if ! ndnsec get-default &>/dev/null; then
 fi
 
 mkdir -p /etc/ndn/certs
-ndnsec cert-dump -i $(ndnsec get-default) > /etc/ndn/certs/localhost.ndncert
+ndnsec cert-dump -i $(ndnsec get-default) >/etc/ndn/certs/localhost.ndncert
 
 cp /etc/ndn/nfd.conf.sample /etc/ndn/nfd.conf
 nfdconfedit() {

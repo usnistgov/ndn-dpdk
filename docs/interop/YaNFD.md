@@ -17,7 +17,7 @@ To build the YaNFD Docker image:
 
 ```bash
 cd docs/interop/yanfd
-docker build -t yanfd .
+docker build --pull -t yanfd .
 ```
 
 The YaNFD package only contains a forwarder, and does not contain a management program.
