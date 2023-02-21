@@ -6,11 +6,11 @@
     "serve": "node --loader tsm main.ts serve",
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@7.27.0",
+  "packageManager": "pnpm@7.27.1",
   "dependencies": {
     "@fastify/express": "^2.3.0",
     "@fastify/http-proxy": "^8.4.0",
-    "@fastify/static": "^6.8.0",
+    "@fastify/static": "^6.9.0",
     "@strattadb/environment": "^8.0.2",
     "@types/minimalistic-assert": "^1.0.1",
     "@types/ndjson": "^2.0.1",
@@ -20,11 +20,11 @@
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz",
     "delay": "^5.0.0",
     "dotenv": "^16.0.3",
-    "fastify": "^4.12.0",
+    "fastify": "^4.13.0",
     "get-stdin": "^9.0.0",
     "minimalistic-assert": "^1.0.1",
     "ndjson": "^2.0.0",
-    "preact": "^10.12.0",
+    "preact": "^10.12.1",
     "stdout-stream": "^2.0.0",
     "ts-loader": "^9.4.2",
     "tslib": "^2.5.0",
@@ -32,7 +32,7 @@
     "typescript": "~4.9.5",
     "webpack": "^5.75.0",
     "webpack-dev-middleware": "^6.0.1",
-    "yargs": "^17.6.2"
+    "yargs": "^17.7.1"
   },
   "engines": {
     "node": "16.x"

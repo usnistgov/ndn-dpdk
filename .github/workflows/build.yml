@@ -142,7 +142,7 @@ jobs:
           sudo dpkg -i tinygo_${TINYGO_VERSION}_amd64.deb
         working-directory: /tmp
         env:
-          TINYGO_VERSION: "0.26.0"
+          TINYGO_VERSION: "0.27.0"
       - uses: actions/checkout@v3
       - name: Build for Linux without cgo
         run: |
@@ -161,4 +161,3 @@ jobs:
         run: |
           tinygo build -o /dev/null -target=wasm ./ndn/ndntestenv/tiny
           make -C sample/wasm
-        continue-on-error: true
