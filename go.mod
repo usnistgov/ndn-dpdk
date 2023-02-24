@@ -13,6 +13,7 @@ require (
 	github.com/functionalfoundry/graphqlws v0.0.0-20200611113535-7bc58903ce7b
 	github.com/gogf/greuse v1.1.0
 	github.com/google/gopacket v1.1.19
+	github.com/gorilla/schema v1.2.0
 	github.com/graphql-go/graphql v0.8.0
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20221217025313-27d3c9f66b6a
 	github.com/jacobsa/fuse v0.0.0-20230218174505-702f658418eb
