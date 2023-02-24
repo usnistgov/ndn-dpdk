@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
 )
 
 // EncodingBuffer is an encoding buffer.
@@ -97,6 +98,8 @@ func (f Field) encodeTLVFinish(b []byte, value [][]byte) ([]byte, error) {
 	for _, part := range value {
 		length += len(part)
 	}
+
+	b = slices.Grow(b, 5+9+length)
 
 	if f.integer < math.MaxUint64 { // not EncodeValueOnly
 		b = VarNum(f.integer).Encode(b)

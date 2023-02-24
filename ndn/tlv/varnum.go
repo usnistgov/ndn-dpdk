@@ -24,16 +24,16 @@ func (n VarNum) Size() int {
 }
 
 // Encode appends this number to a buffer.
-func (n VarNum) Encode(buf []byte) []byte {
+func (n VarNum) Encode(b []byte) []byte {
 	switch {
 	case n < 0xFD:
-		return append(buf, byte(n))
+		return append(b, byte(n))
 	case n <= math.MaxUint16:
-		return binary.BigEndian.AppendUint16(append(buf, 0xFD), uint16(n))
+		return binary.BigEndian.AppendUint16(append(b, 0xFD), uint16(n))
 	case n <= math.MaxUint32:
-		return binary.BigEndian.AppendUint32(append(buf, 0xFE), uint32(n))
+		return binary.BigEndian.AppendUint32(append(b, 0xFE), uint32(n))
 	default:
-		return binary.BigEndian.AppendUint64(append(buf, 0xFF), uint64(n))
+		return binary.BigEndian.AppendUint64(append(b, 0xFF), uint64(n))
 	}
 }
 
