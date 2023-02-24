@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gorilla/schema"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -28,7 +29,7 @@ const (
 
 // Request represents an NDN-FCH request.
 type Request struct {
-	// Server is the base URI of the NDN- server.
+	// Server is NDN-FCH server base URI.
 	Server string `schema:"-"`
 
 	// Transport specifies a transport protocol.
@@ -36,6 +37,9 @@ type Request struct {
 
 	// Count specifies number of requested routers.
 	Count int `schema:"k"`
+
+	// Network specifies desired network operator.
+	Network string `schema:"network,omitempty"`
 }
 
 func (req *Request) applyDefaults() {
@@ -49,7 +53,7 @@ func (req *Request) applyDefaults() {
 }
 
 func (req Request) toURL() (u *url.URL, e error) {
-	if u, e = url.Parse(req.Server); e != nil {
+	if u, e = url.ParseRequestURI(req.Server); e != nil {
 		return nil, e
 	}
 	qs := url.Values{}
@@ -62,8 +66,17 @@ func (req Request) toURL() (u *url.URL, e error) {
 
 // Response represents an NDN-FCH response.
 type Response struct {
-	Updated uint64   `json:"updated"`
+	Updated int64    `json:"updated"`
 	Routers []Router `json:"routers"`
+}
+
+// UpdatedTime returns last updated time.
+// Returns zero value if last updated time is unknown.
+func (res Response) UpdatedTime() time.Time {
+	if res.Updated == 0 {
+		return time.Time{}
+	}
+	return time.UnixMilli(res.Updated)
 }
 
 // Router describes a router in NDN-FCH response.
@@ -112,9 +125,18 @@ func Query(ctx context.Context, req Request) (res Response, e error) {
 		}
 
 		connect := string(router)
-		if req.Transport == "udp" {
+		switch req.Transport {
+		case "udp":
 			if _, _, e := net.SplitHostPort(connect); e != nil {
 				connect = net.JoinHostPort(connect, "6363")
+			}
+		case "wss":
+			if _, e := url.ParseRequestURI(connect); e != nil {
+				connect = (&url.URL{
+					Scheme: "wss",
+					Host:   connect,
+					Path:   "/ws/",
+				}).String()
 			}
 		}
 
