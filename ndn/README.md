@@ -15,7 +15,7 @@ However, this is not a high performance library, and there is no API stability g
 Packet encoding and decoding
 
 * General purpose TLV codec (in [package tlv](tlv))
-* Interest and Data: [v0.3](https://named-data.net/doc/NDN-packet-spec/0.3/) format only
+* Interest and Data: [v0.3](https://docs.named-data.net/NDN-packet-spec/0.3/) format only
   * TLV evolvability: yes
   * Forwarding hint: yes
   * Signed Interest: basic support
@@ -25,7 +25,7 @@ Packet encoding and decoding
   * PIT token: yes
   * Congestion mark: yes
   * Link layer reliability: no
-* Naming Convention: [rev3 format](https://named-data.net/publications/techreports/ndn-tr-22-3-ndn-memo-naming-conventions/) ([TLV-TYPE numbers](https://redmine.named-data.net/projects/ndn-tlv/wiki/NameComponentType/28))
+* Naming Convention: [rev3 format](https://named-data.net/publications/techreports/ndn-tr-22-3-ndn-memo-naming-conventions/) ([TLV-TYPE numbers](https://redmine.named-data.net/projects/ndn-tlv/wiki/NameComponentType/29))
 
 Transports
 
@@ -44,8 +44,8 @@ KeyChain
   * HMAC-SHA256: no
   * Ed25519: proof of concept only
   * Null: yes
-* [NDN certificates](https://named-data.net/doc/ndn-cxx/0.8.0/specs/certificate.html): basic support
-  * [SafeBag](https://named-data.net/doc/ndn-cxx/0.8.0/specs/safe-bag.html): import and export
+* [NDN certificates](https://docs.named-data.net/NDN-packet-spec/0.3/certificate.html): basic support
+  * [SafeBag](https://docs.named-data.net/ndn-cxx/0.8.1/specs/safe-bag.html): import and export
 * Persistent key and certificate storage: no
 * Trust schema: no
 

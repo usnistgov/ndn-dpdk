@@ -13,7 +13,7 @@ import (
 )
 
 // ExportSafeBag exports a private key to ndn-cxx exported credentials.
-// https://named-data.net/doc/ndn-cxx/0.8.0/specs/safe-bag.html
+// https://docs.named-data.net/ndn-cxx/0.8.1/specs/safe-bag.html
 func ExportSafeBag(pvt PrivateKey, cert *Certificate, passphrase []byte) (wire []byte, e error) {
 	p, ok := pvt.(*privateKey)
 	if !ok {
@@ -30,7 +30,7 @@ func ExportSafeBag(pvt PrivateKey, cert *Certificate, passphrase []byte) (wire [
 }
 
 // ImportSafeBag imports a private key from ndn-cxx exported credentials.
-// https://named-data.net/doc/ndn-cxx/0.8.0/specs/safe-bag.html
+// https://docs.named-data.net/ndn-cxx/0.8.1/specs/safe-bag.html
 func ImportSafeBag(wire, passphrase []byte) (pvt PrivateKey, cert *Certificate, e error) {
 	var safeBagTLV tlv.Element
 	if e = tlv.Decode(wire, &safeBagTLV); e != nil {

@@ -29,7 +29,7 @@ If you use NDN-DPDK in your research, please cite the [NDN-DPDK paper](docs/publ
 
 Packet encoding and decoding
 
-* Interest and Data: [v0.3](https://named-data.net/doc/NDN-packet-spec/0.3/) format only
+* Interest and Data: [v0.3](https://docs.named-data.net/NDN-packet-spec/0.3/) format only
   * TLV evolvability: yes
   * Forwarding hint: yes
 * [NDNLPv2](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2)
