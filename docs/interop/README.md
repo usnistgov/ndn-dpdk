@@ -19,13 +19,13 @@ If NDN-DPDK is interoperable with another NDN implementation, sample steps to ac
 
 ## NDN Forwarding Daemon (NFD) and YaNFD
 
-[NFD](https://named-data.net/doc/NFD/) and [YaNFD](https://github.com/named-data/YaNFD) are interoperable with NDN-DPDK.
+[NFD](https://github.com/named-data/NFD) and [YaNFD](https://github.com/named-data/YaNFD) are interoperable with NDN-DPDK.
 They support PIT tokens and can communicate with NDN-DPDK over a network or via a Unix socket.
 See [NDN-DPDK interoperability with NFD](NFD.md) and [NDN-DPDK interoperability with YaNFD](YaNFD.md) for a few sample scenarios on how to establish communication.
 
 ## ndn-cxx and python-ndn
 
-[ndn-cxx](https://named-data.net/doc/ndn-cxx/) and [python-ndn](https://python-ndn.readthedocs.io) are incompatible with NDN-DPDK.
+[ndn-cxx](https://docs.named-data.net/ndn-cxx/) and [python-ndn](https://python-ndn.readthedocs.io) are incompatible with NDN-DPDK.
 They do not support PIT tokens, and do not support NDN-DPDK management protocol.
 
 To use applications based on these libraries, you can run NFD alongside NDN-DPDK on the same machine.

@@ -1,6 +1,6 @@
 # NDN-DPDK Interoperability with NDN Forwarding Daemon (NFD)
 
-NDN-DPDK is interoperable with [NFD](https://named-data.net/doc/NFD/) v0.7.1 or later.
+NDN-DPDK is interoperable with [NFD](https://github.com/named-data/NFD) v0.7.1 or later.
 This page gives a few samples on how to establish communication between NDN-DPDK and NFD.
 
 ## Prepare NFD Docker Image
