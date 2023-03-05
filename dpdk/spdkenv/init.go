@@ -7,6 +7,7 @@ package spdkenv
 #include <spdk/init.h>
 #include <spdk/log.h>
 #include <spdk/version.h>
+#include <rte_power.h>
 
 static void c_SpdkLoggerReady()
 {
@@ -15,7 +16,9 @@ static void c_SpdkLoggerReady()
 */
 import "C"
 import (
+	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/usnistgov/ndn-dpdk/core/dlopen"
@@ -32,13 +35,8 @@ var mainThread *Thread
 
 // InitEnv initializes the SPDK environment.
 func InitEnv() error {
-	// As of SPDK 21.10, libspdk_scheduler_dpdk_governor.so depends on rte_power_freq_max symbol
-	// exported by librte_power.so but does not link with that library.
-	dlopen.Load("/usr/local/lib/librte_power.so")
-
-	e := dlopen.LoadGroup("/usr/local/lib/libspdk.so")
-	if e != nil {
-		return fmt.Errorf("dlopen(libspdk.so) error: %w", e)
+	if e := loadLibspdk(); e != nil {
+		return e
 	}
 
 	C.spdk_log_open((*C.logfunc)(C.Logger_Spdk))
@@ -49,6 +47,23 @@ func InitEnv() error {
 
 	C.c_SpdkLoggerReady()
 	return nil
+}
+
+func loadLibspdk() error {
+	// As of SPDK 23.01, libspdk_scheduler_dpdk_governor.so depends on rte_power_freq_max symbol
+	// exported by librte_power.so but does not link with that library.
+	_ = &C.rte_power_freq_max
+
+	errs := []error{}
+	for _, libdir := range []string{"/usr/local/lib", "/usr/lib"} {
+		filename := filepath.Join(libdir, "libspdk.so")
+		if e := dlopen.LoadGroup(filename); e != nil {
+			errs = append(errs, fmt.Errorf("dlopen(%s): %w", filename, e))
+		} else {
+			return nil
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // InitMainThread creates a main thread, and launches on the current goroutine.

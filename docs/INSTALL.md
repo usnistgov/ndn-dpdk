@@ -18,7 +18,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * [libbpf](https://github.com/libbpf/libbpf) 1.0.1 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.2.8 (optional)
 * [liburing](https://github.com/axboe/liburing) 2.3
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 22.11
-* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 5497616e
+* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 23.01
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck) commands (optional)
 
 You can run the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to the script for specific configuration options.
