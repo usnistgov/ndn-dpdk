@@ -10,7 +10,7 @@ import (
 	"net"
 	"reflect"
 
-	af "github.com/google/gopacket/afpacket"
+	"github.com/google/gopacket/afpacket"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
@@ -44,9 +44,9 @@ func New(ifname string, cfg Config) (Transport, error) {
 	}
 	cfg.MTU = intf.MTU
 
-	h, e := af.NewTPacket()
+	h, e := afpacket.NewTPacket()
 	if e != nil {
-		return nil, fmt.Errorf("af.NewTPacket() %w", e)
+		return nil, fmt.Errorf("afpacket.NewTPacket() %w", e)
 	}
 
 	tr := &transport{
@@ -71,7 +71,7 @@ func New(ifname string, cfg Config) (Transport, error) {
 
 type transport struct {
 	packettransport.Transport
-	h    *af.TPacket
+	h    *afpacket.TPacket
 	intf net.Interface
 }
 
