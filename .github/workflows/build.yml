@@ -19,9 +19,10 @@ jobs:
     env:
       CC: ${{ matrix.compiler }}
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
-          go-version: ^1.20
+          go-version-file: go.mod
       - uses: actions/setup-node@v3
         with:
           node-version: 16
@@ -45,7 +46,7 @@ jobs:
           make
           sudo make install
         env:
-          UBPFCOMMIT: 40c047c5ad7e6926e9c09be9d222a3362bafe798
+          UBPFCOMMIT: 02629575f70d44ba252bb07736c70ffa7d95ec29
       - name: Install liburing
         run: |
           mkdir -p $HOME/liburing
@@ -61,14 +62,13 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20230207
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20230315
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: v22.11
           dpdk-patches: 26031
           spdk-version: v23.01
           target-arch: haswell
-      - uses: actions/checkout@v3
       - name: Build NDN-DPDK in debug mode
         run: |
           corepack pnpm install
@@ -133,9 +133,10 @@ jobs:
   library:
     runs-on: ubuntu-22.04
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
-          go-version: ^1.20
+          go-version-file: go.mod
       - name: Install TinyGo
         run: |
           wget https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo_${TINYGO_VERSION}_amd64.deb
@@ -143,7 +144,6 @@ jobs:
         working-directory: /tmp
         env:
           TINYGO_VERSION: "0.27.0"
-      - uses: actions/checkout@v3
       - name: Build for Linux without cgo
         run: |
           go build -v -o /dev/null ./ndn/...

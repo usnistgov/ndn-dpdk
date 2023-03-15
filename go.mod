@@ -26,7 +26,7 @@ require (
 	github.com/pascaldekloe/name v1.0.1
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rickb777/plural v1.4.1
-	github.com/safchain/ethtool v0.2.0
+	github.com/safchain/ethtool v0.3.0
 	github.com/sethvargo/go-retry v0.2.4
 	github.com/sirupsen/logrus v1.9.0
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
@@ -40,7 +40,7 @@ require (
 	github.com/zyedidia/generic v1.2.1
 	go.uber.org/zap v1.24.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/exp v0.0.0-20230304125523-9ff063c70017
+	golang.org/x/exp v0.0.0-20230314191032-db074128a8ec
 	golang.org/x/sys v0.6.0
 )
 
