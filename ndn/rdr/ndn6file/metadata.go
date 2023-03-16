@@ -86,9 +86,9 @@ func (m Metadata) MarshalBinary() (value []byte, e error) {
 }
 
 // UnmarshalBinary decodes from TLV-VALUE.
-func (m *Metadata) UnmarshalBinary(value []byte) (e error) {
+func (m *Metadata) UnmarshalBinary(value []byte) error {
 	return m.Metadata.Decode(value, rdr.MetadataDecoderMap{
-		an.TtFinalBlock: func(de tlv.DecodingElement) error {
+		an.TtFinalBlock: func(de tlv.DecodingElement) (e error) {
 			m.FinalBlock, e = ndn.DecodeFinalBlock(de)
 			return e
 		},

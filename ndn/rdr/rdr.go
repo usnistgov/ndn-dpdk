@@ -72,7 +72,7 @@ func (m Metadata) Encode(extensions ...tlv.Fielder) (value []byte, e error) {
 }
 
 // UnmarshalBinary decodes from TLV-VALUE.
-func (m *Metadata) UnmarshalBinary(value []byte) (e error) {
+func (m *Metadata) UnmarshalBinary(value []byte) error {
 	return m.Decode(value, nil)
 }
 
