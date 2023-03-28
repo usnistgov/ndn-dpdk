@@ -14,10 +14,10 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Go 1.20
 * Node.js 16.x
 * [Meson build system](https://mesonbuild.com/Getting-meson.html#installing-meson-with-pip)
-* [ubpf](https://github.com/iovisor/ubpf) 02629575
+* [ubpf](https://github.com/iovisor/ubpf) 2146a126
 * [libbpf](https://github.com/libbpf/libbpf) 1.1.0 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.2.10 (optional)
 * [liburing](https://github.com/axboe/liburing) 2.3
-* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 22.11
+* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 23.03-rc4
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) 23.01
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck) commands (optional)
 

@@ -46,7 +46,7 @@ jobs:
           make
           sudo make install
         env:
-          UBPFCOMMIT: 02629575f70d44ba252bb07736c70ffa7d95ec29
+          UBPFCOMMIT: 2146a126e6feb76c2ef34450a059191e66c745a4
       - name: Install liburing
         run: |
           mkdir -p $HOME/liburing
@@ -62,11 +62,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20230315
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20230328
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: v22.11
-          dpdk-patches: 26031
           spdk-version: v23.01
           target-arch: haswell
       - name: Build NDN-DPDK in debug mode
