@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FDio/vpp/extras/gomemif/memif"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
+	"go.fd.io/govpp/extras/gomemif/memif"
 	"golang.org/x/sys/unix"
 )
 

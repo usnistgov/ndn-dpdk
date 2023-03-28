@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
-	github.com/FDio/vpp v1.0.1-0.20220629121349-0d352a97c5e3
 	github.com/bhoriuchi/graphql-go-tools v1.0.1
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/chaseisabelle/flagz v0.0.0-20211022193420-183f0ea66d78
@@ -33,14 +32,15 @@ require (
 	github.com/stretchr/testify v1.8.2
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
-	github.com/urfave/cli/v2 v2.25.0
+	github.com/urfave/cli/v2 v2.25.1
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	github.com/zyedidia/generic v1.2.1
+	go.fd.io/govpp/extras v0.1.0
 	go.uber.org/zap v1.24.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0
+	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	golang.org/x/sys v0.6.0
 )
 
