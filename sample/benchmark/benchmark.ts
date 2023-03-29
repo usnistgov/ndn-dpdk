@@ -4,7 +4,7 @@ import ndjson from "ndjson";
 import stdout from "stdout-stream";
 
 import { env } from "./env";
-import { type BenchmarkOptions, Benchmark } from "./src/benchmark";
+import { Benchmark, type BenchmarkOptions } from "./src/benchmark";
 
 setMaxListeners(150);
 

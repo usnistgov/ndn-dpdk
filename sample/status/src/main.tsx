@@ -5,7 +5,7 @@ import { Component, Fragment, h, render } from "preact";
 import { client, gql } from "./client";
 import { FacesList } from "./faces-list";
 import { FwDiagram } from "./fw-diagram";
-import { type WorkerRole, type WorkersByRole, Worker } from "./model";
+import { Worker, type WorkerRole, type WorkersByRole } from "./model";
 import { TgDiagram } from "./tg-diagram";
 import { WorkersTable } from "./workers-table";
 

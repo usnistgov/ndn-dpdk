@@ -2,7 +2,7 @@ import numd from "numd";
 import { Fragment, h } from "preact";
 
 import { client, gql } from "./client";
-import { type Face, describeFaceLocator } from "./model";
+import { describeFaceLocator, type Face } from "./model";
 import { AbortableComponent } from "./refresh-component";
 
 const counters = [

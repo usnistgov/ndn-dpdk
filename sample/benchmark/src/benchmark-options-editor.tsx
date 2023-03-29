@@ -1,5 +1,5 @@
 import assert from "minimalistic-assert";
-import { type JSX, Component, h } from "preact";
+import { Component, h, type JSX } from "preact";
 
 import type { BenchmarkOptions } from "./benchmark";
 

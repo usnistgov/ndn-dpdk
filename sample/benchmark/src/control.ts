@@ -1,4 +1,4 @@
-import { type ActivateFwArgs, type ActivateGenArgs, type FaceLocator, type FetchCounters, type FetcherConfig, type FetchTaskDef, type FileServerConfig, type TgpConfig, gql, GqlClient } from "@usnistgov/ndn-dpdk";
+import { type ActivateFwArgs, type ActivateGenArgs, type FaceLocator, type FetchCounters, type FetcherConfig, type FetchTaskDef, type FileServerConfig, gql, GqlClient, type TgpConfig } from "@usnistgov/ndn-dpdk";
 import delay from "delay";
 
 class GqlControlBase {
@@ -165,10 +165,10 @@ export class GqlGenControl extends GqlControlBase {
       }
     `, { id }, { signal, key: "fetchCounters" });
     for await (const cnt of sub) {
-      if (t1 > 0 && cnt.elapsed >= t1) {
+      if (t1 > 0 && Number(cnt.elapsed) >= t1) {
         c1 = cnt;
       }
-      if (cnt.elapsed >= t2 || cnt.finished) {
+      if (Number(cnt.elapsed) >= t2 || cnt.finished) {
         return [c1, cnt];
       }
     }

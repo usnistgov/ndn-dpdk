@@ -1,4 +1,4 @@
-import { type TgcCounters, type TgcPattern, runningstat } from "@usnistgov/ndn-dpdk";
+import { runningstat, type TgcCounters, type TgcPattern } from "@usnistgov/ndn-dpdk";
 import { Fragment, h } from "preact";
 
 import { client, gql } from "./client";

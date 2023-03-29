@@ -1,4 +1,4 @@
-import { type ClientError, type RequestDocument, gql, GraphQLWebSocketClient } from "graphql-request";
+import { type ClientError, gql, GraphQLWebSocketClient, type RequestDocument } from "graphql-request";
 import WebSocket from "isomorphic-ws";
 import { pushable } from "it-pushable";
 import throat from "throat";

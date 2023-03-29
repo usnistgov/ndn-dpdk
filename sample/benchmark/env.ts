@@ -2,7 +2,7 @@
 
 import "dotenv/config";
 
-import { type Parser, EnvironmentVariableError, makeEnv, parsers } from "@strattadb/environment";
+import { EnvironmentVariableError, makeEnv, type Parser, parsers } from "@strattadb/environment";
 
 import type { ServerEnv } from "./src/benchmark";
 
