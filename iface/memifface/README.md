@@ -9,3 +9,4 @@ In the data plane:
 
 * NDN-DPDK and application should operate its memif interface in opposite roles.
 * Each packet is an NDN packet without Ethernet header.
+* `MEMIF_DESC_FLAG_NEXT` is unusable.

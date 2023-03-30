@@ -12,7 +12,7 @@ FaceRx_Input(Face* face, int rxThread, struct rte_mbuf* pkt)
   rxt->nFrames[0] += pkt->pkt_len; // nOctets counter
 
   Packet* npkt = Packet_FromMbuf(pkt);
-  if (unlikely(!Packet_Parse(npkt, face->impl->rxParseFor))) {
+  if (unlikely(!rte_pktmbuf_is_contiguous(pkt) || !Packet_Parse(npkt, face->impl->rxParseFor))) {
     ++rxt->nDecodeErr;
     N_LOGD("l2-decode-error face=%" PRI_FaceID " thread=%d", face->id, rxThread);
     rte_pktmbuf_free(pkt);

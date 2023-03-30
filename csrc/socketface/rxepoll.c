@@ -15,7 +15,7 @@ SocketRxEpoll_PrepareEvent(struct epoll_event* e, FaceID id, int fd)
   e->events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
   static_assert(sizeof(int) == sizeof(uint32_t), "");
   static_assert(sizeof(int) + sizeof(FaceID) <= sizeof(uint64_t), "");
-  e->data.u64 = ((uint32_t)fd << (CHAR_BIT * sizeof(FaceID))) | id;
+  e->data.u64 = ((uint64_t)fd << (CHAR_BIT * sizeof(FaceID))) | id;
 }
 
 __attribute__((nonnull)) static inline bool

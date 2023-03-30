@@ -198,7 +198,7 @@ See [package ethface](../iface/ethface) "UDP and VXLAN tunnel face" section for 
 
 ## Memif Face
 
-A memif face communicates with a local application via [shared memory packet interface (memif)](https://s3-docs.fd.io/vpp/22.02/interfacing/libmemif/).
+A memif face communicates with a local application via [shared memory packet interface (memif)](https://s3-docs.fd.io/vpp/23.02/interfacing/libmemif/).
 Its implementation is in [package memifface](../iface/memifface).
 Although memif is implemented as an Ethernet device, you do not need to create an Ethernet port for the memif device.
 
