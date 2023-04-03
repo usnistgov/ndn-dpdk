@@ -20,7 +20,7 @@ jobs:
       CC: ${{ matrix.compiler }}
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version-file: go.mod
       - uses: actions/setup-node@v3
@@ -62,11 +62,11 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20230328
+          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20230403
       - uses: yoursunny/setup-dpdk@main
         with:
-          dpdk-version: v22.11
-          spdk-version: v23.01
+          dpdk-version: v23.03-rc4
+          spdk-version: ecc80dfcfbc68b5423cc724dd9d76700586f97e7
           target-arch: haswell
       - name: Build NDN-DPDK in debug mode
         run: |
@@ -133,7 +133,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version-file: go.mod
       - name: Install TinyGo

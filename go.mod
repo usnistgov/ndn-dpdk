@@ -14,8 +14,8 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/schema v1.2.0
 	github.com/graphql-go/graphql v0.8.0
-	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20221217025313-27d3c9f66b6a
-	github.com/jacobsa/fuse v0.0.0-20230225155227-86031ac261e8
+	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20230328201059-365e72989107
+	github.com/jacobsa/fuse v0.0.0-20230402171523-28052ba41f16
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
