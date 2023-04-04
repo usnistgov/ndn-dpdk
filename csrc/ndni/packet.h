@@ -5,6 +5,7 @@
 
 #include "data.h"
 #include "nack.h"
+#include "tlv-encoder.h"
 
 extern const char* PktType_Strings_[];
 
@@ -205,6 +206,16 @@ Packet_Free(Packet* npkt)
     }
   }
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
+}
+
+__attribute__((nonnull, returns_nonnull)) static inline Packet*
+Packet_EncodeFinish_(struct rte_mbuf* m, uint32_t type, PktType t)
+{
+  TlvEncoder_PrependTL(m, type, m->pkt_len);
+  Packet* output = Packet_FromMbuf(m);
+  Packet_SetType(output, t);
+  *Packet_GetLpL3Hdr(output) = (const LpL3){ 0 };
+  return output;
 }
 
 #endif // NDNDPDK_NDNI_PACKET_H

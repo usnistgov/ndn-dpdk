@@ -78,7 +78,7 @@ DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName
  * @brief Returned size of MetaInfo TLV.
  * @param meta prepared MetaInfo buffer.
  */
-__attribute__((nonnull)) inline uint16_t
+__attribute__((nonnull)) static inline uint16_t
 DataEnc_SizeofMetaInfo(const uint8_t* meta)
 {
   return 2 + meta[1];
@@ -95,6 +95,42 @@ DataEnc_SizeofMetaInfo(const uint8_t* meta)
  */
 __attribute__((nonnull)) Packet*
 DataEnc_EncodePayload(LName prefix, LName suffix, const uint8_t* meta, struct rte_mbuf* m);
+
+/**
+ * @brief Encode Data with Content from template.
+ * @param prefix name prefix.
+ * @param suffix name suffix.
+ * @param meta prepared MetaInfo buffer.
+ * @param tplV Content template.
+ * @param tplIov Content iov, must match @p tplV .
+ * @return encoded packet, or NULL upon failure.
+ */
+__attribute__((nonnull)) struct rte_mbuf*
+DataEnc_EncodeTpl(LName prefix, LName suffix, const uint8_t* meta, struct rte_mbuf* tplV,
+                  struct iovec* tplIov, size_t tplIovcnt, PacketMempools* mp, PacketTxAlign align);
+
+/**
+ * @brief Encode Data with unfilled Content room.
+ * @param prefix name prefix.
+ * @param suffix name suffix.
+ * @param meta prepared MetaInfo buffer.
+ * @param roomL Content TLV-LENGTH.
+ * @param[out] roomIov Content iov, must be filled/zeroed by caller.
+ * @param[out] roomIovcnt Content iov count.
+ * @return encoded packet, or NULL upon failure.
+ */
+__attribute__((nonnull)) struct rte_mbuf*
+DataEnc_EncodeRoom(LName prefix, LName suffix, const uint8_t* meta, uint32_t roomL,
+                   struct iovec* roomIov, size_t* roomIovcnt, PacketMempools* mp,
+                   PacketTxAlign align);
+
+/**
+ * @brief Append Null signature to Data.
+ * @param m result of @c DataEnc_EncodeTpl or @c DataEnc_EncodeRoom .
+ * @return encoded packet.
+ */
+__attribute__((nonnull)) Packet*
+DataEnc_Sign(struct rte_mbuf* pkt, PacketMempools* mp, PacketTxAlign align);
 
 /** @brief Data encoder optimized for traffic generator. */
 typedef struct DataGen

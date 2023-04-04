@@ -6,6 +6,7 @@ package ndnitest
 */
 import "C"
 import (
+	"bytes"
 	"crypto/rand"
 	"math"
 	"testing"
@@ -17,6 +18,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
+	"golang.org/x/exp/slices"
 )
 
 func ctestDataParse(t *testing.T) {
@@ -94,7 +97,7 @@ func ctestDataParse(t *testing.T) {
 	assert.False(bool(C.Packet_ParseL3(p.npkt, C.ParseForAny)))
 }
 
-func ctestDataEncMinimal(t *testing.T) {
+func ctestDataEncPayloadMinimal(t *testing.T) {
 	assert, require := makeAR(t)
 
 	var meta [16]C.uint8_t
@@ -118,7 +121,7 @@ func ctestDataEncMinimal(t *testing.T) {
 	assert.EqualValues(an.SigNull, data.SigInfo.Type)
 }
 
-func ctestDataEncFull(t *testing.T) {
+func ctestDataEncPayloadFull(t *testing.T) {
 	assert, require := makeAR(t)
 
 	var meta [24]C.uint8_t
@@ -144,4 +147,143 @@ func ctestDataEncFull(t *testing.T) {
 	assert.Equal(time.Hour, data.Freshness)
 	assert.Equal(finalBlock, data.FinalBlock)
 	assert.Equal(content, data.Content)
+}
+
+func ctestDataEnc(t *testing.T) {
+	assert, _ := makeAR(t)
+	mp := ndnitestenv.MakeMempools()
+	mpC := (*C.PacketMempools)(unsafe.Pointer(mp))
+
+	var metaBuf [16]C.uint8_t
+	meta := unsafe.SliceData(metaBuf[:])
+	C.DataEnc_PrepareMetaInfo(meta, an.ContentBlob, 0, C.LName{})
+	assert.EqualValues(2, C.DataEnc_SizeofMetaInfo(meta))
+
+	content0 := bytes.Repeat([]byte{0xC0}, 500)
+	content1 := bytes.Repeat([]byte{0xC1}, 500)
+	content := bytes.Join([][]byte{content0, content1}, nil)
+	tpl := makePacket(content0, content1)
+	var tplIov [ndni.LpMaxFragments]C.struct_iovec
+	tplIovcnt := C.Mbuf_AsIovec(tpl.mbuf, unsafe.SliceData(tplIov[:]))
+	assert.EqualValues(2, tplIovcnt)
+
+	namePrefix := ndn.ParseName("/DataEnc/name/prefix")
+	namePrefixP := ndni.NewPName(namePrefix)
+	defer namePrefixP.Free()
+	namePrefixL := *(*C.LName)(namePrefixP.Ptr())
+	nameSuffix := ndn.ParseName("/suffix")
+	nameSuffixP := ndni.NewPName(nameSuffix)
+	defer nameSuffixP.Free()
+	nameSuffixL := *(*C.LName)(nameSuffixP.Ptr())
+	name := append(slices.Clone(namePrefix), nameSuffix...)
+
+	fillContent := func(iov []C.struct_iovec, iovcnt C.size_t) {
+		C.spdk_copy_buf_to_iovs(unsafe.SliceData(iov), C.int(iovcnt),
+			unsafe.Pointer(unsafe.SliceData(content)), C.size_t(len(content)))
+	}
+
+	checkData := func(t *testing.T, pkt *packet) {
+		assert, require := makeAR(t)
+		data := pkt.N.ToNPacket().Data
+		require.NotNil(data)
+		nameEqual(assert, name, data)
+		assert.EqualValues(an.ContentBlob, data.ContentType)
+		assert.Equal(time.Duration(0), data.Freshness)
+		assert.False(data.FinalBlock.Valid())
+		assert.Equal(content, data.Content)
+		assert.EqualValues(an.SigNull, data.SigInfo.Type)
+	}
+
+	t.Run("TplLinear", func(t *testing.T) {
+		assert, require := makeAR(t)
+		align := C.PacketTxAlign{
+			linearize:           true,
+			fragmentPayloadSize: 700,
+		}
+
+		m := C.DataEnc_EncodeTpl(namePrefixL, nameSuffixL, meta,
+			tpl.mbuf, unsafe.SliceData(tplIov[:]), tplIovcnt, mpC, align)
+		require.NotNil(m)
+
+		pkt := toPacket(unsafe.Pointer(C.DataEnc_Sign(m, mpC, align)))
+		require.NotNil(pkt)
+		defer pkt.Close()
+
+		checkData(t, pkt)
+
+		if segs := pkt.SegmentBytes(); assert.Len(segs, 2) {
+			assert.LessOrEqual(len(segs[0]), 700)
+			assert.LessOrEqual(len(segs[1]), 700)
+		}
+	})
+
+	t.Run("TplChained", func(t *testing.T) {
+		assert, require := makeAR(t)
+		align := C.PacketTxAlign{
+			linearize: false,
+		}
+
+		m := C.DataEnc_EncodeTpl(namePrefixL, nameSuffixL, meta,
+			tpl.mbuf, unsafe.SliceData(tplIov[:]), tplIovcnt, mpC, align)
+		require.NotNil(m)
+
+		pkt := toPacket(unsafe.Pointer(C.DataEnc_Sign(m, mpC, align)))
+		require.NotNil(pkt)
+		defer pkt.Close()
+
+		checkData(t, pkt)
+		if segs := pkt.SegmentBytes(); assert.Len(segs, 4) {
+			assert.Equal(content0, segs[1])
+			assert.Equal(content1, segs[2])
+			assert.Len(segs[3], ndni.DataEncNullSigLen)
+		}
+	})
+
+	t.Run("RoomLinear", func(t *testing.T) {
+		assert, require := makeAR(t)
+		align := C.PacketTxAlign{
+			linearize:           true,
+			fragmentPayloadSize: 700,
+		}
+
+		var roomIov [ndni.LpMaxFragments]C.struct_iovec
+		var roomIovcnt C.size_t
+		m := C.DataEnc_EncodeRoom(namePrefixL, nameSuffixL, meta,
+			C.uint32_t(len(content)), unsafe.SliceData(roomIov[:]), &roomIovcnt, mpC, align)
+		require.NotNil(m)
+
+		fillContent(roomIov[:], roomIovcnt)
+
+		pkt := toPacket(unsafe.Pointer(C.DataEnc_Sign(m, mpC, align)))
+		require.NotNil(pkt)
+		defer pkt.Close()
+
+		checkData(t, pkt)
+		if segs := pkt.SegmentBytes(); assert.Len(segs, 2) {
+			assert.LessOrEqual(len(segs[0]), 700)
+			assert.LessOrEqual(len(segs[1]), 700)
+		}
+	})
+
+	t.Run("RoomChained", func(t *testing.T) {
+		assert, require := makeAR(t)
+		align := C.PacketTxAlign{
+			linearize: false,
+		}
+
+		var roomIov [ndni.LpMaxFragments]C.struct_iovec
+		var roomIovcnt C.size_t
+		m := C.DataEnc_EncodeRoom(namePrefixL, nameSuffixL, meta,
+			C.uint32_t(len(content)), unsafe.SliceData(roomIov[:]), &roomIovcnt, mpC, align)
+		require.NotNil(m)
+
+		fillContent(roomIov[:], roomIovcnt)
+		pkt := toPacket(unsafe.Pointer(C.DataEnc_Sign(m, mpC, align)))
+		require.NotNil(pkt)
+		defer pkt.Close()
+
+		checkData(t, pkt)
+		segs := pkt.SegmentBytes()
+		assert.Len(segs, 1)
+	})
 }

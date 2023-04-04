@@ -166,16 +166,6 @@ ModifyGuiders_Append(struct rte_mbuf* m, InterestGuiders g)
   f->hopLimitV = g.hopLimit;
 }
 
-__attribute__((nonnull, returns_nonnull)) static Packet*
-ModifyGuiders_Finish(struct rte_mbuf* m)
-{
-  TlvEncoder_PrependTL(m, TtInterest, m->pkt_len);
-  Packet* output = Packet_FromMbuf(m);
-  Packet_SetType(output, PktSInterest);
-  *Packet_GetLpL3Hdr(output) = (const LpL3){ 0 };
-  return output;
-}
-
 __attribute__((nonnull)) static Packet*
 ModifyGuiders_Linear(Packet* npkt, InterestGuiders guiders, PacketMempools* mp,
                      uint16_t fragmentPayloadSize)
@@ -207,7 +197,7 @@ ModifyGuiders_Linear(Packet* npkt, InterestGuiders guiders, PacketMempools* mp,
                       RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom);
 
   Mbuf_ChainVector(frames, fragCount);
-  return ModifyGuiders_Finish(frames[0]);
+  return Packet_EncodeFinish_(frames[0], TtInterest, PktSInterest);
 }
 
 __attribute__((nonnull)) static Packet*
@@ -257,7 +247,7 @@ ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMempools* mp)
     rte_pktmbuf_free_bulk(segs, 2);
     return NULL;
   }
-  return ModifyGuiders_Finish(segs[0]);
+  return Packet_EncodeFinish_(segs[0], TtInterest, PktSInterest);
 }
 
 Packet*

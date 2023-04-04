@@ -22,14 +22,16 @@ typedef struct PacketMempools
 } PacketMempools;
 
 /**
- * @brief mbuf alignment requirements for packet modification.
+ * @brief mbuf alignment requirements for encoding or packet modification.
  *
- * If @c linearize is set to true, a packet modification function should output direct mbufs,
- * copying payload when necessary. @c mbuf.data_len cannot exceed @c fragmentPayloadSize .
- * Each mbuf will be transmitted as a NDNLPv2 fragment.
+ * If @c linearize is set to true, encoders should output direct mbufs, copying payload when
+ * necessary. Each @c mbuf should have at least @c RTE_PKTMBUF_HEADROOM+LpHeaderHeadroom headroom
+ * and its @c data_len cannot exceed @c fragmentPayloadSize . FaceTx will prepend NDNLPv2 headers
+ * to each mbuf and transmit it as a NDNLPv2 fragment.
  *
- * If @c linearize is set to false, a packet modification function should use indirect mbufs,
- * and @c fragmentPayloadSize is ignored. FaceTx will perform fragmentation when necessary.
+ * If @c linearize is set to false, encoders may use a mix of direct and indirect mbufs with
+ * arbitrary boundaries. FaceTx will perform fragmentation as needed. @c fragmentPayloadSize
+ * is ignored.
  */
 typedef struct PacketTxAlign
 {

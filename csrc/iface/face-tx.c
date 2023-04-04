@@ -36,6 +36,7 @@ FaceTx_LinearFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frame
 {
   FaceTxThread* txt = &face->impl->tx[txThread];
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  NDNDPDK_ASSERT(pkt->nb_segs > 1); // single-fragment packet should invoke FaceTx_LinearOne
   LpL2 l2 = { .seqNumBase = txt->nextSeqNum, .fragCount = pkt->nb_segs };
   N_LOGV("linear-frag pktLen=%" PRIu32 " seq=%016" PRIx64 " fragCount=%" PRIu8, pkt->pkt_len,
          l2.seqNumBase, l2.fragCount);

@@ -38,11 +38,7 @@ Packet_ParseL3(Packet* npkt, ParseFor parseFor)
 {
   PacketPriv* priv = Packet_GetPriv_(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  if (unlikely(pkt->data_len == 0)) {
-    // TlvDecoder ensures there's no empty segment, so empty first segment means empty packet
-    NDNDPDK_ASSERT(pkt->pkt_len == 0);
-    return false;
-  }
+  NDNDPDK_ASSERT(pkt->data_len >= 1);
 
   uint8_t type = rte_pktmbuf_mtod(pkt, const uint8_t*)[0];
   switch (type) {
