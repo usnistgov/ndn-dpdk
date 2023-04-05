@@ -20,8 +20,9 @@ Upon receiving an Interest, the name prefix consisting of only GenericNameCompon
 The file server invokes `openat` to open the file or directory (or `dup` in case of a request to the mountpoint directory itself), and then gathers information about file size, etc, via `statx` syscall.
 Metadata and directory listing requests are responded right away.
 
-File segment requests are enqueued onto **io\_uring** as READV operations.
-If multiple incoming Interests are requesting consecutive segments of the same file, they may be batched into the same READV operation; however, this batching logic is currently disabled because preliminary benchmark indicates it worsens performance.
+For each file segment request, the file server constructs a reply Data packet that contains everything except the Content payload.
+It then creates iovec(s) of the payload and then enqueue a READV operation to the **io\_uring**.
+Later, the file server polls for **io\_uring** completions and transmits Data packets filled with Content payload.
 
 ## File Descriptor Caching
 

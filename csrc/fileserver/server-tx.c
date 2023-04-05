@@ -6,95 +6,50 @@
 
 N_LOG_INIT(FileServer);
 
-enum
-{
-  MaxBurstIovecs = MaxBurstSize * FileServerMaxIovecs,
-};
-
-#define FileServerOp_NIov(op) (FileServer_EnableIovBatching ? (op->nIov) : 1)
-
 typedef struct TxBurstCtx
 {
   TscTime now;
-  uint16_t nData; ///< data[nData] are Data packets to be transmitted
-  /// discard[discardPayloadIndex : MaxBurstIovecs] are payload mbufs to be freed
-  uint16_t discardPayloadIndex;
-  /// discard[MaxBurstIovecs : discardInterestIndex] are Interest mbufs to be freed
-  uint16_t discardInterestIndex;
+  uint16_t index;    ///< cqe[:index] are processed
+  uint16_t nData;    ///< data[:nData] are to be transmitted
+  uint16_t nDiscard; ///< discard[:nDiscard] are Data to be freed
   uint8_t congMark;
   struct io_uring_cqe* cqe[MaxBurstSize];
-  Packet* data[MaxBurstIovecs];
-  struct rte_mbuf* discard[MaxBurstIovecs * 2];
+  Packet* data[MaxBurstSize];
+  struct rte_mbuf* discard[MaxBurstSize];
 } TxBurstCtx;
 static_assert(RTE_DIM(((TxBurstCtx*)NULL)->discard) <= UINT16_MAX, "");
 
-__attribute__((nonnull)) static __rte_noinline void
-FileServerTx_FailCqe(FileServer* p, TxBurstCtx* ctx, struct io_uring_cqe* cqe)
-{
-  ++p->cnt.cqeFail;
-  FileServerOp* op = io_uring_cqe_get_data(cqe);
-  FileServerFd* fd = op->fd;
-  uint32_t nIov = FileServerOp_NIov(op);
-  N_LOGD("CQE fd=%d nIov=%" PRIu32 " drop=cqe-error" N_LOG_ERROR_ERRNO, fd->fd, nIov, cqe->res);
-
-  for (uint32_t i = 0; i < nIov; ++i) {
-    struct rte_mbuf* payload = NULL;
-    struct rte_mbuf* interest = NULL;
-    FileServerOpMbufs_Get(&op->mbufs, i, &payload, &interest);
-    ctx->discard[--ctx->discardPayloadIndex] = payload;
-    ctx->discard[ctx->discardInterestIndex++] = interest;
-  }
-}
-
 __attribute__((nonnull)) static inline void
-FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx, uint32_t index)
+FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx)
 {
-  struct io_uring_cqe* cqe = ctx->cqe[index];
+  struct io_uring_cqe* cqe = ctx->cqe[ctx->index];
   FileServerOp* op = io_uring_cqe_get_data(cqe);
   FileServerFd* fd = op->fd;
-  uint32_t nIov = FileServerOp_NIov(op);
 
   if (unlikely(cqe->res < 0)) {
-    FileServerTx_FailCqe(p, ctx, cqe);
-    goto FINISH;
+    N_LOGD("CQE fd=%d iovcnt=%d drop=cqe-error" N_LOG_ERROR_ERRNO, fd->fd, op->iovcnt, cqe->res);
+    goto FREE_DATA;
+  }
+  if (unlikely((uint16_t)cqe->res != op->contentLen)) {
+    N_LOGD("CQE fd=%d iovcnt=%d drop=short-read cqe-res=%" PRId32
+           " content-len=%" PRIu16 N_LOG_ERROR_BLANK,
+           fd->fd, op->iovcnt, (int32_t)cqe->res, op->contentLen);
+    goto FREE_DATA;
   }
 
-  N_LOGV("CQE fd=%d nIov=%" PRIu32 " res=%" PRId32, fd->fd, nIov, (int32_t)cqe->res);
-  FileServerOpMbufs mbufs;
-  FileServerOpMbufs_Copy(&mbufs, &op->mbufs, nIov);
-  NULLize(op); // overwritten by DataEnc
-
-  uint32_t totalLen = cqe->res;
-  for (uint32_t i = 0; i < nIov; ++i) {
-    struct rte_mbuf* payload = NULL;
-    struct rte_mbuf* interestPkt = NULL;
-    FileServerOpMbufs_Get(&mbufs, i, &payload, &interestPkt);
-
-    Packet* interest = Packet_FromMbuf(interestPkt);
-    PInterest* pi = Packet_GetInterestHdr(interest);
-    LName name = PName_ToLName(&pi->name);
-    ctx->discard[ctx->discardInterestIndex++] = interestPkt;
-
-    uint16_t segmentLen = RTE_MIN(p->segmentLen, totalLen);
-    totalLen -= segmentLen;
-    rte_pktmbuf_append(payload, segmentLen);
-
-    Packet* data = DataEnc_EncodePayload(name, (LName){ 0 }, fd->meta, payload);
-    if (unlikely(data == NULL)) {
-      N_LOGD("CQE drop=dataenc-error");
-      ctx->discard[--ctx->discardPayloadIndex] = payload;
-      continue;
-    }
-
-    Mbuf_SetTimestamp(payload, ctx->now);
+  N_LOGV("CQE fd=%d iovcnt=%d res=%" PRId32, fd->fd, op->iovcnt, (int32_t)cqe->res);
+  Packet* data = FileServer_SignAndSend(p, ctx, fd, "CQE", op->data, op->interestL3);
+  if (likely(data != NULL)) {
     LpL3* dataL3 = Packet_GetLpL3Hdr(data);
-    *dataL3 = *Packet_GetLpL3Hdr(interest);
     dataL3->congMark = RTE_MAX(dataL3->congMark, ctx->congMark);
     ctx->congMark = 0;
-    ctx->data[ctx->nData++] = data;
   }
+  goto FREE_OP;
 
-FINISH:
+FREE_DATA:
+  rte_pktmbuf_free(op->data);
+FREE_OP:
+  rte_mempool_put(p->opMp, op);
   FileServerFd_Unref(p, fd);
   NULLize(fd);
 }
@@ -106,17 +61,15 @@ FileServer_TxBurst(FileServer* p)
   ctx.now = rte_get_tsc_cycles();
   ctx.congMark = (uint8_t)(p->ur.nPending >= p->uringCongestionLbound);
   ctx.nData = 0;
-  ctx.discardPayloadIndex = MaxBurstIovecs;
-  ctx.discardInterestIndex = MaxBurstIovecs;
+  ctx.nDiscard = 0;
 
   uint32_t nCqe = Uring_PeekCqes(&p->ur, ctx.cqe, RTE_DIM(ctx.cqe));
-  for (uint32_t i = 0; i < nCqe; ++i) {
-    FileServerTx_ProcessCqe(p, &ctx, i);
+  for (ctx.index = 0; ctx.index < nCqe; ++ctx.index) {
+    FileServerTx_ProcessCqe(p, &ctx);
   }
   Uring_SeenCqes(&p->ur, nCqe);
 
   Face_TxBurst(p->face, ctx.data, ctx.nData);
-  rte_pktmbuf_free_bulk(&ctx.discard[ctx.discardPayloadIndex],
-                        ctx.discardInterestIndex - ctx.discardPayloadIndex);
+  rte_pktmbuf_free_bulk(ctx.discard, ctx.nDiscard);
   return nCqe;
 }

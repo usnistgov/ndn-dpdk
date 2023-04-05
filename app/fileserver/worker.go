@@ -1,8 +1,9 @@
 package fileserver
 
 /*
-#include "../../csrc/fileserver/server.h"
 #include "../../csrc/fileserver/fd.h"
+#include "../../csrc/fileserver/op.h"
+#include "../../csrc/fileserver/server.h"
 */
 import "C"
 import (
@@ -22,6 +23,7 @@ import (
 type worker struct {
 	ealthread.ThreadWithCtrl
 	c    *C.FileServer
+	opMp *mempool.Mempool
 	fdMp *mempool.Mempool
 }
 
@@ -50,6 +52,10 @@ func (w worker) rxQueue() *iface.PktQueue {
 
 func (w *worker) close() error {
 	errs := []error{}
+	if w.opMp != nil {
+		errs = append(errs, w.opMp.Close())
+		w.fdMp = nil
+	}
 	if w.fdMp != nil {
 		errs = append(errs, w.fdMp.Close())
 		w.fdMp = nil
@@ -85,6 +91,17 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e
 		return nil, e
 	}
 
+	if w.opMp, e = mempool.New(mempool.Config{
+		Capacity:       cfg.UringCapacity,
+		ElementSize:    C.sizeof_FileServerOp,
+		Socket:         socket,
+		SingleProducer: true,
+		SingleConsumer: true,
+	}); e != nil {
+		w.close()
+		return nil, e
+	}
+
 	if w.fdMp, e = mempool.New(mempool.Config{
 		Capacity:       cfg.OpenFds,
 		ElementSize:    C.sizeof_FileServerFd,
@@ -96,7 +113,8 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e
 		return nil, e
 	}
 
-	w.c.payloadMp = (*C.struct_rte_mempool)(ndni.PayloadMempool.Get(socket).Ptr())
+	(*ndni.Mempools)(unsafe.Pointer(&w.c.mp)).Assign(socket)
+	w.c.opMp = (*C.struct_rte_mempool)(w.opMp.Ptr())
 	w.c.fdMp = (*C.struct_rte_mempool)(w.fdMp.Ptr())
 	w.c.statValidity = (C.TscDuration)(cfg.tscStatValidity())
 	w.c.versionBypassHi = C.uint32_t(cfg.versionBypassHi)

@@ -27,7 +27,6 @@ import (
 // Limits and defaults.
 const (
 	MaxMounts   = 8
-	MaxIovecs   = 1
 	MaxLsResult = 262144
 
 	MinSegmentLen     = 64
@@ -54,7 +53,7 @@ const (
 
 	EstimatedMetadataSize = 4 + // NameTL, excluding NameV
 		2 + 10 + // FinalBlockId
-		7*10 // NNI fields
+		7*(4+8) // NNI fields
 
 	MetadataFreshness = 1
 

@@ -44,11 +44,12 @@ Mbuf_ReadTo(struct rte_mbuf* m, uint32_t off, uint32_t len, void* dst)
 /**
  * @brief Gather segments of @c m as iovec.
  * @param[out] iov must have @c m->nb_segs room.
+ * @return iov count.
  */
-__attribute__((nonnull)) static inline size_t
+__attribute__((nonnull)) static inline int
 Mbuf_AsIovec(struct rte_mbuf* m, struct iovec* iov)
 {
-  size_t iovcnt = 0;
+  int iovcnt = 0;
   for (struct rte_mbuf* seg = m; seg != NULL; seg = seg->next) {
     iov[iovcnt++] = (struct iovec){
       .iov_base = rte_pktmbuf_mtod(seg, void*),
@@ -74,7 +75,7 @@ Mbuf_AsIovec(struct rte_mbuf* m, struct iovec* iov)
  * @post @c rte_errno=EFBIG if number of segments would exceed @c *iovcnt .
  */
 __attribute__((nonnull)) struct rte_mbuf*
-Mbuf_AllocRoom(struct rte_mempool* mp, struct iovec* iov, size_t* iovcnt, uint16_t firstHeadroom,
+Mbuf_AllocRoom(struct rte_mempool* mp, struct iovec* iov, int* iovcnt, uint16_t firstHeadroom,
                uint16_t firstDataLen, uint16_t eachHeadroom, uint16_t eachDataLen, uint32_t pktLen);
 
 /**
@@ -84,7 +85,7 @@ Mbuf_AllocRoom(struct rte_mempool* mp, struct iovec* iov, size_t* iovcnt, uint16
  * @param[out] iovcnt remaining iov count.
  */
 __attribute__((nonnull)) void
-Mbuf_RemainingIovec(struct spdk_iov_xfer ix, struct iovec* iov, size_t* iovcnt);
+Mbuf_RemainingIovec(struct spdk_iov_xfer ix, struct iovec* iov, int* iovcnt);
 
 /**
  * @brief Chain @p tail onto @p head.

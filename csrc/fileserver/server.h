@@ -31,7 +31,8 @@ typedef struct FileServer
   PktQueue rxQueue;
   FileServerCounters cnt;
 
-  struct rte_mempool* payloadMp;
+  PacketMempools mp;
+  struct rte_mempool* opMp;
   struct rte_mempool* fdMp;
   FileServerFd* fdHt;
   struct cds_list_head fdQ;

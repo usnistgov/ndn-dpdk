@@ -134,6 +134,7 @@ FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
     if (changed) {
       FileServerFd_PrepareVersionedName(p, entry);
       FileServerFd_PrepareMetaInfo(p, entry, entry->st.stx_size);
+      entry->metadataL = 0;
       entry->lsL = UINT32_MAX;
     }
   }
@@ -266,15 +267,10 @@ FileServerFd_Clear(FileServer* p)
   p->fdQCount = 0;
 }
 
-bool
-FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf* payload)
+uint32_t
+FileServerFd_PrepareMetadata_(FileServer* p, FileServerFd* entry)
 {
-  if (unlikely(rte_pktmbuf_tailroom(payload) <
-               entry->versionedL + FileServerEstimatedMetadataSize)) {
-    return false;
-  }
-  uint8_t* value = rte_pktmbuf_mtod(payload, uint8_t*);
-  size_t off = 0;
+  uint8_t* output = entry->metadataV;
 
 #define HAS_STAT_BIT(bit)                                                                          \
   (likely((FileServerStatxRequired & (bit)) == (bit) || FileServerFd_HasStatBit(entry, (bit))))
@@ -285,21 +281,16 @@ FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf*
     {                                                                                              \
       unaligned_uint32_t tl;                                                                       \
       unaligned_uint##bits##_t v;                                                                  \
-    } __rte_packed* f = RTE_PTR_ADD(value, off);                                                   \
+    } __rte_packed* f = (void*)output;                                                             \
     f->tl = TlvEncoder_ConstTL3(TtFile##type, sizeof(f->v));                                       \
     f->v = rte_cpu_to_be_##bits((uint##bits##_t)(val));                                            \
-    off += sizeof(*f);                                                                             \
+    output += sizeof(*f);                                                                          \
   } while (false)
-
-  value[off++] = TtName;
-  off += TlvEncoder_WriteVarNum(&value[off], entry->versionedL);
-  rte_memcpy(&value[off], entry->nameV, entry->versionedL);
-  off += entry->versionedL;
 
   if (likely(FileServerFd_IsFile(entry))) {
     NDNDPDK_ASSERT(entry->meta[2] == TtFinalBlock);
-    rte_memcpy(&value[off], &entry->meta[2], entry->meta[1]);
-    off += entry->meta[1];
+    rte_memcpy(output, &entry->meta[2], entry->meta[1]);
+    output += entry->meta[1];
     APPEND_NNI(SegmentSize, 16, p->segmentLen);
     if (HAS_STAT_BIT(STATX_SIZE)) {
       APPEND_NNI(Size, 64, entry->st.stx_size);
@@ -323,9 +314,30 @@ FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf*
 
 #undef APPEND_NNI
 #undef HAS_STAT_BIT
-  const char* room = rte_pktmbuf_append(payload, off);
-  NDNDPDK_ASSERT(room != NULL);
-  return true;
+  entry->metadataL = RTE_PTR_DIFF(output, entry->metadataV);
+  NDNDPDK_ASSERT(entry->metadataL <= RTE_DIM(entry->metadataV));
+  return FileServerFd_SizeofMetadata_(entry);
+}
+
+void
+FileServerFd_WriteMetadata(FileServerFd* entry, struct iovec* iov, int iovcnt)
+{
+  uint8_t nameTL[L3TypeLengthHeadroom] = { TtName };
+  uint16_t sizeofNameTL = 1 + TlvEncoder_WriteVarNum(&nameTL[1], entry->versionedL);
+  uint32_t nCopied = 0;
+
+  struct spdk_iov_xfer ix;
+  spdk_iov_xfer_init(&ix, iov, iovcnt);
+  nCopied += spdk_iov_xfer_from_buf(&ix, nameTL, sizeofNameTL);
+  nCopied += spdk_iov_xfer_from_buf(&ix, entry->nameV, entry->versionedL);
+  nCopied += spdk_iov_xfer_from_buf(&ix, entry->metadataV, entry->metadataL);
+
+  NDNDPDK_ASSERT(nCopied == FileServerFd_SizeofMetadata_(entry));
+
+  struct iovec remIov[1];
+  int remIovcnt = RTE_DIM(remIov);
+  Mbuf_RemainingIovec(ix, remIov, &remIovcnt);
+  NDNDPDK_ASSERT(remIovcnt == 0);
 }
 
 __attribute__((nonnull)) static inline int

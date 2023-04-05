@@ -4,6 +4,7 @@
 /** @file */
 
 #include "../ndni/data.h"
+#include "../ndni/tlv-encoder.h"
 #include "../vendor/uthash-handle.h"
 #include "enum.h"
 #include <fcntl.h>
@@ -31,9 +32,12 @@ typedef struct FileServerFd
   uint16_t refcnt;                 ///< number of inflight SQEs referencing this entry
   uint16_t prefixL;                ///< mount+path TLV-LENGTH
   uint16_t versionedL;             ///< mount+path+[32=ls]+version TLV-LENGTH
+  uint8_t metadataL;               ///< metadata length excluding Name (0 means invalid)
   uint8_t nameV[NameMaxLength];    ///< mount+path+[32=ls]+version TLV-VALUE
   char lsV[FileServerMaxLsResult]; ///< directory listing value
+  uint8_t metadataV[FileServerEstimatedMetadataSize]; ///< metadata value excluding Name
 } FileServerFd;
+static_assert(FileServerEstimatedMetadataSize <= UINT8_MAX, "");
 
 /** @brief Sentinel value to indicate file not found. */
 extern FileServerFd* FileServer_NotFound;
@@ -71,13 +75,37 @@ FileServerFd_IsDir(const FileServerFd* entry)
   return S_ISDIR(entry->st.stx_mode);
 }
 
+__attribute__((nonnull)) static inline uint32_t
+FileServerFd_SizeofMetadata_(FileServerFd* entry)
+{
+  return TlvEncoder_SizeofVarNum(TtName) + TlvEncoder_SizeofVarNum(entry->versionedL) +
+         entry->versionedL + entry->metadataL;
+}
+
+__attribute__((nonnull)) uint32_t
+FileServerFd_PrepareMetadata_(FileServer* p, FileServerFd* entry);
+
 /**
- * @brief Encode metadata packet payload.
+ * @brief Prepare metadata packet.
  * @param entry a valid FileServerFd entry.
- * @param payload payload mbuf.
+ * @return metadata Content TLV-LENGTH.
  */
-__attribute__((nonnull)) bool
-FileServerFd_EncodeMetadata(FileServer* p, FileServerFd* entry, struct rte_mbuf* payload);
+__attribute__((nonnull)) static inline uint32_t
+FileServerFd_PrepareMetadata(FileServer* p, FileServerFd* entry)
+{
+  if (entry->metadataL != 0) {
+    return FileServerFd_SizeofMetadata_(entry);
+  }
+  return FileServerFd_PrepareMetadata_(p, entry);
+}
+
+/**
+ * @brief Write metadata packet.
+ * @param entry a valid FileServerFd entry.
+ * @param iov Content iov, must match the length from @c FileServerFd_PrepareMetadata .
+ */
+__attribute__((nonnull)) void
+FileServerFd_WriteMetadata(FileServerFd* entry, struct iovec* iov, int iovcnt);
 
 /**
  * @brief Populate directory listing.

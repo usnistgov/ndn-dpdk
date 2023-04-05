@@ -8,36 +8,29 @@
 
 N_LOG_INIT(FileServer);
 
+static uint8_t NameComponent_Segment0[3];
 static uint8_t MetaInfo_Metadata[16];
 static uint8_t MetaInfo_Nack[16];
 
 RTE_INIT(InitMetaInfo)
 {
-  uint8_t segment0[] = { TtSegmentNameComponent, 1, 0 };
-  LName finalBlock0 = (LName){ .length = sizeof(segment0), .value = segment0 };
-  DataEnc_PrepareMetaInfo(MetaInfo_Metadata, ContentBlob, FileServerMetadataFreshness, finalBlock0);
+  NameComponent_Segment0[0] = TtSegmentNameComponent;
+  NameComponent_Segment0[1] = 1;
+  NameComponent_Segment0[2] = 0;
+  DataEnc_PrepareMetaInfo(MetaInfo_Metadata, ContentBlob, FileServerMetadataFreshness,
+                          (LName){ .length = 3, .value = NameComponent_Segment0 });
   DataEnc_PrepareMetaInfo(MetaInfo_Nack, ContentNack, FileServerMetadataFreshness, (LName){ 0 });
 }
 
 typedef struct RxBurstCtx
 {
   TscTime now;
-  FileServerOp* op;
-  uint8_t interestIndex; ///< interest[:interestIndex] are processed
-  uint8_t interestCount; ///< interest[interestIndex:interestCount] are unprocessed
-  uint8_t payloadIndex;  ///< payload[payloadIndex:] are unused
-  uint8_t discardIndex;  ///< discard[MaxBurstSize:discardIndex] are dropped Interests
-  uint8_t dataCount;     ///< data[:dataCount] are Data packets to be sent
-  RTE_MARKER zeroizeEnd_;
+  uint16_t index;     ///< interest[:index] are processed
+  uint16_t nInterest; ///< interest[index:nInterest] are unprocessed
+  uint16_t nData;     ///< data[:nData] are to be transmitted
   struct rte_mbuf* interest[MaxBurstSize];
-  union
-  {
-    struct rte_mbuf* payload[MaxBurstSize];
-    struct rte_mbuf* discard[2 * MaxBurstSize];
-  };
   Packet* data[MaxBurstSize];
 } RxBurstCtx;
-static_assert(RTE_DIM(((RxBurstCtx*)NULL)->discard) <= UINT8_MAX, "");
 
 __attribute__((nonnull)) static __rte_always_inline bool
 FileServerRx_CheckVersion(FileServer* p, FileServerFd* fd, FileServerRequestName rn)
@@ -48,84 +41,21 @@ FileServerRx_CheckVersion(FileServer* p, FileServerFd* fd, FileServerRequestName
   return p->versionBypassHi != 0 && (rn.version >> 32) == p->versionBypassHi;
 }
 
-/**
- * @brief Handle SQE unavailable error.
- * @return false.
- * @post payload and Interest mbufs not yet in SQEs are in discard[payloadIndex:discardIndex].
- * @post FileServer_RxBurst packet processing loop is stopped
- */
-__attribute__((nonnull)) static __rte_noinline bool
-FileServerRx_NoSqe(RxBurstCtx* ctx)
-{
-  N_LOGW("SQE no-sqe" N_LOG_ERROR_BLANK);
-
-  for (uint32_t i = 0; i < ctx->op->nIov; ++i) {
-    struct rte_mbuf* payload = NULL;
-    struct rte_mbuf* interest = NULL;
-    FileServerOpMbufs_Get(&ctx->op->mbufs, i, &payload, &interest);
-    ctx->payload[--ctx->payloadIndex] = payload;
-    ctx->discard[ctx->discardIndex++] = interest;
-  }
-  ctx->op = NULL;
-
-  rte_memcpy(&ctx->interest[ctx->interestIndex], &ctx->discard[ctx->discardIndex],
-             sizeof(ctx->discard[0]) * (ctx->interestCount - ctx->interestIndex));
-  ctx->interestIndex = ctx->interestCount;
-
-  return false;
-}
-
-/**
- * @brief Queue readv SQE for current operation.
- * @return whether success.
- */
-__attribute__((nonnull)) static inline bool
-FileServerRx_SubmitReadv(FileServer* p, RxBurstCtx* ctx)
-{
-  struct io_uring_sqe* sqe = Uring_GetSqe(&p->ur);
-  if (unlikely(sqe == NULL)) {
-    return FileServerRx_NoSqe(ctx);
-  }
-
-  FileServerOp* op = ctx->op;
-  N_LOGV("SQE fd=%d segment=%" PRIu64 " nIov=%" PRIu32, op->fd->fd, op->segment, op->nIov);
-  io_uring_prep_readv(sqe, op->fd->fd, op->iov, op->nIov, op->segment * p->segmentLen);
-  io_uring_sqe_set_data(sqe, op);
-  ctx->op = NULL;
-  return true;
-}
-
-__attribute__((nonnull)) static inline void
+__attribute__((nonnull)) static void
 FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
 {
   ++p->cnt.reqRead;
-  struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
-  Packet* npkt = Packet_FromMbuf(interest);
-  PInterest* pi = Packet_GetInterestHdr(npkt);
-
-  LName prefix = FileServer_GetPrefix(&pi->name);
-  struct rte_mbuf* payload = ctx->payload[ctx->payloadIndex];
-  payload->data_off = p->payloadHeadroom;
-
-  if (FileServer_EnableIovBatching && likely(ctx->op != NULL)) {
-    if (likely(FileServerOp_Follows(ctx->op, prefix, rn.segment))) {
-      goto ADD_IOV;
-    }
-    if (unlikely(!FileServerRx_SubmitReadv(p, ctx))) {
-      // not `goto DROP` because FileServerRx_NoSqe has discarded 'interest',
-      // which was "unprocessed" before returning to RxBurst
-      return;
-    }
-  }
+  Packet* interest = Packet_FromMbuf(ctx->interest[ctx->index]);
+  PInterest* pi = Packet_GetInterestHdr(interest);
 
   FileServerFd* fd = FileServerFd_Open(p, &pi->name, ctx->now);
   if (unlikely(fd == NULL)) {
     N_LOGD("Read drop=no-fd");
-    goto DROP;
+    return;
   }
   if (unlikely(fd == FileServer_NotFound)) {
     N_LOGD("Read drop=file-not-found");
-    goto DROP;
+    return;
   }
   if (unlikely(!FileServerFd_IsFile(fd))) {
     N_LOGD("Read fd=%d drop=mode-not-file", fd->fd);
@@ -142,32 +72,49 @@ FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     goto UNREF;
   }
 
-  ctx->op = rte_mbuf_to_priv(payload);
-  FileServerOp_Init(ctx->op, fd, prefix, rn.segment);
-
-ADD_IOV:
-  FileServerOp_AppendIov(ctx->op, payload, p->segmentLen, interest);
-  ++ctx->payloadIndex;
-
-  if (!FileServer_EnableIovBatching) {
-    FileServerRx_SubmitReadv(p, ctx);
+  FileServerOp* op = NULL;
+  if (unlikely(rte_mempool_get(p->opMp, (void**)&op) != 0)) {
+    N_LOGW("Read fd=%d drop=no-op", fd->fd);
+    goto UNREF;
   }
+  op->fd = fd;
+  op->segment = rn.segment;
+  uint64_t contentOffset = rn.segment * p->segmentLen;
+  op->contentLen = RTE_MIN((uint64_t)p->segmentLen, fd->st.stx_size - contentOffset);
+  op->data = DataEnc_EncodeRoom(PName_ToLName(&pi->name), (LName){ 0 }, fd->meta, op->contentLen,
+                                op->iov, &op->iovcnt, &p->mp, Face_PacketTxAlign(p->face));
+  if (unlikely(op->data == NULL)) {
+    N_LOGW("Read fd=%d drop=no-data", fd->fd);
+    goto FREE_OP;
+  }
+
+  struct io_uring_sqe* sqe = Uring_GetSqe(&p->ur);
+  if (unlikely(sqe == NULL)) {
+    N_LOGW("Read fd=%d drop=no-sqe" N_LOG_ERROR_BLANK, fd->fd);
+    ctx->index = ctx->nInterest; // drop subsequent Interests too
+    goto FREE_DATA;
+  }
+  N_LOGV("Read fd=%d segment=%" PRIu64 " iovcnt=%d", fd->fd, op->segment, op->iovcnt);
+  io_uring_prep_readv(sqe, fd->fd, op->iov, op->iovcnt, contentOffset);
+  io_uring_sqe_set_data(sqe, op);
+  op->interestL3 = *Packet_GetLpL3Hdr(interest);
   return;
+
+FREE_DATA:
+  rte_pktmbuf_free(op->data);
+FREE_OP:
+  rte_mempool_put(p->opMp, op);
 UNREF:
   FileServerFd_Unref(p, fd);
   NULLize(fd);
-DROP:
-  ctx->discard[ctx->discardIndex++] = interest;
 }
 
-__attribute__((nonnull)) static __rte_noinline void
+__attribute__((nonnull)) static void
 FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
 {
   ++p->cnt.reqLs;
-  struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
-  Packet* npkt = Packet_FromMbuf(interest);
-  PInterest* pi = Packet_GetInterestHdr(npkt);
-  LName name = PName_ToLName(&pi->name);
+  Packet* interest = Packet_FromMbuf(ctx->interest[ctx->index]);
+  PInterest* pi = Packet_GetInterestHdr(interest);
 
   FileServerFd* fd = FileServerFd_Open(p, &pi->name, ctx->now);
   if (unlikely(fd == NULL)) {
@@ -200,40 +147,32 @@ FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     goto UNREF;
   }
 
-  uint32_t valueOffset = rn.segment * p->segmentLen;
-  uint32_t valueLen = RTE_MIN(p->segmentLen, fd->lsL - valueOffset);
-  struct rte_mbuf* payload = ctx->payload[ctx->payloadIndex];
-  payload->data_off = p->payloadHeadroom;
-  rte_memcpy(rte_pktmbuf_append(payload, valueLen), RTE_PTR_ADD(fd->lsV, valueOffset), valueLen);
-
-  Packet* data = DataEnc_EncodePayload(name, (LName){ 0 }, fd->meta, payload);
+  uint32_t contentOffset = rn.segment * p->segmentLen;
+  uint32_t contentLen = RTE_MIN(p->segmentLen, fd->lsL - contentOffset);
+  struct iovec iov[LpMaxFragments];
+  int iovcnt = 0;
+  struct rte_mbuf* data =
+    DataEnc_EncodeRoom(PName_ToLName(&pi->name), (LName){ 0 }, fd->meta, contentLen, iov, &iovcnt,
+                       &p->mp, Face_PacketTxAlign(p->face));
   if (unlikely(data == NULL)) {
-    goto ENCERR;
+    N_LOGW("Ls fd=%d drop=no-data", fd->fd);
+    goto UNREF;
   }
-  ++ctx->payloadIndex;
-
-  Mbuf_SetTimestamp(payload, ctx->now);
-  *Packet_GetLpL3Hdr(data) = *Packet_GetLpL3Hdr(npkt);
-  ctx->data[ctx->dataCount++] = data;
+  spdk_copy_buf_to_iovs(iov, iovcnt, RTE_PTR_ADD(fd->lsV, contentOffset), contentLen);
+  FileServer_SignAndSend(p, ctx, fd, "Ls", data, *Packet_GetLpL3Hdr(interest));
   goto UNREF;
 
-ENCERR:
-  N_LOGD("Ls drop=dataenc-error");
-  rte_pktmbuf_reset(payload);
 UNREF:
   FileServerFd_Unref(p, fd);
   NULLize(fd);
 }
 
-__attribute__((nonnull)) static __rte_noinline void
+__attribute__((nonnull)) static void
 FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
 {
   ++p->cnt.reqMetadata;
-  struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
-  ctx->discard[ctx->discardIndex++] = interest;
-  Packet* npkt = Packet_FromMbuf(interest);
-  PInterest* pi = Packet_GetInterestHdr(npkt);
-  LName name = PName_ToLName(&pi->name);
+  Packet* interest = Packet_FromMbuf(ctx->interest[ctx->index]);
+  PInterest* pi = Packet_GetInterestHdr(interest);
 
   FileServerFd* fd = FileServerFd_Open(p, &pi->name, ctx->now);
   if (unlikely(fd == NULL)) {
@@ -241,57 +180,53 @@ FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
     return;
   }
 
-  struct rte_mbuf* payload = ctx->payload[ctx->payloadIndex];
-  payload->data_off = p->payloadHeadroom;
   const uint8_t* metaInfo = NULL;
-
+  uint32_t contentLen = 0;
   if (unlikely(fd == FileServer_NotFound)) {
     metaInfo = MetaInfo_Nack;
   } else if (unlikely((rn.kind & FileServerRequestLs) != 0 && !FileServerFd_IsDir(fd))) {
-    FileServerFd_Unref(p, fd);
-    NULLize(fd);
     metaInfo = MetaInfo_Nack;
   } else {
-    bool ok = FileServerFd_EncodeMetadata(p, fd, payload);
-    FileServerFd_Unref(p, fd);
-    NULLize(fd);
-    if (unlikely(!ok)) {
-      goto ENCERR;
-    }
     metaInfo = MetaInfo_Metadata;
+    contentLen = FileServerFd_PrepareMetadata(p, fd);
+    NDNDPDK_ASSERT(contentLen > 0);
   }
 
   struct timespec utcNow;
-  if (unlikely(clock_gettime(CLOCK_REALTIME, &utcNow) != 0)) {
-    goto ENCERR;
-  }
+  int res = clock_gettime(CLOCK_REALTIME, &utcNow);
+  NDNDPDK_ASSERT(res == 0);
   uint8_t suffixV[20];
   LName suffix = (LName){ .length = 0, .value = suffixV };
   suffix.length =
     Nni_EncodeNameComponent(suffixV, TtVersionNameComponent, FileServerFd_StatTime(utcNow));
-  suffix.length +=
-    Nni_EncodeNameComponent(RTE_PTR_ADD(suffixV, suffix.length), TtSegmentNameComponent, 0);
+  rte_memcpy(RTE_PTR_ADD(suffixV, suffix.length), NameComponent_Segment0,
+             sizeof(NameComponent_Segment0));
+  suffix.length += sizeof(NameComponent_Segment0);
 
-  Packet* data = DataEnc_EncodePayload(name, suffix, metaInfo, payload);
+  struct iovec iov[LpMaxFragments];
+  int iovcnt = 0;
+  struct rte_mbuf* data = DataEnc_EncodeRoom(PName_ToLName(&pi->name), suffix, metaInfo, contentLen,
+                                             iov, &iovcnt, &p->mp, Face_PacketTxAlign(p->face));
   if (unlikely(data == NULL)) {
-    goto ENCERR;
+    N_LOGW("Metadata fd=%d drop=no-data", fd->fd);
+    goto UNREF;
   }
-  ++ctx->payloadIndex;
+  if (likely(contentLen > 0)) {
+    FileServerFd_WriteMetadata(fd, iov, iovcnt);
+  }
+  FileServer_SignAndSend(p, ctx, fd, "Metadata", data, *Packet_GetLpL3Hdr(interest));
+  goto UNREF;
 
-  Mbuf_SetTimestamp(payload, ctx->now);
-  *Packet_GetLpL3Hdr(data) = *Packet_GetLpL3Hdr(npkt);
-  ctx->data[ctx->dataCount++] = data;
-  return;
-
-ENCERR:
-  N_LOGD("Metadata drop=dataenc-error");
-  rte_pktmbuf_reset(payload);
+UNREF:
+  if (likely(fd != FileServer_NotFound)) {
+    FileServerFd_Unref(p, fd);
+  }
 }
 
 __attribute__((nonnull)) static inline void
 FileServerRx_ProcessInterest(FileServer* p, RxBurstCtx* ctx)
 {
-  struct rte_mbuf* interest = ctx->interest[ctx->interestIndex];
+  struct rte_mbuf* interest = ctx->interest[ctx->index];
   Packet* npkt = Packet_FromMbuf(interest);
   PInterest* pi = Packet_GetInterestHdr(npkt);
   FileServerRequestName rn = FileServer_ParseRequest(pi);
@@ -308,7 +243,6 @@ FileServerRx_ProcessInterest(FileServer* p, RxBurstCtx* ctx)
       break;
     default:
       N_LOGD("I drop=bad-name rn-kind=%" PRIx32, (uint32_t)rn.kind);
-      ctx->discard[ctx->discardIndex++] = interest;
       break;
   }
 }
@@ -317,32 +251,21 @@ uint32_t
 FileServer_RxBurst(FileServer* p)
 {
   RxBurstCtx ctx;
-  memset(&ctx, 0, offsetof(RxBurstCtx, zeroizeEnd_));
   ctx.now = rte_get_tsc_cycles();
+  ctx.index = 0;
+  ctx.nData = 0;
   PktQueuePopResult pop = PktQueue_Pop(&p->rxQueue, ctx.interest, MaxBurstSize, ctx.now);
   if (unlikely(pop.count == 0)) {
-    return pop.count;
+    return 0;
   }
 
-  ctx.interestCount = pop.count;
-  ctx.payloadIndex = MaxBurstSize - ctx.interestCount;
-  int res = rte_pktmbuf_alloc_bulk(p->payloadMp, &ctx.payload[ctx.payloadIndex], ctx.interestCount);
-  if (unlikely(res != 0)) {
-    rte_pktmbuf_free_bulk(ctx.interest, ctx.interestCount);
-    return ctx.interestCount;
-  }
-  ctx.discardIndex = MaxBurstSize;
-
-  for (; ctx.interestIndex < ctx.interestCount; ++ctx.interestIndex) {
+  for (ctx.nInterest = pop.count; ctx.index < ctx.nInterest; ++ctx.index) {
     FileServerRx_ProcessInterest(p, &ctx);
-    // upon failure, callee sets ctx.interestIndex to ctx.interestCount, stopping the loop
-  }
-  if (FileServer_EnableIovBatching && likely(ctx.op != NULL)) {
-    FileServerRx_SubmitReadv(p, &ctx);
+    // upon failure, callee sets ctx.index to ctx.nInterest, stopping the loop
   }
 
   Uring_Submit(&p->ur, p->uringWaitLbound, MaxBurstSize);
-  Face_TxBurst(p->face, ctx.data, ctx.dataCount);
-  rte_pktmbuf_free_bulk(&ctx.discard[ctx.payloadIndex], ctx.discardIndex - ctx.payloadIndex);
-  return ctx.interestCount;
+  Face_TxBurst(p->face, ctx.data, ctx.nData);
+  rte_pktmbuf_free_bulk(ctx.interest, ctx.nInterest);
+  return ctx.nInterest;
 }

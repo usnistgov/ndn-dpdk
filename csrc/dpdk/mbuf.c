@@ -12,7 +12,7 @@ Mbuf_RegisterDynFields()
 }
 
 struct rte_mbuf*
-Mbuf_AllocRoom(struct rte_mempool* mp, struct iovec* iov, size_t* iovcnt, uint16_t firstHeadroom,
+Mbuf_AllocRoom(struct rte_mempool* mp, struct iovec* iov, int* iovcnt, uint16_t firstHeadroom,
                uint16_t firstDataLen, uint16_t eachHeadroom, uint16_t eachDataLen, uint32_t pktLen)
 {
   uint16_t dataroom = rte_pktmbuf_data_room_size(mp);
@@ -27,12 +27,12 @@ Mbuf_AllocRoom(struct rte_mempool* mp, struct iovec* iov, size_t* iovcnt, uint16
     eachDataLen = dataroom - eachHeadroom;
   }
 
-  uint16_t nSegs = 1;
+  int nSegs = 1;
   if (pktLen > firstDataLen) {
     nSegs += SPDK_CEIL_DIV(pktLen - firstDataLen, eachDataLen);
   }
   struct rte_mbuf* segs[64];
-  if (unlikely(nSegs > RTE_MIN(*iovcnt, RTE_DIM(segs)))) {
+  if (unlikely(nSegs > RTE_MIN(*iovcnt, (int)RTE_DIM(segs)))) {
     rte_errno = EFBIG;
     return NULL;
   }
@@ -46,7 +46,7 @@ Mbuf_AllocRoom(struct rte_mempool* mp, struct iovec* iov, size_t* iovcnt, uint16
   uint16_t thisHeadroom = firstHeadroom;
   uint32_t thisDataLen = firstDataLen;
   uint32_t sumDataLen = 0;
-  for (uint16_t i = 0; i < nSegs; ++i) {
+  for (int i = 0; i < nSegs; ++i) {
     struct rte_mbuf* seg = segs[i];
     seg->data_off = thisHeadroom;
     thisDataLen = RTE_MIN(thisDataLen, pktLen - sumDataLen);
@@ -64,7 +64,7 @@ Mbuf_AllocRoom(struct rte_mempool* mp, struct iovec* iov, size_t* iovcnt, uint16
 }
 
 void
-Mbuf_RemainingIovec(struct spdk_iov_xfer ix, struct iovec* iov, size_t* iovcnt)
+Mbuf_RemainingIovec(struct spdk_iov_xfer ix, struct iovec* iov, int* iovcnt)
 {
   while (
     unlikely(ix.cur_iov_idx < ix.iovcnt && ix.iovs[ix.cur_iov_idx].iov_len == ix.cur_iov_offset)) {

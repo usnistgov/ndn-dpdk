@@ -85,18 +85,6 @@ DataEnc_SizeofMetaInfo(const uint8_t* meta)
 }
 
 /**
- * @brief Encode Data with payload.
- * @param prefix Data name prefix.
- * @param suffix Data name suffix.
- * @param meta prepared MetaInfo buffer.
- * @param m a uniquely owned, unsegmented, direct mbuf of Content payload.
- * @return encoded packet, same as @p m .
- * @retval NULL insufficient headroom or tailroom.
- */
-__attribute__((nonnull)) Packet*
-DataEnc_EncodePayload(LName prefix, LName suffix, const uint8_t* meta, struct rte_mbuf* m);
-
-/**
  * @brief Encode Data with Content from template.
  * @param prefix name prefix.
  * @param suffix name suffix.
@@ -107,7 +95,7 @@ DataEnc_EncodePayload(LName prefix, LName suffix, const uint8_t* meta, struct rt
  */
 __attribute__((nonnull)) struct rte_mbuf*
 DataEnc_EncodeTpl(LName prefix, LName suffix, const uint8_t* meta, struct rte_mbuf* tplV,
-                  struct iovec* tplIov, size_t tplIovcnt, PacketMempools* mp, PacketTxAlign align);
+                  struct iovec* tplIov, int tplIovcnt, PacketMempools* mp, PacketTxAlign align);
 
 /**
  * @brief Encode Data with unfilled Content room.
@@ -121,13 +109,13 @@ DataEnc_EncodeTpl(LName prefix, LName suffix, const uint8_t* meta, struct rte_mb
  */
 __attribute__((nonnull)) struct rte_mbuf*
 DataEnc_EncodeRoom(LName prefix, LName suffix, const uint8_t* meta, uint32_t roomL,
-                   struct iovec* roomIov, size_t* roomIovcnt, PacketMempools* mp,
-                   PacketTxAlign align);
+                   struct iovec* roomIov, int* roomIovcnt, PacketMempools* mp, PacketTxAlign align);
 
 /**
  * @brief Append Null signature to Data.
  * @param m result of @c DataEnc_EncodeTpl or @c DataEnc_EncodeRoom .
- * @return encoded packet.
+ * @return encoded packet, or NUL upon failure.
+ * @post If failure, @p pkt is freed.
  */
 __attribute__((nonnull)) Packet*
 DataEnc_Sign(struct rte_mbuf* pkt, PacketMempools* mp, PacketTxAlign align);
