@@ -25,6 +25,8 @@ RTE_INIT(InitNullSig)
   static_assert(sizeof(NullSig) == DataEncNullSigLen, "");
 }
 
+uint8_t DataEnc_NoMetaInfo[] = { 0 };
+
 __attribute__((nonnull)) static inline bool
 PData_ParseMetaInfo(PData* data, TlvDecoder* d, ParseFor parseFor)
 {
@@ -232,77 +234,16 @@ DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName
   }
 
 #undef APPEND
-}
 
-__attribute__((nonnull)) static Packet*
-Encode_Linear(DataGen* gen, LName prefix, PacketMempools* mp, uint16_t fragmentPayloadSize)
-{
-  uint32_t pktLen = L3TypeLengthHeadroom + L3TypeLengthHeadroom + // Data TL + Name TL
-                    prefix.length + gen->tpl->pkt_len;
-  uint32_t fragCount = SPDK_CEIL_DIV(pktLen, fragmentPayloadSize);
-  NDNDPDK_ASSERT(fragCount < LpMaxFragments);
-  struct rte_mbuf* frames[LpMaxFragments];
-  if (unlikely(rte_pktmbuf_alloc_bulk(mp->packet, frames, fragCount) != 0)) {
-    return NULL;
+  if (room[1] == 0) {
+    room[0] = 0;
   }
-
-  uint32_t fragIndex = 0;
-  uint16_t extraHeadroom = L3TypeLengthHeadroom + L3TypeLengthHeadroom; // Data TL + Name TL
-  for (uint16_t offset = 0; offset < prefix.length;) {
-    frames[fragIndex]->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + extraHeadroom;
-    uint16_t fragSize = RTE_MIN(prefix.length - offset, fragmentPayloadSize - extraHeadroom);
-    rte_memcpy(rte_pktmbuf_append(frames[fragIndex], fragSize), RTE_PTR_ADD(prefix.value, offset),
-               fragSize);
-    extraHeadroom = 0;
-    offset += fragSize;
-  }
-  TlvEncoder_PrependTL(frames[0], TtName, prefix.length + gen->suffixL);
-
-  TlvDecoder d = TlvDecoder_Init(gen->tpl);
-  TlvDecoder_Fragment(&d, d.length, frames, &fragIndex, fragCount, fragmentPayloadSize,
-                      RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom);
-
-  Mbuf_ChainVector(frames, fragCount);
-  return Packet_EncodeFinish_(frames[0], TtData, PktSData);
-}
-
-__attribute__((nonnull)) static Packet*
-Encode_Chained(DataGen* gen, LName prefix, PacketMempools* mp)
-{
-  struct rte_mbuf* seg1 = rte_pktmbuf_alloc(mp->indirect);
-  if (unlikely(seg1 == NULL)) {
-    return NULL;
-  }
-  rte_pktmbuf_attach(seg1, gen->tpl);
-
-  struct rte_mbuf* seg0 = rte_pktmbuf_alloc(mp->header);
-  if (unlikely(seg0 == NULL)) {
-    rte_pktmbuf_free(seg1);
-    return NULL;
-  }
-  seg0->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom +    //
-                   L3TypeLengthHeadroom + L3TypeLengthHeadroom; // Data TL + Name TL
-  rte_memcpy(rte_pktmbuf_append(seg0, prefix.length), prefix.value, prefix.length);
-  TlvEncoder_PrependTL(seg0, TtName, prefix.length + gen->suffixL);
-
-  bool ok = Mbuf_Chain(seg0, seg0, seg1);
-  NDNDPDK_ASSERT(ok);
-  return Packet_EncodeFinish_(seg0, TtData, PktSData);
-}
-
-__attribute__((nonnull)) Packet*
-DataGen_Encode(DataGen* gen, LName prefix, PacketMempools* mp, PacketTxAlign align)
-{
-  if (align.linearize) {
-    return Encode_Linear(gen, prefix, mp, align.fragmentPayloadSize);
-  }
-  return Encode_Chained(gen, prefix, mp);
 }
 
 __attribute__((nonnull)) static struct rte_mbuf*
 DataEnc_EncodeCommon(LName prefix, LName suffix, const uint8_t* meta, uint32_t contentL,
                      bool allocContentL, struct iovec* iov, int* iovcnt, PacketMempools* mp,
-                     uint16_t extraHeadroom, uint16_t dataLen)
+                     uint16_t dataLen)
 {
   uint16_t sizeofMeta = DataEnc_SizeofMetaInfo(meta);
   uint8_t nameTL[L3TypeLengthHeadroom] = { TtName };
@@ -311,12 +252,12 @@ DataEnc_EncodeCommon(LName prefix, LName suffix, const uint8_t* meta, uint32_t c
   uint16_t sizeofContentTL = 1 + TlvEncoder_WriteVarNum(&contentTL[1], contentL);
 
   *iovcnt = LpMaxFragments;
-  struct rte_mbuf* pkt = Mbuf_AllocRoom(mp->packet, iov, iovcnt,
-                                        RTE_PKTMBUF_HEADROOM + extraHeadroom + L3TypeLengthHeadroom,
-                                        dataLen == 0 ? 0 : dataLen - L3TypeLengthHeadroom,
-                                        RTE_PKTMBUF_HEADROOM + extraHeadroom, dataLen,
-                                        sizeofNameTL + prefix.length + suffix.length + sizeofMeta +
-                                          sizeofContentTL + contentL * (int)allocContentL);
+  struct rte_mbuf* pkt = Mbuf_AllocRoom(
+    mp->packet, iov, iovcnt, RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + L3TypeLengthHeadroom,
+    dataLen == 0 ? 0 : dataLen - L3TypeLengthHeadroom, RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom,
+    dataLen,
+    sizeofNameTL + prefix.length + suffix.length + sizeofMeta + sizeofContentTL +
+      contentL * (int)allocContentL);
   if (unlikely(pkt == NULL)) {
     return NULL;
   }
@@ -338,7 +279,7 @@ DataEnc_EncodeLinear(LName prefix, LName suffix, const uint8_t* meta, uint32_t r
                      uint16_t fragmentPayloadSize)
 {
   return DataEnc_EncodeCommon(prefix, suffix, meta, roomL, true, roomIov, roomIovcnt, mp,
-                              LpHeaderHeadroom, fragmentPayloadSize);
+                              fragmentPayloadSize);
 }
 
 __attribute__((nonnull)) static struct rte_mbuf*
@@ -348,7 +289,7 @@ DataEnc_EncodeChained(LName prefix, LName suffix, const uint8_t* meta, struct rt
   struct iovec iov[LpMaxFragments];
   int iovcnt = RTE_DIM(iov);
   struct rte_mbuf* pkt =
-    DataEnc_EncodeCommon(prefix, suffix, meta, tplV->pkt_len, false, iov, &iovcnt, mp, 0, 0);
+    DataEnc_EncodeCommon(prefix, suffix, meta, tplV->pkt_len, false, iov, &iovcnt, mp, 0);
   if (unlikely(pkt == NULL)) {
     return NULL;
   }

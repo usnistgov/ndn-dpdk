@@ -57,6 +57,9 @@ DataDigest_Enqueue(CryptoQueuePair* cqp, struct rte_crypto_op** ops, uint16_t co
 __attribute__((nonnull)) bool
 DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt);
 
+/** @brief Indicate that Data MetaInfo field should be omitted. */
+extern uint8_t DataEnc_NoMetaInfo[];
+
 /**
  * @brief Prepare Data MetaInfo.
  * @param room output buffer; must have enough capacity.
@@ -81,7 +84,7 @@ DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName
 __attribute__((nonnull)) static inline uint16_t
 DataEnc_SizeofMetaInfo(const uint8_t* meta)
 {
-  return 2 + meta[1];
+  return likely(meta[0] == TtMetaInfo) ? 2 + meta[1] : 0;
 }
 
 /**
@@ -123,16 +126,10 @@ DataEnc_Sign(struct rte_mbuf* pkt, PacketMempools* mp, PacketTxAlign align);
 /** @brief Data encoder optimized for traffic generator. */
 typedef struct DataGen
 {
-  /**
-   * @brief Template mbuf.
-   *
-   * This should contain name suffix TLV-VALUE and fields after Name.
-   * Name TL and Data TL are not included.
-   */
   struct rte_mbuf* tpl;
-
-  /** @brief Size of name suffix TLV-VALUE at the beginning of @c tpl . */
-  uint16_t suffixL;
+  LName suffix;
+  const uint8_t* meta;
+  struct iovec contentIov[1];
 } DataGen;
 
 /**
@@ -147,7 +144,15 @@ typedef struct DataGen
  * If @c align.linearize is true, encoded packet has one or more copied mbufs. @c mp->packet
  * dataroom must be at least @c RTE_PKTMBUF_DATAROOM+LpHeaderHeadroom+align.fragmentPayloadSize .
  */
-__attribute__((nonnull)) Packet*
-DataGen_Encode(DataGen* gen, LName prefix, PacketMempools* mp, PacketTxAlign align);
+__attribute__((nonnull)) static inline Packet*
+DataGen_Encode(DataGen* gen, LName prefix, PacketMempools* mp, PacketTxAlign align)
+{
+  struct rte_mbuf* pkt =
+    DataEnc_EncodeTpl(prefix, gen->suffix, gen->meta, gen->tpl, gen->contentIov, 1, mp, align);
+  if (unlikely(pkt == NULL)) {
+    return NULL;
+  }
+  return DataEnc_Sign(pkt, mp, align);
+}
 
 #endif // NDNDPDK_NDNI_DATA_H

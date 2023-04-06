@@ -103,6 +103,7 @@ func ctestDataEnc(t *testing.T) {
 	var metaBuf0 [16]C.uint8_t
 	meta0 := unsafe.SliceData(metaBuf0[:])
 	C.DataEnc_PrepareMetaInfo(meta0, an.ContentBlob, 0, C.LName{})
+	assert.EqualValues(0, metaBuf0[0])
 
 	var metaBuf1 [32]C.uint8_t
 	meta1 := unsafe.SliceData(metaBuf1[:])
@@ -110,6 +111,7 @@ func ctestDataEnc(t *testing.T) {
 	finalBlockP := ndni.NewPName(ndn.Name{finalBlock})
 	defer finalBlockP.Free()
 	C.DataEnc_PrepareMetaInfo(meta1, an.ContentKey, 3600_000, *(*C.LName)(finalBlockP.Ptr()))
+	assert.EqualValues(an.TtMetaInfo, metaBuf1[0])
 
 	content0 := bytes.Repeat([]byte{0xC0}, 500)
 	content1 := bytes.Repeat([]byte{0xC1}, 500)

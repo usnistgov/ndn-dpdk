@@ -35,7 +35,7 @@ func (gen *DataGen) ptr() *C.DataGen {
 // Init initializes a DataGen.
 // m is a pktmbuf with at least DataGenBufLen + len(content) buffer size; it can be allocated from PayloadMempool.
 // Arguments should be acceptable to ndn.MakeData.
-// Name is used as name suffix.
+// Name (used as name suffix), MetaInfo, and Content are saved; other fields are skipped.
 // Panics on error.
 func (gen *DataGen) Init(m *pktmbuf.Packet, args ...any) {
 	data := ndn.MakeData(args...)
@@ -44,34 +44,47 @@ func (gen *DataGen) Init(m *pktmbuf.Packet, args ...any) {
 		logger.Panic("encode Data error", zap.Error(e))
 	}
 
-	var nameL, tplSize int
+	m.SetHeadroom(0)
+	if e := m.Append(wire); e != nil {
+		logger.Panic("insufficient dataroom", zap.Error(e))
+	}
+	bufBegin := unsafe.Pointer(unsafe.SliceData(m.SegmentBytes()[0]))
+	bufEnd := unsafe.Add(bufBegin, len(wire))
+	*gen = DataGen{
+		tpl:  (*C.struct_rte_mbuf)(m.Ptr()),
+		meta: unsafe.SliceData(C.DataEnc_NoMetaInfo[:]),
+		contentIov: [1]C.struct_iovec{{
+			iov_base: bufEnd,
+		}},
+	}
+
 	d := tlv.DecodingBuffer(wire)
-DecodeLoop:
 	for _, de := range d.Elements() {
 		switch de.Type {
 		case an.TtName:
-			nameL = de.Length()
-			tplSize = nameL + len(de.After)
-			break DecodeLoop
+			gen.suffix = C.LName{
+				value:  (*C.uint8_t)(unsafe.Add(bufEnd, -len(de.After)-de.Length())),
+				length: C.uint16_t(de.Length()),
+			}
+		case an.TtMetaInfo:
+			gen.meta = (*C.uint8_t)(unsafe.Add(bufEnd, -len(de.WireAfter())))
+		case an.TtContent:
+			gen.contentIov[0] = C.struct_iovec{
+				iov_base: unsafe.Add(bufEnd, -len(de.After)-de.Length()),
+				iov_len:  C.size_t(de.Length()),
+			}
 		}
 	}
 
-	m.SetHeadroom(0)
-	if e := m.Append(wire[len(wire)-tplSize:]); e != nil {
-		logger.Panic("mbuf.Append error", zap.Error(e))
-	}
-
-	*gen = DataGen{
-		tpl:     (*C.struct_rte_mbuf)(m.Ptr()),
-		suffixL: C.uint16_t(nameL),
-	}
+	C.rte_pktmbuf_adj(gen.tpl, C.uint16_t(uintptr(gen.contentIov[0].iov_base)-uintptr(bufBegin)))
+	C.rte_pktmbuf_trim(gen.tpl, C.uint16_t(C.size_t(gen.tpl.pkt_len)-gen.contentIov[0].iov_len))
 }
 
 // Close discards this DataGen.
 func (gen *DataGen) Close() error {
-	tpl := gen.tpl
-	gen.tpl = nil
-	return pktmbuf.PacketFromPtr(unsafe.Pointer(tpl)).Close()
+	tpl := pktmbuf.PacketFromPtr(unsafe.Pointer(gen.tpl))
+	*gen = DataGen{}
+	return tpl.Close()
 }
 
 // Encode encodes a Data packet.
