@@ -14,11 +14,11 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Go 1.20
 * Node.js 16.x
 * [Meson build system](https://mesonbuild.com/Getting-meson.html#installing-meson-with-pip)
-* [ubpf](https://github.com/iovisor/ubpf) 2146a126
+* [ubpf](https://github.com/iovisor/ubpf) 329fd799
 * [libbpf](https://github.com/libbpf/libbpf) 1.1.0 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.2.10 (optional)
 * [liburing](https://github.com/axboe/liburing) 2.3
-* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 23.03-rc4
-* [Storage Performance Development Kit (SPDK)](https://spdk.io/) ecc80dfc
+* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 23.03
+* [Storage Performance Development Kit (SPDK)](https://spdk.io/) db6297b5
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck) commands (optional)
 
 You can run the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to the script for specific configuration options.
@@ -31,7 +31,7 @@ See script source code for variable names and their default values.
 ## Build Steps
 
 1. Clone the NDN-DPDK repository.
-2. Run `core pnpm install` to download NPM dependencies.
+2. Run `corepack pnpm install` to download NPM dependencies.
 3. Run `NDNDPDK_MK_RELEASE=1 make` to compile the project.
 4. Run `sudo make install` to install the programs.
 
