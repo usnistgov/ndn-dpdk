@@ -11,18 +11,26 @@ import { hexPad, uniqueRandomVector } from "./util";
 export interface ServerEnv {
   F_GQLSERVER: string;
   F_PORT_A: string;
+  F_VLAN_A: number;
+  F_HWADDR_A: string;
   F_PORT_B: string;
+  F_VLAN_B: number;
+  F_HWADDR_B: string;
   F_NUMA_PRIMARY: number;
   F_CORES_PRIMARY: readonly number[];
   F_CORES_SECONDARY: readonly number[];
   A_GQLSERVER: string;
   A_PORT_F: string;
+  A_VLAN_F: number;
+  A_HWADDR_F: string;
   A_NUMA_PRIMARY: number;
   A_CORES_PRIMARY: readonly number[];
   A_CORES_SECONDARY: readonly number[];
   A_FILESERVER_PATH: string;
   B_GQLSERVER: string;
   B_PORT_F: string;
+  B_VLAN_F: number;
+  B_HWADDR_F: string;
   B_NUMA_PRIMARY: number;
   B_CORES_PRIMARY: readonly number[];
   B_CORES_SECONDARY: readonly number[];
@@ -149,7 +157,9 @@ export class Benchmark {
 
     const seenNdtIndices = new Set<number>();
     for (const label of tgNodeLabels) {
-      const face = await this.cF.createFace(await this.prepareLocator(this.cF, this.env[`F_PORT_${label}`], label));
+      const locator = await this.prepareLocator(this.cF, label, this.env[`F_PORT_${label}`], this.env[`F_VLAN_${label}`],
+        this.env[`F_HWADDR_${label}`], this.env[`${label}_HWADDR_F`]);
+      const face = await this.cF.createFace(locator);
       this.state.face[label] = face;
 
       for (let j = 0; j < nFwds; ++j) {
@@ -183,7 +193,8 @@ export class Benchmark {
 
   private async startTrafficGen(label: TgNodeLabel): Promise<void> {
     const ctrl = this[`c${label}`];
-    const locator = await this.prepareLocator(ctrl, this.env[`${label}_PORT_F`], label);
+    const locator = await this.prepareLocator(ctrl, label, this.env[`${label}_PORT_F`], this.env[`${label}_VLAN_F`],
+      this.env[`${label}_HWADDR_F`], this.env[`F_HWADDR_${label}`]);
     const result = await ctrl.startTrafficGen({
       face: locator,
       ...this.makeProducerConfig(label),
@@ -196,7 +207,7 @@ export class Benchmark {
     this.state.fileServerVersionBypassHi[label] = BigInt(result.fileServerVersionBypassHi ?? 0);
   }
 
-  private async prepareLocator(ctrl: GqlFwControl | GqlGenControl, portVlan: string, faceLabel: TgNodeLabel): Promise<FaceLocator> {
+  private async prepareLocator(ctrl: GqlFwControl | GqlGenControl, faceLabel: TgNodeLabel, pciAddr: string, vlan: number, local: string, remote: string): Promise<FaceLocator> {
     const isForwarder = ctrl === this.cF;
     const scheme = this.opts[`face${faceLabel}Scheme`];
     if (scheme === "memif") {
@@ -209,16 +220,14 @@ export class Benchmark {
       };
     }
 
-    const [pciAddr, vlan] = portVlan.split("+");
     const port = await ctrl.createEthPort(pciAddr);
     const nRxQueues = this.opts[`face${faceLabel}RxQueues`];
-    const macAddrLastOctet = hexPad(faceLabel.codePointAt(0)!, 2);
     return {
       port,
       nRxQueues,
-      local: `02:00:00:00:${isForwarder ? "00" : "01"}:${macAddrLastOctet}`,
-      remote: `02:00:00:00:${isForwarder ? "01" : "00"}:${macAddrLastOctet}`,
-      vlan: vlan === undefined ? undefined : Number.parseInt(vlan, 10),
+      local,
+      remote,
+      vlan,
       ...(scheme === "vxlan" ? vxlanLocatorFields : { scheme: "ether" }),
     };
   }

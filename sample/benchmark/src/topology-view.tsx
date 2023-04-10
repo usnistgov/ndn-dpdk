@@ -7,10 +7,6 @@ interface Props {
   opts: BenchmarkOptions;
 }
 
-function stripVlan(s: string): string {
-  return s.split("+")[0];
-}
-
 export class TopologyView extends Component<Props> {
   override render() {
     const {
@@ -65,14 +61,14 @@ export class TopologyView extends Component<Props> {
       prefix: string,
       scheme: BenchmarkOptions.FaceScheme,
       nRxQueues: number,
-      portVlanL: string,
-      portVlanR: string,
+      portL: string,
+      portR: string,
       y: number,
   ) {
     return (
       <g transform={`translate(100 ${y})`}>
-        <text x="0" y="0" text-anchor="start">{scheme === "memif" ? "memif" : stripVlan(portVlanL)}</text>
-        <text x="200" y="0" text-anchor="end">{scheme === "memif" ? "memif" : stripVlan(portVlanR)}</text>
+        <text x="0" y="0" text-anchor="start">{scheme === "memif" ? "memif" : portL}</text>
+        <text x="200" y="0" text-anchor="end">{scheme === "memif" ? "memif" : portR}</text>
         <text x="200" y="20" text-anchor="end">{prefix}</text>
         <text x="100" y="20" text-anchor="middle">{title}</text>
         <line x1="0" y1="5" x2="200" y2="5" stroke="#001f3f" stroke-width="2"/>
