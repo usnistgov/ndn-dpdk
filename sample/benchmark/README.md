@@ -109,13 +109,11 @@ If using memif virtual interfaces:
 
 ### File Server Preparation
 
-If fileserver usage is desired, create a directory on the traffic generator host, and populate the files with these commands:
+If fileserver usage is desired, populate a directory on the traffic generator host with [prepare-fileserver.sh](prepare-fileserver.sh) script.
+Sample command:
 
 ```bash
-fallocate -xl 32G F
-mkdir T
-for I in {0..1023}; do ln -s ../F T/$I; done
-for I in {0..11}; do ln -s T $I; done
+sudo bash ./prepare-fileserver.sh /tmp/ndndpdk-benchmark-fileserver
 ```
 
 ### Usage
