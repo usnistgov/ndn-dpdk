@@ -63,7 +63,7 @@ export class App extends Component<{}, State> {
           </BenchmarkOptionsEditor>
         </form>
         <p><code>{message}</code></p>
-        <ResultTable records={results}/>
+        <ResultTable records={results} running={running}/>
       </section>
     );
   }

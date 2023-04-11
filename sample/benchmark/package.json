@@ -25,6 +25,7 @@
     "minimalistic-assert": "^1.0.1",
     "ndjson": "^2.0.0",
     "preact": "^10.13.2",
+    "simple-statistics": "^7.8.3",
     "stdout-stream": "^2.0.0",
     "ts-loader": "^9.4.2",
     "tslib": "^2.5.0",
