@@ -8,7 +8,7 @@
   "dependencies": {
     "@fastify/express": "^2.3.0",
     "@fastify/http-proxy": "^9.0.0",
-    "@fastify/static": "^6.9.0",
+    "@fastify/static": "^6.10.1",
     "@typescript/lib-dom": "npm:@types/web@0.0.99",
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz",
     "delay": "^5.0.0",
@@ -18,9 +18,9 @@
     "preact": "^10.13.2",
     "ts-loader": "^9.4.2",
     "tslib": "^2.5.0",
-    "typescript": "~5.0.2",
+    "typescript": "~5.0.4",
     "url-parse-lax": "^5.0.0",
-    "webpack": "^5.77.0",
+    "webpack": "^5.79.0",
     "webpack-dev-middleware": "^6.0.2",
     "yargs": "^17.7.1"
   },

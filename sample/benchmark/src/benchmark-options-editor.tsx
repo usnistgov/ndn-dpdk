@@ -44,6 +44,7 @@ export class BenchmarkOptionsEditor extends Component<Props> {
         trafficDir,
         producerKind,
         nProducerThreads,
+        nConsumerThreads,
         interestNameLen,
         dataMatch,
         payloadLen,
@@ -104,6 +105,10 @@ export class BenchmarkOptionsEditor extends Component<Props> {
           <input id={`${this.id}.nProducerThreads`} type="number" min="1" max="2" value={nProducerThreads} disabled={disabled} onChange={this.handleUpdate("nProducerThreads")}/>
         </div>
         <div class="pure-control-group">
+          <label for={`${this.id}.nConsumerThreads`}>consumer threads</label>
+          <input id={`${this.id}.nConsumerThreads`} type="number" min="1" max="4" value={nConsumerThreads} disabled={disabled} onChange={this.handleUpdate("nConsumerThreads")}/>
+        </div>
+        <div class="pure-control-group">
           <label for={`${this.id}.nFlows`}>fetcher flows</label>
           <input id={`${this.id}.nFlows`} type="number" min={nFwds} max="128" step={nFwds} value={nFlows} disabled={disabled} onChange={this.handleUpdate("nFlows")}/>
           <span class="pure-form-message-inline">
@@ -146,7 +151,7 @@ export class BenchmarkOptionsEditor extends Component<Props> {
         </div>
         <div class="pure-control-group">
           <label for={`${this.id}.duration`}>trial duration</label>
-          <input id={`${this.id}.duration`} type="number" min="10" max="1200" step="5" value={duration} disabled={disabled} onChange={this.handleUpdate("duration")}/>
+          <input id={`${this.id}.duration`} type="number" min="10" max="3600" step="5" value={duration} disabled={disabled} onChange={this.handleUpdate("duration")}/>
           <span class="pure-form-message-inline">seconds {segmentEnd > 0 ? "or retrieval completion" : ""}</span>
         </div>
         {this.props.children}

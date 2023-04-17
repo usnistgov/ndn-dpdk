@@ -50,6 +50,7 @@ export interface BenchmarkOptions {
   trafficDir: BenchmarkOptions.TrafficDir;
   producerKind: BenchmarkOptions.ProducerKind;
   nProducerThreads: number;
+  nConsumerThreads: number;
   nFlows: number;
   interestNameLen: number;
   dataMatch: BenchmarkOptions.DataMatch;
@@ -192,6 +193,7 @@ export class Benchmark {
   }
 
   private async startTrafficGen(label: TgNodeLabel): Promise<void> {
+    const { nConsumerThreads } = this.opts;
     const ctrl = this[`c${label}`];
     const locator = await this.prepareLocator(ctrl, label, this.env[`${label}_PORT_F`], this.env[`${label}_VLAN_F`],
       this.env[`${label}_HWADDR_F`], this.env[`F_HWADDR_${label}`]);
@@ -199,7 +201,7 @@ export class Benchmark {
       face: locator,
       ...this.makeProducerConfig(label),
       fetcher: {
-        nThreads: 1,
+        nThreads: nConsumerThreads,
         nTasks: this.opts.nFlows,
       },
     });

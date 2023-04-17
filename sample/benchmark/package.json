@@ -10,7 +10,7 @@
   "dependencies": {
     "@fastify/express": "^2.3.0",
     "@fastify/http-proxy": "^9.0.0",
-    "@fastify/static": "^6.10.0",
+    "@fastify/static": "^6.10.1",
     "@strattadb/environment": "^8.0.2",
     "@types/minimalistic-assert": "^1.0.1",
     "@types/ndjson": "^2.0.1",
@@ -31,7 +31,7 @@
     "tslib": "^2.5.0",
     "tsm": "^2.3.0",
     "typescript": "~5.0.4",
-    "webpack": "^5.78.0",
+    "webpack": "^5.79.0",
     "webpack-dev-middleware": "^6.0.2",
     "yargs": "^17.7.1"
   },
