@@ -118,7 +118,7 @@ func ctestDataEnc(t *testing.T) {
 	content := bytes.Join([][]byte{content0, content1}, nil)
 	tpl := makePacket(content0, content1)
 	var tplIov [ndni.LpMaxFragments]C.struct_iovec
-	tplIovcnt := C.Mbuf_AsIovec(tpl.mbuf, unsafe.SliceData(tplIov[:]))
+	tplIovcnt := C.Mbuf_AsIovec(tpl.mbuf, unsafe.SliceData(tplIov[:]), 0, 1000)
 	assert.EqualValues(2, tplIovcnt)
 
 	namePrefix := ndn.ParseName("/DataEnc/name/prefix")

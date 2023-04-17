@@ -77,23 +77,8 @@ FetchTask_WriteData(FetchThread* fth, FetchTask* fp, Packet* npkt, FetchLogicRxD
     return false;
   }
 
-  uint32_t nIov = 0, skipRemain = data->contentOffset,
-           acceptRemain = RTE_MIN(fp->segmentLen, data->contentL);
-  for (struct rte_mbuf* m = pkt; m != NULL && acceptRemain != 0; m = m->next) {
-    uint32_t skipLen = RTE_MIN(skipRemain, (uint32_t)m->data_len);
-    skipRemain -= skipLen;
-    uint32_t acceptLen = RTE_MIN(acceptRemain, (uint32_t)m->data_len - skipLen);
-    acceptRemain -= acceptLen;
-    if (acceptLen > 0) {
-      iov[nIov++] = (struct iovec){
-        .iov_base = rte_pktmbuf_mtod_offset(m, void*, skipLen),
-        .iov_len = acceptLen,
-      };
-    }
-  }
-  NDNDPDK_ASSERT(skipRemain + acceptRemain == 0);
-
-  io_uring_prep_writev(sqe, fp->fd, iov, nIov, lpkt->segNum * fp->segmentLen);
+  int iovcnt = Mbuf_AsIovec(pkt, iov, data->contentOffset, data->contentL);
+  io_uring_prep_writev(sqe, fp->fd, iov, iovcnt, lpkt->segNum * fp->segmentLen);
   io_uring_sqe_set_data(sqe, pkt);
   return true;
 }

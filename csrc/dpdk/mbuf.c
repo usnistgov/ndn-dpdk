@@ -11,6 +11,26 @@ Mbuf_RegisterDynFields()
   return res == 0;
 }
 
+int
+Mbuf_AsIovec(struct rte_mbuf* m, struct iovec* iov, uint32_t offset, uint32_t length)
+{
+  int iovcnt = 0;
+  for (struct rte_mbuf* seg = m; seg != NULL && length > 0; seg = seg->next) {
+    uint32_t skipLen = RTE_MIN(offset, (uint32_t)seg->data_len);
+    offset -= skipLen;
+    uint32_t acceptLen = RTE_MIN(length, (uint32_t)seg->data_len - skipLen);
+    length -= acceptLen;
+    if (acceptLen == 0) {
+      continue;
+    }
+    iov[iovcnt++] = (struct iovec){
+      .iov_base = rte_pktmbuf_mtod_offset(seg, void*, skipLen),
+      .iov_len = acceptLen,
+    };
+  }
+  return iovcnt;
+}
+
 struct rte_mbuf*
 Mbuf_AllocRoom(struct rte_mempool* mp, struct iovec* iov, int* iovcnt, uint16_t firstHeadroom,
                uint16_t firstDataLen, uint16_t eachHeadroom, uint16_t eachDataLen, uint32_t pktLen)

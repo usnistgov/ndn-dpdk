@@ -46,18 +46,8 @@ Mbuf_ReadTo(struct rte_mbuf* m, uint32_t off, uint32_t len, void* dst)
  * @param[out] iov must have @c m->nb_segs room.
  * @return iov count.
  */
-__attribute__((nonnull)) static inline int
-Mbuf_AsIovec(struct rte_mbuf* m, struct iovec* iov)
-{
-  int iovcnt = 0;
-  for (struct rte_mbuf* seg = m; seg != NULL; seg = seg->next) {
-    iov[iovcnt++] = (struct iovec){
-      .iov_base = rte_pktmbuf_mtod(seg, void*),
-      .iov_len = seg->data_len,
-    };
-  }
-  return iovcnt;
-}
+__attribute__((nonnull)) int
+Mbuf_AsIovec(struct rte_mbuf* m, struct iovec* iov, uint32_t offset, uint32_t length);
 
 /**
  * @brief Allocate room within chained mbufs.
