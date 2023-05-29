@@ -53,7 +53,7 @@ Some NVMe devices require every buffers to have dword (32-bit) alignment, and ev
 To satisfy this requirement without copying, the content being written to the block device may contain part of the headroom and tailroom in the mbuf.
 The amount of excess writing is captured in a **BdevStoredPacket** struct, which must be saved by the caller.
 During reading, the original packet is recovered from the saved information, by either adjusting headroom or `memmove`-ing.
-This design chooses to incur less overhead during writing and more overhead during reading, because the primary use case is packet caching, in which only a subset of written packets would generate cache hits and need to be be read back, and each packet reenters in-memory cache after being read.
+This design chooses to incur less overhead during writing and more overhead during reading, because the primary use case is packet caching, in which only a subset of written packets would generate cache hits and need to be read back, and each packet reenters in-memory cache after being read.
 
 Both file-backed drivers expect the buffer to be aligned at 512-octet boundary, otherwise the driver will incur copying overhead.
 During writing, such copying is mostly unavoidable, because the excess writing method described above would greatly amplify storage usage.

@@ -21,7 +21,7 @@ There are four steps to start a file server and connect it to the forwarder:
 4. Activate the second instance as file server role.
    The file server will connect to the memif face previously created on the forwarder, and be ready to process Interests.
 
-   You must prepare a JSON document that contains traffic generator activation parameters, which must conform to the JSON schema `fileserver.schema.json` (installed in `/usr/local/share/ndn-dpdk` and [available online](https://ndn-dpdk.ndn.today/schema/fileserver.schema.json)).
+   You must prepare a JSON document that contains file server activation parameters, which must conform to the JSON schema `fileserver.schema.json` (installed in `/usr/local/share/ndn-dpdk` and [available online](https://ndn-dpdk.ndn.today/schema/fileserver.schema.json)).
    You can use the `ndndpdk-ctrl activate-fileserver` command, or programmatically activate the file server via GraphQL `activate` mutation with `fileserver` input.
 
 ### Authoring Parameters in TypeScript

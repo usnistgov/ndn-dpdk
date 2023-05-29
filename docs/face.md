@@ -121,7 +121,7 @@ All other traffic will continue to be processed by the kernel.
 
 If neither PCI driver nor XDP driver can be used, as a last resort you may use the AF\_PACKET driver.
 This driver communicates with the Ethernet adapter via AF\_PACKET socket, which is substantially slower than the other two options.
-To create an Ethernet port with XDP driver, you should:
+To create an Ethernet port with AF\_PACKET driver, you should:
 
 1. If NDN-DPDK is running in a container, move the network interface into the container's network namespace.
 2. Run `ndndpdk-ctrl create-eth-port` command with `--netif` flag.

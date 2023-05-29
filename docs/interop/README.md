@@ -23,12 +23,12 @@ If NDN-DPDK is interoperable with another NDN implementation, sample steps to ac
 They support PIT tokens and can communicate with NDN-DPDK over a network or via a Unix socket.
 See [NDN-DPDK interoperability with NFD](NFD.md) and [NDN-DPDK interoperability with YaNFD](YaNFD.md) for a few sample scenarios on how to establish communication.
 
-## ndn-cxx and python-ndn
+## ndn-cxx
 
-[ndn-cxx](https://docs.named-data.net/ndn-cxx/) and [python-ndn](https://python-ndn.readthedocs.io) are incompatible with NDN-DPDK.
-They do not support PIT tokens, and do not support NDN-DPDK management protocol.
+[ndn-cxx](https://docs.named-data.net/ndn-cxx/) is incompatible with NDN-DPDK.
+It does not support PIT tokens, and does not support NDN-DPDK management protocol.
 
-To use applications based on these libraries, you can run NFD alongside NDN-DPDK on the same machine.
+To use applications based on ndn-cxx library, you can run NFD alongside NDN-DPDK on the same machine.
 In this case:
 
 * Local applications can connect to NFD using their existing libraries.
@@ -45,3 +45,9 @@ It fully supports PIT tokens, and has partial integration with NDN-DPDK manageme
 Applications can import `@ndn/dpdkmgmt` package to communicate with NDN-DPDK.
 
 NDNts in browser environment cannot connect to NDN-DPDK, because NDN-DPDK supports neither WebSockets nor HTTP/3 WebTransport.
+
+## python-ndn
+
+[python-ndn](https://python-ndn.readthedocs.io) has experiment NDN-DPDK support since v0.3-3.
+It fully supports PIT tokens, and has partial integration with NDN-DPDK management API.
+Applications can import `ndn.transport.ndn_dpdk` package to communicate with NDN-DPDK.

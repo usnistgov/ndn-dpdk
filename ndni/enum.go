@@ -38,7 +38,7 @@ const (
 	// ImplicitDigestLength is the TLV-LENGTH of ImplicitDigestNameComponent.
 	ImplicitDigestLength = 32
 
-	// ImplicitDigestSize is size of of ImplicitDigestNameComponent TLV.
+	// ImplicitDigestSize is size of ImplicitDigestNameComponent TLV.
 	ImplicitDigestSize = 34
 
 	// PNameCachedComponents is the number of cached component boundaries and hashes in PName struct.

@@ -69,7 +69,7 @@ func (rs *ReadSide) Unlock() {
 	rs.NLocks--
 }
 
-// NewReadSide registers current thread an an RCU read-side thread.
+// NewReadSide registers current thread as an RCU read-side thread.
 // If the thread is registered in C code, do not call this function, use a zero ReadSide instead.
 func NewReadSide() *ReadSide {
 	runtime.LockOSThread()
