@@ -16,4 +16,4 @@ fi
 
 export CFLAGS
 CGO_CFLAGS="-Werror $CFLAGS -m64 -pthread -O3 -g $(pkg-config --cflags libdpdk liburing | sed 's/-include [^ ]*//g')"
-CGO_LIBS="-L/usr/local/lib $LGCOV -lurcu-qsbr -lurcu-cds -lubpf $(pkg-config --libs spdk_bdev spdk_init spdk_env_dpdk) -lrte_bus_pci -lrte_bus_vdev -lrte_net_ring $(pkg-config --libs libdpdk liburing) -lnuma -lm"
+CGO_LIBS="-L/usr/local/lib $LGCOV -lurcu-qsbr -lurcu-cds -lubpf -lcrypto $(pkg-config --libs spdk_bdev spdk_init spdk_env_dpdk) -lrte_bus_pci -lrte_bus_vdev -lrte_net_ring $(pkg-config --libs libdpdk liburing) -lnuma -lm"
