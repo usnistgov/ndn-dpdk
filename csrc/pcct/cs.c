@@ -7,15 +7,15 @@
 N_LOG_INIT(Cs);
 
 __attribute__((nonnull)) static void
-CsEraseBatch_Append(PcctEraseBatch* peb, CsEntry* entry, const char* isDirectDbg)
+CsEraseBatch_Append(PcctEraseBatch* peb, CsEntry* entry, const char* kind)
 {
   PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
   PccEntry_RemoveCsEntry(pccEntry);
   if (likely(!pccEntry->hasEntries)) {
-    N_LOGD("^ cs=%p(%s) pcc=%p(erase)", entry, isDirectDbg, pccEntry);
+    N_LOGD("^ cs=%p(%s) pcc=%p(erase)", entry, kind, pccEntry);
     PcctEraseBatch_Append(peb, pccEntry);
   } else {
-    N_LOGD("^ cs=%p(%s) pcc=%p(keep)", entry, isDirectDbg, pccEntry);
+    N_LOGD("^ cs=%p(%s) pcc=%p(keep)", entry, kind, pccEntry);
   }
 }
 

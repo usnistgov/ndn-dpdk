@@ -24,8 +24,7 @@ PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot)
   if (entry->ext == NULL) {
     int res = rte_mempool_get(PccEntry_ToMempool(entry), (void**)&entry->ext);
     if (unlikely(res != 0)) {
-      *slot = NULL;
-      return PCC_SLOT_NONE;
+      goto FAIL;
     }
     entry->ext->slot3.pccEntry = NULL;
 
@@ -42,6 +41,7 @@ PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot)
     return PCC_SLOT3;
   }
 
+FAIL:
   *slot = NULL;
   return PCC_SLOT_NONE;
 

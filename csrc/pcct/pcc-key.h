@@ -127,7 +127,9 @@ PccKey_CopyFromSearch(PccKey* key, const PccSearch* search, PccKeyExt* exts[], i
   key->fhL = search->fh.length;
   int nNameExts =
     PccKey_WriteField_(search->name, key->nameV, PccKeyNameCapacity, &key->nameExt, exts);
-  PccKey_WriteField_(search->fh, key->fhV, PccKeyFhCapacity, &key->fhExt, &exts[nNameExts]);
+  int nFhExts =
+    PccKey_WriteField_(search->fh, key->fhV, PccKeyFhCapacity, &key->fhExt, &exts[nNameExts]);
+  NDNDPDK_ASSERT(nNameExts + nFhExts == nExts);
 }
 
 /** @brief Move PccKeyExts into @p exts to prepare for removal. */

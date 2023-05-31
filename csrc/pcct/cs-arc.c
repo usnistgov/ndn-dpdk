@@ -115,9 +115,9 @@ CsArc_AddB2(CsArc* arc, CsEntry* entry)
 }
 
 __attribute__((nonnull)) static void
-CsArc_AddNew(CsArc* arc, CsEntry* entry)
+CsArc_AddNew(CsArc* arc, CsEntry* entry, const char* foundIn)
 {
-  N_LOGD("Add arc=%p cs-entry=%p found-in=NEW append-to=T1", arc, entry);
+  N_LOGD("Add arc=%p cs-entry=%p found-in=%s append-to=T1", arc, entry, foundIn);
   uint32_t nL1 = arc->T1.count + arc->B1.count;
   if (nL1 == CsArc_c(arc)) {
     if (arc->T1.count < CsArc_c(arc)) {
@@ -151,6 +151,7 @@ CsArc_AddNew(CsArc* arc, CsEntry* entry)
 void
 CsArc_Add(CsArc* arc, CsEntry* entry)
 {
+  const char* foundIn = "NEW";
   switch (entry->arcList) {
     case CslIndirect:
       NDNDPDK_ASSERT(false);
@@ -170,10 +171,11 @@ CsArc_Add(CsArc* arc, CsEntry* entry)
       CsArc_AddB2(arc, entry);
       return;
     case CslDirectDel:
+      foundIn = "Del";
       CsList_Remove(&arc->Del, entry);
       // fallthrough
     case CslDirectNew:
-      CsArc_AddNew(arc, entry);
+      CsArc_AddNew(arc, entry, foundIn);
       return;
   }
   NDNDPDK_ASSERT(false);

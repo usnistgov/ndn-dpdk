@@ -97,9 +97,13 @@ lint:
 test: godeps
 	mk/gotest.sh
 
-.PHONY: coverage
+.PHONY: coverage coverage
 coverage:
-	meson compile -C build coverage-html
+	ninja -C build coverage-html
+
+.PHONY: coverage-clean
+coverage-clean:
+	find build -name '*.gcda' -delete
 
 .PHONY: clean
 clean:
