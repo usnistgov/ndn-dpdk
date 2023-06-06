@@ -145,11 +145,16 @@ func (data Data) IsFinalBlock() bool {
 }
 
 // CanSatisfy determines whether this Data can satisfy the given Interest.
-func (data Data) CanSatisfy(interest Interest) bool {
+func (data Data) CanSatisfy(interest Interest, optionalFlag ...CanSatisfyFlag) bool {
+	var flag CanSatisfyFlag
+	if len(optionalFlag) == 1 {
+		flag = optionalFlag[0]
+	}
+
 	switch {
 	case len(interest.Name) == 0: // invalid Interest
 		return false
-	case interest.MustBeFresh && data.Freshness <= 0:
+	case flag&CanSatisfyInCache != 0 && interest.MustBeFresh && data.Freshness <= 0:
 		return false
 	case interest.Name[len(interest.Name)-1].Type == an.TtImplicitSha256DigestComponent:
 		return interest.Name.Equal(data.FullName())
@@ -339,3 +344,10 @@ func DecodeFinalBlock(de tlv.DecodingElement) (finalBlock NameComponent, e error
 	}
 	return finalBlock, nil
 }
+
+// Data.CanSatisfy flags.
+type CanSatisfyFlag int
+
+const (
+	CanSatisfyInCache = 1 << iota
+)

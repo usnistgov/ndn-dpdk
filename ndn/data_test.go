@@ -104,7 +104,8 @@ func TestDataSatisfy(t *testing.T) {
 	for i, tt := range tests {
 		assert.Equal(tt.exactMatch, tt.data.CanSatisfy(interestExact), "%d", i)
 		assert.Equal(tt.prefixMatch, tt.data.CanSatisfy(interestPrefix), "%d", i)
-		assert.Equal(tt.freshMatch, tt.data.CanSatisfy(interestFresh), "%d", i)
+		assert.Equal(tt.exactMatch, tt.data.CanSatisfy(interestFresh), "%d", i)
+		assert.Equal(tt.freshMatch, tt.data.CanSatisfy(interestFresh, ndn.CanSatisfyInCache), "%d", i)
 
 		if tt.exactMatch {
 			interestImplicit := ndn.MakeInterest(tt.data.FullName())
