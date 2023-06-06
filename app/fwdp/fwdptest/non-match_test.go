@@ -55,20 +55,30 @@ func TestDataZeroFreshnessPeriod(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)
 
-	face1, face2 := intface.MustNew(), intface.MustNew()
-	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
-	fixture.SetFibEntry("/B", "multicast", face2.ID)
+	face1, face2, face3 := intface.MustNew(), intface.MustNew(), intface.MustNew()
+	collect1, collect2, collect3 := intface.Collect(face1), intface.Collect(face2), intface.Collect(face3)
+	fixture.SetFibEntry("/P", "multicast", face3.ID)
 
-	face1.Tx <- ndn.MakeInterest("/B/1", ndn.MustBeFreshFlag) // has MustBeFresh
+	face1.Tx <- ndn.MakeInterest("/P/1", ndn.MustBeFreshFlag) // has MustBeFresh
 	fixture.StepDelay()
-	assert.Equal(1, collect2.Count())
+	assert.Equal(1, collect3.Count())
 
-	face2.Tx <- ndn.MakeData(collect2.Get(-1).Interest, 0*time.Millisecond) // no FreshnessPeriod
+	face3.Tx <- ndn.MakeData(collect3.Get(-1).Interest, 0*time.Millisecond) // no FreshnessPeriod
 	fixture.StepDelay()
-	assert.Equal(0, collect1.Count())
+	assert.Equal(1, collect1.Count()) // FreshnessPeriod=0 can satisfy PIT entry with MustBeFresh
+
+	face2.Tx <- ndn.MakeInterest("/P/1", ndn.MustBeFreshFlag) // same Interest from another consumer
+	fixture.StepDelay()
+	assert.Equal(0, collect2.Count()) // FreshnessPeriod=0 in CS cannot satisfy incoming Interest with MustBeFresh
 
 	assert.Equal(uint64(1), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.Pit().Counters().NDataHit
+	}))
+	assert.Equal(uint64(0), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
 		return fwd.Pit().Counters().NDataMiss
+	}))
+	assert.Equal(uint64(2), fixture.SumCounter(func(fwd *fwdp.Fwd) uint64 {
+		return fwd.Cs().Counters().NMiss
 	}))
 }
 

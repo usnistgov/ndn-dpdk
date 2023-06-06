@@ -136,19 +136,12 @@ PData_CanSatisfy_HasDigestComp_(PData* data, PInterest* interest)
 DataSatisfyResult
 PData_CanSatisfy(PData* data, PInterest* interest)
 {
-  if (unlikely(interest->mustBeFresh && data->freshness == 0)) {
-    return DataSatisfyNo;
-  }
-
   if (unlikely(interest->name.hasDigestComp)) {
     return PData_CanSatisfy_HasDigestComp_(data, interest);
   }
 
   int cmp = LName_IsPrefix(PName_ToLName(&interest->name), PName_ToLName(&data->name));
-  if (interest->canBePrefix) {
-    return cmp >= 0 ? DataSatisfyYes : DataSatisfyNo;
-  }
-  return cmp == 0 ? DataSatisfyYes : DataSatisfyNo;
+  return (interest->canBePrefix ? cmp >= 0 : cmp == 0) ? DataSatisfyYes : DataSatisfyNo;
 }
 
 struct rte_crypto_op*
