@@ -60,6 +60,7 @@ type FetchOptions struct {
 }
 
 func (opts *FetchOptions) applyDefaults() {
+	opts.SegmentRangeApplyDefaults()
 	if opts.MaxCwnd == 0 {
 		opts.MaxCwnd = math.MaxInt32
 	}
@@ -327,5 +328,5 @@ func (f *fetcher) EstimatedTotal() int {
 	if segLast == math.MaxUint64 {
 		return -1
 	}
-	return int(segLast - f.SegmentBegin + 1)
+	return int(segLast - f.SegmentBegin)
 }
