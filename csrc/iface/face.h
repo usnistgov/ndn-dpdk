@@ -11,16 +11,14 @@
 #include <urcu/rcuhlist.h>
 
 /** @brief Face RX per-thread information. */
-typedef struct FaceRxThread
-{
+typedef struct FaceRxThread {
   uint64_t nFrames[PktMax]; ///< accepted L3 packets; nFrames[0] is nOctets
   uint64_t nDecodeErr;      ///< decode errors
   Reassembler reass;
 } __rte_cache_aligned FaceRxThread;
 
 /** @brief Face TX per-thread information. */
-typedef struct FaceTxThread
-{
+typedef struct FaceTxThread {
   uint64_t nextSeqNum; ///< next fragmentation sequence number
 
   uint64_t nL3Fragmented; ///< L3 packets that required fragmentation
@@ -47,8 +45,7 @@ typedef uint16_t (*Face_TxBurstFunc)(Face* face, struct rte_mbuf** pkts, uint16_
  * Fields in this struct are meant to be accessed in RX and TX threads, but not in
  * forwarding/producer/consumer threads.
  */
-typedef struct FaceImpl
-{
+typedef struct FaceImpl {
   FaceRxThread rx[MaxFaceRxThreads];
   FaceTxThread tx[MaxFaceTxThreads];
 
@@ -65,8 +62,7 @@ typedef struct FaceImpl
 } FaceImpl;
 
 /** @brief Generic network interface. */
-struct Face
-{
+struct Face {
   FaceImpl* impl;
   struct rte_ring* outputQueue;
   struct cds_hlist_node txlNode;
@@ -77,8 +73,7 @@ struct Face
 static_assert(sizeof(Face) <= RTE_CACHE_LINE_SIZE, "");
 
 __attribute__((nonnull, returns_nonnull)) static inline void*
-Face_GetPriv(Face* face)
-{
+Face_GetPriv(Face* face) {
   return face->impl->priv;
 }
 
@@ -91,23 +86,20 @@ extern Face gFaces[];
  * Return value will not be NULL. @c face->impl==NULL indicates non-existent face.
  */
 __attribute__((returns_nonnull)) static inline Face*
-Face_Get(FaceID id)
-{
+Face_Get(FaceID id) {
   return &gFaces[id];
 }
 
 /** @brief Return whether the face is DOWN. */
 static inline bool
-Face_IsDown(FaceID faceID)
-{
+Face_IsDown(FaceID faceID) {
   Face* face = Face_Get(faceID);
   return face->state != FaceStateUp;
 }
 
 /** @brief Retrieve face TX alignment requirement. */
 static inline PacketTxAlign
-Face_PacketTxAlign(FaceID faceID)
-{
+Face_PacketTxAlign(FaceID faceID) {
   Face* face = Face_Get(faceID);
   return face->txAlign;
 }
@@ -120,8 +112,7 @@ Face_PacketTxAlign(FaceID faceID)
  * This function is thread-safe.
  */
 __attribute__((nonnull)) static inline void
-Face_TxBurst(FaceID faceID, Packet** npkts, uint16_t count)
-{
+Face_TxBurst(FaceID faceID, Packet** npkts, uint16_t count) {
   Face* face = Face_Get(faceID);
   if (likely(face->state == FaceStateUp)) {
     Mbuf_EnqueueVector((struct rte_mbuf**)npkts, count, face->outputQueue, true);
@@ -136,8 +127,7 @@ Face_TxBurst(FaceID faceID, Packet** npkts, uint16_t count)
  * @param npkt an L3 packet; face takes ownership.
  */
 __attribute__((nonnull)) static inline void
-Face_Tx(FaceID faceID, Packet* npkt)
-{
+Face_Tx(FaceID faceID, Packet* npkt) {
   Face_TxBurst(faceID, &npkt, 1);
 }
 

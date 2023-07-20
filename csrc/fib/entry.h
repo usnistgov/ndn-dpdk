@@ -10,8 +10,7 @@
 #include "enum.h"
 #include <urcu/rculfhash.h>
 
-typedef struct FibEntryDyn
-{
+typedef struct FibEntryDyn {
   uint32_t nRxInterests;
   uint32_t nRxData;
   uint32_t nRxNacks;
@@ -25,15 +24,13 @@ static_assert(sizeof(FibEntryDyn) % RTE_CACHE_LINE_SIZE == 0, "");
 typedef struct FibEntry FibEntry;
 
 /** @brief A FIB entry. */
-struct FibEntry
-{
+struct FibEntry {
   struct cds_lfht_node lfhtnode;
   uint16_t nameL; ///< TLV-LENGTH of name
   uint8_t nameV[FibMaxNameLength];
   RTE_MARKER cachelineA_;
 
-  union
-  {
+  union {
     /**
      * @brief Forwarding strategy.
      * @pre height == 0
@@ -76,8 +73,7 @@ static_assert(offsetof(FibEntry, cachelineB_) % RTE_CACHE_LINE_SIZE == 0, "");
 static_assert(UINT8_MAX >= FibMaxNameLength / 2, "");
 
 static inline FibEntry*
-FibEntry_GetReal(FibEntry* entry)
-{
+FibEntry_GetReal(FibEntry* entry) {
   if (unlikely(entry == NULL) || likely(entry->height == 0)) {
     return entry;
   }
@@ -85,8 +81,7 @@ FibEntry_GetReal(FibEntry* entry)
 }
 
 __attribute__((nonnull)) static inline FibEntryDyn*
-FibEntry_PtrDyn(FibEntry* entry, int index)
-{
+FibEntry_PtrDyn(FibEntry* entry, int index) {
   return &entry->dyn[index];
 }
 
@@ -95,8 +90,7 @@ FibEntry_DeferredFree(FibEntry* entry);
 
 typedef struct SgGlobal SgGlobal;
 
-typedef struct FibSgInitCtx
-{
+typedef struct FibSgInitCtx {
   SgGlobal* global;
   TscTime now;
   uint8_t a_[16];

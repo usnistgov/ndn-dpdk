@@ -16,8 +16,7 @@
 typedef struct FwFwdCtx FwFwdCtx;
 
 /** @brief Forwarding thread. */
-typedef struct FwFwd
-{
+typedef struct FwFwd {
   SgGlobal sgGlobal;
   ThreadCtrl ctrl;
   PktQueue queueI;
@@ -69,14 +68,12 @@ FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx);
  * D: available during SGEVT_DATA
  * N: available during SGEVT_NACK
  */
-struct FwFwdCtx
-{
+struct FwFwdCtx {
   FwFwd* fwd;             // T,F,I,D,N
   TscTime rxTime;         // T(=now),F,I,D,N
   SgEvent eventKind;      // T,F,I,D,N
   FibNexthopFilter nhFlt; // T,I,D,N
-  union
-  {
+  union {
     Packet* npkt;
     struct rte_mbuf* pkt;
   };                        // F,D,N
@@ -96,16 +93,14 @@ struct FwFwdCtx
 
 /** @brief Free the current @c npkt . */
 __attribute__((nonnull)) static inline void
-FwFwdCtx_FreePkt(FwFwdCtx* ctx)
-{
+FwFwdCtx_FreePkt(FwFwdCtx* ctx) {
   Packet_Free(ctx->npkt);
   NULLize(ctx->npkt);
 }
 
 /** @brief Assign @c fibEntry and @c fibEntryDyn . */
 __attribute__((nonnull(1))) static inline void
-FwFwdCtx_SetFibEntry(FwFwdCtx* ctx, FibEntry* fibEntry)
-{
+FwFwdCtx_SetFibEntry(FwFwdCtx* ctx, FibEntry* fibEntry) {
   ctx->fibEntry = fibEntry;
   if (likely(fibEntry != NULL)) {
     ctx->fibEntryDyn = FibEntry_PtrDyn(fibEntry, ctx->fwd->fibDynIndex);

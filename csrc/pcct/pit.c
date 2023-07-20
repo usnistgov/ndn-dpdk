@@ -6,14 +6,13 @@
 N_LOG_INIT(Pit);
 
 static void
-Pit_SgTimerCb_Empty(__rte_unused Pit* pit, __rte_unused PitEntry* entry, __rte_unused uintptr_t arg)
-{
+Pit_SgTimerCb_Empty(__rte_unused Pit* pit, __rte_unused PitEntry* entry,
+                    __rte_unused uintptr_t arg) {
   NDNDPDK_ASSERT(false);
 }
 
 void
-Pit_Init(Pit* pit)
-{
+Pit_Init(Pit* pit) {
   // 2^12 slots of 33ms interval, accommodates InterestLifetime up to 136533ms
   pit->timeoutSched = MinSched_New(12, TscHz / 30, PitEntry_Timeout_, (uintptr_t)pit);
   NDNDPDK_ASSERT(MinSched_GetMaxDelay(pit->timeoutSched) >=
@@ -23,15 +22,13 @@ Pit_Init(Pit* pit)
 }
 
 void
-Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, uintptr_t ctx)
-{
+Pit_SetSgTimerCb(Pit* pit, Pit_SgTimerCb cb, uintptr_t ctx) {
   pit->sgTimerCb = cb;
   pit->sgTimerCtx = ctx;
 }
 
 PitInsertResult
-Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
-{
+Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry) {
   Pcct* pcct = Pcct_FromPit(pit);
   PInterest* interest = Packet_GetInterestHdr(npkt);
 
@@ -43,7 +40,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   PccEntry* pccEntry = Pcct_Insert(pcct, &search, &isNewPcc);
   if (unlikely(pccEntry == NULL)) {
     ++pit->nAllocErr;
-    return (PitInsertResult){ .kind = PIT_INSERT_FULL };
+    return (PitInsertResult){.kind = PIT_INSERT_FULL};
   }
 
   // check for CS match
@@ -54,7 +51,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
       // CS entry satisfies Interest
       N_LOGD("Insert has-CS pit=%p search=%s pcc=%p cs-kind=%s", pit,
              PccSearch_ToDebugString(&search), pccEntry, CsEntryKind_ToString(csDirect->kind));
-      return (PitInsertResult){ .kind = PIT_INSERT_CS, .csEntry = csDirect };
+      return (PitInsertResult){.kind = PIT_INSERT_CS, .csEntry = csDirect};
     }
   }
 
@@ -65,7 +62,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
       Pcct_Erase(pcct, pccEntry);
     }
     ++pit->nAllocErr;
-    return (PitInsertResult){ .kind = PIT_INSERT_FULL };
+    return (PitInsertResult){.kind = PIT_INSERT_FULL};
   }
 
   PitEntry* pitEntry = NULL;
@@ -83,7 +80,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
   if (unlikely(pitEntry == NULL)) {
     NDNDPDK_ASSERT(!isNewPcc); // can't happen on new PccEntry, whose slot1 is unoccupied
     ++pit->nAllocErr;
-    return (PitInsertResult){ .kind = PIT_INSERT_FULL };
+    return (PitInsertResult){.kind = PIT_INSERT_FULL};
   }
 
   // initialize new PIT entry, or refresh FIB entry reference on old PIT entry
@@ -100,12 +97,11 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry)
            (int)pitEntry->mustBeFresh, pit, PccSearch_ToDebugString(&search), pccEntry, pitEntry);
   }
 
-  return (PitInsertResult){ .kind = PIT_INSERT_PIT, .pitEntry = pitEntry };
+  return (PitInsertResult){.kind = PIT_INSERT_PIT, .pitEntry = pitEntry};
 }
 
 void
-Pit_Erase(Pit* pit, PitEntry* entry)
-{
+Pit_Erase(Pit* pit, PitEntry* entry) {
   PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
   if (!entry->mustBeFresh) {
     NDNDPDK_ASSERT(pccEntry->hasPitEntry0);
@@ -127,8 +123,7 @@ Pit_Erase(Pit* pit, PitEntry* entry)
 }
 
 void
-Pit_RawErase01_(Pit* pit, PccEntry* pccEntry)
-{
+Pit_RawErase01_(Pit* pit, PccEntry* pccEntry) {
   if (pccEntry->hasPitEntry0) {
     --pit->nEntries;
     PitEntry_Finalize(PccEntry_GetPitEntry0(pccEntry));
@@ -143,12 +138,11 @@ Pit_RawErase01_(Pit* pit, PccEntry* pccEntry)
 }
 
 PitFindResult
-Pit_FindByData(Pit* pit, Packet* npkt, uint64_t token)
-{
+Pit_FindByData(Pit* pit, Packet* npkt, uint64_t token) {
   PccEntry* pccEntry = Pcct_FindByToken(Pcct_FromPit(pit), token);
   if (unlikely(pccEntry == NULL)) {
     ++pit->nDataMiss;
-    return (PitFindResult){ .kind = PIT_FIND_NONE };
+    return (PitFindResult){.kind = PIT_FIND_NONE};
   }
 
   PitFindResultFlag flags = PIT_FIND_NONE;
@@ -180,12 +174,11 @@ Pit_FindByData(Pit* pit, Packet* npkt, uint64_t token)
         break;
     }
   }
-  return (PitFindResult){ .entry = pccEntry, .kind = flags };
+  return (PitFindResult){.entry = pccEntry, .kind = flags};
 }
 
 PitEntry*
-Pit_FindByNack(Pit* pit, Packet* npkt, uint64_t token)
-{
+Pit_FindByNack(Pit* pit, Packet* npkt, uint64_t token) {
   PNack* nack = Packet_GetNackHdr(npkt);
   PInterest* interest = &nack->interest;
 

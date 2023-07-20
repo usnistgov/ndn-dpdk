@@ -6,8 +6,7 @@
 #include "common.h"
 
 /** @brief Packet queue dequeue method. */
-typedef enum PktQueuePopAct
-{
+typedef enum PktQueuePopAct {
   PktQueuePopActPlain,
   PktQueuePopActDelay,
   PktQueuePopActCoDel,
@@ -21,8 +20,7 @@ typedef enum PktQueuePopAct
  * @li delay mode: packets are dequeued no earlier than @c q->target after it's received.
  * @li CoDel mode: @c PktQueuePopResult.drop is set according to CoDel algorithm.
  */
-typedef struct PktQueue
-{
+typedef struct PktQueue {
   struct rte_ring* ring;     ///< ringbuffer of packets in queue
   TscDuration target;        ///< delay target or CoDel target
   TscDuration interval;      ///< CoDel interval
@@ -44,14 +42,12 @@ typedef struct PktQueue
  * @return number of rejected packets; caller must free them.
  */
 __attribute__((nonnull)) static inline uint32_t
-PktQueue_Push(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
-{
+PktQueue_Push(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count) {
   return Mbuf_EnqueueVector(pkts, count, q->ring, false);
 }
 
 /** @brief Packet queue pop result. */
-typedef struct PktQueuePopResult
-{
+typedef struct PktQueuePopResult {
   uint32_t count; ///< number of dequeued packets
   bool drop;      ///< whether the first packet should be dropped/ECN-marked
 } PktQueuePopResult;
@@ -62,8 +58,7 @@ extern const PktQueue_PopFunc PktQueue_PopJmp[];
 
 /** @brief Dequeue a burst of packets. */
 __attribute__((nonnull)) static inline PktQueuePopResult
-PktQueue_Pop(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
-{
+PktQueue_Pop(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now) {
   return PktQueue_PopJmp[q->pop](q, pkts, count, now);
 }
 

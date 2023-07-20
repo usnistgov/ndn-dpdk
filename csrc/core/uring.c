@@ -4,10 +4,9 @@
 N_LOG_INIT(Uring);
 
 bool
-Uring_Init(Uring* ur, uint32_t capacity)
-{
-  *ur = (Uring){ 0 };
-  struct io_uring_params params = { 0 };
+Uring_Init(Uring* ur, uint32_t capacity) {
+  *ur = (Uring){0};
+  struct io_uring_params params = {0};
   int res = io_uring_queue_init_params(capacity, &ur->uring, &params);
   if (res < 0) {
     N_LOGE("io_uring_queue_init_params error ur=%p" N_LOG_ERROR_ERRNO, ur, res);
@@ -19,8 +18,7 @@ Uring_Init(Uring* ur, uint32_t capacity)
 }
 
 bool
-Uring_Free(Uring* ur)
-{
+Uring_Free(Uring* ur) {
   int fd = ur->uring.ring_fd;
   io_uring_queue_exit(&ur->uring);
   N_LOGI("free ur=%p fd=%d alloc-errs=%" PRIu64 " submitted=%" PRIu64 " submit-nonblock=%" PRIu64
@@ -30,8 +28,7 @@ Uring_Free(Uring* ur)
 }
 
 void
-Uring_Submit_(Uring* ur, uint32_t waitLBound, uint32_t cqeBurst)
-{
+Uring_Submit_(Uring* ur, uint32_t waitLBound, uint32_t cqeBurst) {
   int res = -1;
   if (unlikely(ur->nPending >= waitLBound)) {
     NDNDPDK_ASSERT(waitLBound >= cqeBurst);

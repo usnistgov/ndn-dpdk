@@ -2,8 +2,7 @@
 #include "../core/urcu.h"
 
 int
-SpdkThread_Run(SpdkThread* th)
-{
+SpdkThread_Run(SpdkThread* th) {
   rcu_register_thread();
   spdk_set_thread(th->spdkTh);
   int work = 0;
@@ -17,15 +16,13 @@ SpdkThread_Run(SpdkThread* th)
 }
 
 __attribute__((nonnull)) static void
-SpdkThread_DoExit(void* th0)
-{
+SpdkThread_DoExit(void* th0) {
   SpdkThread* th = (SpdkThread*)th0;
   spdk_thread_exit(th->spdkTh);
 }
 
 int
-SpdkThread_Exit(SpdkThread* th)
-{
+SpdkThread_Exit(SpdkThread* th) {
   spdk_thread_send_msg(th->spdkTh, SpdkThread_DoExit, th);
 
   spdk_set_thread(th->spdkTh);

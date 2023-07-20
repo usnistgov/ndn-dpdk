@@ -2,8 +2,7 @@
 #include "parse.h"
 
 void
-PdumpSource_Process(PdumpSource* s, struct rte_mbuf** pkts, uint16_t count)
-{
+PdumpSource_Process(PdumpSource* s, struct rte_mbuf** pkts, uint16_t count) {
   struct rte_mbuf* output[MaxBurstSize];
   uint16_t nOutput = 0;
 
@@ -29,14 +28,12 @@ PdumpSource_Process(PdumpSource* s, struct rte_mbuf** pkts, uint16_t count)
 }
 
 __attribute__((nonnull(1))) PdumpSource*
-PdumpSourceRef_Set(PdumpSourceRef* ref, PdumpSource* s)
-{
+PdumpSourceRef_Set(PdumpSourceRef* ref, PdumpSource* s) {
   return rcu_xchg_pointer(&ref->s, s);
 }
 
 __attribute__((nonnull)) static __rte_always_inline uint32_t
-PdumpFaceSource_NameProb(const PdumpFaceSource* source, struct rte_mbuf* pkt)
-{
+PdumpFaceSource_NameProb(const PdumpFaceSource* source, struct rte_mbuf* pkt) {
   if (source->nameL[0] == 0) {
     return source->sample[0];
   }
@@ -51,8 +48,7 @@ PdumpFaceSource_NameProb(const PdumpFaceSource* source, struct rte_mbuf* pkt)
 }
 
 bool
-PdumpFaceSource_Filter(PdumpSource* s0, struct rte_mbuf* pkt)
-{
+PdumpFaceSource_Filter(PdumpSource* s0, struct rte_mbuf* pkt) {
   PdumpFaceSource* s = container_of(s0, PdumpFaceSource, base);
   uint32_t prob = PdumpFaceSource_NameProb(s, pkt);
   return prob > 0 &&                      // skip pcg32 computation when there's no name match

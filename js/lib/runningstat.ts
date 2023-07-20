@@ -1,4 +1,4 @@
-import type { RunningStatSnapshot as SnapshotJSON } from "../types/core.js";
+import { RunningStatSnapshot as SnapshotJSON } from "../types/core.js";
 
 function nullNaN(v: number): number | undefined {
   return Number.isNaN(v) ? undefined : v;

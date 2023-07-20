@@ -15,7 +15,7 @@ require (
 	github.com/gorilla/schema v1.2.0
 	github.com/graphql-go/graphql v0.8.1
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20230328201059-365e72989107
-	github.com/jacobsa/fuse v0.0.0-20230509090321-7263f3a2b474
+	github.com/jacobsa/fuse v0.0.0-20230624161425-b8484ee15dad
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
@@ -32,7 +32,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
-	github.com/urfave/cli/v2 v2.25.5
+	github.com/urfave/cli/v2 v2.25.7
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
@@ -40,8 +40,8 @@ require (
 	go.fd.io/govpp/extras v0.1.0
 	go.uber.org/zap v1.24.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
-	golang.org/x/sys v0.8.0
+	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
+	golang.org/x/sys v0.10.0
 )
 
 require (

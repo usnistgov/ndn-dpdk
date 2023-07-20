@@ -2,8 +2,7 @@
 #include "pit-iterator.h"
 
 static bool
-PitUp_HasRejectedNonce(PitUp* up, uint32_t nonce)
-{
+PitUp_HasRejectedNonce(PitUp* up, uint32_t nonce) {
   for (int i = 0; i < PIT_UP_MAX_REJ_NONCES; ++i) {
     if (up->rejectedNonces[i] == nonce) {
       return true;
@@ -13,8 +12,7 @@ PitUp_HasRejectedNonce(PitUp* up, uint32_t nonce)
 }
 
 bool
-PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce)
-{
+PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce) {
   if (likely(!PitUp_HasRejectedNonce(up, *nonce))) {
     return true;
   }
@@ -38,8 +36,7 @@ PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce)
 
 void
 PitUp_RecordTx(PitUp* up, PitEntry* entry, TscTime now, uint32_t nonce,
-               const PitSuppressConfig* suppressCfg)
-{
+               const PitSuppressConfig* suppressCfg) {
   up->nonce = nonce;
   up->canBePrefix = (bool)entry->nCanBePrefix;
   up->nack = NackNone;

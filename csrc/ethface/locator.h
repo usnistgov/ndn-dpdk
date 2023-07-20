@@ -14,8 +14,7 @@
 static_assert(ETHHDR_MAXLEN <= RTE_PKTMBUF_HEADROOM, "");
 
 /** @brief EthFace address information. */
-typedef struct EthLocator
-{
+typedef struct EthLocator {
   struct rte_ether_addr local;
   struct rte_ether_addr remote;
   uint16_t vlan;
@@ -34,8 +33,7 @@ typedef struct EthLocator
 __attribute__((nonnull)) bool
 EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b);
 
-typedef struct EthLocatorClass
-{
+typedef struct EthLocatorClass {
   uint16_t etherType; ///< outer EtherType, 0 for memif
   bool multicast;     ///< is outer Ethernet multicast?
   bool udp;           ///< is UDP tunnel?
@@ -50,8 +48,7 @@ EthLocator_Classify(const EthLocator* loc);
 typedef struct EthRxMatch EthRxMatch;
 
 /** @brief EthFace RX matcher. */
-struct EthRxMatch
-{
+struct EthRxMatch {
   bool (*f)(const EthRxMatch* match, const struct rte_mbuf* m);
   uint8_t len;
   uint8_t l2len;
@@ -70,8 +67,7 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc);
  * @param match EthRxMatch prepared by @c EthRxMatch_Prepare .
  */
 __attribute__((nonnull)) static inline bool
-EthRxMatch_Match(const EthRxMatch* match, const struct rte_mbuf* m)
-{
+EthRxMatch_Match(const EthRxMatch* match, const struct rte_mbuf* m) {
   return m->data_len >= match->len && match->f(match, m);
 }
 
@@ -80,8 +76,7 @@ __attribute__((nonnull)) void
 EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc);
 
 /** @brief EthFace rte_flow pattern. */
-typedef struct EthFlowPattern
-{
+typedef struct EthFlowPattern {
   struct rte_flow_item pattern[7];
   struct rte_flow_item_eth ethSpec;
   struct rte_flow_item_eth ethMask;
@@ -106,8 +101,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc);
 typedef struct EthTxHdr EthTxHdr;
 
 /** @brief EthFace TX header template. */
-struct EthTxHdr
-{
+struct EthTxHdr {
   void (*f)(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst);
   uint8_t len;
   uint8_t l2len;
@@ -125,8 +119,7 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
  * @param newBurst whether @p m is the first frame in a new burst.
  */
 __attribute__((nonnull)) static inline void
-EthTxHdr_Prepend(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst)
-{
+EthTxHdr_Prepend(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst) {
   hdr->f(hdr, m, newBurst);
 }
 

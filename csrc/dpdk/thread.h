@@ -7,8 +7,7 @@
 #include "thread-enum.h"
 
 /** @brief Thread load stats and stop flag. */
-typedef struct ThreadCtrl
-{
+typedef struct ThreadCtrl {
   uint64_t nPolls[2]; // [0] empty polls; [1] valid polls
   uint64_t items;
   uint32_t sleepFor;
@@ -16,8 +15,7 @@ typedef struct ThreadCtrl
 } ThreadCtrl;
 
 static __rte_always_inline void
-ThreadCtrl_Sleep(ThreadCtrl* ctrl)
-{
+ThreadCtrl_Sleep(ThreadCtrl* ctrl) {
 #ifdef NDNDPDK_THREADSLEEP
   if (unlikely(ctrl->nPolls[0] % ThreadCtrl_SleepAdjustEvery == 0) &&
       unlikely(ctrl->sleepFor < ThreadCtrl_SleepMax)) {
@@ -35,7 +33,7 @@ ThreadCtrl_Sleep(ThreadCtrl* ctrl)
     }
     ctrl->sleepFor = RTE_MIN(ThreadCtrl_SleepMax, (uint32_t)sleepFor + ThreadCtrl_SleepAdd);
   }
-  struct timespec req = { .tv_sec = 0, .tv_nsec = ctrl->sleepFor };
+  struct timespec req = {.tv_sec = 0, .tv_nsec = ctrl->sleepFor};
   nanosleep(&req, NULL);
 #else
   rte_pause();
@@ -43,8 +41,7 @@ ThreadCtrl_Sleep(ThreadCtrl* ctrl)
 }
 
 static __rte_always_inline void
-ThreadCtrl_SleepReset(ThreadCtrl* ctrl)
-{
+ThreadCtrl_SleepReset(ThreadCtrl* ctrl) {
 #ifdef NDNDPDK_THREADSLEEP
   ctrl->sleepFor = ThreadCtrl_SleepMin;
 #endif // NDNDPDK_THREADSLEEP
@@ -72,21 +69,18 @@ ThreadCtrl_SleepReset(ThreadCtrl* ctrl)
   })
 
 __attribute__((nonnull)) static inline void
-ThreadCtrl_Init(ThreadCtrl* ctrl)
-{
+ThreadCtrl_Init(ThreadCtrl* ctrl) {
   ctrl->sleepFor = ThreadCtrl_SleepMin;
   atomic_init(&ctrl->stop, true);
 }
 
 __attribute__((nonnull)) static inline void
-ThreadCtrl_RequestStop(ThreadCtrl* ctrl)
-{
+ThreadCtrl_RequestStop(ThreadCtrl* ctrl) {
   atomic_store_explicit(&ctrl->stop, false, memory_order_release);
 }
 
 __attribute__((nonnull)) static inline void
-ThreadCtrl_FinishStop(ThreadCtrl* ctrl)
-{
+ThreadCtrl_FinishStop(ThreadCtrl* ctrl) {
   atomic_store_explicit(&ctrl->stop, true, memory_order_release);
 }
 

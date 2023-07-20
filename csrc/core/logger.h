@@ -14,8 +14,7 @@
 
 #define N_LOG_INIT(module)                                                                         \
   static int RTE_LOGTYPE_NDN = -1;                                                                 \
-  RTE_INIT(Logger_Init_##module)                                                                   \
-  {                                                                                                \
+  RTE_INIT(Logger_Init_##module) {                                                                 \
     RTE_LOGTYPE_NDN = rte_log_register_type_and_pick_level("NDN." #module, RTE_LOG_INFO);          \
   }                                                                                                \
   struct AllowTrailingSemicolon_

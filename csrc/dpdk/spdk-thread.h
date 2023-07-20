@@ -6,8 +6,7 @@
 #include "thread.h"
 #include <spdk/thread.h>
 
-typedef struct SpdkThread
-{
+typedef struct SpdkThread {
   ThreadCtrl ctrl;
   struct spdk_thread* spdkTh;
 } SpdkThread;

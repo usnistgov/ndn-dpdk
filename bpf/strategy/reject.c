@@ -5,15 +5,13 @@
 #include "api.h"
 
 SUBROUTINE uint64_t
-RxInterest(SgCtx* ctx)
-{
+RxInterest(SgCtx* ctx) {
   SgReturnNacks(ctx, NackNoRoute);
   return 0;
 }
 
 uint64_t
-SgMain(SgCtx* ctx)
-{
+SgMain(SgCtx* ctx) {
   switch (ctx->eventKind) {
     case SGEVT_INTEREST:
       return RxInterest(ctx);

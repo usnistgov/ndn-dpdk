@@ -5,8 +5,7 @@
 N_LOG_INIT(InputDemux);
 
 __attribute__((nonnull)) static inline bool
-InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason)
-{
+InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason) {
   FaceID face = Packet_ToMbuf(npkt)->port;
   const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
   N_LOGD("Drop(%s) %s-from=%" PRI_FaceID " npkt=%p token=%s", reason,
@@ -17,8 +16,7 @@ InputDemux_Drop(InputDemux* demux, Packet* npkt, const char* reason)
 }
 
 __attribute__((nonnull)) static __rte_always_inline bool
-InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
-{
+InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index) {
   InputDemuxDest* dest = &demux->dest[index];
   if (unlikely(index >= RTE_DIM(demux->dest) || dest->queue == NULL)) {
     return InputDemux_Drop(demux, npkt, "no-dest");
@@ -40,57 +38,49 @@ InputDemux_PassTo(InputDemux* demux, Packet* npkt, uint8_t index)
 }
 
 __attribute__((nonnull)) static bool
-InputDemux_DispatchDrop(InputDemux* demux, Packet* npkt)
-{
+InputDemux_DispatchDrop(InputDemux* demux, Packet* npkt) {
   return InputDemux_Drop(demux, npkt, "op-drop");
 }
 
 __attribute__((nonnull)) static bool
-InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt)
-{
+InputDemux_DispatchToFirst(InputDemux* demux, Packet* npkt) {
   return InputDemux_PassTo(demux, npkt, 0);
 }
 
 __attribute__((nonnull)) static bool
-InputDemux_DispatchRoundrobinDiv(InputDemux* demux, Packet* npkt)
-{
+InputDemux_DispatchRoundrobinDiv(InputDemux* demux, Packet* npkt) {
   uint8_t index = (++demux->div.i) % demux->div.n;
   return InputDemux_PassTo(demux, npkt, index);
 }
 
 __attribute__((nonnull)) static bool
-InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt)
-{
+InputDemux_DispatchRoundrobinMask(InputDemux* demux, Packet* npkt) {
   uint8_t index = (++demux->div.i) & demux->div.mask;
   return InputDemux_PassTo(demux, npkt, index);
 }
 
 __attribute__((nonnull)) static inline uint64_t
-InputDemux_ComputeGenericHash(Packet* npkt)
-{
+InputDemux_ComputeGenericHash(Packet* npkt) {
   const PName* name = Packet_GetName(npkt);
   return PName_ComputePrefixHash(name, RTE_MIN(name->nComps, (uint16_t)name->firstNonGeneric));
 }
 
 __attribute__((nonnull)) static bool
-InputDemux_DispatchGenericHashDiv(InputDemux* demux, Packet* npkt)
-{
+InputDemux_DispatchGenericHashDiv(InputDemux* demux, Packet* npkt) {
   uint64_t hash = InputDemux_ComputeGenericHash(npkt);
   uint8_t index = hash % demux->div.n;
   return InputDemux_PassTo(demux, npkt, index);
 }
 
 __attribute__((nonnull)) static bool
-InputDemux_DispatchGenericHashMask(InputDemux* demux, Packet* npkt)
-{
+InputDemux_DispatchGenericHashMask(InputDemux* demux, Packet* npkt) {
   uint64_t hash = InputDemux_ComputeGenericHash(npkt);
   uint8_t index = hash & demux->div.mask;
   return InputDemux_PassTo(demux, npkt, index);
 }
 
 void
-InputDemux_SetDispatchDiv(InputDemux* demux, uint32_t nDest, bool byGenericHash)
-{
+InputDemux_SetDispatchDiv(InputDemux* demux, uint32_t nDest, bool byGenericHash) {
   if (nDest <= 1) {
     demux->dispatch = InputDemuxActToFirst;
   } else if (rte_is_power_of_2(nDest)) {
@@ -103,22 +93,19 @@ InputDemux_SetDispatchDiv(InputDemux* demux, uint32_t nDest, bool byGenericHash)
 }
 
 __attribute__((nonnull)) static bool
-InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt)
-{
+InputDemux_DispatchByNdt(InputDemux* demux, Packet* npkt) {
   uint8_t index = NdtQuerier_Lookup(&demux->ndq, Packet_GetName(npkt));
   return InputDemux_PassTo(demux, npkt, index);
 }
 
 NdtQuerier*
-InputDemux_SetDispatchByNdt(InputDemux* demux)
-{
+InputDemux_SetDispatchByNdt(InputDemux* demux) {
   demux->dispatch = InputDemuxActByNdt;
   return &demux->ndq;
 }
 
 __attribute__((nonnull)) static bool
-InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt)
-{
+InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt) {
   const LpPitToken* token = &Packet_GetLpL3Hdr(npkt)->pitToken;
   if (unlikely(token->length <= demux->byToken.offset)) {
     return InputDemux_Drop(demux, npkt, "token-too-short");
@@ -130,8 +117,7 @@ InputDemux_DispatchByToken(InputDemux* demux, Packet* npkt)
 }
 
 void
-InputDemux_SetDispatchByToken(InputDemux* demux, uint8_t offset)
-{
+InputDemux_SetDispatchByToken(InputDemux* demux, uint8_t offset) {
   demux->byToken.offset = offset;
   demux->dispatch = InputDemuxActByToken;
 }

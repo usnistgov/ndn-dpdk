@@ -6,8 +6,7 @@
 #include "common.h"
 
 /** @brief Memory map and file descriptor. */
-typedef struct MmapFd
-{
+typedef struct MmapFd {
   void* map;
   size_t size;
   int fd;
@@ -34,8 +33,7 @@ MmapFd_Close(MmapFd* m, const char* filename, size_t size);
  * @pre @c MmapFd_Open was successful.
  */
 __attribute__((nonnull, returns_nonnull)) __rte_always_inline void*
-MmapFd_At(const MmapFd* m, size_t pos)
-{
+MmapFd_At(const MmapFd* m, size_t pos) {
   return RTE_PTR_ADD(m->map, pos);
 }
 

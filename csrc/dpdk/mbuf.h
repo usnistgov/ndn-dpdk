@@ -16,15 +16,13 @@ Mbuf_RegisterDynFields();
 
 /** @brief Retrieve mbuf timestamp. */
 __attribute__((nonnull)) static inline TscTime
-Mbuf_GetTimestamp(struct rte_mbuf* m)
-{
+Mbuf_GetTimestamp(struct rte_mbuf* m) {
   return *RTE_MBUF_DYNFIELD(m, Mbuf_Timestamp_DynFieldOffset_, TscTime*);
 }
 
 /** @brief Assign mbuf timestamp. */
 __attribute__((nonnull)) static inline void
-Mbuf_SetTimestamp(struct rte_mbuf* m, TscTime timestamp)
-{
+Mbuf_SetTimestamp(struct rte_mbuf* m, TscTime timestamp) {
   *RTE_MBUF_DYNFIELD(m, Mbuf_Timestamp_DynFieldOffset_, TscTime*) = timestamp;
 }
 
@@ -33,8 +31,7 @@ Mbuf_SetTimestamp(struct rte_mbuf* m, TscTime timestamp)
  * @param dst must have @p len room.
  */
 __attribute__((nonnull)) static inline void
-Mbuf_ReadTo(struct rte_mbuf* m, uint32_t off, uint32_t len, void* dst)
-{
+Mbuf_ReadTo(struct rte_mbuf* m, uint32_t off, uint32_t len, void* dst) {
   const uint8_t* readTo = rte_pktmbuf_read(m, off, len, dst);
   if (readTo != dst) {
     rte_memcpy(dst, readTo, len);
@@ -83,8 +80,7 @@ Mbuf_RemainingIovec(struct spdk_iov_xfer ix, struct iovec* iov, int* iovcnt);
  * @return whether success.
  */
 __attribute__((nonnull, warn_unused_result)) static inline bool
-Mbuf_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tail)
-{
+Mbuf_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tail) {
   NDNDPDK_ASSERT(lastSeg == rte_pktmbuf_lastseg(head));
 
   if (unlikely(head->nb_segs + tail->nb_segs > RTE_MBUF_MAX_NB_SEGS)) {
@@ -102,8 +98,7 @@ Mbuf_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tai
  * @param vec a non-empty vector of mbufs, each must be unsegmented.
  */
 __attribute__((nonnull, returns_nonnull)) static inline struct rte_mbuf*
-Mbuf_ChainVector(struct rte_mbuf* vec[], uint16_t count)
-{
+Mbuf_ChainVector(struct rte_mbuf* vec[], uint16_t count) {
   NDNDPDK_ASSERT(count > 0);
   static_assert(UINT16_MAX <= RTE_MBUF_MAX_NB_SEGS, ""); // count <= RTE_MBUF_MAX_NB_SEGS
   struct rte_mbuf* head = vec[0];
@@ -124,8 +119,7 @@ Mbuf_ChainVector(struct rte_mbuf* vec[], uint16_t count)
  * @return number of rejected packets.
  */
 __attribute__((nonnull)) static __rte_always_inline uint32_t
-Mbuf_EnqueueVector(struct rte_mbuf* vec[], uint32_t count, struct rte_ring* ring, bool autoFree)
-{
+Mbuf_EnqueueVector(struct rte_mbuf* vec[], uint32_t count, struct rte_ring* ring, bool autoFree) {
   uint32_t nEnq = rte_ring_enqueue_burst(ring, (void**)vec, count, NULL);
   uint32_t nRej = count - nEnq;
   if (autoFree && unlikely(nRej > 0)) {

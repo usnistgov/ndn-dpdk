@@ -2,8 +2,7 @@
 #include "pit.h"
 
 bool
-PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt)
-{
+PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt) {
   NDNDPDK_ASSERT(it->i == it->max);
   NDNDPDK_ASSERT(*it->nextPtr == NULL);
 

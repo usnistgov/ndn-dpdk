@@ -6,7 +6,7 @@ LANG=${LANG,,}
 
 # C
 if [[ -z $LANG ]] || [[ $LANG == c ]]; then
-  git ls-files -- 'csrc/**/*.[hc]' 'bpf/**/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-11 -i -style=file
+  git ls-files -- 'csrc/**/*.[hc]' 'bpf/**/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-15 -i -style=file
 fi
 
 # Go
@@ -23,7 +23,7 @@ fi
 
 # YAML
 if [[ -z $LANG ]] || [[ $LANG == yaml ]]; then
-  git ls-files '*.yml' '*.yaml' '.clang-format' | xargs yamllint
+  git ls-files '*.yml' '*.yaml' '.clang-format' | xargs yamllint -c mk/yamllint.yaml
 fi
 
 # Markdown

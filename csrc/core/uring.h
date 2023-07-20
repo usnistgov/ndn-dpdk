@@ -8,8 +8,7 @@
 #include <liburing.h>
 
 /** @brief io_uring and related counters. */
-typedef struct Uring
-{
+typedef struct Uring {
   struct io_uring uring;
 
   uint64_t nAllocErrs;      ///< SQE allocation errors
@@ -31,8 +30,7 @@ Uring_Free(Uring* ur);
 
 /** @brief Obtain and enqueue Submission Queue Entry (SQE). */
 __attribute__((nonnull)) static __rte_always_inline struct io_uring_sqe*
-Uring_GetSqe(Uring* ur)
-{
+Uring_GetSqe(Uring* ur) {
   struct io_uring_sqe* sqe = io_uring_get_sqe(&ur->uring);
   if (unlikely(sqe == NULL)) {
     ++ur->nAllocErrs;
@@ -51,8 +49,7 @@ Uring_Submit_(Uring* ur, uint32_t waitLBound, uint32_t cqeBurst);
  * @param cqeBurst number of CQEs to wait for in waiting submission.
  */
 __attribute__((nonnull)) static __rte_always_inline void
-Uring_Submit(Uring* ur, uint32_t waitLBound, uint32_t cqeBurst)
-{
+Uring_Submit(Uring* ur, uint32_t waitLBound, uint32_t cqeBurst) {
   if (ur->nQueued > 0) {
     Uring_Submit_(ur, waitLBound, cqeBurst);
   }
@@ -60,8 +57,7 @@ Uring_Submit(Uring* ur, uint32_t waitLBound, uint32_t cqeBurst)
 
 /** @brief Retrieve Completion Queue Entries (CQEs). */
 __attribute__((nonnull)) static inline uint32_t
-Uring_PeekCqes(Uring* ur, struct io_uring_cqe* cqes[], size_t count)
-{
+Uring_PeekCqes(Uring* ur, struct io_uring_cqe* cqes[], size_t count) {
   if (ur->nPending == 0) {
     return 0;
   }
@@ -73,8 +69,7 @@ Uring_PeekCqes(Uring* ur, struct io_uring_cqe* cqes[], size_t count)
 
 /** @brief Release processed CQEs. */
 __attribute__((nonnull)) static __rte_always_inline void
-Uring_SeenCqes(Uring* ur, uint32_t n)
-{
+Uring_SeenCqes(Uring* ur, uint32_t n) {
   io_uring_cq_advance(&ur->uring, n);
 }
 

@@ -3,8 +3,7 @@
 #include "face-impl.h"
 
 __attribute__((nonnull)) static void
-TxLoop_TxFrames(Face* face, int txThread, struct rte_mbuf** frames, uint16_t count)
-{
+TxLoop_TxFrames(Face* face, int txThread, struct rte_mbuf** frames, uint16_t count) {
   NDNDPDK_ASSERT(count > 0);
   PdumpSourceRef_Process(&face->impl->txPdump, frames, count);
 
@@ -28,8 +27,7 @@ TxLoop_TxFrames(Face* face, int txThread, struct rte_mbuf** frames, uint16_t cou
 }
 
 __attribute__((nonnull)) static uint16_t
-TxLoop_Transfer(Face* face, int txThread)
-{
+TxLoop_Transfer(Face* face, int txThread) {
   FaceTxThread* txt = &face->impl->tx[txThread];
   Packet* npkts[MaxBurstSize];
   uint16_t count = rte_ring_dequeue_burst(face->outputQueue, (void**)npkts, MaxBurstSize, NULL);
@@ -82,8 +80,7 @@ TxLoop_Transfer(Face* face, int txThread)
 }
 
 int
-TxLoop_Run(TxLoop* txl)
-{
+TxLoop_Run(TxLoop* txl) {
   rcu_register_thread();
   uint16_t nProcessed = 0;
   while (ThreadCtrl_Continue(txl->ctrl, nProcessed)) {

@@ -3,8 +3,7 @@
 #include "format.h"
 
 __attribute__((nonnull)) static __rte_noinline void
-WriteBlock(PdumpWriter* w, struct rte_mbuf* pkt)
-{
+WriteBlock(PdumpWriter* w, struct rte_mbuf* pkt) {
   NDNDPDK_ASSERT(pkt->pkt_len % 4 == 0);
   NDNDPDK_ASSERT(pkt->pkt_len == pkt->data_len);
   if (unlikely(w->pos + pkt->pkt_len > w->m.size)) {
@@ -21,8 +20,7 @@ WriteBlock(PdumpWriter* w, struct rte_mbuf* pkt)
  * @param hdrLen sizeof EPB header and packet header before mbuf payload.
  */
 __attribute__((nonnull)) static __rte_always_inline void
-WriteEPB(PdumpWriter* w, struct rte_mbuf* pkt, PcapngEPB* epb, size_t hdrLen)
-{
+WriteEPB(PdumpWriter* w, struct rte_mbuf* pkt, PcapngEPB* epb, size_t hdrLen) {
   uint32_t intf = w->intf[pkt->port];
   if (unlikely(intf == UINT32_MAX)) {
     return;
@@ -60,28 +58,26 @@ WriteEPB(PdumpWriter* w, struct rte_mbuf* pkt, PcapngEPB* epb, size_t hdrLen)
 }
 
 __attribute__((nonnull)) static inline void
-WriteRaw(PdumpWriter* w, struct rte_mbuf* pkt)
-{
-  PcapngEPB epb = { 0 };
+WriteRaw(PdumpWriter* w, struct rte_mbuf* pkt) {
+  PcapngEPB epb = {0};
   WriteEPB(w, pkt, &epb, sizeof(epb));
 }
 
 __attribute__((nonnull)) static inline void
-WriteSLL(PdumpWriter* w, struct rte_mbuf* pkt)
-{
+WriteSLL(PdumpWriter* w, struct rte_mbuf* pkt) {
   PcapngEPBSLL hdr = {
-    .sll = {
-      .sll_pkttype = pkt->packet_type, // take lower 16bits
-      .sll_hatype = rte_cpu_to_be_16(UINT16_MAX),
-      .sll_protocol = rte_cpu_to_be_16(EtherTypeNDN),
-    },
+    .sll =
+      {
+        .sll_pkttype = pkt->packet_type, // take lower 16bits
+        .sll_hatype = rte_cpu_to_be_16(UINT16_MAX),
+        .sll_protocol = rte_cpu_to_be_16(EtherTypeNDN),
+      },
   };
   WriteEPB(w, pkt, &hdr.epb, sizeof(hdr));
 }
 
 __attribute__((nonnull)) static inline void
-ProcessMbuf(PdumpWriter* w, struct rte_mbuf* pkt)
-{
+ProcessMbuf(PdumpWriter* w, struct rte_mbuf* pkt) {
   switch (pkt->packet_type) {
     case PdumpMbufTypeRaw:
       WriteRaw(w, pkt);
@@ -103,8 +99,7 @@ ProcessMbuf(PdumpWriter* w, struct rte_mbuf* pkt)
 }
 
 int
-PdumpWriter_Run(PdumpWriter* w)
-{
+PdumpWriter_Run(PdumpWriter* w) {
   if (!MmapFd_Open(&w->m, w->filename, w->maxSize)) {
     return 1;
   }

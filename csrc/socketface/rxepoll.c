@@ -1,8 +1,7 @@
 #include "rxepoll.h"
 #include "face.h"
 
-enum
-{
+enum {
   MaxEvents = 4,
   MaxPacketsPerSocket = MaxBurstSize / MaxEvents,
 };
@@ -10,8 +9,7 @@ static_assert(MaxEvents > 0, "");
 static_assert(MaxPacketsPerSocket > 0, "");
 
 void
-SocketRxEpoll_PrepareEvent(struct epoll_event* e, FaceID id, int fd)
-{
+SocketRxEpoll_PrepareEvent(struct epoll_event* e, FaceID id, int fd) {
   e->events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
   static_assert(sizeof(int) == sizeof(uint32_t), "");
   static_assert(sizeof(int) + sizeof(FaceID) <= sizeof(uint64_t), "");
@@ -19,8 +17,7 @@ SocketRxEpoll_PrepareEvent(struct epoll_event* e, FaceID id, int fd)
 }
 
 __attribute__((nonnull)) static inline bool
-SocketRxEpoll_RefillBufs(SocketRxEpoll* rxe)
-{
+SocketRxEpoll_RefillBufs(SocketRxEpoll* rxe) {
   static_assert(RTE_DIM(rxe->mbufs) == RTE_DIM(rxe->msgs), "");
   static_assert(RTE_DIM(rxe->mbufs) == RTE_DIM(rxe->iov), "");
 
@@ -46,8 +43,7 @@ SocketRxEpoll_RefillBufs(SocketRxEpoll* rxe)
 }
 
 __attribute__((nonnull)) static inline void
-SocketRxEpoll_HandleEvent(SocketRxEpoll* rxe, RxGroupBurstCtx* ctx, const struct epoll_event* e)
-{
+SocketRxEpoll_HandleEvent(SocketRxEpoll* rxe, RxGroupBurstCtx* ctx, const struct epoll_event* e) {
   FaceID id = e->data.u64;
   int fd = (uint32_t)(e->data.u64 >> (CHAR_BIT * sizeof(FaceID)));
 
@@ -71,8 +67,7 @@ SocketRxEpoll_HandleEvent(SocketRxEpoll* rxe, RxGroupBurstCtx* ctx, const struct
 }
 
 void
-SocketRxEpoll_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx)
-{
+SocketRxEpoll_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
   SocketRxEpoll* rxe = container_of(rxg, SocketRxEpoll, base);
 
   static_assert(RTE_DIM(rxe->mbufs) == 2 * RTE_DIM(ctx->pkts), "");

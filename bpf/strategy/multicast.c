@@ -5,8 +5,7 @@
 #include "api.h"
 
 SUBROUTINE uint64_t
-RxInterest(SgCtx* ctx)
-{
+RxInterest(SgCtx* ctx) {
   SgFibNexthopIt it;
   for (SgFibNexthopIt_InitCtx(&it, ctx); SgFibNexthopIt_Valid(&it); SgFibNexthopIt_Next(&it)) {
     SgForwardInterest(ctx, it.nh);
@@ -15,8 +14,7 @@ RxInterest(SgCtx* ctx)
 }
 
 uint64_t
-SgMain(SgCtx* ctx)
-{
+SgMain(SgCtx* ctx) {
   switch (ctx->eventKind) {
     case SGEVT_INTEREST:
       return RxInterest(ctx);

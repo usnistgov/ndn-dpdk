@@ -1,4 +1,4 @@
-FROM debian:bullseye AS build
+FROM debian:bookworm AS build
 ARG APT_PKGS=
 ARG DEPENDS_ENV=
 ARG DEPENDS_ARGS=
@@ -43,7 +43,7 @@ RUN rm -rf \
  && dpkg-shlibdeps --ignore-missing-info $(find /usr/local/lib -name '*.so') $(find /usr/local/bin -type f -executable) \
  && sed -n '/^shlibs:Depends=/ s|shlibs:Depends=||p' debian/substvars | sed -e 's|,||g' -e 's| ([^)]*)||g' >/pkgs.txt
 
-FROM debian:bullseye
+FROM debian:bookworm
 COPY --from=build /pkgs.txt /
 RUN apt-get -y -qq update \
  && apt-get -y -qq install --no-install-recommends iproute2 jq $(cat /pkgs.txt) \

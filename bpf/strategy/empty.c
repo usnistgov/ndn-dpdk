@@ -6,7 +6,6 @@
 #include "api.h"
 
 uint64_t
-SgMain(SgCtx* ctx)
-{
+SgMain(SgCtx* ctx) {
   return 0;
 }

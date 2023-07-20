@@ -1,23 +1,12 @@
 ---
-# yamllint disable rule:line-length rule:truthy
-
 name: build
-on:
+'on':
   push:
   pull_request:
 permissions: {}
 jobs:
   build:
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        compiler:
-          - gcc-7
-          - gcc-10
-          - clang-11
-      fail-fast: false
-    env:
-      CC: ${{ matrix.compiler }}
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
@@ -25,15 +14,22 @@ jobs:
           go-version-file: go.mod
       - uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 20
       - id: compilers
         name: Install compilers and tools
         run: |
-          sudo apt-get install $CC doxygen gcc-multilib libelf-dev libpcap-dev liburcu-dev linux-libc-dev python3-setuptools
-          for C in go gofmt node; do
-            sudo update-alternatives --remove-all $C || true
-            sudo update-alternatives --install /usr/bin/$C $C $(command -v $C) 1
-          done
+          sudo apt-get install clang-15 clang-format-15 doxygen libc6-dev-i386 libelf-dev libpcap-dev liburcu-dev
+          set_alternative() {
+            sudo update-alternatives --remove-all $1 || true
+            sudo update-alternatives --install /usr/bin/$1 $1 $2 1
+          }
+          set_alternative gcc /usr/bin/gcc-12
+          set_alternative cc /usr/bin/gcc
+          set_alternative g++ /usr/bin/g++-12
+          set_alternative c++ /usr/bin/g++
+          set_alternative go $(command -v go)
+          set_alternative gofmt $(command -v gofmt)
+          set_alternative node $(command -v node)
           go install honnef.co/go/tools/cmd/staticcheck@latest
           sudo pip install meson
           echo meson=$(meson --version) >> $GITHUB_OUTPUT
@@ -118,12 +114,11 @@ jobs:
   docker:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
       - uses: docker/build-push-action@v3
         with:
           tags: ndn-dpdk
-          context: .  # don't use git context: it won't download .git directory into build context
           build-args: |
+            BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
             MAKE_ENV=NDNDPDK_MK_RELEASE=1
       - name: Show image size
         run: docker image inspect -f '{{.Size}}' ndn-dpdk

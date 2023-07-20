@@ -1,16 +1,14 @@
 #include "fib.h"
 
 __attribute__((nonnull)) static int // bool
-Fib_LookupMatch_(struct cds_lfht_node* lfhtnode, const void* key0)
-{
+Fib_LookupMatch_(struct cds_lfht_node* lfhtnode, const void* key0) {
   const FibEntry* entry = container_of(lfhtnode, FibEntry, lfhtnode);
   const LName* key = (const LName*)key0;
   return entry->nameL == key->length && memcmp(entry->nameV, key->value, key->length) == 0;
 }
 
 void
-Fib_Clear(Fib* fib)
-{
+Fib_Clear(Fib* fib) {
   rcu_read_lock();
   struct cds_lfht_iter it;
   struct cds_lfht_node* node;
@@ -26,8 +24,7 @@ Fib_Clear(Fib* fib)
 }
 
 bool
-Fib_AllocBulk(struct rte_mempool* fibMp, FibEntry* entries[], unsigned count)
-{
+Fib_AllocBulk(struct rte_mempool* fibMp, FibEntry* entries[], unsigned count) {
   NDNDPDK_ASSERT(count > 0);
   int res = rte_mempool_get_bulk(fibMp, (void**)entries, count);
   if (unlikely(res != 0)) {
@@ -43,8 +40,7 @@ Fib_AllocBulk(struct rte_mempool* fibMp, FibEntry* entries[], unsigned count)
 }
 
 void
-Fib_Write(Fib* fib, FibEntry* entry)
-{
+Fib_Write(Fib* fib, FibEntry* entry) {
   FibEntry* newReal = entry;
   if (entry->height > 0) {
     NDNDPDK_ASSERT(entry->nNexthops == 0);
@@ -58,21 +54,19 @@ Fib_Write(Fib* fib, FibEntry* entry)
     newReal->seqNum = ++fib->insertSeqNum;
   }
 
-  LName name = { .length = entry->nameL, .value = entry->nameV };
+  LName name = {.length = entry->nameL, .value = entry->nameV};
   uint64_t hash = LName_ComputeHash(name);
   cds_lfht_add_replace(fib->lfht, hash, Fib_LookupMatch_, &name, &entry->lfhtnode);
 }
 
 void
-Fib_Erase(Fib* fib, FibEntry* entry)
-{
+Fib_Erase(Fib* fib, FibEntry* entry) {
   int res = cds_lfht_del(fib->lfht, &entry->lfhtnode);
   NDNDPDK_ASSERT(res == 0);
 }
 
 FibEntry*
-Fib_Get(Fib* fib, LName name, uint64_t hash)
-{
+Fib_Get(Fib* fib, LName name, uint64_t hash) {
   struct cds_lfht_iter it;
   cds_lfht_lookup(fib->lfht, hash, Fib_LookupMatch_, &name, &it);
   struct cds_lfht_node* lfhtnode = cds_lfht_iter_get_node(&it);
@@ -83,15 +77,13 @@ Fib_Get(Fib* fib, LName name, uint64_t hash)
 }
 
 __attribute__((nonnull)) static FibEntry*
-Fib_GetEntryByPrefix_(Fib* fib, const PName* name, int prefixLen)
-{
+Fib_GetEntryByPrefix_(Fib* fib, const PName* name, int prefixLen) {
   uint64_t hash = PName_ComputePrefixHash(name, prefixLen);
   return Fib_Get(fib, PName_GetPrefix(name, prefixLen), hash);
 }
 
 FibEntry*
-Fib_Lpm(Fib* fib, const PName* name)
-{
+Fib_Lpm(Fib* fib, const PName* name) {
   // first stage
   int prefixLen = name->nComps;
   if (fib->startDepth < prefixLen) {

@@ -2,14 +2,12 @@
 #include "pcct.h"
 
 __attribute__((nonnull, returns_nonnull)) static inline struct rte_mempool*
-PccEntry_ToMempool(PccEntry* entry)
-{
+PccEntry_ToMempool(PccEntry* entry) {
   return rte_mempool_from_obj(entry);
 }
 
 PccSlotIndex
-PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot)
-{
+PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot) {
 #define AssignSlot(s)                                                                              \
   do {                                                                                             \
     (s).pccEntry = entry;                                                                          \
@@ -49,8 +47,7 @@ FAIL:
 }
 
 void
-PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot)
-{
+PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot) {
   switch (slot) {
     case PCC_SLOT_NONE:
       return;

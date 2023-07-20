@@ -12,18 +12,16 @@ static uint8_t NameComponent_Segment0[3];
 static uint8_t MetaInfo_Metadata[16];
 static uint8_t MetaInfo_Nack[16];
 
-RTE_INIT(InitMetaInfo)
-{
+RTE_INIT(InitMetaInfo) {
   NameComponent_Segment0[0] = TtSegmentNameComponent;
   NameComponent_Segment0[1] = 1;
   NameComponent_Segment0[2] = 0;
   DataEnc_PrepareMetaInfo(MetaInfo_Metadata, ContentBlob, FileServerMetadataFreshness,
-                          (LName){ .length = 3, .value = NameComponent_Segment0 });
-  DataEnc_PrepareMetaInfo(MetaInfo_Nack, ContentNack, FileServerMetadataFreshness, (LName){ 0 });
+                          (LName){.length = 3, .value = NameComponent_Segment0});
+  DataEnc_PrepareMetaInfo(MetaInfo_Nack, ContentNack, FileServerMetadataFreshness, (LName){0});
 }
 
-typedef struct RxBurstCtx
-{
+typedef struct RxBurstCtx {
   TscTime now;
   uint16_t index;     ///< interest[:index] are processed
   uint16_t nInterest; ///< interest[index:nInterest] are unprocessed
@@ -33,8 +31,7 @@ typedef struct RxBurstCtx
 } RxBurstCtx;
 
 __attribute__((nonnull)) static __rte_always_inline bool
-FileServerRx_CheckVersion(FileServer* p, FileServerFd* fd, FileServerRequestName rn)
-{
+FileServerRx_CheckVersion(FileServer* p, FileServerFd* fd, FileServerRequestName rn) {
   if (likely(rn.version == fd->version)) {
     return true;
   }
@@ -42,8 +39,7 @@ FileServerRx_CheckVersion(FileServer* p, FileServerFd* fd, FileServerRequestName
 }
 
 __attribute__((nonnull)) static void
-FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
-{
+FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn) {
   ++p->cnt.reqRead;
   Packet* interest = Packet_FromMbuf(ctx->interest[ctx->index]);
   PInterest* pi = Packet_GetInterestHdr(interest);
@@ -81,7 +77,7 @@ FileServerRx_Read(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
   op->segment = rn.segment;
   uint64_t contentOffset = rn.segment * p->segmentLen;
   op->contentLen = RTE_MIN((uint64_t)p->segmentLen, fd->st.stx_size - contentOffset);
-  op->data = DataEnc_EncodeRoom(PName_ToLName(&pi->name), (LName){ 0 }, fd->meta, op->contentLen,
+  op->data = DataEnc_EncodeRoom(PName_ToLName(&pi->name), (LName){0}, fd->meta, op->contentLen,
                                 op->iov, &op->iovcnt, &p->mp, Face_PacketTxAlign(p->face));
   if (unlikely(op->data == NULL)) {
     N_LOGW("Read fd=%d drop=no-data", fd->fd);
@@ -110,8 +106,7 @@ UNREF:
 }
 
 __attribute__((nonnull)) static void
-FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
-{
+FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn) {
   ++p->cnt.reqLs;
   Packet* interest = Packet_FromMbuf(ctx->interest[ctx->index]);
   PInterest* pi = Packet_GetInterestHdr(interest);
@@ -152,7 +147,7 @@ FileServerRx_Ls(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
   struct iovec iov[LpMaxFragments];
   int iovcnt = 0;
   struct rte_mbuf* data =
-    DataEnc_EncodeRoom(PName_ToLName(&pi->name), (LName){ 0 }, fd->meta, contentLen, iov, &iovcnt,
+    DataEnc_EncodeRoom(PName_ToLName(&pi->name), (LName){0}, fd->meta, contentLen, iov, &iovcnt,
                        &p->mp, Face_PacketTxAlign(p->face));
   if (unlikely(data == NULL)) {
     N_LOGW("Ls fd=%d drop=no-data", fd->fd);
@@ -168,8 +163,7 @@ UNREF:
 }
 
 __attribute__((nonnull)) static void
-FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
-{
+FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn) {
   ++p->cnt.reqMetadata;
   Packet* interest = Packet_FromMbuf(ctx->interest[ctx->index]);
   PInterest* pi = Packet_GetInterestHdr(interest);
@@ -196,7 +190,7 @@ FileServerRx_Metadata(FileServer* p, RxBurstCtx* ctx, FileServerRequestName rn)
   int res = clock_gettime(CLOCK_REALTIME, &utcNow);
   NDNDPDK_ASSERT(res == 0);
   uint8_t suffixV[20];
-  LName suffix = (LName){ .length = 0, .value = suffixV };
+  LName suffix = (LName){.length = 0, .value = suffixV};
   suffix.length =
     Nni_EncodeNameComponent(suffixV, TtVersionNameComponent, FileServerFd_StatTime(utcNow));
   rte_memcpy(RTE_PTR_ADD(suffixV, suffix.length), NameComponent_Segment0,
@@ -224,8 +218,7 @@ UNREF:
 }
 
 __attribute__((nonnull)) static inline void
-FileServerRx_ProcessInterest(FileServer* p, RxBurstCtx* ctx)
-{
+FileServerRx_ProcessInterest(FileServer* p, RxBurstCtx* ctx) {
   struct rte_mbuf* interest = ctx->interest[ctx->index];
   Packet* npkt = Packet_FromMbuf(interest);
   PInterest* pi = Packet_GetInterestHdr(npkt);
@@ -248,8 +241,7 @@ FileServerRx_ProcessInterest(FileServer* p, RxBurstCtx* ctx)
 }
 
 uint32_t
-FileServer_RxBurst(FileServer* p)
-{
+FileServer_RxBurst(FileServer* p) {
   RxBurstCtx ctx;
   ctx.now = rte_get_tsc_cycles();
   ctx.index = 0;

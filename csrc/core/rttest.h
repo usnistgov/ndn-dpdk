@@ -10,16 +10,14 @@
  * @brief SRTT and RTTVAR values in RTT estimator.
  * @sa https://tools.ietf.org/html/rfc6298
  */
-typedef struct RttValue
-{
+typedef struct RttValue {
   float sRtt;
   float rttVar;
 } RttValue;
 static_assert(sizeof(RttValue) == sizeof(uint64_t), "");
 
 __attribute__((nonnull)) static __rte_always_inline TscDuration
-RttValue_RTO(RttValue* rttv)
-{
+RttValue_RTO(RttValue* rttv) {
   return rttv->sRtt + RttEstK * rttv->rttVar;
 }
 
@@ -37,8 +35,7 @@ RttValue_RTO(RttValue* rttv)
  * Otherwise, @p rtt is assumed to be a subsequent RTT measurement.
  */
 __attribute__((nonnull)) static inline void
-RttValue_Push(RttValue* rttv, TscDuration rtt)
-{
+RttValue_Push(RttValue* rttv, TscDuration rtt) {
   if (unlikely(*(uint64_t*)rttv == 0)) {
     rttv->sRtt = rtt;
     rttv->rttVar = rtt / 2.0;
@@ -55,8 +52,7 @@ extern TscDuration RttEstTscMaxRto;
  * @brief RTT estimator.
  * @sa https://tools.ietf.org/html/rfc6298
  */
-typedef struct RttEst
-{
+typedef struct RttEst {
   RttValue rttv;
   TscDuration rto;
   TscDuration last; // last input RTT (for external sampling only)
@@ -67,8 +63,7 @@ __attribute__((nonnull)) void
 RttEst_Init(RttEst* rtte);
 
 __attribute__((nonnull)) static inline void
-RttEst_SetRTO_(RttEst* rtte, TscDuration rto)
-{
+RttEst_SetRTO_(RttEst* rtte, TscDuration rto) {
   rtte->rto = CLAMP(rto, RttEstTscMinRto, RttEstTscMaxRto);
 }
 
@@ -77,8 +72,7 @@ RttEst_SetRTO_(RttEst* rtte, TscDuration rto)
  * @pre packet has not been retransmitted.
  */
 __attribute__((nonnull)) static inline void
-RttEst_Push(RttEst* rtte, TscTime now, TscDuration rtt)
-{
+RttEst_Push(RttEst* rtte, TscTime now, TscDuration rtt) {
   rtte->last = rtt;
   if (likely(rtte->next_ > now)) {
     return;
@@ -91,8 +85,7 @@ RttEst_Push(RttEst* rtte, TscTime now, TscDuration rtt)
 
 /** @brief Back off the RTO timer. */
 __attribute__((nonnull)) static inline void
-RttEst_Backoff(RttEst* rtte)
-{
+RttEst_Backoff(RttEst* rtte) {
   RttEst_SetRTO_(rtte, rtte->rto * 2);
 }
 

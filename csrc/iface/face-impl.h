@@ -15,8 +15,7 @@ __attribute__((nonnull)) Packet*
 FaceRx_Input(Face* face, int rxThread, struct rte_mbuf* pkt);
 
 __attribute__((nonnull)) static __rte_always_inline void
-FaceTx_CheckDirectFragmentMbuf_(struct rte_mbuf* pkt)
-{
+FaceTx_CheckDirectFragmentMbuf_(struct rte_mbuf* pkt) {
   NDNDPDK_ASSERT(pkt->pkt_len > 0);
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt));
   NDNDPDK_ASSERT(rte_mbuf_refcnt_read(pkt) == 1);
@@ -37,8 +36,7 @@ extern FaceTx_OutputFunc FaceTx_OutputJmp[];
  * @return number of L2 frames to be transmitted.
  */
 __attribute__((nonnull)) static inline uint16_t
-FaceTx_Output(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
-{
+FaceTx_Output(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]) {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   FaceTx_CheckDirectFragmentMbuf_(pkt);
 

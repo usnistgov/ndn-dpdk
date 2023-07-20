@@ -7,8 +7,7 @@
 #include "entry.h"
 
 /** @brief High resolution log writer task. */
-typedef struct HrlogWriter
-{
+typedef struct HrlogWriter {
   ThreadCtrl ctrl;
   struct rte_ring* queue;
   const char* filename;

@@ -8,8 +8,7 @@
 
 /** @brief Return the less severe NackReason. */
 static inline NackReason
-NackReason_GetMin(NackReason a, NackReason b)
-{
+NackReason_GetMin(NackReason a, NackReason b) {
   return RTE_MIN(a, b);
 }
 
@@ -17,8 +16,7 @@ __attribute__((returns_nonnull)) const char*
 NackReason_ToString(NackReason reason);
 
 /** @brief Parsed Nack packet. */
-typedef struct PNack
-{
+typedef struct PNack {
   LpL3 lpl3;
   PInterest interest;
 } PNack;

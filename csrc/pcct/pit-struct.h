@@ -17,8 +17,7 @@ typedef void (*Pit_SgTimerCb)(Pit* pit, PitEntry* entry, uintptr_t ctx);
  *
  * This is embedded in @c Pcct struct.
  */
-struct Pit
-{
+struct Pit {
   uint64_t nEntries; ///< current number of entries
 
   uint64_t nInsert;   ///< how many inserts created a new PIT entry

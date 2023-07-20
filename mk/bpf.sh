@@ -6,7 +6,7 @@ if [[ -z $MESON_SOURCE_ROOT ]] || [[ -z $MESON_BUILD_ROOT ]] || [[ -z $XDP ]]; t
   exit 1
 fi
 
-BPFCC=${BPFCC:-clang-11}
+BPFCC=${BPFCC:-clang-15}
 BPFFLAGS='-g -O2 -target bpf -Wno-int-to-void-pointer-cast -I/usr/include/x86_64-linux-gnu'
 BPFDIR=${MESON_BUILD_ROOT}/lib/bpf
 mkdir -p "$BPFDIR"

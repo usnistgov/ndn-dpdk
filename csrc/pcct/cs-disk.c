@@ -8,8 +8,7 @@
 N_LOG_INIT(CsDisk);
 
 void
-CsDisk_Insert(Cs* cs, CsEntry* entry)
-{
+CsDisk_Insert(Cs* cs, CsEntry* entry) {
   uint64_t slot = DiskAlloc_Alloc(cs->diskAlloc);
   if (unlikely(slot == 0)) {
     N_LOGD("Insert entry=%p data=%p" N_LOG_ERROR("no-slot"), entry, entry->data);
@@ -35,8 +34,7 @@ CsDisk_Insert(Cs* cs, CsEntry* entry)
 }
 
 void
-CsDisk_Delete(Cs* cs, CsEntry* entry)
-{
+CsDisk_Delete(Cs* cs, CsEntry* entry) {
   N_LOGD("Delete entry=%p slot=%" PRIu64, entry, entry->diskSlot);
   NDNDPDK_ASSERT(entry->kind == CsEntryDisk);
   DiskAlloc_Free(cs->diskAlloc, entry->diskSlot);
@@ -45,8 +43,7 @@ CsDisk_Delete(Cs* cs, CsEntry* entry)
 }
 
 void
-CsDisk_ArcMove(CsEntry* entry, CsListID src, CsListID dst, uintptr_t ctx)
-{
+CsDisk_ArcMove(CsEntry* entry, CsListID src, CsListID dst, uintptr_t ctx) {
   Cs* cs = (Cs*)ctx;
   switch (CsArc_MoveDir(src, dst)) {
     case CsArc_MoveDirC(T1, B1):

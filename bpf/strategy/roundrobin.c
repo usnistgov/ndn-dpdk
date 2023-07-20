@@ -6,14 +6,12 @@
  */
 #include "api.h"
 
-typedef struct FibEntryInfo
-{
+typedef struct FibEntryInfo {
   uint8_t nextNexthopIndex;
 } FibEntryInfo;
 
 SUBROUTINE uint64_t
-RxInterest(SgCtx* ctx)
-{
+RxInterest(SgCtx* ctx) {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
   if (fei->nextNexthopIndex >= ctx->fibEntry->nNexthops) {
     fei->nextNexthopIndex = 0;
@@ -31,8 +29,7 @@ RxInterest(SgCtx* ctx)
 }
 
 uint64_t
-SgMain(SgCtx* ctx)
-{
+SgMain(SgCtx* ctx) {
   switch (ctx->eventKind) {
     case SGEVT_INTEREST:
       return RxInterest(ctx);

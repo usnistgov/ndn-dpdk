@@ -6,8 +6,7 @@
 #include "../ndni/name.h"
 
 /** @brief A replica of the Name Dispatch Table (NDT). */
-typedef struct Ndt
-{
+typedef struct Ndt {
   uint64_t indexMask;
   uint64_t sampleMask;
   uint16_t prefixLen;
@@ -20,22 +19,19 @@ Ndt_New(uint64_t nEntries, int numaSocket);
 
 /** @brief Update an entry. */
 __attribute__((nonnull)) static inline void
-Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value)
-{
+Ndt_Update(Ndt* ndt, uint64_t index, uint8_t value) {
   atomic_store_explicit(&ndt->table[index], value, memory_order_relaxed);
 }
 
 /** @brief Read entry by index. */
 __attribute__((nonnull)) static __rte_always_inline uint8_t
-Ndt_Read(Ndt* ndt, uint64_t index)
-{
+Ndt_Read(Ndt* ndt, uint64_t index) {
   return atomic_load_explicit(&ndt->table[index], memory_order_relaxed);
 }
 
 /** @brief Query NDT by name. */
 __attribute__((nonnull)) static inline uint8_t
-Ndt_Lookup(Ndt* ndt, const PName* name, uint64_t* index)
-{
+Ndt_Lookup(Ndt* ndt, const PName* name, uint64_t* index) {
   uint16_t prefixLen = RTE_MIN(name->nComps, ndt->prefixLen);
   LName prefix = PName_GetPrefix(name, prefixLen);
   // compute hash in 'uncached' mode, to reduce workload of FwInput thread
@@ -49,8 +45,7 @@ Ndt_Lookup(Ndt* ndt, const PName* name, uint64_t* index)
  *
  * This is embedded in thread structure that needs to query the NDT.
  */
-typedef struct NdtQuerier
-{
+typedef struct NdtQuerier {
   Ndt* ndt;
   uint64_t nLookups;
   uint32_t* nHits;
@@ -58,8 +53,7 @@ typedef struct NdtQuerier
 
 /** @brief Query NDT by name with counting. */
 __attribute__((nonnull)) static inline uint8_t
-NdtQuerier_Lookup(NdtQuerier* ndq, const PName* name)
-{
+NdtQuerier_Lookup(NdtQuerier* ndq, const PName* name) {
   uint64_t index;
   uint8_t value = Ndt_Lookup(ndq->ndt, name, &index);
   if ((++ndq->nLookups & ndq->ndt->sampleMask) == 0) {

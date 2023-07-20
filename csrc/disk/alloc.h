@@ -11,8 +11,7 @@
  *
  * This data structure is non-thread-safe.
  */
-typedef struct DiskAlloc
-{
+typedef struct DiskAlloc {
   uint64_t min;
   uint64_t max;
   uint64_t slab;
@@ -26,8 +25,7 @@ static_assert(offsetof(DiskAlloc, bmp[0]) % RTE_CACHE_LINE_SIZE == 0, "");
  * @retval 0 no disk slot available.
  */
 __attribute__((nonnull)) static inline uint64_t
-DiskAlloc_Alloc(DiskAlloc* a)
-{
+DiskAlloc_Alloc(DiskAlloc* a) {
   if (a->slab == 0) {
     int found = rte_bitmap_scan(a->bmp, &a->pos, &a->slab);
     if (unlikely(found == 0)) {
@@ -44,8 +42,7 @@ DiskAlloc_Alloc(DiskAlloc* a)
 
 /** @brief Free a disk slot. */
 __attribute__((nonnull)) static inline void
-DiskAlloc_Free(DiskAlloc* a, uint64_t slotID)
-{
+DiskAlloc_Free(DiskAlloc* a, uint64_t slotID) {
   NDNDPDK_ASSERT(slotID >= a->min && slotID <= a->max);
   uint32_t pos = slotID - a->min;
   NDNDPDK_ASSERT(rte_bitmap_get(a->bmp, pos) == 0);

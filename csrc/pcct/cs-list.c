@@ -6,16 +6,14 @@ static_assert(offsetof(CsNode, prev) == offsetof(CsList, prev), "");
 static_assert(offsetof(CsNode, next) == offsetof(CsList, next), "");
 
 void
-CsList_Init(CsList* csl)
-{
+CsList_Init(CsList* csl) {
   csl->prev = csl->next = (CsNode*)csl;
   csl->count = 0;
   csl->capacity = 0;
 }
 
 uint32_t
-CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, uintptr_t ctx)
-{
+CsList_EvictBulk(CsList* csl, uint32_t max, CsList_EvictCb cb, uintptr_t ctx) {
   uint32_t nErase = RTE_MIN(max, csl->count);
   CsNode* node = csl->next;
 

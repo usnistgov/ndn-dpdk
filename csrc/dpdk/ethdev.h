@@ -9,8 +9,7 @@
 
 /** @brief Retrieve whether an Ethernet device is DOWN. */
 static inline bool
-EthDev_IsDown(uint16_t port)
-{
+EthDev_IsDown(uint16_t port) {
   struct rte_eth_link link;
   rte_eth_link_get_nowait(port, &link);
   return link.link_status == RTE_ETH_LINK_DOWN;

@@ -5,15 +5,13 @@
 N_LOG_INIT(FwFwd);
 
 uint32_t
-SgRandInt(SgCtx* ctx0, uint32_t max)
-{
+SgRandInt(SgCtx* ctx0, uint32_t max) {
   FwFwdCtx* ctx = (FwFwdCtx*)ctx0;
   return pcg32_boundedrand_r(&ctx->fwd->sgRng, max);
 }
 
 void
-SgTriggerTimer(Pit* pit, PitEntry* pitEntry, uintptr_t fwd0)
-{
+SgTriggerTimer(Pit* pit, PitEntry* pitEntry, uintptr_t fwd0) {
   FwFwd* fwd = (FwFwd*)fwd0;
   FwFwdCtx ctx = {
     .rxTime = rte_get_tsc_cycles(),
@@ -42,8 +40,7 @@ FINISH:
 }
 
 bool
-SgSetTimer(SgCtx* ctx0, TscDuration after)
-{
+SgSetTimer(SgCtx* ctx0, TscDuration after) {
   FwFwdCtx* ctx = (FwFwdCtx*)ctx0;
   bool ok = PitEntry_SetSgTimer(ctx->pitEntry, ctx->fwd->pit, after);
   N_LOGD("^ sgtimer-after=%" PRId64 " %s", after, ok ? "OK" : "FAIL");
@@ -51,60 +48,67 @@ SgSetTimer(SgCtx* ctx0, TscDuration after)
 }
 
 const struct rte_bpf_xsym*
-SgGetXsyms(uint32_t* nXsyms)
-{
+SgGetXsyms(uint32_t* nXsyms) {
   static const struct rte_bpf_xsym xsyms[] = {
     {
       .name = "SgRandInt",
       .type = RTE_BPF_XTYPE_FUNC,
-      .func = {
-        .val = (void*)SgRandInt,
-        .nb_args = 2,
-        .args = {
-          { .type = RTE_BPF_ARG_PTR, .size = sizeof(SgCtx) },
-          { .type = RTE_BPF_ARG_RAW },
+      .func =
+        {
+          .val = (void*)SgRandInt,
+          .nb_args = 2,
+          .args =
+            {
+              {.type = RTE_BPF_ARG_PTR, .size = sizeof(SgCtx)},
+              {.type = RTE_BPF_ARG_RAW},
+            },
+          .ret = {.type = RTE_BPF_ARG_RAW},
         },
-        .ret = { .type = RTE_BPF_ARG_RAW },
-      },
     },
     {
       .name = "SgSetTimer",
       .type = RTE_BPF_XTYPE_FUNC,
-      .func = {
-        .val = (void*)SgSetTimer,
-        .nb_args = 2,
-        .args = {
-          { .type = RTE_BPF_ARG_PTR, .size = sizeof(SgCtx) },
-          { .type = RTE_BPF_ARG_RAW },
+      .func =
+        {
+          .val = (void*)SgSetTimer,
+          .nb_args = 2,
+          .args =
+            {
+              {.type = RTE_BPF_ARG_PTR, .size = sizeof(SgCtx)},
+              {.type = RTE_BPF_ARG_RAW},
+            },
+          .ret = {.type = RTE_BPF_ARG_UNDEF},
         },
-        .ret = { .type = RTE_BPF_ARG_UNDEF },
-      },
     },
     {
       .name = "SgForwardInterest",
       .type = RTE_BPF_XTYPE_FUNC,
-      .func = {
-        .val = (void*)SgForwardInterest,
-        .nb_args = 2,
-        .args = {
-          { .type = RTE_BPF_ARG_PTR, .size = sizeof(SgCtx) },
-          { .type = RTE_BPF_ARG_RAW },
+      .func =
+        {
+          .val = (void*)SgForwardInterest,
+          .nb_args = 2,
+          .args =
+            {
+              {.type = RTE_BPF_ARG_PTR, .size = sizeof(SgCtx)},
+              {.type = RTE_BPF_ARG_RAW},
+            },
+          .ret = {.type = RTE_BPF_ARG_RAW},
         },
-        .ret = { .type = RTE_BPF_ARG_RAW },
-      },
     },
     {
       .name = "SgReturnNacks",
       .type = RTE_BPF_XTYPE_FUNC,
-      .func = {
-        .val = (void*)SgReturnNacks,
-        .nb_args = 2,
-        .args = {
-          { .type = RTE_BPF_ARG_PTR, .size = sizeof(SgCtx) },
-          { .type = RTE_BPF_ARG_RAW },
+      .func =
+        {
+          .val = (void*)SgReturnNacks,
+          .nb_args = 2,
+          .args =
+            {
+              {.type = RTE_BPF_ARG_PTR, .size = sizeof(SgCtx)},
+              {.type = RTE_BPF_ARG_RAW},
+            },
+          .ret = {.type = RTE_BPF_ARG_UNDEF},
         },
-        .ret = { .type = RTE_BPF_ARG_UNDEF },
-      },
     },
   };
   *nXsyms = RTE_DIM(xsyms);

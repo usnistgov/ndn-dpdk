@@ -6,8 +6,7 @@
 
 N_LOG_INIT(FileServer);
 
-typedef struct TxBurstCtx
-{
+typedef struct TxBurstCtx {
   TscTime now;
   uint16_t index;    ///< cqe[:index] are processed
   uint16_t nData;    ///< data[:nData] are to be transmitted
@@ -20,8 +19,7 @@ typedef struct TxBurstCtx
 static_assert(RTE_DIM(((TxBurstCtx*)NULL)->discard) <= UINT16_MAX, "");
 
 __attribute__((nonnull)) static inline void
-FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx)
-{
+FileServerTx_ProcessCqe(FileServer* p, TxBurstCtx* ctx) {
   struct io_uring_cqe* cqe = ctx->cqe[ctx->index];
   FileServerOp* op = io_uring_cqe_get_data(cqe);
   FileServerFd* fd = op->fd;
@@ -55,8 +53,7 @@ FREE_OP:
 }
 
 uint32_t
-FileServer_TxBurst(FileServer* p)
-{
+FileServer_TxBurst(FileServer* p) {
   TxBurstCtx ctx;
   ctx.now = rte_get_tsc_cycles();
   ctx.congMark = (uint8_t)(p->ur.nPending >= p->uringCongestionLbound);

@@ -8,36 +8,32 @@ static_assert((int)MinMTU > (int)LpHeaderHeadroom, "");
 N_LOG_INIT(FaceTx);
 
 __attribute__((nonnull)) static __rte_always_inline uint16_t
-FaceTx_One(const char* logVerb, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
-{
+FaceTx_One(const char* logVerb, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]) {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   N_LOGV("%s pktLen=%" PRIu32, logVerb, pkt->pkt_len);
 
-  LpL2 l2 = { .fragCount = 1 };
+  LpL2 l2 = {.fragCount = 1};
   LpHeader_Prepend(pkt, Packet_GetLpL3Hdr(npkt), &l2);
   frames[0] = pkt;
   return 1;
 }
 
 __attribute__((nonnull)) static uint16_t
-FaceTx_LinearOne(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
-{
+FaceTx_LinearOne(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]) {
   return FaceTx_One("linear-one", npkt, frames);
 }
 
 __attribute__((nonnull)) static uint16_t
-FaceTx_ChainedOne(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
-{
+FaceTx_ChainedOne(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]) {
   return FaceTx_One("chained-one", npkt, frames);
 }
 
 __attribute__((nonnull)) static uint16_t
-FaceTx_LinearFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
-{
+FaceTx_LinearFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]) {
   FaceTxThread* txt = &face->impl->tx[txThread];
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   NDNDPDK_ASSERT(pkt->nb_segs > 1); // single-fragment packet should invoke FaceTx_LinearOne
-  LpL2 l2 = { .seqNumBase = txt->nextSeqNum, .fragCount = pkt->nb_segs };
+  LpL2 l2 = {.seqNumBase = txt->nextSeqNum, .fragCount = pkt->nb_segs};
   N_LOGV("linear-frag pktLen=%" PRIu32 " seq=%016" PRIx64 " fragCount=%" PRIu8, pkt->pkt_len,
          l2.seqNumBase, l2.fragCount);
   LpL3* l3 = Packet_GetLpL3Hdr(npkt);
@@ -70,11 +66,11 @@ FaceTx_LinearFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frame
 }
 
 __attribute__((nonnull)) static uint16_t
-FaceTx_ChainedFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments])
-{
+FaceTx_ChainedFrag(Face* face, int txThread, Packet* npkt,
+                   struct rte_mbuf* frames[LpMaxFragments]) {
   FaceTxThread* txt = &face->impl->tx[txThread];
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  LpL2 l2 = { .seqNumBase = txt->nextSeqNum };
+  LpL2 l2 = {.seqNumBase = txt->nextSeqNum};
   l2.fragCount = SPDK_CEIL_DIV(pkt->pkt_len, face->txAlign.fragmentPayloadSize);
   N_LOGV("chained-frag pktLen=%" PRIu32 " seq=%016" PRIx64 " fragCount=%" PRIu8, pkt->pkt_len,
          l2.seqNumBase, l2.fragCount);

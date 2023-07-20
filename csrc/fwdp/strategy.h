@@ -15,8 +15,7 @@ SgTriggerTimer(Pit* pit, PitEntry* pitEntry, uintptr_t fwd0);
 
 /** @brief Invoke the strategy. */
 __attribute__((nonnull)) static inline uint64_t
-SgInvoke(StrategyCode* strategy, FwFwdCtx* ctx)
-{
+SgInvoke(StrategyCode* strategy, FwFwdCtx* ctx) {
   return StrategyCodeProg_Run(strategy->main, ctx, sizeof(SgCtx));
 }
 

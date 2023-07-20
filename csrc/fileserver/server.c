@@ -3,8 +3,7 @@
 #include "naming.h"
 
 int
-FileServer_Run(FileServer* p)
-{
+FileServer_Run(FileServer* p) {
   bool ok = Uring_Init(&p->ur, p->uringCapacity);
   if (unlikely(!ok)) {
     return 1;

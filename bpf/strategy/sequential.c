@@ -6,14 +6,12 @@
  */
 #include "api.h"
 
-typedef struct PitEntryInfo
-{
+typedef struct PitEntryInfo {
   uint8_t nextNexthopIndex;
 } PitEntryInfo;
 
 SUBROUTINE uint64_t
-RxInterest(SgCtx* ctx)
-{
+RxInterest(SgCtx* ctx) {
   PitEntryInfo* pei = SgCtx_PitScratchT(ctx, PitEntryInfo);
   if (pei->nextNexthopIndex >= ctx->fibEntry->nNexthops) {
     pei->nextNexthopIndex = 0;
@@ -34,8 +32,7 @@ RxInterest(SgCtx* ctx)
 }
 
 uint64_t
-SgMain(SgCtx* ctx)
-{
+SgMain(SgCtx* ctx) {
   switch (ctx->eventKind) {
     case SGEVT_INTEREST:
       return RxInterest(ctx);

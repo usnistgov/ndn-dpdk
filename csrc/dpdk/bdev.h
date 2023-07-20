@@ -7,8 +7,7 @@
 #include "mbuf.h"
 #include <spdk/bdev.h>
 
-enum
-{
+enum {
   /** @brief Expected block size; other block sizes are not supported. */
   BdevBlockSize = 512,
 
@@ -19,8 +18,7 @@ enum
 extern uint8_t* BdevFiller_;
 
 /** @brief Length and alignment descriptor of a stored packet. */
-typedef struct BdevStoredPacket
-{
+typedef struct BdevStoredPacket {
   uint16_t pktLen;                   ///< original packet length
   uint16_t saveTotal;                ///< saved total length
   uint16_t saveLen[BdevMaxMbufSegs]; ///< per-segment saved length, zero denotes ending
@@ -28,8 +26,7 @@ typedef struct BdevStoredPacket
 } BdevStoredPacket;
 
 __attribute__((nonnull)) static __rte_always_inline void
-BdevStoredPacket_Copy(BdevStoredPacket* restrict dst, const BdevStoredPacket* restrict src)
-{
+BdevStoredPacket_Copy(BdevStoredPacket* restrict dst, const BdevStoredPacket* restrict src) {
   if (src->pktLen == src->saveTotal) { // no head or tail
     goto COPY0;
   } else if (src->saveLen[1] == 0) { // single segment
@@ -47,8 +44,7 @@ BdevStoredPacket_Copy(BdevStoredPacket* restrict dst, const BdevStoredPacket* re
 
 /** @brief Determine number of blocks needed to store a packet. */
 __attribute__((nonnull)) static inline uint32_t
-BdevStoredPacket_ComputeBlockCount(BdevStoredPacket* sp)
-{
+BdevStoredPacket_ComputeBlockCount(BdevStoredPacket* sp) {
   return SPDK_CEIL_DIV(sp->saveTotal, BdevBlockSize);
 }
 
@@ -56,8 +52,7 @@ typedef struct BdevRequest BdevRequest;
 typedef void (*BdevRequestCb)(BdevRequest* req, int res);
 
 /** @brief Bdev I/O request. */
-struct BdevRequest
-{
+struct BdevRequest {
   struct rte_mbuf* pkt;
   BdevStoredPacket* sp;
   BdevRequestCb cb;
@@ -66,8 +61,7 @@ struct BdevRequest
 };
 
 /** @brief Block device and related information. */
-typedef struct Bdev
-{
+typedef struct Bdev {
   struct spdk_bdev_desc* desc;
   struct rte_mempool* bounceMp;
   uint32_t bufAlign;

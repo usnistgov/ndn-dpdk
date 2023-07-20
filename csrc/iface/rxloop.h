@@ -8,8 +8,7 @@
 #include "input-demux.h"
 
 /** @brief Context of RxGroup_RxBurstFunc operation. */
-typedef struct RxGroupBurstCtx
-{
+typedef struct RxGroupBurstCtx {
   uint64_t dropBits[SPDK_CEIL_DIV(MaxBurstSize, 64)];
   uint16_t nRx;
   RTE_MARKER zeroizeEnd_;
@@ -18,8 +17,7 @@ typedef struct RxGroupBurstCtx
 
 /** @brief Mark @c ctx->pkts[i] as to be dropped. */
 __attribute__((nonnull)) static inline void
-RxGroupBurstCtx_Drop(RxGroupBurstCtx* ctx, uint16_t i)
-{
+RxGroupBurstCtx_Drop(RxGroupBurstCtx* ctx, uint16_t i) {
   ctx->dropBits[i >> 6] |= 1 << (i & 0x3F);
 }
 
@@ -37,16 +35,14 @@ typedef struct RxGroup RxGroup;
 typedef void (*RxGroup_RxBurstFunc)(RxGroup* rxg, RxGroupBurstCtx* ctx);
 
 /** @brief Receive channel for faces. */
-struct RxGroup
-{
+struct RxGroup {
   struct cds_hlist_node rxlNode;
   RxGroup_RxBurstFunc rxBurst;
   int rxThread; ///< FaceRx_Input thread number
 };
 
 /** @brief RX loop thread. */
-typedef struct RxLoop
-{
+typedef struct RxLoop {
   ThreadCtrl ctrl;
   InputDemuxes demuxes;
 

@@ -11,15 +11,13 @@ N_LOG_INIT(MmapFd);
 #define MmapFd_Error(func) N_LOGE("%s(%s,fd=%d)" N_LOG_ERROR_ERRNO, #func, filename, m->fd, errno)
 
 __attribute__((nonnull)) static inline void
-MmapFd_Free(MmapFd* m)
-{
+MmapFd_Free(MmapFd* m) {
   close(m->fd);
-  *m = (const MmapFd){ .fd = -1 };
+  *m = (const MmapFd){.fd = -1};
 }
 
 bool
-MmapFd_Open(MmapFd* m, const char* filename, size_t size)
-{
+MmapFd_Open(MmapFd* m, const char* filename, size_t size) {
   NDNDPDK_ASSERT(size > 0);
   *m = (const MmapFd){
     .size = size,
@@ -49,8 +47,7 @@ FAIL:
 }
 
 bool
-MmapFd_Close(MmapFd* m, const char* filename, size_t size)
-{
+MmapFd_Close(MmapFd* m, const char* filename, size_t size) {
   NDNDPDK_ASSERT(m->size > 0);
 
   bool ok = false;

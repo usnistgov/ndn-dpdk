@@ -9,8 +9,7 @@
 #include "pit-struct.h"
 #include "pit-up.h"
 
-enum
-{
+enum {
   PitFibPrefixLenBits_ = 9,
 };
 static_assert(RTE_BIT32(PitFibPrefixLenBits_) > FibMaxNameLength, "");
@@ -22,8 +21,7 @@ typedef struct PitEntryExt PitEntryExt;
  *
  * This struct is enclosed in @c PccEntry .
  */
-struct PitEntry
-{
+struct PitEntry {
   Packet* npkt;   ///< representative Interest packet
   MinTmr timeout; ///< timeout timer
   TscTime expiry; ///< when all DNs expire
@@ -44,16 +42,14 @@ struct PitEntry
 };
 static_assert(offsetof(PitEntry, dns) <= RTE_CACHE_LINE_SIZE, "");
 
-struct PitEntryExt
-{
+struct PitEntryExt {
   PitDn dns[PitMaxExtDns];
   PitUp ups[PitMaxExtUps];
   PitEntryExt* next;
 };
 
 __attribute__((nonnull)) static inline void
-PitEntry_SetFibEntry_(PitEntry* entry, PInterest* interest, const FibEntry* fibEntry)
-{
+PitEntry_SetFibEntry_(PitEntry* entry, PInterest* interest, const FibEntry* fibEntry) {
   entry->fibPrefixL = fibEntry->nameL;
   entry->fibSeqNum = fibEntry->seqNum;
   PName* name = &interest->name;
@@ -69,8 +65,7 @@ PitEntry_SetFibEntry_(PitEntry* entry, PInterest* interest, const FibEntry* fibE
  * @param npkt the Interest packet.
  */
 __attribute__((nonnull)) static inline void
-PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
-{
+PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry) {
   PInterest* interest = Packet_GetInterestHdr(npkt);
   entry->npkt = npkt;
   MinTmr_Init(&entry->timeout);
@@ -89,8 +84,7 @@ PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
 
 /** @brief Finalize a PIT entry. */
 __attribute__((nonnull)) static inline void
-PitEntry_Finalize(PitEntry* entry)
-{
+PitEntry_Finalize(PitEntry* entry) {
   if (likely(entry->npkt != NULL)) {
     rte_pktmbuf_free(Packet_ToMbuf(entry->npkt));
   }
@@ -119,8 +113,7 @@ PitEntry_GetToken(PitEntry* entry);
  * @param npkt the Interest packet.
  */
 __attribute__((nonnull)) static inline void
-PitEntry_RefreshFibEntry(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry)
-{
+PitEntry_RefreshFibEntry(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry) {
   if (likely(entry->fibSeqNum == fibEntry->seqNum)) {
     return;
   }
@@ -193,15 +186,13 @@ PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceID face);
  * @return InterestLifetime in millis.
  */
 __attribute__((nonnull)) static inline uint32_t
-PitEntry_GetTxInterestLifetime(PitEntry* entry, TscTime now)
-{
+PitEntry_GetTxInterestLifetime(PitEntry* entry, TscTime now) {
   return TscDuration_ToMillis(entry->expiry - now);
 }
 
 /** @brief Calculate HopLimit for TX Interest. */
 __attribute__((nonnull)) static inline uint8_t
-PitEntry_GetTxInterestHopLimit(PitEntry* entry)
-{
+PitEntry_GetTxInterestHopLimit(PitEntry* entry) {
   return entry->txHopLimit;
 }
 

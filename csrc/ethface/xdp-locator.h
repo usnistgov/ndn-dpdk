@@ -10,8 +10,7 @@
  *
  * Unused fields must be zero.
  */
-typedef struct EthXdpLocator
-{
+typedef struct EthXdpLocator {
   uint32_t vxlan;       ///< VXLAN Network Identifier (big endian)
   uint16_t vlan;        ///< VLAN identifier (big endian)
   uint16_t udpSrc;      ///< UDP source port (big endian, 0 for VXLAN)

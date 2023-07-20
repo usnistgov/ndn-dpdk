@@ -10,8 +10,7 @@
 typedef struct FileServerFd FileServerFd;
 
 /** @brief File server readv operation. */
-typedef struct FileServerOp
-{
+typedef struct FileServerOp {
   FileServerFd* fd;
   uint64_t segment;
   struct rte_mbuf* data;

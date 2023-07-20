@@ -7,15 +7,13 @@ N_LOG_INIT(DiskStore);
 static_assert((int)BdevMaxMbufSegs == (int)LpMaxFragments, "");
 
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline DiskStoreSlimRequest*
-DiskStoreSlimRequest_FromData(PData* data)
-{
+DiskStoreSlimRequest_FromData(PData* data) {
   static_assert(sizeof(DiskStoreSlimRequest) <= sizeof(data->helperScratch), "");
   return (void*)data->helperScratch;
 }
 
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline DiskStoreSlimRequest*
-DiskStoreSlimRequest_FromPacket(Packet* npkt)
-{
+DiskStoreSlimRequest_FromPacket(Packet* npkt) {
   switch (Packet_GetType(npkt)) {
     case PktData: {
       PData* data = Packet_GetDataHdr(npkt);
@@ -32,8 +30,7 @@ DiskStoreSlimRequest_FromPacket(Packet* npkt)
 }
 
 __attribute__((nonnull)) static inline void
-PutData_Finish(DiskStore* store, Packet* npkt, int res)
-{
+PutData_Finish(DiskStore* store, Packet* npkt, int res) {
   ++store->nPutDataFinish[(int)(res == 0)];
   rte_pktmbuf_free(Packet_ToMbuf(npkt));
 }
@@ -42,8 +39,7 @@ __attribute__((nonnull)) static void
 PutData_End(BdevRequest* breq, int res);
 
 __attribute__((nonnull)) static inline void
-PutData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t slotID)
-{
+PutData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t slotID) {
   ++store->nPutDataBegin;
   N_LOGD("PutData begin slot=%" PRIu64 " npkt=%p", slotID, npkt);
   BdevStoredPacket sp;
@@ -57,8 +53,7 @@ PutData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t sl
 }
 
 __attribute__((nonnull)) static inline void
-GetData_Finish(DiskStore* store, Packet* npkt, int res)
-{
+GetData_Finish(DiskStore* store, Packet* npkt, int res) {
   PInterest* interest = Packet_GetInterestHdr(npkt);
   if (likely(res == 0)) {
     ++store->nGetDataSuccess;
@@ -74,8 +69,7 @@ __attribute__((nonnull)) static void
 GetData_End(BdevRequest* breq, int res);
 
 __attribute__((nonnull)) static inline void
-GetData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t slotID)
-{
+GetData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t slotID) {
   ++store->nGetDataBegin;
   N_LOGD("GetData begin slot=%" PRIu64 " npkt=%p", slotID, npkt);
   uint64_t blockOffset = slotID * store->nBlocksPerSlot;
@@ -87,8 +81,8 @@ GetData_Begin(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t sl
 }
 
 __attribute__((nonnull)) static void
-DiskStore_ProcessQueue(DiskStore* store, DiskStoreRequest* head, struct rte_mbuf* dataPkt, int res)
-{
+DiskStore_ProcessQueue(DiskStore* store, DiskStoreRequest* head, struct rte_mbuf* dataPkt,
+                       int res) {
   uint64_t slotID = head->s.slotID;
 
   while (head->s.next != NULL) {
@@ -136,8 +130,7 @@ DiskStore_ProcessQueue(DiskStore* store, DiskStoreRequest* head, struct rte_mbuf
 }
 
 static void
-PutData_End(BdevRequest* breq, int res)
-{
+PutData_End(BdevRequest* breq, int res) {
   DiskStoreRequest* req = container_of(breq, DiskStoreRequest, breq);
   DiskStore* store = req->s.store;
   uint64_t slotID = req->s.slotID;
@@ -154,8 +147,7 @@ PutData_End(BdevRequest* breq, int res)
 }
 
 static void
-GetData_End(BdevRequest* breq, int res)
-{
+GetData_End(BdevRequest* breq, int res) {
   DiskStoreRequest* req = container_of(breq, DiskStoreRequest, breq);
   DiskStore* store = req->s.store;
   uint64_t slotID = req->s.slotID;
@@ -182,27 +174,27 @@ FINISH:
   GetData_Finish(store, npkt, res);
 }
 
-static const struct
-{
+static const struct {
   const char* verb;
   void (*begin)(DiskStore* store, DiskStoreRequest* req, Packet* npkt, uint64_t slotID);
   void (*finish)(DiskStore* store, Packet* npkt, int res);
 } DiskStoreOps[] = {
-  [PktData] = {
-    .verb = "PutData",
-    .begin = PutData_Begin,
-    .finish = PutData_Finish,
-  },
-  [PktInterest] = {
-    .verb = "GetData",
-    .begin = GetData_Begin,
-    .finish = GetData_Finish,
-  },
+  [PktData] =
+    {
+      .verb = "PutData",
+      .begin = PutData_Begin,
+      .finish = PutData_Finish,
+    },
+  [PktInterest] =
+    {
+      .verb = "GetData",
+      .begin = GetData_Begin,
+      .finish = GetData_Finish,
+    },
 };
 
 __attribute__((nonnull)) static void
-DiskStore_Process(void* ctx)
-{
+DiskStore_Process(void* ctx) {
   Packet* npkt = ctx;
   DiskStoreSlimRequest* sr = DiskStoreSlimRequest_FromPacket(npkt);
   DiskStore* store = sr->store;
@@ -245,8 +237,7 @@ DiskStore_Process(void* ctx)
 }
 
 __attribute__((nonnull)) static inline void
-DiskStore_Post(DiskStore* store, uint64_t slotID, Packet* npkt, DiskStoreSlimRequest* sr)
-{
+DiskStore_Post(DiskStore* store, uint64_t slotID, Packet* npkt, DiskStoreSlimRequest* sr) {
   N_LOGD("%s request slot=%" PRIu64 " npkt=%p", DiskStoreOps[Packet_GetType(npkt)].verb, slotID,
          npkt);
   *sr = (DiskStoreSlimRequest){
@@ -263,8 +254,7 @@ DiskStore_Post(DiskStore* store, uint64_t slotID, Packet* npkt, DiskStoreSlimReq
 }
 
 void
-DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt, BdevStoredPacket* sp)
-{
+DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt, BdevStoredPacket* sp) {
   NDNDPDK_ASSERT(slotID > 0);
 
   uint32_t blockCount = BdevStoredPacket_ComputeBlockCount(sp);
@@ -281,8 +271,7 @@ DiskStore_PutData(DiskStore* store, uint64_t slotID, Packet* npkt, BdevStoredPac
 
 void
 DiskStore_GetData(DiskStore* store, uint64_t slotID, Packet* npkt, struct rte_mbuf* dataBuf,
-                  BdevStoredPacket* sp)
-{
+                  BdevStoredPacket* sp) {
   NDNDPDK_ASSERT(slotID > 0);
   PInterest* interest = Packet_GetInterestHdr(npkt);
   interest->diskSlot = slotID;

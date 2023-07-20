@@ -10,14 +10,12 @@
 /** @brief A key for SipHash. */
 typedef struct sipkey SipHashKey;
 
-enum
-{
+enum {
   SipHashKeyLength = SIP_KEYLEN,
 };
 
 __attribute__((nonnull)) static inline void
-SipHashKey_FromBuffer(SipHashKey* key, const uint8_t buf[SipHashKeyLength])
-{
+SipHashKey_FromBuffer(SipHashKey* key, const uint8_t buf[SipHashKeyLength]) {
   sip_tokey(key, buf);
 }
 
@@ -26,15 +24,13 @@ typedef struct siphash SipHash;
 
 /** @brief Initialize SipHash-2-4 context. */
 __attribute__((nonnull)) static inline void
-SipHash_Init(SipHash* h, const SipHashKey* key)
-{
+SipHash_Init(SipHash* h, const SipHashKey* key) {
   sip24_init(h, key);
 }
 
 /** @brief Write input into SipHash. */
 __attribute__((nonnull)) static inline void
-SipHash_Write(SipHash* h, const uint8_t* input, size_t count)
-{
+SipHash_Write(SipHash* h, const uint8_t* input, size_t count) {
   sip24_update(h, input, count);
 }
 
@@ -43,8 +39,7 @@ SipHash_Write(SipHash* h, const uint8_t* input, size_t count)
  * @return hash value.
  */
 __attribute__((nonnull)) static inline uint64_t
-SipHash_Final(SipHash* h)
-{
+SipHash_Final(SipHash* h) {
   return sip24_final(h);
 }
 
@@ -53,8 +48,7 @@ SipHash_Final(SipHash* h)
  * @return hash value.
  */
 __attribute__((nonnull)) static inline uint64_t
-SipHash_Sum(const SipHash* h)
-{
+SipHash_Sum(const SipHash* h) {
   SipHash copy = *h;
   copy.p = RTE_PTR_ADD(copy.buf, RTE_PTR_DIFF(h->p, h->buf));
   return sip24_final(&copy);

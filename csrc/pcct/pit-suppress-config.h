@@ -6,8 +6,7 @@
 #include "../dpdk/tsc.h"
 
 /** @brief Interest suppression configuration. */
-typedef struct PitSuppressConfig
-{
+typedef struct PitSuppressConfig {
   TscDuration min;   ///< initial/minimum suppression duration
   TscDuration max;   ///< maximum suppression duration
   double multiplier; ///< multiplier on each transmission
@@ -18,8 +17,7 @@ typedef struct PitSuppressConfig
  * @param d current suppression duration, or 0 for initial.
  */
 __attribute__((nonnull)) static inline TscDuration
-PitSuppressConfig_Compute(const PitSuppressConfig* cfg, TscDuration d)
-{
+PitSuppressConfig_Compute(const PitSuppressConfig* cfg, TscDuration d) {
   d *= cfg->multiplier;
   return CLAMP(d, cfg->min, cfg->max);
 }

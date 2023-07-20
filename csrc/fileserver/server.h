@@ -11,8 +11,7 @@
 
 typedef struct FileServerFd FileServerFd;
 
-typedef struct FileServerCounters
-{
+typedef struct FileServerCounters {
   uint64_t reqRead;
   uint64_t reqLs;
   uint64_t reqMetadata;
@@ -24,8 +23,7 @@ typedef struct FileServerCounters
 } FileServerCounters;
 
 /** @brief File server. */
-typedef struct FileServer
-{
+typedef struct FileServer {
   Uring ur;
   ThreadCtrl ctrl;
   PktQueue rxQueue;

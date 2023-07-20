@@ -8,8 +8,7 @@
 /**
  * @brief A PIT downstream record.
  */
-typedef struct PitDn
-{
+typedef struct PitDn {
   TscTime expiry; ///< expiration time
   uint32_t nonce; ///< downstream's nonce
   FaceID face;

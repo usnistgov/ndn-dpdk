@@ -6,16 +6,13 @@
 #include "../ndni/an.h"
 #include "common.h"
 
-typedef struct SgPacket
-{
+typedef struct SgPacket {
   uint8_t a_[22];
   FaceID rxFace;
   uint8_t b_[8];
-  union
-  {
+  union {
     uint32_t packet_type_;
-    struct
-    {
+    struct {
       uint16_t c_ : 16;
       uint8_t l2type : 4;
       uint8_t l3type : 4;

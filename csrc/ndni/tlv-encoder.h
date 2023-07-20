@@ -7,8 +7,7 @@
 
 /** @brief Compute size of VAR-NUMBER. */
 static __rte_always_inline uint8_t
-TlvEncoder_SizeofVarNum(uint32_t n)
-{
+TlvEncoder_SizeofVarNum(uint32_t n) {
   if (likely(n < 0xFD)) {
     return 1;
   } else if (likely(n <= UINT16_MAX)) {
@@ -24,8 +23,7 @@ TlvEncoder_SizeofVarNum(uint32_t n)
  * @return size of VAR-NUMBER.
  */
 __attribute__((nonnull)) static __rte_always_inline size_t
-TlvEncoder_WriteVarNum(uint8_t* room, uint32_t n)
-{
+TlvEncoder_WriteVarNum(uint8_t* room, uint32_t n) {
   NDNDPDK_ASSERT(room != NULL);
   if (likely(n < 0xFD)) {
     room[0] = n;
@@ -48,8 +46,7 @@ TlvEncoder_WriteVarNum(uint8_t* room, uint32_t n)
  * @param m target mbuf, must have enough headroom.
  */
 __attribute__((nonnull)) static __rte_always_inline void
-TlvEncoder_PrependTL(struct rte_mbuf* m, uint32_t type, uint32_t length)
-{
+TlvEncoder_PrependTL(struct rte_mbuf* m, uint32_t type, uint32_t length) {
   uint8_t* room = (uint8_t*)rte_pktmbuf_prepend(m, TlvEncoder_SizeofVarNum(type) +
                                                      TlvEncoder_SizeofVarNum(length));
   room += TlvEncoder_WriteVarNum(room, type);

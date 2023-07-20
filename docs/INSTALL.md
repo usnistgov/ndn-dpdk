@@ -1,6 +1,6 @@
 # NDN-DPDK Installation Guide
 
-NDN-DPDK supports Ubuntu 18.04/20.04/22.04 and Debian 11 operating systems.
+NDN-DPDK supports Ubuntu 22.04 and Debian 12 operating systems.
 It only works on x64\_64 (amd64) architecture.
 
 This page describes how to install and start NDN-DPDK on a supported operating system, which could be a physical server or a virtual machine with KVM acceleration.
@@ -8,11 +8,11 @@ You can also [build a Docker container](Docker.md), which would work on other op
 
 ## Dependencies
 
-* Linux kernel 5.4 or newer (install `linux-generic-hwe-18.04` on Ubuntu 18.04)
-* Required APT packages: `build-essential clang-11 git jq libc6-dev-i386 libelf-dev libpcap-dev libssl-dev liburcu-dev ninja-build pkg-config` (enable [llvm-toolchain-bionic-11](https://apt.llvm.org/) repository on Ubuntu 18.04)
-* Optional APT packages: `clang-format-11 doxygen lcov yamllint`
+* Linux kernel 5.15 or newer
+* Required APT packages: `clang-15 g++-12 git jq libc6-dev-i386 libelf-dev libpcap-dev libssl-dev liburcu-dev make ninja-build pkg-config`
+* Optional APT packages: `clang-format-15 doxygen lcov yamllint`
 * Go 1.20
-* Node.js 16.x
+* Node.js 20.x
 * [Meson build system](https://mesonbuild.com/Getting-meson.html#installing-meson-with-pip)
 * [ubpf](https://github.com/iovisor/ubpf) 2b9bc44f
 * [libbpf](https://github.com/libbpf/libbpf) 1.2.0 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.2.10 (optional)
@@ -88,7 +88,7 @@ For example:
   You can also use `mk/gotest.sh <PKG>` to run the tests for a given package.
 * `make doxygen` builds C documentation (requires the `doxygen` dependency).
 * To view Go documentation, run `godoc &` and access the website on port 6060 (requires `godoc` dependency).
-* `make lint` fixes code style issues before committing (requires `clang-format-11`, `staticcheck`, and `yamllint` dependencies).
+* `make lint` fixes code style issues before committing (requires `clang-format-15`, `staticcheck`, and `yamllint` dependencies).
 
 ## Compile-Time Settings
 

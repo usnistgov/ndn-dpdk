@@ -17,8 +17,7 @@
  * @return number of characters written, excluding trailing null character.
  */
 __attribute__((nonnull)) static inline int
-Base16_Encode(char* output, size_t room, const uint8_t* input, size_t size)
-{
+Base16_Encode(char* output, size_t room, const uint8_t* input, size_t size) {
   NDNDPDK_ASSERT(room >= Base16_BufferSize(size));
   static char hex[] = "0123456789ABCDEF";
   for (uint16_t i = 0; i < size; ++i) {

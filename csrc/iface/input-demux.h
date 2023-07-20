@@ -8,8 +8,7 @@
 #include "pktqueue.h"
 
 /** @brief Input demultiplexer dispatch method. */
-typedef enum InputDemuxAct
-{
+typedef enum InputDemuxAct {
   InputDemuxActDrop,
   InputDemuxActToFirst,
   InputDemuxActRoundrobinDiv,
@@ -21,32 +20,26 @@ typedef enum InputDemuxAct
 } InputDemuxAct;
 
 /** @brief Destination of input packet demultiplexer. */
-typedef struct InputDemuxDest
-{
+typedef struct InputDemuxDest {
   PktQueue* queue;
   uint64_t nQueued;
   uint64_t nDropped;
 } InputDemuxDest;
 
 /** @brief Input packet demultiplexer for a single packet type. */
-typedef struct InputDemux
-{
+typedef struct InputDemux {
   uint64_t nDrops;
   InputDemuxAct dispatch;
-  union
-  {
-    struct
-    {
+  union {
+    struct {
       uint32_t i;
-      union
-      {
+      union {
         uint32_t n;
         uint32_t mask;
       };
     } div;
     NdtQuerier ndq;
-    struct
-    {
+    struct {
       uint8_t offset;
     } byToken;
   };
@@ -72,8 +65,7 @@ InputDemux_SetDispatchByToken(InputDemux* demux, uint8_t offset);
  * @retval false packet is rejected and should be freed by caller.
  */
 __attribute__((nonnull, warn_unused_result)) static inline bool
-InputDemux_Dispatch(InputDemux* demux, Packet* npkt)
-{
+InputDemux_Dispatch(InputDemux* demux, Packet* npkt) {
   return InputDemux_DispatchJmp[demux->dispatch](demux, npkt);
 }
 
@@ -82,8 +74,7 @@ typedef InputDemux InputDemuxes[PktMax - 1];
 
 /** @brief Retrieve InputDemux by packet type. */
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline InputDemux*
-InputDemux_Of(InputDemuxes* demuxes, PktType t)
-{
+InputDemux_Of(InputDemuxes* demuxes, PktType t) {
   return &((InputDemux*)demuxes)[PktType_ToFull(t) - 1];
 }
 

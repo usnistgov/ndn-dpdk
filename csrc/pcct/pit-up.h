@@ -11,8 +11,7 @@ typedef struct PitEntry PitEntry;
 #define PIT_UP_MAX_REJ_NONCES 6
 
 /** @brief A PIT upstream record. */
-typedef struct PitUp
-{
+typedef struct PitUp {
   uint32_t nonce;   ///< nonce on last sent Interest
   FaceID face;      ///< the upstream face
   bool canBePrefix; ///< sent Interest has CanBePrefix?
@@ -29,22 +28,19 @@ typedef struct PitUp
 static_assert(sizeof(PitUp) <= RTE_CACHE_LINE_SIZE, "");
 
 __attribute__((nonnull)) static inline void
-PitUp_Reset(PitUp* up, FaceID face)
-{
-  *up = (const PitUp){ .face = face };
+PitUp_Reset(PitUp* up, FaceID face) {
+  *up = (const PitUp){.face = face};
 }
 
 /** @brief Determine if forwarding should be suppressed. */
 __attribute__((nonnull)) static inline bool
-PitUp_ShouldSuppress(PitUp* up, TscTime now)
-{
+PitUp_ShouldSuppress(PitUp* up, TscTime now) {
   return up->lastTx + up->suppress > now;
 }
 
 /** @brief Record that @p nonce is rejected by upstream. */
 __attribute__((nonnull)) static inline void
-PitUp_AddRejectedNonce(PitUp* up, uint32_t nonce)
-{
+PitUp_AddRejectedNonce(PitUp* up, uint32_t nonce) {
   memmove(&up->rejectedNonces[1], &up->rejectedNonces[0],
           sizeof(up->rejectedNonces) - sizeof(up->rejectedNonces[0]));
   up->rejectedNonces[0] = nonce;

@@ -5,11 +5,8 @@
 HrlogRingRef theHrlogRing;
 
 int
-HrlogWriter_Run(HrlogWriter* w)
-{
-  HrlogHeader hdr = { .magic = HRLOG_HEADER_MAGIC,
-                      .version = HRLOG_HEADER_VERSION,
-                      .tschz = TscHz };
+HrlogWriter_Run(HrlogWriter* w) {
+  HrlogHeader hdr = {.magic = HRLOG_HEADER_MAGIC, .version = HRLOG_HEADER_VERSION, .tschz = TscHz};
   void* buf[64];
 
   MmapFd m;

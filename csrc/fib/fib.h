@@ -6,8 +6,7 @@
 #include "entry.h"
 
 /** @brief A replica of the Forwarding Information Base (FIB). */
-typedef struct Fib
-{
+typedef struct Fib {
   struct cds_lfht* lfht; ///< URCU hashtable
   int startDepth;        ///< starting depth ('M' of 2-stage LPM algorithm)
   uint32_t insertSeqNum;
@@ -55,8 +54,7 @@ Fib_Get(Fib* fib, LName name, uint64_t hash);
  * @return Real entry, or NULL if it does not exist.
  */
 __attribute__((nonnull)) static __rte_always_inline FibEntry*
-Fib_Find(Fib* fib, LName name, uint64_t hash)
-{
+Fib_Find(Fib* fib, LName name, uint64_t hash) {
   return FibEntry_GetReal(Fib_Get(fib, name, hash));
 }
 

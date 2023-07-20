@@ -6,8 +6,7 @@
 #include "../iface/input-demux.h"
 
 /** @brief Forwarder data plane, disk helper. */
-typedef struct FwDisk
-{
+typedef struct FwDisk {
   InputDemux output;
 } FwDisk;
 

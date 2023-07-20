@@ -10,16 +10,14 @@
 #include "../iface/pktqueue.h"
 
 /** @brief Per-pattern information in traffic generator consumer. */
-typedef struct TgcRxPattern
-{
+typedef struct TgcRxPattern {
   uint64_t nNacks;
   RunningStatI rtt;
   uint16_t prefixLen;
 } TgcRxPattern;
 
 /** @brief Traffic generator consumer RX thread. */
-typedef struct TgcRx
-{
+typedef struct TgcRx {
   ThreadCtrl ctrl;
   PktQueue rxQueue;
   uint8_t runNum;

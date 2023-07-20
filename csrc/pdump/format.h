@@ -13,15 +13,13 @@
  *
  * Each value is rte_be16_t type, which has same size as sll_pkttype.
  */
-enum
-{
+enum {
   SLLIncoming = RTE_BE16(LINUX_SLL_HOST),
   SLLOutgoing = RTE_BE16(LINUX_SLL_OUTGOING),
 };
 
 /** @brief PCAPNG interface description block header. */
-typedef struct PcapngIDB
-{
+typedef struct PcapngIDB {
   rte_le32_t blockType;
   rte_le32_t totalLength;
   rte_le16_t linkType;
@@ -30,8 +28,7 @@ typedef struct PcapngIDB
 } __rte_packed PcapngIDB;
 
 /** @brief PCAPNG enhanced packet block header. */
-typedef struct PcapngEPB
-{
+typedef struct PcapngEPB {
   rte_le32_t blockType;
   rte_le32_t totalLength;
   rte_le32_t intf;
@@ -42,14 +39,12 @@ typedef struct PcapngEPB
 } __rte_packed PcapngEPB;
 
 /** @brief PCAPNG block trailer. */
-typedef struct PcapngTrailer
-{
+typedef struct PcapngTrailer {
   rte_le32_t totalLength;
 } __rte_packed PcapngTrailer;
 
 /** @brief PCAPNG enhanced packet block header and tcpdump DLT_LINUX_SLL header. */
-typedef struct PcapngEPBSLL
-{
+typedef struct PcapngEPBSLL {
   PcapngEPB epb;
   struct sll_header sll;
 } __rte_packed PcapngEPBSLL;

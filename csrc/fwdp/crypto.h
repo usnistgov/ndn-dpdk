@@ -7,8 +7,7 @@
 #include "../iface/input-demux.h"
 
 /** @brief Forwarder data plane, crypto helper. */
-typedef struct FwCrypto
-{
+typedef struct FwCrypto {
   ThreadCtrl ctrl;
   struct rte_ring* input;
   InputDemux output;

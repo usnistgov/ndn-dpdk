@@ -8,8 +8,7 @@ static_assert(offsetof(SgCtx, fibEntryDyn) == offsetof(FibSgInitCtx, dyn), "");
 static_assert(sizeof(SgCtx) <= offsetof(FibSgInitCtx, goHandle), "");
 
 __attribute__((nonnull)) static void
-FibEntry_RcuFree(struct rcu_head* rcuhead)
-{
+FibEntry_RcuFree(struct rcu_head* rcuhead) {
   FibEntry* entry = container_of(rcuhead, FibEntry, rcuhead);
   if (entry->height == 0) {
     StrategyCode_Unref(entry->strategy);
@@ -18,7 +17,6 @@ FibEntry_RcuFree(struct rcu_head* rcuhead)
 }
 
 void
-FibEntry_DeferredFree(FibEntry* entry)
-{
+FibEntry_DeferredFree(FibEntry* entry) {
   call_rcu(&entry->rcuhead, FibEntry_RcuFree);
 }

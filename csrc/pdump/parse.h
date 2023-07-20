@@ -7,11 +7,10 @@
 #include "../ndni/tlv-decoder.h"
 
 __attribute__((nonnull)) static inline LName
-Pdump_ExtractNameL3_(TlvDecoder* d)
-{
+Pdump_ExtractNameL3_(TlvDecoder* d) {
   uint32_t length, type = TlvDecoder_ReadTL_MaybeTruncated(d, &length);
   if (unlikely(type != TtName)) {
-    return (LName){ 0 };
+    return (LName){0};
   }
   return (LName){
     .value = rte_pktmbuf_mtod_offset(d->m, const uint8_t*, d->offset),
@@ -28,8 +27,7 @@ Pdump_ExtractNameL3_(TlvDecoder* d)
  * Otherwise, return empty LName.
  */
 __attribute__((nonnull)) static inline LName
-Pdump_ExtractName(struct rte_mbuf* pkt)
-{
+Pdump_ExtractName(struct rte_mbuf* pkt) {
   TlvDecoder d = TlvDecoder_Init(pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   switch (type0) {
@@ -69,7 +67,7 @@ Pdump_ExtractName(struct rte_mbuf* pkt)
   }
 
 NO_MATCH:;
-  return (LName){ 0 };
+  return (LName){0};
 }
 
 #endif // NDNDPDK_PDUMP_PARSE_H

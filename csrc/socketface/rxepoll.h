@@ -7,8 +7,7 @@
 #include <sys/epoll.h>
 
 /** @brief RX from datagram sockets using epoll. */
-typedef struct SocketRxEpoll
-{
+typedef struct SocketRxEpoll {
   RxGroup base;
   struct rte_mempool* directMp;
   uint64_t nTruncated;

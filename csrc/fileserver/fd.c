@@ -28,15 +28,13 @@ N_LOG_INIT(FileServerFd);
 #define HASH_EXPAND_BUCKETS(hh, tbl, oomed) FdHt_Expand_(tbl)
 
 __attribute__((nonnull)) static inline bool
-FdHt_Cmp_(const FileServerFd* entry, const LName* search)
-{
+FdHt_Cmp_(const FileServerFd* entry, const LName* search) {
   return entry->prefixL == search->length &&
          memcmp(entry->nameV, search->value, search->length) == 0;
 }
 
 static __rte_noinline void
-FdHt_Expand_(UT_hash_table* tbl)
-{
+FdHt_Expand_(UT_hash_table* tbl) {
   N_LOGE("FdHt Expand-rejected tbl=%p num_items=%u num_buckets=%u", tbl, tbl->num_items,
          tbl->num_buckets);
 }
@@ -48,22 +46,19 @@ FileServerFd* FileServer_NotFound = &notFound;
 #define FdStx_NextUpdate stx_ino
 static_assert(RTE_SIZEOF_FIELD(struct statx, FdStx_NextUpdate) == sizeof(TscTime), "");
 
-enum
-{
+enum {
   FileServerStatxRequired = STATX_TYPE | STATX_MODE | STATX_MTIME | STATX_SIZE,
   FileServerStatxOptional = STATX_ATIME | STATX_CTIME | STATX_BTIME,
 };
 
 static __rte_always_inline bool
-FileServerFd_HasStatBit(const FileServerFd* entry, uint32_t bit)
-{
+FileServerFd_HasStatBit(const FileServerFd* entry, uint32_t bit) {
   return (entry->st.stx_mask & bit) == bit;
 }
 
 static __rte_always_inline int
 FileServerFd_InvokeStatx(FileServer* p, FileServerFd* entry, int dfd, const char* restrict pathname,
-                         TscTime now)
-{
+                         TscTime now) {
   int res = syscall(__NR_statx, dfd, pathname, AT_EMPTY_PATH,
                     FileServerStatxRequired | FileServerStatxOptional, &entry->st);
   entry->st.FdStx_NextUpdate = now + p->statValidity;
@@ -81,8 +76,7 @@ FileServerFd_InvokeStatx(FileServer* p, FileServerFd* entry, int dfd, const char
 }
 
 __attribute__((nonnull)) static inline void
-FileServerFd_PrepareVersionedName(FileServer* p, FileServerFd* entry)
-{
+FileServerFd_PrepareVersionedName(FileServer* p, FileServerFd* entry) {
   uint16_t nameL = entry->prefixL;
   if (unlikely(FileServerFd_IsDir(entry))) {
     rte_memcpy(RTE_PTR_ADD(entry->nameV, nameL), FileServer_KeywordLs,
@@ -96,8 +90,7 @@ FileServerFd_PrepareVersionedName(FileServer* p, FileServerFd* entry)
 }
 
 __attribute__((nonnull)) static inline void
-FileServerFd_PrepareMetaInfo(FileServer* p, FileServerFd* entry, uint64_t size)
-{
+FileServerFd_PrepareMetaInfo(FileServer* p, FileServerFd* entry, uint64_t size) {
   entry->lastSeg = SPDK_CEIL_DIV(size, p->segmentLen) - (uint64_t)(size > 0);
 
   uint8_t segment[10];
@@ -109,8 +102,7 @@ FileServerFd_PrepareMetaInfo(FileServer* p, FileServerFd* entry, uint64_t size)
 }
 
 __attribute__((nonnull)) static inline FileServerFd*
-FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
-{
+FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now) {
   if (unlikely(entry->refcnt == 0)) {
     cds_list_del(&entry->queueNode);
     --p->fdQCount;
@@ -145,8 +137,7 @@ FileServerFd_Ref(FileServer* p, FileServerFd* entry, TscTime now)
 }
 
 __attribute__((nonnull)) static FileServerFd*
-FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, TscTime now)
-{
+FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, TscTime now) {
   int mount = LNamePrefixFilter_Find(prefix, FileServerMaxMounts, p->mountPrefixL, p->mountPrefixV);
   if (unlikely(mount < 0)) {
     N_LOGD("New bad-name" N_LOG_ERROR("mount-not-matched"));
@@ -209,8 +200,7 @@ FAIL:
 }
 
 FileServerFd*
-FileServerFd_Open(FileServer* p, const PName* name, TscTime now)
-{
+FileServerFd_Open(FileServer* p, const PName* name, TscTime now) {
   LName prefix = FileServer_GetPrefix(name);
   if (unlikely(prefix.length > FileServer_MaxPrefixL)) {
     return NULL;
@@ -226,8 +216,7 @@ FileServerFd_Open(FileServer* p, const PName* name, TscTime now)
 }
 
 void
-FileServerFd_Unref(FileServer* p, FileServerFd* entry)
-{
+FileServerFd_Unref(FileServer* p, FileServerFd* entry) {
   --entry->refcnt;
   if (likely(entry->refcnt > 0)) {
     N_LOGD("Unref in-use fd=%d refcnt=%d", entry->fd, entry->refcnt);
@@ -253,8 +242,7 @@ FileServerFd_Unref(FileServer* p, FileServerFd* entry)
 }
 
 void
-FileServerFd_Clear(FileServer* p)
-{
+FileServerFd_Clear(FileServer* p) {
   FileServerFd* entry;
   FileServerFd* tmp;
   HASH_ITER (hh, p->fdHt, entry, tmp) {
@@ -268,8 +256,7 @@ FileServerFd_Clear(FileServer* p)
 }
 
 uint32_t
-FileServerFd_PrepareMetadata_(FileServer* p, FileServerFd* entry)
-{
+FileServerFd_PrepareMetadata_(FileServer* p, FileServerFd* entry) {
   uint8_t* output = entry->metadataV;
 
 #define HAS_STAT_BIT(bit)                                                                          \
@@ -277,8 +264,7 @@ FileServerFd_PrepareMetadata_(FileServer* p, FileServerFd* entry)
 
 #define APPEND_NNI(type, bits, val)                                                                \
   do {                                                                                             \
-    struct                                                                                         \
-    {                                                                                              \
+    struct {                                                                                       \
       unaligned_uint32_t tl;                                                                       \
       unaligned_uint##bits##_t v;                                                                  \
     } __rte_packed* f = (void*)output;                                                             \
@@ -320,9 +306,8 @@ FileServerFd_PrepareMetadata_(FileServer* p, FileServerFd* entry)
 }
 
 void
-FileServerFd_WriteMetadata(FileServerFd* entry, struct iovec* iov, int iovcnt)
-{
-  uint8_t nameTL[L3TypeLengthHeadroom] = { TtName };
+FileServerFd_WriteMetadata(FileServerFd* entry, struct iovec* iov, int iovcnt) {
+  uint8_t nameTL[L3TypeLengthHeadroom] = {TtName};
   uint16_t sizeofNameTL = 1 + TlvEncoder_WriteVarNum(&nameTL[1], entry->versionedL);
   uint32_t nCopied = 0;
 
@@ -341,8 +326,7 @@ FileServerFd_WriteMetadata(FileServerFd* entry, struct iovec* iov, int iovcnt)
 }
 
 __attribute__((nonnull)) static inline int
-FileServerFd_DirentType(FileServerFd* entry, struct dirent64* de)
-{
+FileServerFd_DirentType(FileServerFd* entry, struct dirent64* de) {
   switch (de->d_type) {
     case DT_UNKNOWN:
     case DT_LNK:
@@ -367,8 +351,7 @@ FileServerFd_DirentType(FileServerFd* entry, struct dirent64* de)
 }
 
 bool
-FileServerFd_GenerateLs(FileServer* p, FileServerFd* entry)
-{
+FileServerFd_GenerateLs(FileServer* p, FileServerFd* entry) {
   NDNDPDK_ASSERT(FileServerFd_IsDir(entry));
 
   int res = lseek(entry->fd, 0, SEEK_SET);

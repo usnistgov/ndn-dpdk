@@ -8,8 +8,7 @@ static RTE_DEFINE_PER_LCORE(
   LpPitTokenStringBuffer);
 
 const char*
-LpPitToken_ToString(const LpPitToken* token)
-{
+LpPitToken_ToString(const LpPitToken* token) {
   if (unlikely(token->length == 0)) {
     return "(empty)";
   }
@@ -20,14 +19,12 @@ LpPitToken_ToString(const LpPitToken* token)
 }
 
 static __rte_always_inline bool
-LpHeader_IsCriticalType(uint32_t type)
-{
+LpHeader_IsCriticalType(uint32_t type) {
   return type < 800 || type > 959 || (type & 0x03) != 0x00;
 }
 
 __attribute__((nonnull)) static __rte_always_inline bool
-LpHeader_ParseNack(LpHeader* lph, TlvDecoder* d)
-{
+LpHeader_ParseNack(LpHeader* lph, TlvDecoder* d) {
   lph->l3.nackReason = NackUnspecified;
   TlvDecoder_EachTL (d, type, length) {
     switch (type) {
@@ -48,11 +45,10 @@ LpHeader_ParseNack(LpHeader* lph, TlvDecoder* d)
 }
 
 bool
-LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt)
-{
+LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt) {
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_pktmbuf_is_contiguous(pkt) &&
                  rte_mbuf_refcnt_read(pkt) == 1);
-  *lph = (const LpHeader){ 0 };
+  *lph = (const LpHeader){0};
   lph->l2.fragCount = 1;
 
   TlvDecoder d = TlvDecoder_Init(pkt);
@@ -132,15 +128,13 @@ FOUND_PAYLOAD:;
 }
 
 void
-LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
-{
+LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2) {
   NDNDPDK_ASSERT(rte_pktmbuf_headroom(pkt) >= LpHeaderHeadroom);
   TlvEncoder_PrependTL(pkt, TtLpPayload, pkt->pkt_len);
 
   if (likely(l2->fragIndex == 0)) {
     if (unlikely(l3->congMark != 0)) {
-      typedef struct CongMarkF
-      {
+      typedef struct CongMarkF {
         unaligned_uint32_t congMarkTL;
         uint8_t congMarkV;
       } __rte_packed CongMarkF;
@@ -154,8 +148,7 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
       if (unlikely(l3->nackReason == NackUnspecified)) {
         TlvEncoder_PrependTL(pkt, TtNack, 0);
       } else {
-        typedef struct NackF
-        {
+        typedef struct NackF {
           unaligned_uint32_t nackTL;
           unaligned_uint32_t nackReasonTL;
           uint8_t nackReasonV;
@@ -169,8 +162,7 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
     }
 
     if (likely(l3->pitToken.length > 0)) {
-      typedef struct PitTokenF
-      {
+      typedef struct PitTokenF {
         uint8_t pitTokenT;
         uint8_t pitTokenLV[];
       } __rte_packed PitTokenF;
@@ -186,8 +178,7 @@ LpHeader_Prepend(struct rte_mbuf* pkt, const LpL3* l3, const LpL2* l2)
     NDNDPDK_ASSERT(l2->fragIndex < l2->fragCount);
     NDNDPDK_ASSERT(l2->fragCount <= LpMaxFragments);
 
-    typedef struct FragF
-    {
+    typedef struct FragF {
       unaligned_uint16_t seqNumTL;
       unaligned_uint64_t seqNumV;
       unaligned_uint16_t fragIndexTL;

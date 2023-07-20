@@ -6,14 +6,12 @@
  */
 #include "api.h"
 
-typedef struct FibEntryInfo
-{
+typedef struct FibEntryInfo {
   uint8_t weights[FibMaxNexthops];
 } FibEntryInfo;
 
 SUBROUTINE uint64_t
-RxInterest(SgCtx* ctx)
-{
+RxInterest(SgCtx* ctx) {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
 
   uint32_t totalWeight = 0;
@@ -37,8 +35,7 @@ RxInterest(SgCtx* ctx)
 }
 
 uint64_t
-SgMain(SgCtx* ctx)
-{
+SgMain(SgCtx* ctx) {
   switch (ctx->eventKind) {
     case SGEVT_INTEREST:
       return RxInterest(ctx);
@@ -48,24 +45,23 @@ SgMain(SgCtx* ctx)
 }
 
 uint64_t
-SgInit(SgCtx* ctx)
-{
+SgInit(SgCtx* ctx) {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
   SgGetJSONSlice(fei->weights, ctx, "weights", 1);
   return 0;
 }
 
 SGINIT_SCHEMA({
-  "$schema" : "http://json-schema.org/draft-07/schema#",
-  "type" : "object",
-  "properties" : {
-    "weights" : {
-      "description" : "nexthop weights",
-      "type" : "array",
-      "minItems" : 1,
-      "items" : { "type" : "integer", "minimum" : 1, "maximum" : 255 }
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "weights": {
+      "description": "nexthop weights",
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "integer", "minimum": 1, "maximum": 255}
     }
   },
-  "required" : ["weights"],
-  "additionalProperties" : false
+  "required": ["weights"],
+  "additionalProperties": false
 });

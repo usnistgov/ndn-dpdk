@@ -7,14 +7,12 @@
 
 /** @brief Determine if a TLV-TYPE is critical for evolvability purpose. */
 static __rte_always_inline bool
-TlvDecoder_IsCriticalType(uint32_t type)
-{
+TlvDecoder_IsCriticalType(uint32_t type) {
   return type <= 0x1F || (type % 2) == 1;
 }
 
 /** @brief TLV decoder. */
-typedef struct TlvDecoder
-{
+typedef struct TlvDecoder {
   struct rte_mbuf* p; ///< first segment
   struct rte_mbuf* m; ///< current segment
   uint32_t length;    ///< remaining byte length
@@ -23,8 +21,7 @@ typedef struct TlvDecoder
 
 /** @brief Create a TlvDecoder. */
 __attribute__((nonnull)) static inline TlvDecoder
-TlvDecoder_Init(struct rte_mbuf* p)
-{
+TlvDecoder_Init(struct rte_mbuf* p) {
   return (TlvDecoder){
     .p = p,
     .m = p,
@@ -37,8 +34,7 @@ TlvDecoder_Init(struct rte_mbuf* p)
  * @pre Decoder has no less than @p count remaining octets.
  */
 __attribute__((nonnull)) static inline void
-TlvDecoder_Skip(TlvDecoder* d, uint32_t count)
-{
+TlvDecoder_Skip(TlvDecoder* d, uint32_t count) {
   NDNDPDK_ASSERT(count <= d->length);
   for (uint32_t remain = count; remain > 0;) {
     uint32_t here = d->m->data_len - d->offset;
@@ -62,8 +58,7 @@ TlvDecoder_Copy_(TlvDecoder* d, uint8_t* output, uint16_t count);
  * @post Decoder is advanced by @c count octets.
  */
 __attribute__((nonnull)) static inline void
-TlvDecoder_Copy(TlvDecoder* d, uint8_t* output, uint16_t count)
-{
+TlvDecoder_Copy(TlvDecoder* d, uint8_t* output, uint16_t count) {
   NDNDPDK_ASSERT(count <= d->length);
   if (unlikely(count == 0)) {
     return;
@@ -72,8 +67,7 @@ TlvDecoder_Copy(TlvDecoder* d, uint8_t* output, uint16_t count)
 }
 
 __attribute__((nonnull, returns_nonnull)) static inline const uint8_t*
-TlvDecoder_Read_Contiguous_(TlvDecoder* d, uint16_t count)
-{
+TlvDecoder_Read_Contiguous_(TlvDecoder* d, uint16_t count) {
   uint16_t here = d->m->data_len - d->offset;
   const uint8_t* output = rte_pktmbuf_mtod_offset(d->m, const uint8_t*, d->offset);
 
@@ -97,8 +91,7 @@ TlvDecoder_Read_Contiguous_(TlvDecoder* d, uint16_t count)
  * @post Decoder is advanced by @c count octets.
  */
 __attribute__((nonnull, returns_nonnull)) static inline const uint8_t*
-TlvDecoder_Read(TlvDecoder* d, uint8_t* scratch, uint16_t count)
-{
+TlvDecoder_Read(TlvDecoder* d, uint8_t* scratch, uint16_t count) {
   NDNDPDK_ASSERT(count <= d->length);
   if (unlikely(count == 0)) {
     return scratch;
@@ -150,8 +143,7 @@ TlvDecoder_Linearize_NonContiguous_(TlvDecoder* d, uint16_t count);
  * @post Decoder is advanced by @c count octets.
  */
 __attribute__((nonnull)) static inline const uint8_t*
-TlvDecoder_Linearize(TlvDecoder* d, uint16_t count)
-{
+TlvDecoder_Linearize(TlvDecoder* d, uint16_t count) {
   NDNDPDK_ASSERT(count <= d->length);
   if (unlikely(count == 0)) {
     return NULL;
@@ -168,8 +160,7 @@ TlvDecoder_Linearize(TlvDecoder* d, uint16_t count)
  * @post Decoder is advanced after the VAR-NUMBER.
  */
 __attribute__((nonnull)) static inline bool
-TlvDecoder_ReadVarNum(TlvDecoder* d, uint32_t* n)
-{
+TlvDecoder_ReadVarNum(TlvDecoder* d, uint32_t* n) {
   if (unlikely(d->length < 1)) {
     return false;
   }
@@ -204,8 +195,7 @@ TlvDecoder_ReadVarNum(TlvDecoder* d, uint32_t* n)
  * @post Decoder is advanced after TLV-LENGTH.
  */
 __attribute__((nonnull)) static __rte_always_inline uint32_t
-TlvDecoder_ReadTL_MaybeTruncated(TlvDecoder* d, uint32_t* length)
-{
+TlvDecoder_ReadTL_MaybeTruncated(TlvDecoder* d, uint32_t* length) {
   *length = 0;
   uint32_t type;
   if (likely(TlvDecoder_ReadVarNum(d, &type)) && likely(TlvDecoder_ReadVarNum(d, length))) {
@@ -222,8 +212,7 @@ TlvDecoder_ReadTL_MaybeTruncated(TlvDecoder* d, uint32_t* length)
  * @post Decoder is advanced after TLV-LENGTH.
  */
 __attribute__((nonnull)) static inline uint32_t
-TlvDecoder_ReadTL(TlvDecoder* d, uint32_t* length)
-{
+TlvDecoder_ReadTL(TlvDecoder* d, uint32_t* length) {
   uint32_t type = TlvDecoder_ReadTL_MaybeTruncated(d, length);
   if (unlikely(*length > d->length)) {
     return 0;
@@ -253,8 +242,7 @@ TlvDecoder_ReadTL(TlvDecoder* d, uint32_t* length)
  * @post Parent decoder is advanced after the TLV-VALUE.
  */
 __attribute__((nonnull)) static inline TlvDecoder
-TlvDecoder_MakeValueDecoder(TlvDecoder* d, uint32_t length)
-{
+TlvDecoder_MakeValueDecoder(TlvDecoder* d, uint32_t length) {
   TlvDecoder vd = *d;
   vd.length = length;
   TlvDecoder_Skip(d, length);
@@ -268,8 +256,7 @@ TlvDecoder_MakeValueDecoder(TlvDecoder* d, uint32_t length)
  * @post Decoder is advanced after the number.
  */
 __attribute__((nonnull)) static __rte_always_inline bool
-TlvDecoder_ReadNni(TlvDecoder* d, uint32_t length, uint64_t max, uint64_t* n)
-{
+TlvDecoder_ReadNni(TlvDecoder* d, uint32_t length, uint64_t max, uint64_t* n) {
   uint8_t scratch[8];
   const uint8_t* value = TlvDecoder_Read(d, scratch, RTE_MIN(sizeof(scratch), length));
   return Nni_Decode(length, value, n) && *n <= max;

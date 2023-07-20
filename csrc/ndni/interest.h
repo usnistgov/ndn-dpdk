@@ -6,8 +6,7 @@
 #include "name.h"
 
 /** @brief Parsed Interest packet. */
-typedef struct PInterest
-{
+typedef struct PInterest {
   uint32_t nonce;    ///< Nonce
   uint32_t lifetime; ///< InterestLifetime in millis
 
@@ -15,8 +14,7 @@ typedef struct PInterest
   uint8_t guiderSize;   ///< size of Nonce+InterestLifetime+HopLimit
 
   uint8_t hopLimit; ///< HopLimit value, "omitted" is same as 0xFF
-  struct
-  {
+  struct {
     bool canBePrefix : 1;
     bool mustBeFresh : 1;
     uint8_t nFwHints : 3;    ///< number of forwarding hints, up to PInterestMaxFwHints
@@ -52,8 +50,7 @@ __attribute__((nonnull)) bool
 PInterest_SelectFwHint(PInterest* interest, int i);
 
 /** @brief Interest guider fields. */
-typedef struct InterestGuiders
-{
+typedef struct InterestGuiders {
   uint32_t nonce;
   uint32_t lifetime;
   uint8_t hopLimit;
@@ -84,8 +81,7 @@ Interest_ModifyGuiders(Packet* npkt, InterestGuiders guiders, PacketMempools* mp
                        PacketTxAlign align);
 
 /** @brief Template for Interest encoding. */
-typedef struct InterestTemplate
-{
+typedef struct InterestTemplate {
   uint16_t prefixL;                       ///< Name prefix length
   uint16_t midLen;                        ///< midBuf length
   uint16_t nonceVOffset;                  ///< Nonce TLV-VALUE offset within midBuf

@@ -4,8 +4,7 @@
 
 N_LOG_INIT(StrategyCodeLoad);
 
-struct rte_bpf
-{
+struct rte_bpf {
   struct rte_bpf_prm prm;
   struct rte_bpf_jit jit;
   size_t sz;
@@ -13,8 +12,7 @@ struct rte_bpf
 };
 
 __attribute__((nonnull)) static int
-StrategyCode_LoadUbpf(struct rte_bpf* bpf, const struct rte_bpf_prm* prm, struct ubpf_vm* vm)
-{
+StrategyCode_LoadUbpf(struct rte_bpf* bpf, const struct rte_bpf_prm* prm, struct ubpf_vm* vm) {
   for (uint32_t i = 0; i < prm->nb_xsym; ++i) {
     if (prm->xsym[i].type != RTE_BPF_XTYPE_FUNC) {
       N_LOGE("unsupported xsym type index=%" PRIu32 " type=%d" N_LOG_ERROR_BLANK, i,
@@ -48,8 +46,7 @@ StrategyCode_LoadUbpf(struct rte_bpf* bpf, const struct rte_bpf_prm* prm, struct
 }
 
 struct rte_bpf*
-rte_bpf_load(const struct rte_bpf_prm* prm)
-{
+rte_bpf_load(const struct rte_bpf_prm* prm) {
   struct rte_bpf* bpf = rte_zmalloc("rte_bpf", sizeof(struct rte_bpf), 0);
   if (bpf == NULL) {
     rte_errno = ENOMEM;
@@ -83,8 +80,7 @@ FAIL:
 }
 
 void
-rte_bpf_destroy(struct rte_bpf* bpf)
-{
+rte_bpf_destroy(struct rte_bpf* bpf) {
   struct ubpf_vm* vm = (void*)bpf->prm.xsym;
   N_LOGD("rte_bpf_destroy monkeypatch bpf=%p vm=%p", bpf, vm);
 

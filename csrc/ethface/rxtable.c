@@ -2,8 +2,7 @@
 #include "face.h"
 
 __attribute__((nonnull)) static inline bool
-EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m)
-{
+EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m) {
   // RCU lock is inherited from RxLoop_Run
   EthFacePriv* priv;
   struct cds_hlist_node* pos;
@@ -18,8 +17,7 @@ EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m)
 }
 
 void
-EthRxTable_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx)
-{
+EthRxTable_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
   EthRxTable* rxt = container_of(rxg, EthRxTable, base);
   PdumpSource* pdumpUnmatched = PdumpSourceRef_Get(&rxt->pdumpUnmatched);
   ctx->nRx = rte_eth_rx_burst(rxt->port, rxt->queue, ctx->pkts, RTE_DIM(ctx->pkts));

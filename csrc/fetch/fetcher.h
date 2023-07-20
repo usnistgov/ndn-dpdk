@@ -10,8 +10,7 @@
 #include "logic.h"
 
 /** @brief Fetch task that fetches from one prefix. */
-typedef struct FetchTask
-{
+typedef struct FetchTask {
   struct cds_hlist_node fthNode; ///< FetchThread.head node
   PktQueue queueD;
   FetchLogic logic;
@@ -29,8 +28,7 @@ typedef struct FetchTask
 } FetchTask;
 
 /** @brief Fetch thread that runs several fetch procedures. */
-typedef struct FetchThread
-{
+typedef struct FetchThread {
   Uring ur;
   ThreadCtrl ctrl;
 

@@ -11,19 +11,16 @@
 typedef struct DiskStore DiskStore;
 
 /** @brief DiskStore compact request context. */
-typedef struct DiskStoreSlimRequest
-{
+typedef struct DiskStoreSlimRequest {
   Packet* next;
   DiskStore* store;
   uint64_t slotID;
 } DiskStoreSlimRequest;
 
 /** @brief DiskStore request context. */
-typedef struct DiskStoreRequest
-{
+typedef struct DiskStoreRequest {
   DiskStoreSlimRequest s;
-  union
-  {
+  union {
     Packet* npkt;
     struct rte_mbuf* pkt;
   };
@@ -40,8 +37,7 @@ typedef struct DiskStoreRequest
 typedef void (*DiskStore_GetDataCb)(Packet* npkt, uintptr_t ctx);
 
 /** @brief Disk-backed Data packet store. */
-struct DiskStore
-{
+struct DiskStore {
   Bdev bdev;
   uint64_t nBlocksPerSlot;
   struct rte_hash* requestHt;
@@ -64,8 +60,7 @@ struct DiskStore
  * @return whether success.
  */
 __attribute__((nonnull)) static inline bool
-DiskStore_PutPrepare(DiskStore* store, Packet* npkt, BdevStoredPacket* sp)
-{
+DiskStore_PutPrepare(DiskStore* store, Packet* npkt, BdevStoredPacket* sp) {
   return Bdev_WritePrepare(&store->bdev, Packet_ToMbuf(npkt), sp);
 }
 

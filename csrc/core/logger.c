@@ -2,8 +2,7 @@
 #include <spdk/log.h>
 
 __attribute__((nonnull)) static ssize_t
-Logger_Dpdk(void* ctx, const char* buf, size_t size)
-{
+Logger_Dpdk(void* ctx, const char* buf, size_t size) {
   FILE* output = ctx;
   fprintf(output, "%d %d %u * ", rte_log_cur_msg_logtype(), rte_log_cur_msg_loglevel(),
           rte_lcore_id());
@@ -13,8 +12,7 @@ Logger_Dpdk(void* ctx, const char* buf, size_t size)
 }
 
 int
-Logger_Dpdk_Init(FILE* output)
-{
+Logger_Dpdk_Init(FILE* output) {
   cookie_io_functions_t cookieFunc = {
     .write = Logger_Dpdk,
   };
@@ -35,8 +33,7 @@ static const uint32_t spdk2dpdkLogLevels[] = {
 
 void
 Logger_Spdk(int level, const char* restrict file, const int line, const char* restrict func,
-            const char* restrict format, va_list args)
-{
+            const char* restrict format, va_list args) {
   uint32_t lvl = spdk2dpdkLogLevels[level];
   if (!rte_log_can_log(RTE_LOGTYPE_SPDK, lvl)) {
     return;
@@ -51,8 +48,7 @@ Logger_Spdk(int level, const char* restrict file, const int line, const char* re
 }
 
 void
-Logger_HexDump(const uint8_t* b, size_t count)
-{
+Logger_HexDump(const uint8_t* b, size_t count) {
   for (size_t i = 0; i < count; ++i) {
     fprintf(stderr, "%02X", b[i]);
   }

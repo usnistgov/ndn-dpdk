@@ -27,15 +27,13 @@ static_assert(offsetof(PccEntry, key) == 0, ""); // casting PccEntry* to const P
 #define HASH_EXPAND_BUCKETS(hh, tbl, oomed) Pcct_KeyHt_Expand_(tbl)
 
 static __rte_noinline void
-Pcct_KeyHt_Expand_(UT_hash_table* tbl)
-{
+Pcct_KeyHt_Expand_(UT_hash_table* tbl) {
   N_LOGE("KeyHt Expand-rejected tbl=%p num_items=%u num_buckets=%u", tbl, tbl->num_items,
          tbl->num_buckets);
 }
 
 bool
-Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, int numaSocket)
-{
+Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, int numaSocket) {
   pcct->nKeyHtBuckets = rte_align32prevpow2(maxEntries);
   pcct->lastToken = PccTokenMask - 16;
 
@@ -53,8 +51,7 @@ Pcct_Init(Pcct* pcct, const char* id, uint32_t maxEntries, int numaSocket)
 }
 
 void
-Pcct_Clear(Pcct* pcct)
-{
+Pcct_Clear(Pcct* pcct) {
   N_LOGI("Clear pcct=%p", pcct);
 
   PccEntry* entry = NULL;
@@ -88,8 +85,7 @@ Pcct_Clear(Pcct* pcct)
 }
 
 PccEntry*
-Pcct_Insert(Pcct* pcct, const PccSearch* search, bool* isNew)
-{
+Pcct_Insert(Pcct* pcct, const PccSearch* search, bool* isNew) {
   PccEntry* entry = NULL;
   HASH_FIND_BYHASHVALUE(hh, pcct->keyHt, search, 0, search->hash, entry);
   if (entry != NULL) {
@@ -119,16 +115,14 @@ Pcct_Insert(Pcct* pcct, const PccSearch* search, bool* isNew)
 }
 
 void
-Pcct_Erase(Pcct* pcct, PccEntry* entry)
-{
+Pcct_Erase(Pcct* pcct, PccEntry* entry) {
   PcctEraseBatch peb = PcctEraseBatch_New(pcct);
   PcctEraseBatch_Append(&peb, entry);
   PcctEraseBatch_Finish(&peb);
 }
 
 uint64_t
-Pcct_AddToken(Pcct* pcct, PccEntry* entry)
-{
+Pcct_AddToken(Pcct* pcct, PccEntry* entry) {
   if (entry->hasToken) {
     return entry->token;
   }
@@ -162,8 +156,7 @@ Pcct_AddToken(Pcct* pcct, PccEntry* entry)
 }
 
 void
-Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
-{
+Pcct_RemoveToken(Pcct* pcct, PccEntry* entry) {
   if (!entry->hasToken) {
     return;
   }
@@ -178,8 +171,7 @@ Pcct_RemoveToken(Pcct* pcct, PccEntry* entry)
 }
 
 PccEntry*
-Pcct_FindByToken(const Pcct* pcct, uint64_t token)
-{
+Pcct_FindByToken(const Pcct* pcct, uint64_t token) {
   token &= PccTokenMask;
 
   void* entry = NULL;
@@ -192,8 +184,7 @@ Pcct_FindByToken(const Pcct* pcct, uint64_t token)
 }
 
 void
-PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb)
-{
+PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb) {
   NDNDPDK_ASSERT(peb->pcct != NULL);
   int nObjs = peb->nEntries;
   for (int i = 0; i < peb->nEntries; ++i) {

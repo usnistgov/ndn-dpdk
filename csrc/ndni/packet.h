@@ -10,34 +10,28 @@
 extern const char* PktType_Strings_[];
 
 __attribute__((returns_nonnull)) static inline const char*
-PktType_ToString(PktType t)
-{
+PktType_ToString(PktType t) {
   return PktType_Strings_[t];
 }
 
 /** @brief Convert to parsed packet type. */
 static __rte_always_inline PktType
-PktType_ToFull(PktType t)
-{
+PktType_ToFull(PktType t) {
   return (t & 0x03);
 }
 
 /** @brief Convert to unparsed packet type. */
 static __rte_always_inline PktType
-PktType_ToSlim(PktType t)
-{
+PktType_ToSlim(PktType t) {
   return (t & 0x03) | 0x04;
 }
 
 /** @brief mbuf private data for NDN packet. */
-typedef union PacketPriv
-{
+typedef union PacketPriv {
   LpHeader lp;
-  struct
-  {
+  struct {
     LpL3 lpl3;
-    union
-    {
+    union {
       PInterest interest;
       PData data;
     };
@@ -53,35 +47,30 @@ static_assert(offsetof(PacketPriv, nack.interest) == offsetof(PacketPriv, intere
  * @param pkt mbuf of first fragment; must have sizeof(PacketPriv) priv_size.
  */
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline Packet*
-Packet_FromMbuf(struct rte_mbuf* pkt)
-{
+Packet_FromMbuf(struct rte_mbuf* pkt) {
   return (Packet*)pkt;
 }
 
 /** @brief Convert Packet* to rte_mbuf*. */
 static __rte_always_inline struct rte_mbuf*
-Packet_ToMbuf(const Packet* npkt)
-{
+Packet_ToMbuf(const Packet* npkt) {
   return (struct rte_mbuf*)npkt;
 }
 
 /** @brief Get packet type. */
 __attribute__((nonnull)) static __rte_always_inline PktType
-Packet_GetType(const Packet* npkt)
-{
+Packet_GetType(const Packet* npkt) {
   return Packet_ToMbuf(npkt)->inner_l3_type;
 }
 
 /** @brief Set packet type. */
 __attribute__((nonnull)) static __rte_always_inline void
-Packet_SetType(Packet* npkt, PktType t)
-{
+Packet_SetType(Packet* npkt, PktType t) {
   Packet_ToMbuf(npkt)->inner_l3_type = t;
 }
 
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline PacketPriv*
-Packet_GetPriv_(Packet* npkt)
-{
+Packet_GetPriv_(Packet* npkt) {
   return (PacketPriv*)rte_mbuf_to_priv(rte_mbuf_from_indirect(Packet_ToMbuf(npkt)));
 }
 
@@ -90,16 +79,14 @@ Packet_GetPriv_(Packet* npkt)
  * @pre Packet_GetType(npkt) == PktFragment
  */
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline LpHeader*
-Packet_GetLpHdr(Packet* npkt)
-{
+Packet_GetLpHdr(Packet* npkt) {
   NDNDPDK_ASSERT(Packet_GetType(npkt) == PktFragment);
   return &Packet_GetPriv_(npkt)->lp;
 }
 
 /** @brief Access LpL3* header. */
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline LpL3*
-Packet_GetLpL3Hdr(Packet* npkt)
-{
+Packet_GetLpL3Hdr(Packet* npkt) {
   return &Packet_GetPriv_(npkt)->lpl3;
 }
 
@@ -108,8 +95,7 @@ Packet_GetLpL3Hdr(Packet* npkt)
  * @pre Packet_GetType(npkt) == PktInterest
  */
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline PInterest*
-Packet_GetInterestHdr(Packet* npkt)
-{
+Packet_GetInterestHdr(Packet* npkt) {
   NDNDPDK_ASSERT(Packet_GetType(npkt) == PktInterest);
   return &Packet_GetPriv_(npkt)->interest;
 }
@@ -119,8 +105,7 @@ Packet_GetInterestHdr(Packet* npkt)
  * @pre Packet_GetType(npkt) == PktData
  */
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline PData*
-Packet_GetDataHdr(Packet* npkt)
-{
+Packet_GetDataHdr(Packet* npkt) {
   NDNDPDK_ASSERT(Packet_GetType(npkt) == PktData);
   return &Packet_GetPriv_(npkt)->data;
 }
@@ -130,8 +115,7 @@ Packet_GetDataHdr(Packet* npkt)
  * @pre Packet_GetType(npkt) == PktNack
  */
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline PNack*
-Packet_GetNackHdr(Packet* npkt)
-{
+Packet_GetNackHdr(Packet* npkt) {
   NDNDPDK_ASSERT(Packet_GetType(npkt) == PktNack);
   return &Packet_GetPriv_(npkt)->nack;
 }
@@ -165,8 +149,7 @@ Packet_ParseL3(Packet* npkt, ParseFor parseFor);
  * @pre @p npkt is fully parsed and has an L3 type.
  */
 __attribute__((nonnull)) static inline PName*
-Packet_GetName(Packet* npkt)
-{
+Packet_GetName(Packet* npkt) {
   switch (Packet_GetType(npkt)) {
     case PktInterest:
       return &Packet_GetInterestHdr(npkt)->name;
@@ -195,12 +178,11 @@ Packet_Clone(Packet* npkt, PacketMempools* mp, PacketTxAlign align);
  * Otherwise, this is equivalent to @c rte_pktmbuf_free .
  */
 __attribute__((nonnull)) static inline void
-Packet_Free(Packet* npkt)
-{
+Packet_Free(Packet* npkt) {
   if (Packet_GetType(npkt) == PktInterest) {
     PInterest* interest = Packet_GetInterestHdr(npkt);
     if (interest->diskData != NULL) {
-      struct rte_mbuf* mbufs[2] = { Packet_ToMbuf(npkt), Packet_ToMbuf(interest->diskData) };
+      struct rte_mbuf* mbufs[2] = {Packet_ToMbuf(npkt), Packet_ToMbuf(interest->diskData)};
       rte_pktmbuf_free_bulk(mbufs, RTE_DIM(mbufs));
       return;
     }
@@ -209,12 +191,11 @@ Packet_Free(Packet* npkt)
 }
 
 __attribute__((nonnull, returns_nonnull)) static inline Packet*
-Packet_EncodeFinish_(struct rte_mbuf* m, uint32_t type, PktType t)
-{
+Packet_EncodeFinish_(struct rte_mbuf* m, uint32_t type, PktType t) {
   TlvEncoder_PrependTL(m, type, m->pkt_len);
   Packet* output = Packet_FromMbuf(m);
   Packet_SetType(output, t);
-  *Packet_GetLpL3Hdr(output) = (const LpL3){ 0 };
+  *Packet_GetLpL3Hdr(output) = (const LpL3){0};
   return output;
 }
 

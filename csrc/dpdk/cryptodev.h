@@ -9,8 +9,7 @@
 extern struct rte_crypto_sym_xform CryptoDev_Sha256Xform;
 
 /** @brief Crypto queue pair. */
-typedef struct CryptoQueuePair
-{
+typedef struct CryptoQueuePair {
   void* sha256sess;
   uint8_t dev;
   uint16_t qp;
@@ -27,8 +26,7 @@ typedef struct CryptoQueuePair
  */
 __attribute__((nonnull)) static inline void
 CryptoQueuePair_PrepareSha256(CryptoQueuePair* cqp, struct rte_crypto_op* op, struct rte_mbuf* m,
-                              uint32_t offset, uint32_t length, uint8_t* output)
-{
+                              uint32_t offset, uint32_t length, uint8_t* output) {
   __rte_crypto_op_reset(op, RTE_CRYPTO_OP_TYPE_SYMMETRIC);
   op->sym->m_src = m;
   op->sym->auth.data.offset = offset;

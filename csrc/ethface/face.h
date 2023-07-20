@@ -7,8 +7,7 @@
 #include "locator.h"
 
 /** @brief rte_flow hardware assisted RX dispatching. */
-typedef struct EthRxFlow
-{
+typedef struct EthRxFlow {
   RxGroup base;
   FaceID faceID;
   uint16_t port;
@@ -18,8 +17,7 @@ typedef struct EthRxFlow
 } __rte_cache_aligned EthRxFlow;
 
 /** @brief Ethernet face private data. */
-typedef struct EthFacePriv
-{
+typedef struct EthFacePriv {
   EthRxFlow rxf[MaxFaceRxThreads];
   EthTxHdr txHdr;
   FaceID faceID;

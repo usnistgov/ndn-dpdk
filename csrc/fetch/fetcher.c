@@ -6,8 +6,7 @@
 N_LOG_INIT(FetchTask);
 
 __attribute__((nonnull)) static inline void
-FetchTask_EncodeInterest(FetchTask* fp, FetchThread* fth, struct rte_mbuf* pkt, uint64_t segNum)
-{
+FetchTask_EncodeInterest(FetchTask* fp, FetchThread* fth, struct rte_mbuf* pkt, uint64_t segNum) {
   uint8_t suffix[10];
   LName nameSuffix = {
     .length = Nni_EncodeNameComponent(suffix, TtSegmentNameComponent, segNum),
@@ -20,8 +19,7 @@ FetchTask_EncodeInterest(FetchTask* fp, FetchThread* fth, struct rte_mbuf* pkt, 
 }
 
 __attribute__((nonnull)) static inline uint32_t
-FetchTask_TxBurst(FetchTask* fp, FetchThread* fth)
-{
+FetchTask_TxBurst(FetchTask* fp, FetchThread* fth) {
   TscTime now = rte_get_tsc_cycles();
   uint64_t segNums[MaxBurstSize];
   size_t count = FetchLogic_TxInterestBurst(&fp->logic, segNums, RTE_DIM(segNums), now);
@@ -44,8 +42,7 @@ FetchTask_TxBurst(FetchTask* fp, FetchThread* fth)
 }
 
 __attribute__((nonnull)) static inline bool
-FetchTask_DecodeData(FetchTask* fp, Packet* npkt, FetchLogicRxData* lpkt)
-{
+FetchTask_DecodeData(FetchTask* fp, Packet* npkt, FetchLogicRxData* lpkt) {
   LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
   lpkt->congMark = lpl3->congMark;
 
@@ -60,8 +57,7 @@ FetchTask_DecodeData(FetchTask* fp, Packet* npkt, FetchLogicRxData* lpkt)
 }
 
 __attribute__((nonnull)) static inline bool
-FetchTask_WriteData(FetchThread* fth, FetchTask* fp, Packet* npkt, FetchLogicRxData* lpkt)
-{
+FetchTask_WriteData(FetchThread* fth, FetchTask* fp, Packet* npkt, FetchLogicRxData* lpkt) {
   const PData* data = Packet_GetDataHdr(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   struct iovec* iov = (struct iovec*)data->helperScratch;
@@ -84,8 +80,7 @@ FetchTask_WriteData(FetchThread* fth, FetchTask* fp, Packet* npkt, FetchLogicRxD
 }
 
 __attribute__((nonnull)) static __rte_always_inline uint32_t
-FetchTask_RxBurst(FetchThread* fth, FetchTask* fp, bool wantWrite)
-{
+FetchTask_RxBurst(FetchThread* fth, FetchTask* fp, bool wantWrite) {
   TscTime now = rte_get_tsc_cycles();
   Packet* npkts[MaxBurstSize];
   uint32_t nRx = PktQueue_Pop(&fp->queueD, (struct rte_mbuf**)npkts, MaxBurstSize, now).count;
@@ -121,14 +116,12 @@ FetchTask_RxBurst(FetchThread* fth, FetchTask* fp, bool wantWrite)
 }
 
 __attribute__((nonnull)) static uint32_t
-FetchTask_RxBurst_Discard(FetchThread* fth, FetchTask* fp)
-{
+FetchTask_RxBurst_Discard(FetchThread* fth, FetchTask* fp) {
   return FetchTask_RxBurst(fth, fp, false);
 }
 
 __attribute__((nonnull)) static uint32_t
-FetchTask_RxBurst_Write(FetchThread* fth, FetchTask* fp)
-{
+FetchTask_RxBurst_Write(FetchThread* fth, FetchTask* fp) {
   return FetchTask_RxBurst(fth, fp, true);
 }
 
@@ -139,8 +132,7 @@ const FetchTask_RxBurstFunc FetchTask_RxBurstJmp[] = {
 };
 
 __attribute__((nonnull)) static inline uint32_t
-FetchThread_CqBurst(FetchThread* fth)
-{
+FetchThread_CqBurst(FetchThread* fth) {
   struct io_uring_cqe* cqes[MaxBurstSize];
   uint32_t n = Uring_PeekCqes(&fth->ur, cqes, RTE_DIM(cqes));
   if (n == 0) {
@@ -162,8 +154,7 @@ FetchThread_CqBurst(FetchThread* fth)
 }
 
 int
-FetchThread_Run(FetchThread* fth)
-{
+FetchThread_Run(FetchThread* fth) {
   bool ok = Uring_Init(&fth->ur, fth->uringCapacity);
   if (unlikely(!ok)) {
     return 1;

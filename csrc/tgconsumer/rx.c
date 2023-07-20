@@ -7,10 +7,9 @@
 N_LOG_INIT(Tgc);
 
 __attribute__((nonnull)) static bool
-TgcRx_GetSeqNumFromName(TgcRx* cr, const TgcRxPattern* pattern, const PName* name, uint64_t* seqNum)
-{
-  typedef struct SeqNumF
-  {
+TgcRx_GetSeqNumFromName(TgcRx* cr, const TgcRxPattern* pattern, const PName* name,
+                        uint64_t* seqNum) {
+  typedef struct SeqNumF {
     unaligned_uint16_t tl;
     unaligned_uint64_t value;
   } __rte_packed SeqNumF;
@@ -26,8 +25,7 @@ TgcRx_GetSeqNumFromName(TgcRx* cr, const TgcRxPattern* pattern, const PName* nam
 }
 
 __attribute__((nonnull)) static void
-TgcRx_ProcessData(TgcRx* cr, Packet* npkt, uint8_t id, TscTime sendTime)
-{
+TgcRx_ProcessData(TgcRx* cr, Packet* npkt, uint8_t id, TscTime sendTime) {
   TgcRxPattern* pattern = &cr->pattern[id];
   const PData* data = Packet_GetDataHdr(npkt);
 
@@ -42,8 +40,7 @@ TgcRx_ProcessData(TgcRx* cr, Packet* npkt, uint8_t id, TscTime sendTime)
 }
 
 __attribute__((nonnull)) static void
-TgcRx_ProcessNack(TgcRx* cr, Packet* npkt, uint8_t id)
-{
+TgcRx_ProcessNack(TgcRx* cr, Packet* npkt, uint8_t id) {
   TgcRxPattern* pattern = &cr->pattern[id];
   const PNack* nack = Packet_GetNackHdr(npkt);
 
@@ -57,10 +54,9 @@ TgcRx_ProcessNack(TgcRx* cr, Packet* npkt, uint8_t id)
 }
 
 int
-TgcRx_Run(TgcRx* cr)
-{
+TgcRx_Run(TgcRx* cr) {
   struct rte_mbuf* pkts[MaxBurstSize];
-  PktQueuePopResult pop = { 0 };
+  PktQueuePopResult pop = {0};
   while (ThreadCtrl_Continue(cr->ctrl, pop.count)) {
     TscTime now = rte_get_tsc_cycles();
     pop = PktQueue_Pop(&cr->rxQueue, pkts, RTE_DIM(pkts), now);

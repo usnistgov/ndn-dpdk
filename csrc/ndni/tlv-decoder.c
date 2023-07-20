@@ -1,8 +1,7 @@
 #include "tlv-decoder.h"
 
 void
-TlvDecoder_Copy_(TlvDecoder* d, uint8_t* output, uint16_t count)
-{
+TlvDecoder_Copy_(TlvDecoder* d, uint8_t* output, uint16_t count) {
   for (uint16_t remain = count; remain > 0;) {
     uint16_t here = d->m->data_len - d->offset;
     if (remain < here) {
@@ -22,8 +21,7 @@ TlvDecoder_Copy_(TlvDecoder* d, uint8_t* output, uint16_t count)
 
 struct rte_mbuf*
 TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
-                 struct rte_mbuf** lastseg)
-{
+                 struct rte_mbuf** lastseg) {
   NDNDPDK_ASSERT(count <= d->length);
   TlvDecoder d0 = *d;
 
@@ -83,8 +81,7 @@ TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
 }
 
 __attribute__((nonnull)) static void
-Fragment_Put(TlvDecoder* d, struct rte_mbuf* frame, uint16_t fragSize)
-{
+Fragment_Put(TlvDecoder* d, struct rte_mbuf* frame, uint16_t fragSize) {
   uint8_t* room = (uint8_t*)rte_pktmbuf_append(frame, fragSize);
   NDNDPDK_ASSERT(room != NULL);
   TlvDecoder_Copy(d, room, fragSize);
@@ -92,8 +89,7 @@ Fragment_Put(TlvDecoder* d, struct rte_mbuf* frame, uint16_t fragSize)
 
 void
 TlvDecoder_Fragment(TlvDecoder* d, uint32_t count, struct rte_mbuf* frames[], uint32_t* fragIndex,
-                    uint32_t fragCount, uint16_t fragSize, uint16_t headroom)
-{
+                    uint32_t fragCount, uint16_t fragSize, uint16_t headroom) {
   NDNDPDK_ASSERT(count <= d->length);
 
   uint16_t thisFragSize = 0;
@@ -125,8 +121,7 @@ TlvDecoder_Fragment(TlvDecoder* d, uint32_t count, struct rte_mbuf* frames[], ui
 }
 
 __attribute__((nonnull)) static void
-Linearize_Delete_(TlvDecoder* d, struct rte_mbuf* c)
-{
+Linearize_Delete_(TlvDecoder* d, struct rte_mbuf* c) {
   for (struct rte_mbuf* seg = c->next; seg != d->m;) {
     struct rte_mbuf* next = seg->next;
     rte_pktmbuf_free_seg(seg);
@@ -142,8 +137,7 @@ Linearize_Delete_(TlvDecoder* d, struct rte_mbuf* c)
 }
 
 __attribute__((nonnull)) static const uint8_t*
-Linearize_MoveToFirst_(TlvDecoder* d, uint16_t count)
-{
+Linearize_MoveToFirst_(TlvDecoder* d, uint16_t count) {
   struct rte_mbuf* c = d->m;
   uint16_t co = d->offset;
   if (unlikely(c->data_off + co + count > c->buf_len)) {
@@ -166,8 +160,7 @@ Linearize_MoveToFirst_(TlvDecoder* d, uint16_t count)
 }
 
 __attribute__((nonnull)) static const uint8_t*
-Linearize_CopyToNew_(TlvDecoder* d, uint16_t count)
-{
+Linearize_CopyToNew_(TlvDecoder* d, uint16_t count) {
   struct rte_mbuf* c = d->m;
   uint16_t co = d->offset;
   NDNDPDK_ASSERT(co != 0); // d->offset==0 belongs to MoveToFirst
@@ -190,8 +183,7 @@ Linearize_CopyToNew_(TlvDecoder* d, uint16_t count)
 }
 
 const uint8_t*
-TlvDecoder_Linearize_NonContiguous_(TlvDecoder* d, uint16_t count)
-{
+TlvDecoder_Linearize_NonContiguous_(TlvDecoder* d, uint16_t count) {
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(d->m) && rte_mbuf_refcnt_read(d->m) == 1);
 
   if (likely(d->offset + count <= d->m->buf_len)) { // result fits in d->m

@@ -15,8 +15,7 @@ Pit_Init(Pit* pit);
 
 /** @brief Trigger expired timers. */
 __attribute__((nonnull)) static inline void
-Pit_TriggerTimers(Pit* pit)
-{
+Pit_TriggerTimers(Pit* pit) {
   MinSched_Trigger(pit->timeoutSched);
 }
 
@@ -69,8 +68,7 @@ __attribute__((nonnull)) PitEntry*
 Pit_FindByNack(Pit* pit, Packet* npkt, uint64_t token);
 
 __attribute__((nonnull)) static inline uint64_t
-PitEntry_GetToken(PitEntry* entry)
-{
+PitEntry_GetToken(PitEntry* entry) {
   // Declaration is in pit-entry.h.
   PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
   NDNDPDK_ASSERT(pccEntry->hasToken);

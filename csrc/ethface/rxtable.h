@@ -7,8 +7,7 @@
 #include "../pdump/source.h"
 
 /** @brief Table-based software RX dispatching. */
-typedef struct EthRxTable
-{
+typedef struct EthRxTable {
   RxGroup base;
   struct cds_hlist_head head;
   struct rte_mempool* copyTo;

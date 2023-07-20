@@ -35,7 +35,7 @@ if [[ ${#MISSING_BINARIES[@]} -gt 0 ]] ; then
 fi
 
 DFLT_CODEROOT=$HOME/code
-DFLT_NODEVER=16.x
+DFLT_NODEVER=20.x
 DFLT_GOVER=latest
 DFLT_UBPFVER=2b9bc44f42f37fccf2991a50ad4cf18c84161652
 DFLT_LIBBPFVER=v1.2.0
@@ -157,12 +157,49 @@ github_download() {
   readlink -f "$DIR"
 }
 
+set_alternative() {
+  $SUDO update-alternatives --remove-all $1 || true
+  $SUDO update-alternatives --install /usr/bin/$1 $1 $2 1
+}
+
+APT_PKGS=(
+  clang-15
+  clang-format-15
+  doxygen
+  file
+  g++-12
+  git
+  lcov
+  llvm-15
+  libaio-dev
+  libc6-dev-i386
+  libelf-dev
+  libnuma-dev
+  libpcap-dev
+  libssl-dev
+  liburcu-dev
+  m4
+  make
+  ninja-build
+  pkg-config
+  python-is-python3
+  python3-distutils
+  uuid-dev
+  yamllint
+)
+PIP_PKGS=(
+  meson
+  pyelftools
+)
+
 DISTRO=$(lsb_release -sc)
+NEED_PIP=1
 case $DISTRO in
-  bionic) ;;
-  focal) ;;
   jammy) ;;
-  bullseye) ;;
+  bookworm)
+    APT_PKGS+=(meson python3-pyelftools)
+    PIP_PKGS=()
+    ;;
   *)
     echo "Distro ${DISTRO} is not supported by this script."
     if [[ -z ${SKIPDISTROCHECK:-} ]]; then
@@ -172,46 +209,11 @@ case $DISTRO in
     ;;
 esac
 
-if [[ $(uname -r | awk -F. '{ print ($1*1000+$2>=5004) }') -ne 1 ]] &&
+if [[ $(uname -r | awk -F. '{ print ($1*1000+$2>=5015) }') -ne 1 ]] &&
    [[ -z ${SKIPKERNELCHECK:-} ]] && ! [[ -f /.dockerenv ]]; then
-  echo 'Linux kernel 5.4 or newer is required'
-  if [[ $DISTRO == bionic ]]; then
-    echo 'To upgrade kernel, run this command and reboot:'
-    echo "  ${APTINSTALL} linux-generic-hwe-18.04"
-  fi
+  echo 'Linux kernel 5.15 or newer is required'
   echo 'To skip this check, set the environment variable SKIPKERNELCHECK=1'
   exit 1
-fi
-
-APT_PKGS=(
-  build-essential
-  clang-11
-  clang-format-11
-  doxygen
-  file
-  gcc-multilib
-  git
-  lcov
-  llvm-11
-  libaio-dev
-  libc6-dev-i386
-  libelf-dev
-  libnuma-dev
-  libpcap-dev
-  libssl-dev
-  liburcu-dev
-  m4
-  ninja-build
-  pkg-config
-  python3-distutils
-  uuid-dev
-  yamllint
-)
-
-if [[ $DISTRO == bionic ]]; then
-  APT_PKGS+=(python3.8)
-else
-  APT_PKGS+=(python-is-python3)
 fi
 
 echo "Will download to ${CODEROOT}"
@@ -281,10 +283,6 @@ echo 'Dpkg::Options {
 }
 APT::Install-Recommends "no";
 APT::Install-Suggests "no";' | $SUDO tee /etc/apt/apt.conf.d/80custom >/dev/null
-if [[ $DISTRO == bionic ]] && ! [[ -f /etc/apt/sources.list.d/llvm-11.list ]]; then
-  curl -fsLS "${NDNDPDK_DL_LLVM_APT}/llvm-snapshot.gpg.key" | $SUDO apt-key add -
-  echo "deb ${NDNDPDK_DL_LLVM_APT}/bionic/ llvm-toolchain-bionic-11 main" | $SUDO tee /etc/apt/sources.list.d/llvm-11.list
-fi
 $SUDO apt-get -qq update
 $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -qq dist-upgrade
 
@@ -294,13 +292,17 @@ if [[ $NODEVER != 0 ]]; then
 fi
 
 $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -qq install "${APT_PKGS[@]}"
-
-if [[ $DISTRO == bionic ]]; then
-  $SUDO update-alternatives --remove-all python || true
-  $SUDO update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
+set_alternative gcc /usr/bin/gcc-12
+set_alternative cc /usr/bin/gcc
+set_alternative g++ /usr/bin/g++-12
+set_alternative c++ /usr/bin/g++
+if ! [[ -d /usr/include/asm ]]; then
+  $SUDO ln -s /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/asm /usr/include/asm
 fi
-curl -fsLS "${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py" | $SUDO python
-$SUDO pip install -U meson pyelftools
+if [[ ${#PIP_PKGS[@]} -ne 0 ]]; then
+  curl -fsLS "${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py" | $SUDO python
+  $SUDO pip install -U "${PIP_PKGS[@]}"
+fi
 
 if [[ $GOVER != 0 ]]; then
   $SUDO rm -rf /usr/local/go
@@ -311,10 +313,8 @@ if [[ $GOVER != 0 ]]; then
   if [[ -n ${GOPROXY:-} ]]; then
     go env -w GOPROXY="$GOPROXY"
   fi
-  $SUDO update-alternatives --remove-all go || true
-  $SUDO update-alternatives --install /usr/bin/go go /usr/local/go/bin/go 1
-  $SUDO update-alternatives --remove-all gofmt || true
-  $SUDO update-alternatives --install /usr/bin/gofmt gofmt /usr/local/go/bin/gofmt 1
+  set_alternative go /usr/local/go/bin/go
+  set_alternative gofmt /usr/local/go/bin/gofmt
 fi
 
 if [[ $UBPFVER != 0 ]]; then
@@ -339,7 +339,7 @@ fi
 
 if [[ $XDPTOOLSVER != 0 ]]; then
   cd "$(github_download xdp-project/xdp-tools $XDPTOOLSVER)"
-  CLANG=clang-11 LLC=llc-11 ./configure
+  CLANG=clang-15 LLC=llc-15 ./configure
   sh -c "umask 0000 && make -j${NJOBS}"
   $SUDO find /usr/local/lib '(' -name 'libxdp.*' -or -name 'xdp*.o' ')' -delete
   $SUDO sh -c "umask 0000 && make install PREFIX=/usr/local LIBDIR=/usr/local/lib"
@@ -378,7 +378,7 @@ if [[ $SPDKVER != 0 ]]; then
   sed -i '/^\s*if .*isa-l\/autogen.sh/,/^\s*fi$/ s/.*/CONFIG[ISAL]=n/' configure
   ./configure --target-arch=${TARGETARCH} --with-shared \
     --disable-tests --disable-unit-tests --disable-examples --disable-apps \
-    --with-dpdk --with-uring \
+    --with-dpdk --with-uring --without-uring-zns \
     --without-idxd --without-crypto --without-fio --without-xnvme --without-vhost \
     --without-virtio --without-vfio-user --without-rbd \
     --without-rdma --without-fc --without-daos --without-iscsi-initiator --without-vtune \

@@ -8,15 +8,13 @@
 N_LOG_INIT(FwFwd);
 
 __attribute__((nonnull)) static void
-FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdCtx* ctx)
-{
+FwFwd_DataUnsolicited(FwFwd* fwd, FwFwdCtx* ctx) {
   N_LOGD("^ drop=unsolicited");
   FwFwdCtx_FreePkt(ctx);
 }
 
 __attribute__((nonnull)) static void
-FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
-{
+FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx) {
   // if crypto helper is unavailable, Interests with implicit digest should have been dropped
   NDNDPDK_ASSERT(fwd->cryptoHelper != NULL);
 
@@ -31,8 +29,7 @@ FwFwd_DataNeedDigest(FwFwd* fwd, FwFwdCtx* ctx)
 }
 
 __attribute__((nonnull)) static void
-FwFwd_DataSeekFib(FwFwd* fwd, FwFwdCtx* ctx)
-{
+FwFwd_DataSeekFib(FwFwd* fwd, FwFwdCtx* ctx) {
   FwFwdCtx_SetFibEntry(ctx, PitEntry_FindFibEntry(ctx->pitEntry, fwd->fib));
   if (unlikely(ctx->fibEntryDyn == NULL)) {
     return;
@@ -48,8 +45,7 @@ FwFwd_DataSeekFib(FwFwd* fwd, FwFwdCtx* ctx)
 }
 
 __attribute__((nonnull)) static void
-FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
-{
+FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx) {
   uint8_t upCongMark = Packet_GetLpL3Hdr(ctx->npkt)->congMark;
   N_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry, PitEntry_ToDebugString(ctx->pitEntry));
 
@@ -94,8 +90,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx)
 }
 
 void
-FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx)
-{
+FwFwd_RxData(FwFwd* fwd, FwFwdCtx* ctx) {
   N_LOGD("RxData data-from=%" PRI_FaceID " npkt=%p up-token=%s", ctx->rxFace, ctx->npkt,
          LpPitToken_ToString(&ctx->rxToken));
   if (unlikely(ctx->rxToken.length != FwTokenLength)) {

@@ -8,8 +8,8 @@
 N_LOG_INIT(FwFwd);
 
 __attribute__((nonnull)) static void
-FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, uint8_t nackHopLimit)
-{
+FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason,
+              uint8_t nackHopLimit) {
   PitDnIt it;
   for (PitDnIt_Init(&it, pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
     PitDn* dn = it.dn;
@@ -47,8 +47,7 @@ FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason, ui
 }
 
 void
-SgReturnNacks(SgCtx* ctx0, NackReason reason)
-{
+SgReturnNacks(SgCtx* ctx0, NackReason reason) {
   FwFwdCtx* ctx = (FwFwdCtx*)ctx0;
   NDNDPDK_ASSERT(ctx->eventKind == SGEVT_INTEREST);
 
@@ -56,8 +55,7 @@ SgReturnNacks(SgCtx* ctx0, NackReason reason)
 }
 
 __attribute__((nonnull)) static bool
-FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
-{
+FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx) {
   TscTime now = rte_get_tsc_cycles();
   PitUp* up = ctx->pitUp;
   PitUp_AddRejectedNonce(up, up->nonce);
@@ -95,8 +93,7 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx)
 }
 
 __attribute__((nonnull)) static void
-FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
-{
+FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx) {
   PNack* nack = Packet_GetNackHdr(ctx->npkt);
   NackReason reason = nack->lpl3.nackReason;
   uint8_t nackHopLimit = nack->interest.hopLimit;
@@ -187,8 +184,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx)
 }
 
 void
-FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx)
-{
+FwFwd_RxNack(FwFwd* fwd, FwFwdCtx* ctx) {
   FwFwd_ProcessNack(fwd, ctx);
   FwFwdCtx_FreePkt(ctx);
 }

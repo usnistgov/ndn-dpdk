@@ -6,8 +6,7 @@
 #include "common.h"
 
 /** @brief NDNLPv2 reassembler. */
-typedef struct Reassembler
-{
+typedef struct Reassembler {
   uint64_t nDeliverPackets;   ///< delivered packets
   uint64_t nDeliverFragments; ///< delivered fragments
   uint64_t nDropFragments;    ///< dropped fragments

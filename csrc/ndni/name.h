@@ -8,15 +8,13 @@
 extern uint64_t LName_EmptyHash_;
 
 /** @brief Name in linear buffer. */
-typedef struct LName
-{
+typedef struct LName {
   const uint8_t* value;
   uint16_t length;
 } LName;
 
 __attribute__((nonnull)) static __rte_always_inline bool
-LName_ParseVarNum_(LName name, uint16_t* restrict pos, uint16_t* restrict n, uint16_t minTail)
-{
+LName_ParseVarNum_(LName name, uint16_t* restrict pos, uint16_t* restrict n, uint16_t minTail) {
   if (unlikely(*pos + 1 + minTail > name.length)) {
     return false;
   }
@@ -48,16 +46,14 @@ LName_ParseVarNum_(LName name, uint16_t* restrict pos, uint16_t* restrict n, uin
  */
 __attribute__((nonnull)) static inline bool
 LName_Component(LName name, uint16_t* restrict pos, uint16_t* restrict type,
-                uint16_t* restrict length)
-{
+                uint16_t* restrict length) {
   return LName_ParseVarNum_(name, pos, type, 1) && likely(*type != 0) &&
          LName_ParseVarNum_(name, pos, length, 0) && *pos + *length <= name.length;
 }
 
 /** @brief Determine whether @p a equals @p b . */
 static inline bool
-LName_Equal(LName a, LName b)
-{
+LName_Equal(LName a, LName b) {
   return a.length == b.length && memcmp(a.value, b.value, a.length) == 0;
 }
 
@@ -68,8 +64,7 @@ LName_Equal(LName a, LName b)
  * @retval negative otherwise.
  */
 static inline int
-LName_IsPrefix(LName a, LName b)
-{
+LName_IsPrefix(LName a, LName b) {
   if (a.length > b.length || memcmp(a.value, b.value, a.length) != 0) {
     return -1;
   }
@@ -77,9 +72,8 @@ LName_IsPrefix(LName a, LName b)
 }
 
 static __rte_always_inline LName
-LName_SliceByte_(LName name, uint16_t start, uint16_t end)
-{
-  return (LName){ .length = end - start, .value = RTE_PTR_ADD(name.value, start) };
+LName_SliceByte_(LName name, uint16_t start, uint16_t end) {
+  return (LName){.length = end - start, .value = RTE_PTR_ADD(name.value, start)};
 }
 
 /**
@@ -88,18 +82,16 @@ LName_SliceByte_(LName name, uint16_t start, uint16_t end)
  * @param end last byte offset (exclusive).
  */
 static __rte_always_inline LName
-LName_SliceByte(LName name, uint16_t start, uint16_t end)
-{
+LName_SliceByte(LName name, uint16_t start, uint16_t end) {
   end = RTE_MIN(end, name.length);
   if (unlikely(start >= end)) {
-    return (LName){ 0 };
+    return (LName){0};
   }
   return LName_SliceByte_(name, start, end);
 }
 
 static __rte_always_inline LName
-LName_Slice_(LName name, uint16_t start, uint16_t end)
-{
+LName_Slice_(LName name, uint16_t start, uint16_t end) {
   uint16_t i = 0, pos = 0, type = 0, length = 0;
   uint16_t posStart = likely(start == 0) ? 0 : name.length;
   uint16_t posEnd = name.length;
@@ -122,10 +114,9 @@ LName_Slice_(LName name, uint16_t start, uint16_t end)
  * @param end last component index (exclusive).
  */
 static inline LName
-LName_Slice(LName name, uint16_t start, uint16_t end)
-{
+LName_Slice(LName name, uint16_t start, uint16_t end) {
   if (unlikely(start >= end)) {
-    return (LName){ 0 };
+    return (LName){0};
   }
   return LName_Slice_(name, start, end);
 }
@@ -145,8 +136,7 @@ LName_ComputeHash(LName name);
  * @retval -1 no matching prefix.
  */
 __attribute__((nonnull)) static inline int
-LNamePrefixFilter_Find(LName name, int maxPrefix, const uint16_t* prefixL, const uint8_t* prefixV)
-{
+LNamePrefixFilter_Find(LName name, int maxPrefix, const uint16_t* prefixL, const uint8_t* prefixV) {
   size_t offset = 0;
   for (int i = 0; i < maxPrefix; ++i) {
     if (prefixL[i] == UINT16_MAX) {
@@ -166,13 +156,11 @@ LNamePrefixFilter_Find(LName name, int maxPrefix, const uint16_t* prefixL, const
 }
 
 /** @brief Parsed name. */
-typedef struct PName
-{
+typedef struct PName {
   const uint8_t* value; ///< TLV-VALUE
   uint16_t length;      ///< TLV-LENGTH
   uint16_t nComps;      ///< number of components
-  struct
-  {
+  struct {
     int16_t firstNonGeneric : 12; ///< index of first non-generic component
     bool hasDigestComp : 1;       ///< ends with digest component?
     bool hasHashes_ : 1;          ///< hash_ computed?
@@ -186,8 +174,7 @@ static_assert((NameMaxLength / 2) <= (1 << 11), "");
 
 /** @brief Convert PName to LName. */
 static __rte_always_inline LName
-PName_ToLName(const PName* p)
-{
+PName_ToLName(const PName* p) {
   static_assert(offsetof(LName, value) == offsetof(PName, value), "");
   static_assert(offsetof(LName, length) == offsetof(PName, length), "");
   return *(const LName*)p;
@@ -198,8 +185,7 @@ __attribute__((nonnull)) bool
 PName_Parse(PName* p, LName l);
 
 __attribute__((nonnull)) static __rte_noinline LName
-PName_Slice_Uncached_(const PName* p, int16_t start, int16_t end)
-{
+PName_Slice_Uncached_(const PName* p, int16_t start, int16_t end) {
   return LName_Slice_(PName_ToLName(p), (uint16_t)start, (uint16_t)end);
 }
 
@@ -209,8 +195,7 @@ PName_Slice_Uncached_(const PName* p, int16_t start, int16_t end)
  * @param end last component index (exclusive); if negative, count from end.
  */
 __attribute__((nonnull)) static __rte_always_inline LName
-PName_Slice(const PName* p, int16_t start, int16_t end)
-{
+PName_Slice(const PName* p, int16_t start, int16_t end) {
   if (unlikely(start < 0)) {
     start += p->nComps;
   }
@@ -222,7 +207,7 @@ PName_Slice(const PName* p, int16_t start, int16_t end)
   end = CLAMP(end, 0, (int16_t)p->nComps);
 
   if (unlikely(start >= end)) {
-    return (LName){ 0 };
+    return (LName){0};
   }
 
   if (unlikely(end > PNameCachedComponents)) {
@@ -238,8 +223,7 @@ PName_Slice(const PName* p, int16_t start, int16_t end)
  * @param n number of components; if negative, count from end.
  */
 __attribute__((nonnull)) static __rte_always_inline LName
-PName_GetPrefix(const PName* p, int16_t n)
-{
+PName_GetPrefix(const PName* p, int16_t n) {
   return PName_Slice(p, 0, n);
 }
 
@@ -251,8 +235,7 @@ PName_PrepareHashes_(PName* p);
  * @param i prefix length, must be no greater than n->nComps.
  */
 __attribute__((nonnull)) static inline uint64_t
-PName_ComputePrefixHash(const PName* p, uint16_t i)
-{
+PName_ComputePrefixHash(const PName* p, uint16_t i) {
   NDNDPDK_ASSERT(i <= p->nComps);
   if (unlikely(i == 0)) {
     return LName_EmptyHash_;
@@ -269,8 +252,7 @@ PName_ComputePrefixHash(const PName* p, uint16_t i)
 
 /** @brief Compute hash for the name. */
 __attribute__((nonnull)) static inline uint64_t
-PName_ComputeHash(const PName* p)
-{
+PName_ComputeHash(const PName* p) {
   return PName_ComputePrefixHash(p, p->nComps);
 }
 

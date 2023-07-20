@@ -6,16 +6,14 @@
 // helperScratch should be small enough not to increase PacketPriv size
 static_assert(sizeof(PData) <= sizeof(PInterest), "");
 
-static struct
-{
+static struct {
   unaligned_uint16_t sigInfoTL;
   unaligned_uint16_t sigTypeTL;
   uint8_t sigTypeV;
   unaligned_uint16_t sigValueTL;
 } __rte_packed NullSig;
 
-RTE_INIT(InitNullSig)
-{
+RTE_INIT(InitNullSig) {
   NullSig.sigInfoTL =
     TlvEncoder_ConstTL1(TtDSigInfo, sizeof(NullSig.sigTypeTL) + sizeof(NullSig.sigTypeV));
   NullSig.sigTypeTL = TlvEncoder_ConstTL1(TtSigType, sizeof(NullSig.sigTypeV));
@@ -25,11 +23,10 @@ RTE_INIT(InitNullSig)
   static_assert(sizeof(NullSig) == DataEncNullSigLen, "");
 }
 
-uint8_t DataEnc_NoMetaInfo[] = { 0 };
+uint8_t DataEnc_NoMetaInfo[] = {0};
 
 __attribute__((nonnull)) static inline bool
-PData_ParseMetaInfo(PData* data, TlvDecoder* d, ParseFor parseFor)
-{
+PData_ParseMetaInfo(PData* data, TlvDecoder* d, ParseFor parseFor) {
   TlvDecoder_EachTL (d, type, length) {
     switch (type) {
       case TtFreshnessPeriod: {
@@ -67,10 +64,9 @@ PData_ParseMetaInfo(PData* data, TlvDecoder* d, ParseFor parseFor)
 }
 
 bool
-PData_Parse(PData* data, struct rte_mbuf* pkt, ParseFor parseFor)
-{
+PData_Parse(PData* data, struct rte_mbuf* pkt, ParseFor parseFor) {
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
-  *data = (const PData){ 0 };
+  *data = (const PData){0};
 
   TlvDecoder d = TlvDecoder_Init(pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
@@ -79,7 +75,7 @@ PData_Parse(PData* data, struct rte_mbuf* pkt, ParseFor parseFor)
   TlvDecoder_EachTL (&d, type, length) {
     switch (type) {
       case TtName: {
-        LName lname = (LName){ .length = length };
+        LName lname = (LName){.length = length};
         if (unlikely(length > NameMaxLength ||
                      (lname.value = TlvDecoder_Linearize(&d, length)) == NULL ||
                      !PName_Parse(&data->name, lname))) {
@@ -116,8 +112,7 @@ PData_Parse(PData* data, struct rte_mbuf* pkt, ParseFor parseFor)
 }
 
 __attribute__((nonnull)) static DataSatisfyResult
-PData_CanSatisfy_HasDigestComp_(PData* data, PInterest* interest)
-{
+PData_CanSatisfy_HasDigestComp_(PData* data, PInterest* interest) {
   if (interest->name.length != data->name.length + ImplicitDigestSize ||
       memcmp(interest->name.value, data->name.value, data->name.length) != 0) {
     return DataSatisfyNo;
@@ -134,8 +129,7 @@ PData_CanSatisfy_HasDigestComp_(PData* data, PInterest* interest)
 }
 
 DataSatisfyResult
-PData_CanSatisfy(PData* data, PInterest* interest)
-{
+PData_CanSatisfy(PData* data, PInterest* interest) {
   if (unlikely(interest->name.hasDigestComp)) {
     return PData_CanSatisfy_HasDigestComp_(data, interest);
   }
@@ -145,8 +139,7 @@ PData_CanSatisfy(PData* data, PInterest* interest)
 }
 
 struct rte_crypto_op*
-DataDigest_Prepare(CryptoQueuePair* cqp, Packet* npkt)
-{
+DataDigest_Prepare(CryptoQueuePair* cqp, Packet* npkt) {
   PData* data = Packet_GetDataHdr(npkt);
   static_assert(sizeof(struct rte_crypto_op) + sizeof(struct rte_crypto_sym_op) <=
                   sizeof(data->helperScratch),
@@ -161,8 +154,7 @@ DataDigest_Prepare(CryptoQueuePair* cqp, Packet* npkt)
 }
 
 uint16_t
-DataDigest_Enqueue(CryptoQueuePair* cqp, struct rte_crypto_op** ops, uint16_t count)
-{
+DataDigest_Enqueue(CryptoQueuePair* cqp, struct rte_crypto_op** ops, uint16_t count) {
   if (unlikely(count == 0)) {
     return 0;
   }
@@ -171,8 +163,7 @@ DataDigest_Enqueue(CryptoQueuePair* cqp, struct rte_crypto_op** ops, uint16_t co
 }
 
 bool
-DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt)
-{
+DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt) {
   NDNDPDK_ASSERT(op->mempool == NULL);
   *npkt = Packet_FromMbuf(op->sym->m_src);
   PData* data = Packet_GetDataHdr(*npkt);
@@ -181,8 +172,7 @@ DataDigest_Finish(struct rte_crypto_op* op, Packet** npkt)
 }
 
 void
-DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName finalBlock)
-{
+DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName finalBlock) {
   room[0] = TtMetaInfo;
   room[1] = 0;
 #define APPEND(ptr, extraLength)                                                                   \
@@ -192,8 +182,7 @@ DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName
   } while (false)
 
   if (unlikely(ct != ContentBlob)) {
-    struct ContentTypeF
-    {
+    struct ContentTypeF {
       unaligned_uint16_t contentTypeTL;
       uint8_t contentTypeV;
     } __rte_packed* f = NULL;
@@ -203,8 +192,7 @@ DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName
   }
 
   if (freshness > 0) {
-    struct FreshnessF
-    {
+    struct FreshnessF {
       unaligned_uint16_t freshnessTL;
       unaligned_uint32_t freshnessV;
     } __rte_packed* f = NULL;
@@ -214,8 +202,7 @@ DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName
   }
 
   if (finalBlock.length > 0) {
-    struct FinalBlockF
-    {
+    struct FinalBlockF {
       uint8_t finalBlockT;
       uint8_t finalBlockL;
       uint8_t finalBlockV[];
@@ -236,12 +223,11 @@ DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName
 __attribute__((nonnull)) static struct rte_mbuf*
 DataEnc_EncodeCommon(LName prefix, LName suffix, const uint8_t* meta, uint32_t contentL,
                      bool allocContentL, struct iovec* iov, int* iovcnt, PacketMempools* mp,
-                     uint16_t dataLen)
-{
+                     uint16_t dataLen) {
   uint16_t sizeofMeta = DataEnc_SizeofMetaInfo(meta);
-  uint8_t nameTL[L3TypeLengthHeadroom] = { TtName };
+  uint8_t nameTL[L3TypeLengthHeadroom] = {TtName};
   uint16_t sizeofNameTL = 1 + TlvEncoder_WriteVarNum(&nameTL[1], prefix.length + suffix.length);
-  uint8_t contentTL[L3TypeLengthHeadroom] = { TtContent };
+  uint8_t contentTL[L3TypeLengthHeadroom] = {TtContent};
   uint16_t sizeofContentTL = 1 + TlvEncoder_WriteVarNum(&contentTL[1], contentL);
 
   *iovcnt = LpMaxFragments;
@@ -269,16 +255,14 @@ DataEnc_EncodeCommon(LName prefix, LName suffix, const uint8_t* meta, uint32_t c
 __attribute__((nonnull)) static struct rte_mbuf*
 DataEnc_EncodeLinear(LName prefix, LName suffix, const uint8_t* meta, uint32_t roomL,
                      struct iovec* roomIov, int* roomIovcnt, PacketMempools* mp,
-                     uint16_t fragmentPayloadSize)
-{
+                     uint16_t fragmentPayloadSize) {
   return DataEnc_EncodeCommon(prefix, suffix, meta, roomL, true, roomIov, roomIovcnt, mp,
                               fragmentPayloadSize);
 }
 
 __attribute__((nonnull)) static struct rte_mbuf*
 DataEnc_EncodeChained(LName prefix, LName suffix, const uint8_t* meta, struct rte_mbuf* tplV,
-                      PacketMempools* mp)
-{
+                      PacketMempools* mp) {
   struct iovec iov[LpMaxFragments];
   int iovcnt = RTE_DIM(iov);
   struct rte_mbuf* pkt =
@@ -306,8 +290,7 @@ DataEnc_EncodeChained(LName prefix, LName suffix, const uint8_t* meta, struct rt
 
 struct rte_mbuf*
 DataEnc_EncodeTpl(LName prefix, LName suffix, const uint8_t* meta, struct rte_mbuf* tplV,
-                  struct iovec* tplIov, int tplIovcnt, PacketMempools* mp, PacketTxAlign align)
-{
+                  struct iovec* tplIov, int tplIovcnt, PacketMempools* mp, PacketTxAlign align) {
   if (!align.linearize) {
     return DataEnc_EncodeChained(prefix, suffix, meta, tplV, mp);
   }
@@ -330,8 +313,8 @@ DataEnc_EncodeTpl(LName prefix, LName suffix, const uint8_t* meta, struct rte_mb
 
 struct rte_mbuf*
 DataEnc_EncodeRoom(LName prefix, LName suffix, const uint8_t* meta, uint32_t roomL,
-                   struct iovec* roomIov, int* roomIovcnt, PacketMempools* mp, PacketTxAlign align)
-{
+                   struct iovec* roomIov, int* roomIovcnt, PacketMempools* mp,
+                   PacketTxAlign align) {
   if (!align.linearize) {
     align.fragmentPayloadSize =
       rte_pktmbuf_data_room_size(mp->packet) - RTE_PKTMBUF_HEADROOM - LpHeaderHeadroom;
@@ -341,8 +324,7 @@ DataEnc_EncodeRoom(LName prefix, LName suffix, const uint8_t* meta, uint32_t roo
 }
 
 __attribute__((nonnull)) static inline struct rte_mbuf*
-DataEnc_SignChain(struct rte_mbuf* pkt, struct rte_mbuf* tail, PacketMempools* mp)
-{
+DataEnc_SignChain(struct rte_mbuf* pkt, struct rte_mbuf* tail, PacketMempools* mp) {
   struct rte_mbuf* sigSeg = rte_pktmbuf_alloc(mp->packet);
   if (unlikely(sigSeg == NULL)) {
     return NULL;
@@ -358,8 +340,7 @@ DataEnc_SignChain(struct rte_mbuf* pkt, struct rte_mbuf* tail, PacketMempools* m
 
 __attribute__((nonnull)) static inline struct rte_mbuf*
 DataEnc_SignDirect(struct rte_mbuf* pkt, struct rte_mbuf* tail, PacketMempools* mp,
-                   uint16_t fragmentPayloadSize)
-{
+                   uint16_t fragmentPayloadSize) {
   if (unlikely(tail->data_len + DataEncNullSigLen > fragmentPayloadSize ||
                rte_pktmbuf_tailroom(tail) < DataEncNullSigLen)) {
     return DataEnc_SignChain(pkt, tail, mp);
@@ -368,8 +349,7 @@ DataEnc_SignDirect(struct rte_mbuf* pkt, struct rte_mbuf* tail, PacketMempools* 
 }
 
 Packet*
-DataEnc_Sign(struct rte_mbuf* pkt, PacketMempools* mp, PacketTxAlign align)
-{
+DataEnc_Sign(struct rte_mbuf* pkt, PacketMempools* mp, PacketTxAlign align) {
   struct rte_mbuf* tail = rte_pktmbuf_lastseg(pkt);
   if (align.linearize) {
     NDNDPDK_ASSERT(RTE_MBUF_DIRECT(tail) && rte_mbuf_refcnt_read(tail) == 1);

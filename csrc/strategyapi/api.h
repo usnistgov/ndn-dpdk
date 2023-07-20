@@ -9,14 +9,12 @@
 #include "pit.h"
 
 /** @brief Global static parameters. */
-typedef struct SgGlobal
-{
+typedef struct SgGlobal {
   uint64_t tscHz;
 } SgGlobal;
 
 /** @brief Indicate why the strategy program is invoked. */
-typedef enum SgEvent
-{
+typedef enum SgEvent {
   SGEVT_NONE,
   SGEVT_INTEREST, ///< Interest arrives
   SGEVT_DATA,     ///< Data arrives
@@ -25,8 +23,7 @@ typedef enum SgEvent
 } SgEvent;
 
 /** @brief Context of strategy invocation. */
-typedef struct SgCtx
-{
+typedef struct SgCtx {
   /** @brief Global static parameters. */
   const SgGlobal* global;
 
@@ -57,8 +54,7 @@ typedef struct SgCtx
 
 /** @brief Convert milliseconds to TscDuration. */
 SUBROUTINE TscDuration
-SgTscFromMillis(SgCtx* ctx, uint64_t millis)
-{
+SgTscFromMillis(SgCtx* ctx, uint64_t millis) {
   return millis * ctx->global->tscHz / 1000;
 }
 
@@ -67,8 +63,7 @@ SgTscFromMillis(SgCtx* ctx, uint64_t millis)
  * @sa SgFibNexthopIt
  */
 SUBROUTINE void
-SgFibNexthopIt_InitCtx(SgFibNexthopIt* it, const SgCtx* ctx)
-{
+SgFibNexthopIt_InitCtx(SgFibNexthopIt* it, const SgCtx* ctx) {
   SgFibNexthopIt_Init(it, ctx->fibEntry, ctx->nhFlt);
 }
 
@@ -106,8 +101,7 @@ SgRandInt(SgCtx* ctx, uint32_t max);
 __attribute__((nonnull)) bool
 SgSetTimer(SgCtx* ctx, TscDuration after);
 
-typedef enum SgForwardInterestResult
-{
+typedef enum SgForwardInterestResult {
   SGFWDI_OK,         ///< success
   SGFWDI_BADFACE,    ///< face is down or FaceID is invalid
   SGFWDI_ALLOCERR,   ///< allocation error
@@ -139,8 +133,7 @@ SgReturnNacks(SgCtx* ctx, NackReason reason);
 __attribute__((section(SGSEC_MAIN), used, nonnull)) uint64_t
 SgMain(SgCtx* ctx);
 
-enum
-{
+enum {
   SGJSON_SCALAR = -1,
   SGJSON_LEN = -2,
 };

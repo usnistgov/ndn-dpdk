@@ -5,39 +5,33 @@
 
 #include "../core/mintmr.h"
 
-enum
-{
+enum {
   FetchSegTxTimeBits = 56,
   FetchSegTxTimeMask = ((uint64_t)1 << FetchSegTxTimeBits) - 1,
 };
 static_assert(FetchSegTxTimeBits + 1 + 1 <= 64, "");
 
 /** @brief Per-segment state. */
-typedef struct FetchSeg
-{
+typedef struct FetchSeg {
   uint64_t segNum; ///< segment number
-  struct
-  {
+  struct {
     uint64_t txTime : FetchSegTxTimeBits; ///< TscTime last Interest tx time
     bool hasRetx : 1;                     ///< whether Interest has been retransmitted at least once
     bool inRetxQ : 1;
   } __rte_packed;
-  union
-  {
+  union {
     MinTmr rtoExpiry;              ///< RTO expiration timer, valid if inRetxQ==false
     struct cds_list_head retxNode; ///< retxQ node, valid if inRetxQ==true
   };
 } FetchSeg;
 
 __attribute__((nonnull)) static inline void
-FetchSeg_Init(FetchSeg* seg, uint64_t segNum)
-{
-  *seg = (FetchSeg){ .segNum = segNum };
+FetchSeg_Init(FetchSeg* seg, uint64_t segNum) {
+  *seg = (FetchSeg){.segNum = segNum};
 }
 
 /** @brief Window of segment states. */
-typedef struct FetchWindow
-{
+typedef struct FetchWindow {
   FetchSeg* array;       ///< segment records
   uint64_t* deleted;     ///< deleted flag bit vector
   uint32_t capacityMask; ///< array capacity minus one
@@ -70,8 +64,7 @@ FetchWindow_Reset(FetchWindow* win, uint64_t firstSegNum);
  */
 __attribute__((nonnull)) static __rte_always_inline void
 FetchWindow_Pos_(FetchWindow* win, uint64_t segNum, FetchSeg** seg, uint64_t** deletedSlab,
-                 uint64_t* deletedBit)
-{
+                 uint64_t* deletedBit) {
   uint64_t pos = segNum & win->capacityMask;
   *seg = &win->array[pos];
   *deletedSlab = &win->deleted[pos >> 6];
@@ -83,8 +76,7 @@ __attribute__((nonnull)) void
 FetchWindow_Advance_(FetchWindow* win);
 
 __attribute__((nonnull)) static __rte_always_inline FetchSeg*
-FetchWindow_GetOrDelete_(FetchWindow* win, uint64_t segNum, bool isDelete)
-{
+FetchWindow_GetOrDelete_(FetchWindow* win, uint64_t segNum, bool isDelete) {
   if (unlikely(segNum < win->loSegNum || segNum >= win->hiSegNum)) {
     return NULL;
   }
@@ -112,8 +104,7 @@ FetchWindow_GetOrDelete_(FetchWindow* win, uint64_t segNum, bool isDelete)
  * @retval NULL segment is not in the window or has been deleted.
  */
 __attribute__((nonnull)) static inline FetchSeg*
-FetchWindow_Get(FetchWindow* win, uint64_t segNum)
-{
+FetchWindow_Get(FetchWindow* win, uint64_t segNum) {
   return FetchWindow_GetOrDelete_(win, segNum, false);
 }
 
@@ -122,8 +113,7 @@ FetchWindow_Get(FetchWindow* win, uint64_t segNum)
  * @retval NULL window has reached its capacity limit.
  */
 __attribute__((nonnull)) static inline FetchSeg*
-FetchWindow_Append(FetchWindow* win)
-{
+FetchWindow_Append(FetchWindow* win) {
   uint64_t segNum = win->hiSegNum;
   if (unlikely(segNum - win->loSegNum > win->capacityMask)) {
     return NULL;
@@ -141,8 +131,7 @@ FetchWindow_Append(FetchWindow* win)
 
 /** @brief Discard a segment's state. */
 __attribute__((nonnull)) static inline void
-FetchWindow_Delete(FetchWindow* win, uint64_t segNum)
-{
+FetchWindow_Delete(FetchWindow* win, uint64_t segNum) {
   FetchWindow_GetOrDelete_(win, segNum, true);
 }
 

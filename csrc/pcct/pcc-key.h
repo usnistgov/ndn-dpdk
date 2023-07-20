@@ -9,8 +9,7 @@
   (SPDK_CEIL_DIV(nameL - PccKeyNameCapacity, PccKeyExtCapacity) +                                  \
    SPDK_CEIL_DIV(fhL - PccKeyFhCapacity, PccKeyExtCapacity))
 
-enum
-{
+enum {
   PccKeyNameCapacity = 240,
   PccKeyFhCapacity = 160,
   PccKeyExtCapacity = 1000,
@@ -18,8 +17,7 @@ enum
 };
 
 /** @brief Hash key for searching among @c PccEntry . */
-typedef struct PccSearch
-{
+typedef struct PccSearch {
   LName name;
   LName fh;
   uint64_t hash;
@@ -27,8 +25,7 @@ typedef struct PccSearch
 
 /** @brief Create PccSearch from name and Interest fwhint. */
 __attribute__((nonnull)) static inline PccSearch
-PccSearch_FromNames(const PName* name, const PInterest* interest)
-{
+PccSearch_FromNames(const PName* name, const PInterest* interest) {
   PccSearch search = {
     .name = PName_ToLName(name),
     .hash = PName_ComputeHash(name),
@@ -50,8 +47,7 @@ PccSearch_ToDebugString(const PccSearch* search);
 typedef struct PccKeyExt PccKeyExt;
 
 /** @brief Hash key stored in @c PccEntry . */
-typedef struct PccKey
-{
+typedef struct PccKey {
   PccKeyExt* nameExt;
   PccKeyExt* fhExt;
   uint16_t nameL;
@@ -60,8 +56,7 @@ typedef struct PccKey
   uint8_t fhV[PccKeyFhCapacity];
 } PccKey;
 
-struct PccKeyExt
-{
+struct PccKeyExt {
   PccKeyExt* next;
   uint8_t value[PccKeyExtCapacity];
 };
@@ -71,8 +66,8 @@ PccKey_MatchFieldWithExt_(LName name, const uint8_t* firstV, uint16_t firstCapac
                           const PccKeyExt* ext);
 
 __attribute__((nonnull(2))) static __rte_always_inline bool
-PccKey_MatchField_(LName name, const uint8_t* firstV, uint16_t firstCapacity, const PccKeyExt* ext)
-{
+PccKey_MatchField_(LName name, const uint8_t* firstV, uint16_t firstCapacity,
+                   const PccKeyExt* ext) {
   if (unlikely(name.length > firstCapacity)) {
     return PccKey_MatchFieldWithExt_(name, firstV, firstCapacity, ext);
   }
@@ -81,24 +76,21 @@ PccKey_MatchField_(LName name, const uint8_t* firstV, uint16_t firstCapacity, co
 
 /** @brief Determine if @c key->name equals @p name . */
 __attribute__((nonnull)) static inline bool
-PccKey_MatchName(const PccKey* key, LName name)
-{
+PccKey_MatchName(const PccKey* key, LName name) {
   return name.length == key->nameL &&
          PccKey_MatchField_(name, key->nameV, PccKeyNameCapacity, key->nameExt);
 }
 
 /** @brief Determine if @p key matches @p search . */
 __attribute__((nonnull)) static inline bool
-PccKey_MatchSearch(const PccKey* key, const PccSearch* search)
-{
+PccKey_MatchSearch(const PccKey* key, const PccSearch* search) {
   return search->fh.length == key->fhL && PccKey_MatchName(key, search->name) &&
          PccKey_MatchField_(search->fh, key->fhV, PccKeyFhCapacity, key->fhExt);
 }
 
 /** @brief Determine how many PccKeyExts are needed to copy @p search into PccKey. */
 __attribute__((nonnull)) static inline int
-PccKey_CountExtensions(const PccSearch* search)
-{
+PccKey_CountExtensions(const PccSearch* search) {
   return PccKey_CountExtensions_(search->name.length, search->fh.length);
 }
 
@@ -108,8 +100,7 @@ PccKey_WriteFieldWithExt_(LName name, uint8_t* firstV, uint16_t firstCapacity, P
 
 __attribute__((nonnull)) static __rte_always_inline int
 PccKey_WriteField_(LName name, uint8_t* firstV, uint16_t firstCapacity, PccKeyExt** next,
-                   PccKeyExt* exts[])
-{
+                   PccKeyExt* exts[]) {
   if (unlikely(name.length > firstCapacity)) {
     return PccKey_WriteFieldWithExt_(name, firstV, firstCapacity, next, exts);
   }
@@ -120,8 +111,7 @@ PccKey_WriteField_(LName name, uint8_t* firstV, uint16_t firstCapacity, PccKeyEx
 
 /** @brief Copy @c search into @p key . */
 __attribute__((nonnull)) static inline void
-PccKey_CopyFromSearch(PccKey* key, const PccSearch* search, PccKeyExt* exts[], int nExts)
-{
+PccKey_CopyFromSearch(PccKey* key, const PccSearch* search, PccKeyExt* exts[], int nExts) {
   NDNDPDK_ASSERT(nExts == PccKey_CountExtensions(search));
   key->nameL = search->name.length;
   key->fhL = search->fh.length;
@@ -134,8 +124,7 @@ PccKey_CopyFromSearch(PccKey* key, const PccSearch* search, PccKeyExt* exts[], i
 
 /** @brief Move PccKeyExts into @p exts to prepare for removal. */
 __attribute__((nonnull)) static inline int
-PccKey_StripExts(PccKey* key, PccKeyExt* exts[PccKeyMaxExts])
-{
+PccKey_StripExts(PccKey* key, PccKeyExt* exts[PccKeyMaxExts]) {
   int nExts = 0;
   for (PccKeyExt* ext = key->nameExt; unlikely(ext != NULL); ext = ext->next) {
     exts[nExts++] = ext;

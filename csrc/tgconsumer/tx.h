@@ -12,8 +12,7 @@
 typedef struct TgcTx TgcTx;
 typedef struct TgcTxPattern TgcTxPattern;
 
-typedef struct TgcTxDigestPattern
-{
+typedef struct TgcTxDigestPattern {
   PacketMempools dataMp;
   CryptoQueuePair cqp;
   DataGen dataGen;
@@ -30,8 +29,7 @@ __attribute__((nonnull)) uint16_t
 TgcTxPattern_MakeSuffix_Increment(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern);
 
 /** @brief Per-pattern information in traffic generator consumer. */
-struct TgcTxPattern
-{
+struct TgcTxPattern {
   uint64_t nInterests;
   TgcTxPattern_MakeSuffix makeSuffix;
 
@@ -43,8 +41,7 @@ struct TgcTxPattern
   uint8_t digestL;
   uint8_t digestV[ImplicitDigestLength];
 
-  union
-  {
+  union {
     TgcTxDigestPattern* digest;
     uint64_t seqNumOffset;
   };
@@ -57,8 +54,7 @@ static_assert(offsetof(TgcTxPattern, seqNumT) + TgcSeqNumSize + ImplicitDigestSi
               "");
 
 /** @brief Traffic generator consumer TX thread. */
-struct TgcTx
-{
+struct TgcTx {
   ThreadCtrl ctrl;
   uint32_t nWeights;
   FaceID face;

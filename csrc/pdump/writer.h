@@ -7,8 +7,7 @@
 #include "../dpdk/thread.h"
 
 /** @brief Packet dump writer. */
-typedef struct PdumpWriter
-{
+typedef struct PdumpWriter {
   ThreadCtrl ctrl;
   struct rte_ring* queue;
   const char* filename;

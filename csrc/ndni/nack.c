@@ -2,8 +2,7 @@
 #include "packet.h"
 
 const char*
-NackReason_ToString(NackReason reason)
-{
+NackReason_ToString(NackReason reason) {
   switch (reason) {
     case NackCongestion:
       return "Congestion";
@@ -19,8 +18,7 @@ NackReason_ToString(NackReason reason)
 }
 
 Packet*
-Nack_FromInterest(Packet* npkt, NackReason reason, PacketMempools* mp, PacketTxAlign align)
-{
+Nack_FromInterest(Packet* npkt, NackReason reason, PacketMempools* mp, PacketTxAlign align) {
   if (unlikely(reason == NackNone)) {
     reason = NackUnspecified;
   }

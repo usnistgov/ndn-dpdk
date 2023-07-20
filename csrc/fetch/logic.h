@@ -10,8 +10,7 @@
 typedef TAILQ_HEAD(FetchRetxQueue, FetchSeg) FetchRetxQueue;
 
 /** @brief Fetcher congestion control and scheduling logic. */
-typedef struct FetchLogic
-{
+typedef struct FetchLogic {
   FetchWindow win;
   RttEst rtte;
   TcpCubic ca;
@@ -44,8 +43,7 @@ FetchLogic_Reset(FetchLogic* fl, uint64_t segmentBegin, uint64_t segmentEnd);
 __attribute__((nonnull)) size_t
 FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit, TscTime now);
 
-typedef struct FetchLogicRxData
-{
+typedef struct FetchLogicRxData {
   uint64_t segNum;
   uint8_t congMark;
   bool isFinalBlock;

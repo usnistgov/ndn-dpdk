@@ -2,8 +2,7 @@
 #include "face-impl.h"
 
 __attribute__((nonnull)) static uint16_t
-RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
-{
+RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg) {
   RxGroupBurstCtx ctx;
   memset(&ctx, 0, offsetof(RxGroupBurstCtx, zeroizeEnd_));
   rxg->rxBurst(rxg, &ctx);
@@ -48,8 +47,7 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg)
 }
 
 int
-RxLoop_Run(RxLoop* rxl)
-{
+RxLoop_Run(RxLoop* rxl) {
   rcu_register_thread();
   uint16_t nProcessed = 0;
   while (ThreadCtrl_Continue(rxl->ctrl, nProcessed)) {

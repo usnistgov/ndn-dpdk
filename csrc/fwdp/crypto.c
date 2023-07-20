@@ -7,8 +7,7 @@ N_LOG_INIT(FwCrypto);
 #define FW_CRYPTO_BURST_SIZE 16
 
 __attribute__((nonnull)) static uint16_t
-FwCrypto_Input(FwCrypto* fwc)
-{
+FwCrypto_Input(FwCrypto* fwc) {
   Packet* npkts[FW_CRYPTO_BURST_SIZE];
   uint16_t nDeq = rte_ring_dequeue_burst(fwc->input, (void**)npkts, FW_CRYPTO_BURST_SIZE, NULL);
   if (nDeq == 0) {
@@ -30,8 +29,7 @@ FwCrypto_Input(FwCrypto* fwc)
 }
 
 __attribute__((nonnull)) static uint16_t
-FwCrypto_Output(FwCrypto* fwc, CryptoQueuePair cqp)
-{
+FwCrypto_Output(FwCrypto* fwc, CryptoQueuePair cqp) {
   struct rte_crypto_op* ops[FW_CRYPTO_BURST_SIZE];
   uint16_t nDeq = rte_cryptodev_dequeue_burst(cqp.dev, cqp.qp, ops, FW_CRYPTO_BURST_SIZE);
 
@@ -63,8 +61,7 @@ FwCrypto_Output(FwCrypto* fwc, CryptoQueuePair cqp)
 }
 
 void
-FwCrypto_Run(FwCrypto* fwc)
-{
+FwCrypto_Run(FwCrypto* fwc) {
   N_LOGI("Run fwc=%p input=%p cryptodev=%" PRIu8 "-%" PRIu16, fwc, fwc->input, fwc->cqp.dev,
          fwc->cqp.qp);
   uint16_t nProcessed = 0;

@@ -8,15 +8,13 @@ STATIC_ASSERT_FUNC_TYPE(TgcTxPattern_MakeSuffix, TgcTxPattern_MakeSuffix_Increme
 N_LOG_INIT(Tgc);
 
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline unaligned_uint64_t*
-TgcTxDigestPattern_DataSeqNum(TgcTxPattern* pattern)
-{
+TgcTxDigestPattern_DataSeqNum(TgcTxPattern* pattern) {
   TgcTxDigestPattern* dp = pattern->digest;
   return RTE_PTR_ADD(dp->prefix.value, pattern->tpl.prefixL + TgcSeqNumSize - sizeof(uint64_t));
 }
 
 void
-TgcTxDigestPattern_Fill(TgcTxPattern* pattern)
-{
+TgcTxDigestPattern_Fill(TgcTxPattern* pattern) {
   TgcTxDigestPattern* dp = pattern->digest;
   Packet* npkts[TgcDigestBurstSize];
   struct rte_crypto_op* ops[TgcDigestBurstSize];
@@ -24,8 +22,8 @@ TgcTxDigestPattern_Fill(TgcTxPattern* pattern)
   for (int i = 0; i < TgcDigestBurstSize; ++i) {
     ++*TgcTxDigestPattern_DataSeqNum(pattern);
     Packet* npkt =
-      DataGen_Encode(&dp->dataGen, dp->prefix, &dp->dataMp, (PacketTxAlign){ .linearize = false });
-    *Packet_GetLpL3Hdr(npkt) = (const LpL3){ 0 };
+      DataGen_Encode(&dp->dataGen, dp->prefix, &dp->dataMp, (PacketTxAlign){.linearize = false});
+    *Packet_GetLpL3Hdr(npkt) = (const LpL3){0};
     bool ok = Packet_ParseL3(npkt, ParseForApp);
     NDNDPDK_ASSERT(ok && Packet_GetType(npkt) == PktData);
     npkts[i] = npkt;
@@ -43,8 +41,7 @@ TgcTxDigestPattern_Fill(TgcTxPattern* pattern)
 }
 
 uint16_t
-TgcTxPattern_MakeSuffix_Digest(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern)
-{
+TgcTxPattern_MakeSuffix_Digest(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern) {
   TgcTxDigestPattern* dp = pattern->digest;
   if (unlikely(*TgcTxDigestPattern_DataSeqNum(pattern) - pattern->seqNumV <=
                TgcDigestLowWatermark)) {
@@ -76,8 +73,7 @@ TgcTxPattern_MakeSuffix_Digest(TgcTx* ct, uint8_t patternID, TgcTxPattern* patte
 }
 
 uint16_t
-TgcTxPattern_MakeSuffix_Offset(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern)
-{
+TgcTxPattern_MakeSuffix_Offset(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern) {
   uint64_t seqNum = ct->pattern[patternID - 1].seqNumV - pattern->seqNumOffset;
   if (unlikely(pattern->seqNumV - seqNum <= UINT32_MAX)) { // same seqNum already requested
     seqNum = pattern->seqNumV + 1;
@@ -87,22 +83,19 @@ TgcTxPattern_MakeSuffix_Offset(TgcTx* ct, uint8_t patternID, TgcTxPattern* patte
 }
 
 uint16_t
-TgcTxPattern_MakeSuffix_Increment(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern)
-{
+TgcTxPattern_MakeSuffix_Increment(TgcTx* ct, uint8_t patternID, TgcTxPattern* pattern) {
   ++pattern->seqNumV;
   return TgcSeqNumSize;
 }
 
 __attribute__((nonnull)) static __rte_always_inline uint8_t
-TgcTx_SelectPattern(TgcTx* ct)
-{
+TgcTx_SelectPattern(TgcTx* ct) {
   uint32_t w = pcg32_boundedrand_r(&ct->trafficRng, ct->nWeights);
   return ct->weight[w];
 }
 
 __attribute__((nonnull)) static __rte_always_inline bool
-TgcTx_MakeInterest(TgcTx* ct, struct rte_mbuf* pkt, TscTime now)
-{
+TgcTx_MakeInterest(TgcTx* ct, struct rte_mbuf* pkt, TscTime now) {
   uint8_t id = TgcTx_SelectPattern(ct);
   TgcTxPattern* pattern = &ct->pattern[id];
   ++pattern->nInterests;
@@ -113,7 +106,7 @@ TgcTx_MakeInterest(TgcTx* ct, struct rte_mbuf* pkt, TscTime now)
     return false;
   }
 
-  LName suffix = (LName){ .length = suffixL, .value = &pattern->seqNumT };
+  LName suffix = (LName){.length = suffixL, .value = &pattern->seqNumT};
   uint32_t nonce = pcg32_random_r(&ct->nonceRng);
   Packet* npkt = InterestTemplate_Encode(&pattern->tpl, pkt, suffix, nonce);
   TgcToken_Set(&Packet_GetLpL3Hdr(npkt)->pitToken, id, ct->runNum, now);
@@ -122,8 +115,7 @@ TgcTx_MakeInterest(TgcTx* ct, struct rte_mbuf* pkt, TscTime now)
 }
 
 __attribute__((nonnull)) static void
-TgcTx_Burst(TgcTx* ct)
-{
+TgcTx_Burst(TgcTx* ct) {
   struct rte_mbuf* pkts[MaxBurstSize];
   int res = rte_pktmbuf_alloc_bulk(ct->interestMp, pkts, MaxBurstSize);
   if (unlikely(res != 0)) {
@@ -140,8 +132,7 @@ TgcTx_Burst(TgcTx* ct)
 }
 
 int
-TgcTx_Run(TgcTx* ct)
-{
+TgcTx_Run(TgcTx* ct) {
   TscTime nextTxBurst = rte_get_tsc_cycles();
   int sent = 0;
   while (ThreadCtrl_Continue(ct->ctrl, sent)) {

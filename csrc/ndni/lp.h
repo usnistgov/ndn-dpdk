@@ -6,8 +6,7 @@
 #include "common.h"
 
 /** @brief NDNLPv2 layer 2 fields and reassembler state. */
-typedef struct LpL2
-{
+typedef struct LpL2 {
   uint64_t seqNumBase; ///< seqNum-fragIndex
   uint8_t fragIndex;
   uint8_t fragCount;
@@ -28,22 +27,19 @@ static_assert(LpMaxFragments <= UINT8_MAX, "");
 static_assert(LpMaxFragments < CHAR_BIT * RTE_SIZEOF_FIELD(LpL2, reassBitmap), "");
 
 static __rte_always_inline uint64_t
-LpL2_GetSeqNum(const LpL2* l2)
-{
+LpL2_GetSeqNum(const LpL2* l2) {
   return l2->seqNumBase + l2->fragIndex;
 }
 
 /** @brief NDNLPv2 PIT token value. */
-typedef struct LpPitToken
-{
+typedef struct LpPitToken {
   uint8_t length;
   uint8_t value[32];
 } __rte_packed LpPitToken;
 
 /** @brief Assign PIT token. */
 __attribute__((nonnull)) static __rte_always_inline void
-LpPitToken_Set(LpPitToken* token, uint8_t length, const uint8_t* value)
-{
+LpPitToken_Set(LpPitToken* token, uint8_t length, const uint8_t* value) {
   token->length = length;
   rte_memcpy(token->value, value, length);
   memset(RTE_PTR_ADD(token->value, length), 0, sizeof(token->value) - length);
@@ -57,16 +53,14 @@ __attribute__((nonnull, returns_nonnull)) const char*
 LpPitToken_ToString(const LpPitToken* token);
 
 /** @brief NDNLPv2 layer 3 fields. */
-typedef struct LpL3
-{
+typedef struct LpL3 {
   uint8_t nackReason;
   uint8_t congMark;
   LpPitToken pitToken;
 } LpL3;
 
 /** @brief Parsed NDNLPv2 header. */
-typedef struct LpHeader
-{
+typedef struct LpHeader {
   LpL3 l3;
   LpL2 l2;
 } LpHeader;

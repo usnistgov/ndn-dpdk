@@ -6,27 +6,23 @@
 #include "pcc-entry.h"
 
 /** @brief Result kind of PIT insert. */
-typedef enum PitInsertResultKind
-{
+typedef enum PitInsertResultKind {
   PIT_INSERT_FULL = 0, ///< PIT is full, cannot insert
   PIT_INSERT_PIT = 1,  ///< created or found PIT entry
   PIT_INSERT_CS = 2,   ///< found existing CS entry that matches the Interest
 } PitInsertResultKind;
 
 /** @brief Result of PIT insert. */
-typedef struct PitInsertResult
-{
+typedef struct PitInsertResult {
   PitInsertResultKind kind;
-  union
-  {
+  union {
     PitEntry* pitEntry; ///< PIT entry, valid if kind==PIT_INSERT_PIT
     CsEntry* csEntry;   ///< direct CS entry, valid if kind==PIT_INSERT_CS
   };
 } PitInsertResult;
 
 /** @brief Result flag of PIT find, bitwise OR. */
-typedef enum PitFindResultFlag
-{
+typedef enum PitFindResultFlag {
   PIT_FIND_NONE = 0, ///< no PIT match
 
   PIT_FIND_PIT0 = RTE_BIT32(0), ///< matched PIT entry of MustBeFresh=0
@@ -38,15 +34,13 @@ typedef enum PitFindResultFlag
 } PitFindResultFlag;
 
 /** @brief Result of PIT find. */
-typedef struct PitFindResult
-{
+typedef struct PitFindResult {
   PccEntry* entry;
   uint8_t kind;
 } PitFindResult;
 
 static inline bool
-PitFindResult_Is(PitFindResult res, PitFindResultFlag flag)
-{
+PitFindResult_Is(PitFindResult res, PitFindResultFlag flag) {
   if (flag == PIT_FIND_NONE) {
     return res.kind == PIT_FIND_NONE;
   }
@@ -54,8 +48,7 @@ PitFindResult_Is(PitFindResult res, PitFindResultFlag flag)
 }
 
 static inline PitEntry*
-PitFindResult_GetPitEntry0(PitFindResult res)
-{
+PitFindResult_GetPitEntry0(PitFindResult res) {
   if (!PitFindResult_Is(res, PIT_FIND_PIT0)) {
     return NULL;
   }
@@ -63,8 +56,7 @@ PitFindResult_GetPitEntry0(PitFindResult res)
 }
 
 static inline PitEntry*
-PitFindResult_GetPitEntry1(PitFindResult res)
-{
+PitFindResult_GetPitEntry1(PitFindResult res) {
   if (!PitFindResult_Is(res, PIT_FIND_PIT1)) {
     return NULL;
   }
@@ -73,8 +65,7 @@ PitFindResult_GetPitEntry1(PitFindResult res)
 
 /** @brief Get a representative Interest from either PIT entry. */
 static inline PInterest*
-PitFindResult_GetInterest(PitFindResult res)
-{
+PitFindResult_GetInterest(PitFindResult res) {
   PitEntry* pitEntry = PitFindResult_GetPitEntry0(res);
   if (pitEntry == NULL) {
     pitEntry = PitFindResult_GetPitEntry1(res);

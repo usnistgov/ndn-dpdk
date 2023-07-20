@@ -4,8 +4,7 @@
 #include "tlv-encoder.h"
 
 __attribute__((nonnull)) static inline bool
-PInterest_ParseFwHint(PInterest* interest, TlvDecoder* d)
-{
+PInterest_ParseFwHint(PInterest* interest, TlvDecoder* d) {
   TlvDecoder_EachTL (d, type, length) {
     switch (type) {
       case TtName: {
@@ -35,10 +34,9 @@ PInterest_ParseFwHint(PInterest* interest, TlvDecoder* d)
 }
 
 bool
-PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt, ParseFor parseFor)
-{
+PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt, ParseFor parseFor) {
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
-  *interest = (const PInterest){ 0 };
+  *interest = (const PInterest){0};
   interest->lifetime = DefaultInterestLifetime;
   interest->hopLimit = UINT8_MAX;
   interest->activeFwHint = -1;
@@ -51,7 +49,7 @@ PInterest_Parse(PInterest* interest, struct rte_mbuf* pkt, ParseFor parseFor)
   TlvDecoder_EachTL (&d, type, length) {
     switch (type) {
       case TtName: {
-        LName lname = (LName){ .length = length };
+        LName lname = (LName){.length = length};
         if (unlikely(length > NameMaxLength ||
                      (lname.value = TlvDecoder_Linearize(&d, length)) == NULL)) {
           return false;
@@ -132,17 +130,15 @@ FOUND_PARAMETERS:;
 }
 
 bool
-PInterest_SelectFwHint(PInterest* interest, int i)
-{
+PInterest_SelectFwHint(PInterest* interest, int i) {
   NDNDPDK_ASSERT(i >= 0 && i < (int)interest->nFwHints);
   bool ok = PName_Parse(&interest->fwHint,
-                        (LName){ .length = interest->fwHintL[i], .value = interest->fwHintV[i] });
+                        (LName){.length = interest->fwHintL[i], .value = interest->fwHintV[i]});
   interest->activeFwHint = likely(ok) ? i : -1;
   return ok;
 }
 
-typedef struct GuiderFields
-{
+typedef struct GuiderFields {
   unaligned_uint16_t nonceTL;
   unaligned_uint32_t nonceV;
 
@@ -154,8 +150,7 @@ typedef struct GuiderFields
 } __rte_packed GuiderFields;
 
 __attribute__((nonnull)) static void
-ModifyGuiders_Append(struct rte_mbuf* m, InterestGuiders g)
-{
+ModifyGuiders_Append(struct rte_mbuf* m, InterestGuiders g) {
   GuiderFields* f = (GuiderFields*)rte_pktmbuf_append(m, sizeof(GuiderFields));
   NDNDPDK_ASSERT(f != NULL);
   f->nonceTL = TlvEncoder_ConstTL1(TtNonce, sizeof(f->nonceV));
@@ -168,8 +163,7 @@ ModifyGuiders_Append(struct rte_mbuf* m, InterestGuiders g)
 
 __attribute__((nonnull)) static Packet*
 ModifyGuiders_Linear(Packet* npkt, InterestGuiders guiders, PacketMempools* mp,
-                     uint16_t fragmentPayloadSize)
-{
+                     uint16_t fragmentPayloadSize) {
   PInterest* interest = Packet_GetInterestHdr(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   TlvDecoder d = TlvDecoder_Init(pkt);
@@ -201,8 +195,7 @@ ModifyGuiders_Linear(Packet* npkt, InterestGuiders guiders, PacketMempools* mp,
 }
 
 __attribute__((nonnull)) static Packet*
-ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMempools* mp)
-{
+ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMempools* mp) {
   // segs[0] = Interest TL, with headroom for lower layer headers
   // segs[1] = clone of Interest V before Nonce, such as Name and ForwardingHint
   // segs[2] = new guiders
@@ -252,8 +245,7 @@ ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMempools* mp)
 
 Packet*
 Interest_ModifyGuiders(Packet* npkt, InterestGuiders guiders, PacketMempools* mp,
-                       PacketTxAlign align)
-{
+                       PacketTxAlign align) {
   if (align.linearize) {
     return ModifyGuiders_Linear(npkt, guiders, mp, align.fragmentPayloadSize);
   }
@@ -262,8 +254,7 @@ Interest_ModifyGuiders(Packet* npkt, InterestGuiders guiders, PacketMempools* mp
 
 Packet*
 InterestTemplate_Encode(const InterestTemplate* tpl, struct rte_mbuf* m, LName suffix,
-                        uint32_t nonce)
-{
+                        uint32_t nonce) {
   NDNDPDK_ASSERT(RTE_MBUF_DIRECT(m) && rte_pktmbuf_is_contiguous(m) &&
                  rte_mbuf_refcnt_read(m) == 1 && m->data_len == 0 &&
                  m->buf_len >= InterestTemplateDataroom);
@@ -281,6 +272,6 @@ InterestTemplate_Encode(const InterestTemplate* tpl, struct rte_mbuf* m, LName s
 
   Packet* output = Packet_FromMbuf(m);
   Packet_SetType(output, PktSInterest);
-  *Packet_GetLpL3Hdr(output) = (const LpL3){ 0 };
+  *Packet_GetLpL3Hdr(output) = (const LpL3){0};
   return output;
 }

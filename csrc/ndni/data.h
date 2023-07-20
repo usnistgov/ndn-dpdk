@@ -6,8 +6,7 @@
 #include "name.h"
 
 /** @brief Parsed Data packet. */
-typedef struct PData
-{
+typedef struct PData {
   PName name;
   uint32_t freshness; ///< FreshnessPeriod in millis
   bool hasDigest;
@@ -82,8 +81,7 @@ DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName
  * @param meta prepared MetaInfo buffer.
  */
 __attribute__((nonnull)) static inline uint16_t
-DataEnc_SizeofMetaInfo(const uint8_t* meta)
-{
+DataEnc_SizeofMetaInfo(const uint8_t* meta) {
   return likely(meta[0] == TtMetaInfo) ? 2 + meta[1] : 0;
 }
 
@@ -124,8 +122,7 @@ __attribute__((nonnull)) Packet*
 DataEnc_Sign(struct rte_mbuf* pkt, PacketMempools* mp, PacketTxAlign align);
 
 /** @brief Data encoder optimized for traffic generator. */
-typedef struct DataGen
-{
+typedef struct DataGen {
   struct rte_mbuf* tpl;
   LName suffix;
   const uint8_t* meta;
@@ -145,8 +142,7 @@ typedef struct DataGen
  * dataroom must be at least @c RTE_PKTMBUF_DATAROOM+LpHeaderHeadroom+align.fragmentPayloadSize .
  */
 __attribute__((nonnull)) static inline Packet*
-DataGen_Encode(DataGen* gen, LName prefix, PacketMempools* mp, PacketTxAlign align)
-{
+DataGen_Encode(DataGen* gen, LName prefix, PacketMempools* mp, PacketTxAlign align) {
   struct rte_mbuf* pkt =
     DataEnc_EncodeTpl(prefix, gen->suffix, gen->meta, gen->tpl, gen->contentIov, 1, mp, align);
   if (unlikely(pkt == NULL)) {

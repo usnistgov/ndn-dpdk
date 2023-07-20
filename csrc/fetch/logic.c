@@ -5,8 +5,7 @@
 N_LOG_INIT(FetchLogic);
 
 __attribute__((nonnull)) static __rte_always_inline FetchSeg*
-FetchLogic_TxInterest(FetchLogic* fl, int* nNew, int* nRetx)
-{
+FetchLogic_TxInterest(FetchLogic* fl, int* nNew, int* nRetx) {
   if (!cds_list_empty(&fl->retxQ)) { // drain retxQ
     FetchSeg* seg = cds_list_first_entry(&fl->retxQ, FetchSeg, retxNode);
     cds_list_del(&seg->retxNode);
@@ -38,8 +37,7 @@ FetchLogic_TxInterest(FetchLogic* fl, int* nNew, int* nRetx)
 }
 
 size_t
-FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit, TscTime now)
-{
+FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit, TscTime now) {
   uint32_t cwnd = TcpCubic_GetCwnd(&fl->ca);
   size_t count = 0;
   int nNew = 0, nRetx = 0;
@@ -69,8 +67,7 @@ FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit, TscT
 }
 
 __attribute__((nonnull)) static inline bool
-FetchLogic_DecreaseCwnd(FetchLogic* fl, const char* caller, uint64_t segNum, TscTime now)
-{
+FetchLogic_DecreaseCwnd(FetchLogic* fl, const char* caller, uint64_t segNum, TscTime now) {
   if (unlikely(fl->hiDataSegNum <= fl->cwndDecInterestSegNum)) {
     return false;
   }
@@ -85,8 +82,8 @@ FetchLogic_DecreaseCwnd(FetchLogic* fl, const char* caller, uint64_t segNum, Tsc
 }
 
 __attribute__((nonnull)) static inline void
-FetchLogic_RxData(FetchLogic* fl, TscTime now, uint64_t segNum, bool hasCongMark, bool isFinalBlock)
-{
+FetchLogic_RxData(FetchLogic* fl, TscTime now, uint64_t segNum, bool hasCongMark,
+                  bool isFinalBlock) {
   FetchSeg* seg = FetchWindow_Get(&fl->win, segNum);
   if (unlikely(seg == NULL)) {
     return;
@@ -122,8 +119,7 @@ FetchLogic_RxData(FetchLogic* fl, TscTime now, uint64_t segNum, bool hasCongMark
 }
 
 void
-FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count, TscTime now)
-{
+FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t count, TscTime now) {
   for (size_t i = 0; i < count; ++i) {
     FetchLogic_RxData(fl, now, pkts[i].segNum, pkts[i].congMark > 0, pkts[i].isFinalBlock);
   }
@@ -133,8 +129,7 @@ FetchLogic_RxDataBurst(FetchLogic* fl, const FetchLogicRxData* pkts, size_t coun
 }
 
 __attribute__((nonnull)) static void
-FetchLogic_RtoTimeout(MinTmr* tmr, uintptr_t flPtr)
-{
+FetchLogic_RtoTimeout(MinTmr* tmr, uintptr_t flPtr) {
   FetchLogic* fl = (FetchLogic*)flPtr;
   FetchSeg* seg = container_of(tmr, FetchSeg, rtoExpiry);
 
@@ -154,8 +149,7 @@ FetchLogic_RtoTimeout(MinTmr* tmr, uintptr_t flPtr)
 }
 
 void
-FetchLogic_Init(FetchLogic* fl, uint32_t winCapacity, int numaSocket)
-{
+FetchLogic_Init(FetchLogic* fl, uint32_t winCapacity, int numaSocket) {
   FetchWindow_Init(&fl->win, winCapacity, numaSocket);
 
   // 2^16 slots of 1ms interval, accommodates RTO up to 65536ms
@@ -166,15 +160,13 @@ FetchLogic_Init(FetchLogic* fl, uint32_t winCapacity, int numaSocket)
 }
 
 void
-FetchLogic_Free(FetchLogic* fl)
-{
+FetchLogic_Free(FetchLogic* fl) {
   MinSched_Close(fl->sched);
   FetchWindow_Free(&fl->win);
 }
 
 void
-FetchLogic_Reset(FetchLogic* fl, uint64_t segmentBegin, uint64_t segmentEnd)
-{
+FetchLogic_Reset(FetchLogic* fl, uint64_t segmentBegin, uint64_t segmentEnd) {
   FetchWindow_Reset(&fl->win, segmentBegin);
   RttEst_Init(&fl->rtte);
   TcpCubic_Init(&fl->ca);

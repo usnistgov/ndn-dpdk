@@ -9,8 +9,7 @@
  * @brief TCP CUBIC algorithm.
  * @sa https://tools.ietf.org/html/rfc8312
  */
-typedef struct TcpCubic
-{
+typedef struct TcpCubic {
   TscTime t0;
   double cwnd;
   double wMax;
@@ -22,8 +21,7 @@ __attribute__((nonnull)) void
 TcpCubic_Init(TcpCubic* ca);
 
 __attribute__((nonnull)) static inline uint32_t
-TcpCubic_GetCwnd(TcpCubic* ca)
-{
+TcpCubic_GetCwnd(TcpCubic* ca) {
   return RTE_MAX((uint32_t)ca->cwnd, 1);
 }
 

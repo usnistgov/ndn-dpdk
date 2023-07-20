@@ -8,8 +8,7 @@ N_LOG_INIT(PitEntry);
 
 static_assert(sizeof(PitEntryExt) <= sizeof(PccEntry), "");
 
-enum
-{
+enum {
   PitDebugStringLength = Base16_BufferSize(NameMaxLength) +
                          6 * (PitMaxDns + PitMaxExtDns + PitMaxUps + PitMaxExtUps) + 32,
 };
@@ -17,8 +16,7 @@ static RTE_DEFINE_PER_LCORE(
   struct { char buffer[PitDebugStringLength]; }, PitDebugStringBuffer);
 
 const char*
-PitEntry_ToDebugString(PitEntry* entry)
-{
+PitEntry_ToDebugString(PitEntry* entry) {
   int pos = 0;
 #define buffer (RTE_PER_LCORE(PitDebugStringBuffer).buffer)
 #define append(fn, ...)                                                                            \
@@ -77,10 +75,9 @@ PitEntry_ToDebugString(PitEntry* entry)
 }
 
 FibEntry*
-PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
-{
+PitEntry_FindFibEntry(PitEntry* entry, Fib* fib) {
   PInterest* interest = Packet_GetInterestHdr(entry->npkt);
-  LName name = { .length = entry->fibPrefixL, .value = interest->name.value };
+  LName name = {.length = entry->fibPrefixL, .value = interest->name.value};
   if (unlikely(interest->activeFwHint >= 0)) {
     name.value = interest->fwHint.value;
   }
@@ -92,16 +89,14 @@ PitEntry_FindFibEntry(PitEntry* entry, Fib* fib)
 }
 
 void
-PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit)
-{
+PitEntry_SetExpiryTimer(PitEntry* entry, Pit* pit) {
   entry->hasSgTimer = false;
   bool ok = MinTmr_At(&entry->timeout, entry->expiry, pit->timeoutSched);
   NDNDPDK_ASSERT(ok); // unless PIT_MAX_LIFETIME is higher than scheduler limit
 }
 
 bool
-PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after)
-{
+PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after) {
   if (rte_get_tsc_cycles() + after > entry->expiry) {
     return false;
   }
@@ -114,8 +109,7 @@ PitEntry_SetSgTimer(PitEntry* entry, Pit* pit, TscDuration after)
 }
 
 void
-PitEntry_Timeout_(MinTmr* tmr, uintptr_t pitPtr)
-{
+PitEntry_Timeout_(MinTmr* tmr, uintptr_t pitPtr) {
   Pit* pit = (Pit*)pitPtr;
   PitEntry* entry = container_of(tmr, PitEntry, timeout);
   if (entry->hasSgTimer) {
@@ -130,8 +124,7 @@ PitEntry_Timeout_(MinTmr* tmr, uintptr_t pitPtr)
 }
 
 FaceID
-PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceID dnFace)
-{
+PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceID dnFace) {
   PitDnIt it;
   for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
     PitDn* dn = it.dn;
@@ -149,8 +142,7 @@ PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceID dnFace)
 }
 
 PitDn*
-PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
-{
+PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt) {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   FaceID face = pkt->port;
   LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
@@ -217,8 +209,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt)
 }
 
 PitUp*
-PitEntry_FindUp(PitEntry* entry, FaceID face)
-{
+PitEntry_FindUp(PitEntry* entry, FaceID face) {
   PitUpIt it;
   for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
     PitUp* up = it.up;
@@ -230,8 +221,7 @@ PitEntry_FindUp(PitEntry* entry, FaceID face)
 }
 
 PitUp*
-PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceID face)
-{
+PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceID face) {
   PitUpIt it;
   for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it) || PitUpIt_Extend(&it, pit);
        PitUpIt_Next(&it)) {

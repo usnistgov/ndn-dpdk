@@ -8,8 +8,7 @@
 #include "pit-struct.h"
 
 /** @brief The PIT-CS Composite Table (PCCT). */
-typedef struct Pcct
-{
+typedef struct Pcct {
   struct rte_mempool* mp;   ///< entry mempool
   PccEntry* keyHt;          ///< key hashtable
   struct rte_hash* tokenHt; ///< token hashtable
@@ -22,14 +21,12 @@ typedef struct Pcct
 } Pcct;
 
 static __rte_always_inline Pcct*
-Pcct_FromPit(const Pit* pit)
-{
+Pcct_FromPit(const Pit* pit) {
   return container_of(pit, Pcct, pit);
 }
 
 static __rte_always_inline Pcct*
-Pcct_FromCs(const Cs* cs)
-{
+Pcct_FromCs(const Cs* cs) {
   return container_of(cs, Pcct, cs);
 }
 
@@ -87,8 +84,7 @@ Pcct_FindByToken(const Pcct* pcct, uint64_t token);
 #define PCCT_ERASE_BURST 32
 
 /** @brief Context for erasing several PCC entries. */
-typedef struct PcctEraseBatch
-{
+typedef struct PcctEraseBatch {
   Pcct* pcct;
   int nEntries;
   void* objs[PCCT_ERASE_BURST * (2 + PccKeyMaxExts)];
@@ -103,9 +99,8 @@ typedef struct PcctEraseBatch
  * @endcode
  */
 __attribute__((nonnull)) static inline PcctEraseBatch
-PcctEraseBatch_New(Pcct* pcct)
-{
-  return (PcctEraseBatch){ .pcct = pcct };
+PcctEraseBatch_New(Pcct* pcct) {
+  return (PcctEraseBatch){.pcct = pcct};
 }
 
 __attribute__((nonnull)) void
@@ -113,8 +108,7 @@ PcctEraseBatch_EraseBurst_(PcctEraseBatch* peb);
 
 /** @brief Add an entry for erasing. */
 __attribute__((nonnull)) static inline void
-PcctEraseBatch_Append(PcctEraseBatch* peb, PccEntry* entry)
-{
+PcctEraseBatch_Append(PcctEraseBatch* peb, PccEntry* entry) {
   peb->objs[peb->nEntries] = entry;
   if (unlikely(++peb->nEntries == PCCT_ERASE_BURST)) {
     PcctEraseBatch_EraseBurst_(peb);
@@ -123,8 +117,7 @@ PcctEraseBatch_Append(PcctEraseBatch* peb, PccEntry* entry)
 
 /** @brief Erase entries. */
 __attribute__((nonnull)) static inline void
-PcctEraseBatch_Finish(PcctEraseBatch* peb)
-{
+PcctEraseBatch_Finish(PcctEraseBatch* peb) {
   if (likely(peb->nEntries > 0)) {
     PcctEraseBatch_EraseBurst_(peb);
   }

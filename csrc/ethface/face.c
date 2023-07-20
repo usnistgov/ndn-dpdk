@@ -5,8 +5,7 @@
 N_LOG_INIT(EthFace);
 
 __attribute__((nonnull)) static __rte_always_inline void
-EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool skipCheck)
-{
+EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool skipCheck) {
   EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
   ctx->nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, RTE_DIM(ctx->pkts));
   uint64_t now = rte_get_tsc_cycles();
@@ -24,30 +23,27 @@ EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool skipCheck)
 }
 
 __attribute__((nonnull)) static void
-EthRxFlow_RxBurst_Unchecked(RxGroup* rxg, RxGroupBurstCtx* ctx)
-{
+EthRxFlow_RxBurst_Unchecked(RxGroup* rxg, RxGroupBurstCtx* ctx) {
   EthRxFlow_RxBurst(rxg, ctx, true);
 }
 
 __attribute__((nonnull)) static void
-EthRxFlow_RxBurst_Checked(RxGroup* rxg, RxGroupBurstCtx* ctx)
-{
+EthRxFlow_RxBurst_Checked(RxGroup* rxg, RxGroupBurstCtx* ctx) {
   EthRxFlow_RxBurst(rxg, ctx, false);
 }
 
 struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const EthLocator* loc,
-                  bool isolated, struct rte_flow_error* error)
-{
+                  bool isolated, struct rte_flow_error* error) {
   EthLocatorClass c = EthLocator_Classify(loc);
   NDNDPDK_ASSERT(nQueues > 0 && nQueues <= (int)RTE_DIM(priv->rxf));
 
-  struct rte_flow_attr attr = { .ingress = true };
+  struct rte_flow_attr attr = {.ingress = true};
 
   EthFlowPattern pattern;
   EthFlowPattern_Prepare(&pattern, loc);
 
-  struct rte_flow_action_queue queue = { .index = queues[0] };
+  struct rte_flow_action_queue queue = {.index = queues[0]};
   struct rte_flow_action_rss rss = {
     .level = 1,
     .types = c.v4 ? RTE_ETH_RSS_NONFRAG_IPV4_UDP : RTE_ETH_RSS_NONFRAG_IPV6_UDP,
@@ -59,7 +55,7 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
       .type = nQueues > 1 ? RTE_FLOW_ACTION_TYPE_RSS : RTE_FLOW_ACTION_TYPE_QUEUE,
       .conf = nQueues > 1 ? (const void*)&rss : (const void*)&queue,
     },
-    { .type = RTE_FLOW_ACTION_TYPE_END },
+    {.type = RTE_FLOW_ACTION_TYPE_END},
   };
 
   struct rte_flow* flow = rte_flow_create(priv->port, &attr, pattern.pattern, actions, error);
@@ -73,7 +69,7 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
 
   for (int i = 0; i < (int)RTE_DIM(priv->rxf); ++i) {
     EthRxFlow* rxf = &priv->rxf[i];
-    *rxf = (const EthRxFlow){ 0 };
+    *rxf = (const EthRxFlow){0};
     if (i >= nQueues) {
       continue;
     }
@@ -89,13 +85,13 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
 }
 
 __attribute__((nonnull)) void
-EthFace_SetupRxMemif(EthFacePriv* priv, const EthLocator* loc)
-{
+EthFace_SetupRxMemif(EthFacePriv* priv, const EthLocator* loc) {
   priv->rxf[0] = (const EthRxFlow){
-    .base = {
-      .rxBurst = EthRxFlow_RxBurst_Unchecked,
-      .rxThread = 0,
-    },
+    .base =
+      {
+        .rxBurst = EthRxFlow_RxBurst_Unchecked,
+        .rxThread = 0,
+      },
     .faceID = priv->faceID,
     .port = priv->port,
     .queue = 0,
@@ -105,8 +101,7 @@ EthFace_SetupRxMemif(EthFacePriv* priv, const EthLocator* loc)
 }
 
 uint16_t
-EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
-{
+EthFace_TxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts) {
   EthFacePriv* priv = Face_GetPriv(face);
   for (uint16_t i = 0; i < nPkts; ++i) {
     struct rte_mbuf* m = pkts[i];

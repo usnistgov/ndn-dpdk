@@ -4,8 +4,7 @@ uint8_t* BdevFiller_ = NULL;
 
 __attribute__((nonnull)) static __rte_always_inline uint16_t
 BdevStoredPacket_ComputeHeadTail(struct rte_mbuf* m, uint16_t* headLen, uint16_t* saveLen,
-                                 uint8_t* headTail)
-{
+                                 uint8_t* headTail) {
   NDNDPDK_ASSERT(m->data_len != 0);
   *headLen = m->data_off & 0x03;
   *saveLen = RTE_ALIGN_CEIL(*headLen + m->data_len, 4);
@@ -16,16 +15,14 @@ BdevStoredPacket_ComputeHeadTail(struct rte_mbuf* m, uint16_t* headLen, uint16_t
 
 __attribute__((nonnull)) static __rte_always_inline void
 BdevStoredPacket_SplitHeadTail(uint16_t saveLen, uint8_t headTail, uint16_t* headLen,
-                               uint16_t* segLen)
-{
+                               uint16_t* segLen) {
   *headLen = headTail >> 4;
   uint16_t headTailLen = headTail & 0x0F;
   *segLen = saveLen - headTailLen;
 }
 
 __attribute__((nonnull)) static inline void
-Bdev_Complete(struct spdk_bdev_io* io, int res, void* req0)
-{
+Bdev_Complete(struct spdk_bdev_io* io, int res, void* req0) {
   spdk_bdev_free_io(io);
   NULLize(io);
 
@@ -34,8 +31,7 @@ Bdev_Complete(struct spdk_bdev_io* io, int res, void* req0)
 }
 
 __attribute__((nonnull)) static void
-Bdev_ReadSuccess(BdevRequest* req)
-{
+Bdev_ReadSuccess(BdevRequest* req) {
   struct rte_mbuf* pkt = req->pkt;
   BdevStoredPacket* sp = req->sp;
   pkt->pkt_len = sp->pktLen;
@@ -73,8 +69,7 @@ Bdev_ReadSuccess(BdevRequest* req)
 }
 
 __attribute__((nonnull)) static void
-Bdev_ReadComplete(struct spdk_bdev_io* io, bool success, void* req0)
-{
+Bdev_ReadComplete(struct spdk_bdev_io* io, bool success, void* req0) {
   if (likely(success)) {
     Bdev_ReadSuccess(req0);
   }
@@ -82,8 +77,7 @@ Bdev_ReadComplete(struct spdk_bdev_io* io, bool success, void* req0)
 }
 
 void
-Bdev_ReadPacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, BdevRequest* req)
-{
+Bdev_ReadPacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, BdevRequest* req) {
   uint32_t blockCount = BdevStoredPacket_ComputeBlockCount(req->sp);
   uint32_t totalLen = blockCount * BdevBlockSize;
 
@@ -107,8 +101,7 @@ Bdev_ReadPacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, Bdev
 }
 
 __attribute__((nonnull)) static inline int
-BdevWrite_AppendFiller(BdevRequest* req, uint32_t totalLen, struct rte_mbuf* lastSeg, int iovcnt)
-{
+BdevWrite_AppendFiller(BdevRequest* req, uint32_t totalLen, struct rte_mbuf* lastSeg, int iovcnt) {
   size_t fillerLen = totalLen - req->sp->saveTotal;
   if (likely(
         RTE_PTR_ADD(req->iov_[iovcnt - 1].iov_base, req->iov_[iovcnt - 1].iov_len + fillerLen) <=
@@ -124,15 +117,13 @@ BdevWrite_AppendFiller(BdevRequest* req, uint32_t totalLen, struct rte_mbuf* las
 
 __attribute__((nonnull)) static bool
 BdevWrite_SimplePrepare(__rte_unused Bdev* bd, __rte_unused struct rte_mbuf* pkt,
-                        BdevStoredPacket* sp)
-{
+                        BdevStoredPacket* sp) {
   sp->saveTotal = sp->pktLen;
   return true;
 }
 
 __attribute__((nonnull)) static int
-BdevWrite_SimpleIov(__rte_unused Bdev* bd, BdevRequest* req, uint32_t totalLen)
-{
+BdevWrite_SimpleIov(__rte_unused Bdev* bd, BdevRequest* req, uint32_t totalLen) {
   struct rte_mbuf* pkt = req->pkt;
   struct rte_mbuf* lastSeg = pkt;
   int iovcnt = 0;
@@ -149,8 +140,7 @@ BdevWrite_SimpleIov(__rte_unused Bdev* bd, BdevRequest* req, uint32_t totalLen)
 }
 
 __attribute__((nonnull)) static bool
-BdevWrite_DwordPrepare(__rte_unused Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp)
-{
+BdevWrite_DwordPrepare(__rte_unused Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp) {
   sp->saveTotal = 0;
   int i = 0;
   for (struct rte_mbuf* m = pkt; m != NULL; m = m->next) {
@@ -170,8 +160,7 @@ BdevWrite_DwordPrepare(__rte_unused Bdev* bd, struct rte_mbuf* pkt, BdevStoredPa
 }
 
 __attribute__((nonnull)) static int
-BdevWrite_DwordIov(__rte_unused Bdev* bd, BdevRequest* req, uint32_t totalLen)
-{
+BdevWrite_DwordIov(__rte_unused Bdev* bd, BdevRequest* req, uint32_t totalLen) {
   BdevStoredPacket* sp = req->sp;
   struct rte_mbuf* pkt = req->pkt;
   struct rte_mbuf* lastSeg = pkt;
@@ -191,8 +180,7 @@ BdevWrite_DwordIov(__rte_unused Bdev* bd, BdevRequest* req, uint32_t totalLen)
 }
 
 __attribute__((nonnull)) static inline bool
-BdevWrite_ContigHasTotalBuf(struct rte_mbuf* m, BdevStoredPacket* sp, uint16_t* headLen)
-{
+BdevWrite_ContigHasTotalBuf(struct rte_mbuf* m, BdevStoredPacket* sp, uint16_t* headLen) {
   uint32_t totalLen = BdevStoredPacket_ComputeBlockCount(sp) * BdevBlockSize;
   *headLen = 0;
   uint16_t segLen = m->data_len;
@@ -203,8 +191,7 @@ BdevWrite_ContigHasTotalBuf(struct rte_mbuf* m, BdevStoredPacket* sp, uint16_t* 
 }
 
 __attribute__((nonnull)) static bool
-BdevWrite_ContigPrepare(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp)
-{
+BdevWrite_ContigPrepare(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp) {
   uint16_t headLen = 0;
   if (pkt->nb_segs == 1 && BdevWrite_DwordPrepare(bd, pkt, sp) &&
       BdevWrite_ContigHasTotalBuf(pkt, sp, &headLen)) {
@@ -214,8 +201,7 @@ BdevWrite_ContigPrepare(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp)
 }
 
 __attribute__((nonnull)) static int
-BdevWrite_ContigIov(Bdev* bd, BdevRequest* req, uint32_t totalLen)
-{
+BdevWrite_ContigIov(Bdev* bd, BdevRequest* req, uint32_t totalLen) {
   BdevStoredPacket* sp = req->sp;
   struct rte_mbuf* pkt = req->pkt;
   uint16_t headLen = 0;
@@ -241,28 +227,29 @@ BdevWrite_ContigIov(Bdev* bd, BdevRequest* req, uint32_t totalLen)
   return 1;
 }
 
-static const struct
-{
+static const struct {
   bool (*prepare)(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp);
   int (*writeIov)(Bdev* bd, BdevRequest* req, uint32_t totalLen);
 } BdevWriteOps[] = {
-  [BdevWriteModeSimple] = {
-    .prepare = BdevWrite_SimplePrepare,
-    .writeIov = BdevWrite_SimpleIov,
-  },
-  [BdevWriteModeDwordAlign] = {
-    .prepare = BdevWrite_DwordPrepare,
-    .writeIov = BdevWrite_DwordIov,
-  },
-  [BdevWriteModeContiguous] = {
-    .prepare = BdevWrite_ContigPrepare,
-    .writeIov = BdevWrite_ContigIov,
-  },
+  [BdevWriteModeSimple] =
+    {
+      .prepare = BdevWrite_SimplePrepare,
+      .writeIov = BdevWrite_SimpleIov,
+    },
+  [BdevWriteModeDwordAlign] =
+    {
+      .prepare = BdevWrite_DwordPrepare,
+      .writeIov = BdevWrite_DwordIov,
+    },
+  [BdevWriteModeContiguous] =
+    {
+      .prepare = BdevWrite_ContigPrepare,
+      .writeIov = BdevWrite_ContigIov,
+    },
 };
 
 bool
-Bdev_WritePrepare(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp)
-{
+Bdev_WritePrepare(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp) {
   if (pkt->pkt_len == 0 || pkt->pkt_len >= UINT16_MAX || pkt->nb_segs > BdevMaxMbufSegs) {
     return false;
   }
@@ -272,8 +259,7 @@ Bdev_WritePrepare(Bdev* bd, struct rte_mbuf* pkt, BdevStoredPacket* sp)
 }
 
 __attribute__((nonnull)) static void
-Bdev_WriteComplete(struct spdk_bdev_io* io, bool success, void* req0)
-{
+Bdev_WriteComplete(struct spdk_bdev_io* io, bool success, void* req0) {
   BdevRequest* req = (BdevRequest*)req0;
   if (req->bounce_ != NULL) {
     rte_pktmbuf_free(req->bounce_);
@@ -283,8 +269,7 @@ Bdev_WriteComplete(struct spdk_bdev_io* io, bool success, void* req0)
 }
 
 void
-Bdev_WritePacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, BdevRequest* req)
-{
+Bdev_WritePacket(Bdev* bd, struct spdk_io_channel* ch, uint64_t blockOffset, BdevRequest* req) {
   BdevStoredPacket* sp = req->sp;
   uint32_t blockCount = BdevStoredPacket_ComputeBlockCount(sp);
   uint32_t totalLen = blockCount * BdevBlockSize;

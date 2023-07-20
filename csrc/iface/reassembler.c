@@ -2,8 +2,7 @@
 #include "../dpdk/hashtable.h"
 
 bool
-Reassembler_Init(Reassembler* reass, const char* id, uint32_t capacity, int numaSocket)
-{
+Reassembler_Init(Reassembler* reass, const char* id, uint32_t capacity, int numaSocket) {
   NDNDPDK_ASSERT(capacity >= MinReassemblerCapacity && capacity <= MaxReassemblerCapacity);
 
   reass->table = HashTable_New((struct rte_hash_parameters){
@@ -22,8 +21,7 @@ Reassembler_Init(Reassembler* reass, const char* id, uint32_t capacity, int numa
 }
 
 void
-Reassembler_Close(Reassembler* reass)
-{
+Reassembler_Close(Reassembler* reass) {
   if (reass->table == NULL) {
     return;
   }
@@ -41,8 +39,7 @@ Reassembler_Close(Reassembler* reass)
 }
 
 __attribute__((nonnull)) static inline void
-Reassembler_Delete_(Reassembler* reass, LpL2* pm, hash_sig_t hash)
-{
+Reassembler_Delete_(Reassembler* reass, LpL2* pm, hash_sig_t hash) {
   int32_t res = rte_hash_del_key_with_hash(reass->table, &pm->seqNumBase, hash);
   NDNDPDK_ASSERT(res >= 0);
 
@@ -51,8 +48,7 @@ Reassembler_Delete_(Reassembler* reass, LpL2* pm, hash_sig_t hash)
 }
 
 __attribute__((nonnull)) static inline void
-Reassembler_Drop_(Reassembler* reass, LpL2* pm, hash_sig_t hash)
-{
+Reassembler_Drop_(Reassembler* reass, LpL2* pm, hash_sig_t hash) {
   Reassembler_Delete_(reass, pm, hash);
 
   static_assert(__builtin_types_compatible_p(typeof(pm->reassBitmap), unsigned int), "");
@@ -61,8 +57,7 @@ Reassembler_Drop_(Reassembler* reass, LpL2* pm, hash_sig_t hash)
 }
 
 __attribute__((nonnull)) static inline void
-Reassembler_Insert_(Reassembler* reass, Packet* fragment, LpL2* pm, hash_sig_t hash)
-{
+Reassembler_Insert_(Reassembler* reass, Packet* fragment, LpL2* pm, hash_sig_t hash) {
   pm->reassBitmap = RTE_BIT32(pm->fragCount) - 1;
   pm->reassBitmap &= ~RTE_BIT32(pm->fragIndex);
   pm->reassFrags[pm->fragIndex] = fragment;
@@ -83,8 +78,7 @@ Reassembler_Insert_(Reassembler* reass, Packet* fragment, LpL2* pm, hash_sig_t h
 }
 
 __attribute__((nonnull, returns_nonnull)) static inline Packet*
-Reassembler_Reassemble_(Reassembler* reass, LpL2* pm, hash_sig_t hash)
-{
+Reassembler_Reassemble_(Reassembler* reass, LpL2* pm, hash_sig_t hash) {
   static_assert(LpMaxFragments <= RTE_MBUF_MAX_NB_SEGS, "");
   Reassembler_Delete_(reass, pm, hash);
   Mbuf_ChainVector((struct rte_mbuf**)pm->reassFrags, pm->fragCount);
@@ -95,8 +89,7 @@ Reassembler_Reassemble_(Reassembler* reass, LpL2* pm, hash_sig_t hash)
 }
 
 Packet*
-Reassembler_Accept(Reassembler* reass, Packet* fragment)
-{
+Reassembler_Accept(Reassembler* reass, Packet* fragment) {
   struct rte_mbuf* pkt = Packet_ToMbuf(fragment);
   LpL2* l2 = &Packet_GetLpHdr(fragment)->l2;
   NDNDPDK_ASSERT(l2->fragCount > 1 && // single fragment packets should bypass reassembler

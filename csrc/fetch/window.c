@@ -1,8 +1,7 @@
 #include "window.h"
 
 void
-FetchWindow_Init(FetchWindow* win, uint32_t capacity, int numaSocket)
-{
+FetchWindow_Init(FetchWindow* win, uint32_t capacity, int numaSocket) {
   // txTime has room for RTT up to 300s
   NDNDPDK_ASSERT(TscDuration_FromMillis(300000) < (TscDuration)FetchSegTxTimeMask);
 
@@ -21,23 +20,20 @@ FetchWindow_Init(FetchWindow* win, uint32_t capacity, int numaSocket)
 }
 
 void
-FetchWindow_Free(FetchWindow* win)
-{
+FetchWindow_Free(FetchWindow* win) {
   rte_free(win->array);
   NULLize(win->array);
   NULLize(win->deleted);
 }
 
 void
-FetchWindow_Reset(FetchWindow* win, uint64_t firstSegNum)
-{
+FetchWindow_Reset(FetchWindow* win, uint64_t firstSegNum) {
   win->loSegNum = firstSegNum;
   win->hiSegNum = firstSegNum;
 }
 
 void
-FetchWindow_Advance_(FetchWindow* win)
-{
+FetchWindow_Advance_(FetchWindow* win) {
   while (win->loSegNum < win->hiSegNum) {
     FetchSeg* seg = NULL;
     uint64_t* deletedSlab = NULL;

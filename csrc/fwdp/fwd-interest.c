@@ -8,8 +8,7 @@
 N_LOG_INIT(FwFwd);
 
 __attribute__((nonnull)) static FibEntry*
-FwFwd_InterestLookupFib(FwFwd* fwd, Packet* npkt, FibNexthopFilter* nhFlt)
-{
+FwFwd_InterestLookupFib(FwFwd* fwd, Packet* npkt, FibNexthopFilter* nhFlt) {
   PInterest* interest = Packet_GetInterestHdr(npkt);
   FaceID dnFace = Packet_ToMbuf(npkt)->port;
 
@@ -47,8 +46,7 @@ FwFwd_InterestLookupFib(FwFwd* fwd, Packet* npkt, FibNexthopFilter* nhFlt)
 }
 
 __attribute__((nonnull)) static void
-FwFwd_InterestRejectNack(FwFwd* fwd, FwFwdCtx* ctx, NackReason reason)
-{
+FwFwd_InterestRejectNack(FwFwd* fwd, FwFwdCtx* ctx, NackReason reason) {
   ctx->npkt = Nack_FromInterest(ctx->npkt, reason, &fwd->mp, Face_PacketTxAlign(ctx->rxFace));
   if (unlikely(ctx->npkt == NULL)) {
     return;
@@ -58,8 +56,7 @@ FwFwd_InterestRejectNack(FwFwd* fwd, FwFwdCtx* ctx, NackReason reason)
 }
 
 __attribute__((nonnull)) static void
-FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
-{
+FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx) {
   ctx->dnNonce = Packet_GetInterestHdr(ctx->npkt)->nonce;
 
   // detect duplicate nonce
@@ -91,8 +88,7 @@ FwFwd_InterestForward(FwFwd* fwd, FwFwdCtx* ctx)
 }
 
 __attribute__((nonnull)) static void
-FwFwd_InterestHitCsMemory(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
-{
+FwFwd_InterestHitCsMemory(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry) {
   Packet* outNpkt = Packet_Clone(csEntry->data, &fwd->mp, Face_PacketTxAlign(ctx->rxFace));
   N_LOGD("^ cs-entry-memory=%p data-to=%" PRI_FaceID " npkt=%p dn-token=%s", csEntry, ctx->rxFace,
          outNpkt, LpPitToken_ToString(&ctx->rxToken));
@@ -109,8 +105,7 @@ FwFwd_InterestHitCsMemory(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
 }
 
 __attribute__((nonnull)) static void
-FwFwd_InterestHitCsDisk(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
-{
+FwFwd_InterestHitCsDisk(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry) {
   struct rte_mbuf* dataBuf = rte_pktmbuf_alloc(fwd->mp.packet);
   if (unlikely(dataBuf == NULL)) {
     N_LOGD("^ cs-entry-disk=%p disk-slot=%" PRIu64 " drop=alloc-err", csEntry, csEntry->diskSlot);
@@ -126,8 +121,7 @@ FwFwd_InterestHitCsDisk(FwFwd* fwd, FwFwdCtx* ctx, CsEntry* csEntry)
 }
 
 void
-FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
-{
+FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx) {
   PInterest* interest = Packet_GetInterestHdr(ctx->npkt);
   NDNDPDK_ASSERT(interest->hopLimit > 0);
 
@@ -189,8 +183,7 @@ FwFwd_RxInterest(FwFwd* fwd, FwFwdCtx* ctx)
 }
 
 SgForwardInterestResult
-SgForwardInterest(SgCtx* ctx0, FaceID nh)
-{
+SgForwardInterest(SgCtx* ctx0, FaceID nh) {
   FwFwdCtx* ctx = (FwFwdCtx*)ctx0;
   FwFwd* fwd = ctx->fwd;
   TscTime now = rte_get_tsc_cycles();

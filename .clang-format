@@ -3,12 +3,19 @@ BasedOnStyle: Mozilla
 AllowShortFunctionsOnASingleLine: Empty
 BinPackArguments: true
 BinPackParameters: true
+BreakBeforeBraces: Attach
 ColumnLimit: 100
+Cpp11BracedListStyle: true
 ForEachMacros:
   - cds_hlist_for_each_entry_rcu
   - cds_lfht_for_each
   - cds_list_for_each_safe
   - HASH_ITER
   - TlvDecoder_EachTL
-ReflowComments: true
-SortIncludes: true
+FixNamespaceComments: true
+IncludeIsMainRegex: '(\.t)?$'
+InsertBraces: true
+QualifierAlignment: Custom
+QualifierOrder: ['static', 'inline', 'const', 'constexpr', 'volatile', 'type', 'restrict']
+ShortNamespaceLines: 1000000
+SpacesInContainerLiterals: false

@@ -4,8 +4,7 @@
 N_LOG_INIT(SocketFace);
 
 void
-SocketFace_HandleError_(Face* face, int err)
-{
+SocketFace_HandleError_(Face* face, int err) {
   SocketFacePriv* priv = Face_GetPriv(face);
   N_LOGW("socket error face=%" PRI_FaceID " fd=%d" N_LOG_ERROR_ERRNO, face->id, priv->fd, err);
 
@@ -14,8 +13,7 @@ SocketFace_HandleError_(Face* face, int err)
 }
 
 uint16_t
-SocketFace_DgramTxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts)
-{
+SocketFace_DgramTxBurst(Face* face, struct rte_mbuf** pkts, uint16_t nPkts) {
   SocketFacePriv* priv = Face_GetPriv(face);
   if (unlikely(priv->fd < 0)) {
     goto FREE;

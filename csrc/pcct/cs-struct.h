@@ -9,15 +9,13 @@
 typedef struct CsNode CsNode;
 
 /** @brief The prev-next pointers common in CsEntry and CsList. */
-struct CsNode
-{
+struct CsNode {
   CsNode* prev;
   CsNode* next;
 };
 
 /** @brief A doubly linked list within CS. */
-typedef struct CsList
-{
+typedef struct CsList {
   CsNode* prev;      ///< back pointer, self if list is empty
   CsNode* next;      ///< front pointer, self if list is empty
   uint32_t count;    ///< number of entries
@@ -29,8 +27,7 @@ typedef struct CsEntry CsEntry;
 typedef void (*CsArc_MoveCb)(CsEntry* entry, CsListID src, CsListID dst, uintptr_t ctx);
 
 /** @brief Lists for Adaptive Replacement Cache (ARC). */
-typedef struct CsArc
-{
+typedef struct CsArc {
   double c;   ///< capacity @c c as float
   double p;   ///< target size of T1
   CsList T1;  ///< stored entries that appeared once
@@ -63,8 +60,7 @@ typedef struct DiskAlloc DiskAlloc;
  *
  * This is embedded in @c Pcct struct.
  */
-typedef struct Cs
-{
+typedef struct Cs {
   CsArc direct;    ///< ARC lists of direct entries
   CsList indirect; ///< LRU list of indirect entries
 

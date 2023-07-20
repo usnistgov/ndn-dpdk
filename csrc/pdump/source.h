@@ -14,8 +14,7 @@ typedef struct PdumpSource PdumpSource;
 typedef bool (*PdumpSource_Filter)(PdumpSource* s, struct rte_mbuf* pkt);
 
 /** @brief Packet dump source. */
-struct PdumpSource
-{
+struct PdumpSource {
   struct rte_mempool* directMp;
   struct rte_ring* queue;
   PdumpSource_Filter filter;
@@ -29,8 +28,7 @@ __attribute__((nonnull)) void
 PdumpSource_Process(PdumpSource* s, struct rte_mbuf** pkts, uint16_t count);
 
 /** @brief RCU-protected pointer to PdumpSource. */
-typedef struct PdumpSourceRef
-{
+typedef struct PdumpSourceRef {
   PdumpSource* s;
 } PdumpSourceRef;
 
@@ -47,8 +45,7 @@ PdumpSourceRef_Set(PdumpSourceRef* ref, PdumpSource* s);
  * @pre Calling thread holds rcu_read_lock.
  */
 __attribute__((nonnull)) static __rte_always_inline PdumpSource*
-PdumpSourceRef_Get(PdumpSourceRef* ref)
-{
+PdumpSourceRef_Get(PdumpSourceRef* ref) {
   return rcu_dereference(ref->s);
 }
 
@@ -57,8 +54,7 @@ PdumpSourceRef_Get(PdumpSourceRef* ref)
  * @pre Calling thread holds rcu_read_lock.
  */
 __attribute__((nonnull)) static __rte_always_inline bool
-PdumpSourceRef_Process(PdumpSourceRef* ref, struct rte_mbuf** pkts, uint16_t count)
-{
+PdumpSourceRef_Process(PdumpSourceRef* ref, struct rte_mbuf** pkts, uint16_t count) {
   PdumpSource* s = PdumpSourceRef_Get(ref);
   if (s == NULL) {
     return false;
@@ -68,8 +64,7 @@ PdumpSourceRef_Process(PdumpSourceRef* ref, struct rte_mbuf** pkts, uint16_t cou
 }
 
 /** @brief Packet dump from a face on RX or TX direction. */
-typedef struct PdumpFaceSource
-{
+typedef struct PdumpFaceSource {
   PdumpSource base;
   pcg32_random_t rng;
   uint32_t sample[PdumpMaxNames];

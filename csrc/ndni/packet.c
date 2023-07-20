@@ -8,8 +8,7 @@ const char* PktType_Strings_[] = {
 };
 
 bool
-Packet_Parse(Packet* npkt, ParseFor parseFor)
-{
+Packet_Parse(Packet* npkt, ParseFor parseFor) {
   PacketPriv* priv = Packet_GetPriv_(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   NDNDPDK_ASSERT(pkt->priv_size >= sizeof(*priv));
@@ -34,8 +33,7 @@ Packet_Parse(Packet* npkt, ParseFor parseFor)
 }
 
 bool
-Packet_ParseL3(Packet* npkt, ParseFor parseFor)
-{
+Packet_ParseL3(Packet* npkt, ParseFor parseFor) {
   PacketPriv* priv = Packet_GetPriv_(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   NDNDPDK_ASSERT(pkt->data_len >= 1);
@@ -53,18 +51,16 @@ Packet_ParseL3(Packet* npkt, ParseFor parseFor)
 }
 
 __attribute__((nonnull, returns_nonnull)) static Packet*
-Clone_Finish(const Packet* npkt, struct rte_mbuf* pkt)
-{
+Clone_Finish(const Packet* npkt, struct rte_mbuf* pkt) {
   Mbuf_SetTimestamp(pkt, Mbuf_GetTimestamp(Packet_ToMbuf(npkt)));
   Packet* output = Packet_FromMbuf(pkt);
   Packet_SetType(output, PktType_ToSlim(Packet_GetType(npkt)));
-  *Packet_GetPriv_(output) = (const PacketPriv){ 0 };
+  *Packet_GetPriv_(output) = (const PacketPriv){0};
   return output;
 }
 
 __attribute__((nonnull)) static Packet*
-Clone_Linear(Packet* npkt, PacketMempools* mp, PacketTxAlign align)
-{
+Clone_Linear(Packet* npkt, PacketMempools* mp, PacketTxAlign align) {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
   uint32_t fragCount = SPDK_CEIL_DIV(pkt->pkt_len, align.fragmentPayloadSize);
   NDNDPDK_ASSERT(fragCount < LpMaxFragments);
@@ -84,8 +80,7 @@ Clone_Linear(Packet* npkt, PacketMempools* mp, PacketTxAlign align)
 }
 
 __attribute__((nonnull)) static Packet*
-Clone_Chained(Packet* npkt, PacketMempools* mp)
-{
+Clone_Chained(Packet* npkt, PacketMempools* mp) {
   struct rte_mbuf* header = rte_pktmbuf_alloc(mp->header);
   if (unlikely(header == NULL)) {
     return NULL;
@@ -107,8 +102,7 @@ Clone_Chained(Packet* npkt, PacketMempools* mp)
 }
 
 Packet*
-Packet_Clone(Packet* npkt, PacketMempools* mp, PacketTxAlign align)
-{
+Packet_Clone(Packet* npkt, PacketMempools* mp, PacketTxAlign align) {
   if (align.linearize) {
     return Clone_Linear(npkt, mp, align);
   }

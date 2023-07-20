@@ -5,14 +5,12 @@
  */
 #include "api.h"
 
-typedef struct FibEntryInfo
-{
+typedef struct FibEntryInfo {
   TscDuration delay;
 } FibEntryInfo;
 
 SUBROUTINE uint64_t
-Timer(SgCtx* ctx)
-{
+Timer(SgCtx* ctx) {
   SgFibNexthopIt it;
   for (SgFibNexthopIt_InitCtx(&it, ctx); SgFibNexthopIt_Valid(&it); SgFibNexthopIt_Next(&it)) {
     SgForwardInterestResult res = SgForwardInterest(ctx, it.nh);
@@ -24,16 +22,14 @@ Timer(SgCtx* ctx)
 }
 
 SUBROUTINE uint64_t
-RxInterest(SgCtx* ctx)
-{
+RxInterest(SgCtx* ctx) {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
   bool ok = SgSetTimer(ctx, fei->delay);
   return ok ? 0 : 3;
 }
 
 uint64_t
-SgMain(SgCtx* ctx)
-{
+SgMain(SgCtx* ctx) {
   switch (ctx->eventKind) {
     case SGEVT_TIMER:
       return Timer(ctx);
@@ -45,24 +41,23 @@ SgMain(SgCtx* ctx)
 }
 
 uint64_t
-SgInit(SgCtx* ctx)
-{
+SgInit(SgCtx* ctx) {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
   fei->delay = SgTscFromMillis(ctx, SgGetJSONScalar(ctx, "delay", 1));
   return 0;
 }
 
 SGINIT_SCHEMA({
-  "$schema" : "http://json-schema.org/draft-07/schema#",
-  "type" : "object",
-  "properties" : {
-    "delay" : {
-      "description" : "Interest delay in milliseconds",
-      "type" : "integer",
-      "minimum" : 1,
-      "maximum" : 10000
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "delay": {
+      "description": "Interest delay in milliseconds",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000
     }
   },
-  "required" : ["delay"],
-  "additionalProperties" : false
+  "required": ["delay"],
+  "additionalProperties": false
 });

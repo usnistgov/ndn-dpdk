@@ -1,8 +1,7 @@
 #include "alloc.h"
 
 DiskAlloc*
-DiskAlloc_New(uint64_t min, uint64_t max, int numaSocket)
-{
+DiskAlloc_New(uint64_t min, uint64_t max, int numaSocket) {
   NDNDPDK_ASSERT(min > 0);
   NDNDPDK_ASSERT(max >= min);
   // no need for more than 2^32 slots, because PCCT cannot index that many entries

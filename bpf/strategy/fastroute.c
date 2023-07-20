@@ -9,8 +9,7 @@
 // how often to send probe Interest, in number of packets
 #define PROBE_INTERVAL 1024
 
-enum StatusCode
-{
+enum StatusCode {
   S_OK = 0,
   S_UNKNOWN = 2,
   S_UNICAST = 11,
@@ -24,21 +23,18 @@ enum StatusCode
   S_NH_ERR = 53,
 };
 
-typedef struct FibEntryInfo
-{
+typedef struct FibEntryInfo {
   uint16_t nUnicast;
   bool hasSelectedNexthop;
   uint8_t selectedNexthop;
 } FibEntryInfo;
 
-typedef struct PitEntryInfo
-{
+typedef struct PitEntryInfo {
   bool multicastOrProbe;
 } PitEntryInfo;
 
 SUBROUTINE bool
-Unicast(SgCtx* ctx)
-{
+Unicast(SgCtx* ctx) {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
   FaceID nh = ctx->fibEntry->nexthops[fei->selectedNexthop];
   SgForwardInterestResult res = SgForwardInterest(ctx, nh);
@@ -46,8 +42,7 @@ Unicast(SgCtx* ctx)
 }
 
 SUBROUTINE uint64_t
-Probe(SgCtx* ctx)
-{
+Probe(SgCtx* ctx) {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
   PitEntryInfo* pei = SgCtx_PitScratchT(ctx, PitEntryInfo);
 
@@ -69,8 +64,7 @@ Probe(SgCtx* ctx)
 }
 
 SUBROUTINE uint64_t
-RxInterest(SgCtx* ctx)
-{
+RxInterest(SgCtx* ctx) {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
   PitEntryInfo* pei = SgCtx_PitScratchT(ctx, PitEntryInfo);
 
@@ -94,8 +88,7 @@ RxInterest(SgCtx* ctx)
 }
 
 SUBROUTINE uint64_t
-RxData(SgCtx* ctx)
-{
+RxData(SgCtx* ctx) {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
   PitEntryInfo* pei = SgCtx_PitScratchT(ctx, PitEntryInfo);
 
@@ -121,8 +114,7 @@ RxData(SgCtx* ctx)
 }
 
 SUBROUTINE uint64_t
-RxNack(SgCtx* ctx)
-{
+RxNack(SgCtx* ctx) {
   FibEntryInfo* fei = SgCtx_FibScratchT(ctx, FibEntryInfo);
   if (fei->hasSelectedNexthop &&
       ctx->fibEntry->nexthops[fei->selectedNexthop] == ctx->pkt->rxFace) {
@@ -140,8 +132,7 @@ RxNack(SgCtx* ctx)
 }
 
 uint64_t
-SgMain(SgCtx* ctx)
-{
+SgMain(SgCtx* ctx) {
   switch (ctx->eventKind) {
     case SGEVT_INTEREST:
       return RxInterest(ctx);

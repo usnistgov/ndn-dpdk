@@ -8,15 +8,13 @@
 #include "enum.h"
 
 /** @brief 32=ls keyword component. */
-static const uint8_t FileServer_KeywordLs[4] = { TtKeywordNameComponent, 2, 0x6C, 0x73 };
+static const uint8_t FileServer_KeywordLs[4] = {TtKeywordNameComponent, 2, 0x6C, 0x73};
 
 /** @brief 32=metadata keyword component. */
 static const uint8_t FileServer_KeywordMetadata[10] = {
-  TtKeywordNameComponent, 8, 0x6D, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61
-};
+  TtKeywordNameComponent, 8, 0x6D, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61};
 
-enum
-{
+enum {
   /**
    * @brief Maximum mount+path TLV-LENGTH to accommodate [32=ls]+[32=metadata]+version+segment
    *        suffix components.
@@ -26,8 +24,7 @@ enum
 };
 
 /** @brief Indicate what components are present in Interest name. */
-typedef enum FileServerRequestKind
-{
+typedef enum FileServerRequestKind {
   FileServerRequestNone = 0,
   FileServerRequestVersion = 1 << 0,
   FileServerRequestSegment = 1 << 1,
@@ -36,8 +33,7 @@ typedef enum FileServerRequestKind
 } FileServerRequestKind;
 
 /** @brief Parsed Interest name processed by file server. */
-typedef struct FileServerRequestName
-{
+typedef struct FileServerRequestName {
   uint64_t version;
   uint64_t segment;
   FileServerRequestKind kind;
@@ -45,8 +41,7 @@ typedef struct FileServerRequestName
 
 /** @brief Get mount + path prefix. */
 __attribute__((nonnull)) static inline LName
-FileServer_GetPrefix(const PName* name)
-{
+FileServer_GetPrefix(const PName* name) {
   return PName_GetPrefix(name, name->firstNonGeneric);
 }
 

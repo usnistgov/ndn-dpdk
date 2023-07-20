@@ -10,8 +10,7 @@
  * @return whether success.
  */
 __attribute__((nonnull)) static __rte_always_inline bool
-Nni_Decode(uint32_t length, const uint8_t* value, uint64_t* n)
-{
+Nni_Decode(uint32_t length, const uint8_t* value, uint64_t* n) {
   switch (length) {
     case 1:
       *n = value[0];
@@ -37,8 +36,7 @@ Nni_Decode(uint32_t length, const uint8_t* value, uint64_t* n)
  * @return actual size.
  */
 __attribute__((nonnull)) static __rte_always_inline uint8_t
-Nni_Encode(uint8_t* room, uint64_t n)
-{
+Nni_Encode(uint8_t* room, uint64_t n) {
   if (n > UINT16_MAX) {
     if (n > UINT32_MAX) {
       unaligned_uint64_t* b = (unaligned_uint64_t*)room;
@@ -67,8 +65,7 @@ Nni_Encode(uint8_t* room, uint64_t n)
  * @return actual size.
  */
 __attribute__((nonnull)) static __rte_always_inline uint8_t
-Nni_EncodeNameComponent(uint8_t* room, uint8_t typ, uint64_t n)
-{
+Nni_EncodeNameComponent(uint8_t* room, uint8_t typ, uint64_t n) {
   room[0] = typ;
   room[1] = Nni_Encode(RTE_PTR_ADD(room, 2), n);
   return 2 + room[1];

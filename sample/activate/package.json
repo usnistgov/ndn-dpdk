@@ -5,18 +5,18 @@
     "start": "node --loader tsm",
     "typecheck": "tsc"
   },
-  "packageManager": "pnpm@8.0.0",
+  "packageManager": "pnpm@8.6.9",
   "dependencies": {
     "stdout-stream": "^2.0.0",
-    "tslib": "^2.5.0",
+    "tslib": "^2.6.0",
     "tsm": "^2.3.0",
-    "typescript": "~5.0.2"
+    "typescript": "~5.1.6"
   },
   "devDependencies": {
     "@types/stdout-stream": "^1.4.0",
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz"
   },
   "engines": {
-    "node": "16.x"
+    "node": "20.x"
   }
 }

@@ -6,8 +6,7 @@
 #include "../iface/common.h"
 #include "enum.h"
 
-enum
-{
+enum {
   TgcSeqNumSize = 1 + 1 + sizeof(uint64_t),
 
   TgcTokenLength = 10,
@@ -17,8 +16,7 @@ enum
 };
 
 __attribute__((nonnull)) static __rte_always_inline void
-TgcToken_Set(LpPitToken* token, uint8_t patternID, uint8_t runNum, TscTime timestamp)
-{
+TgcToken_Set(LpPitToken* token, uint8_t patternID, uint8_t runNum, TscTime timestamp) {
   *token = (LpPitToken){
     .length = TgcTokenLength,
   };
@@ -28,20 +26,17 @@ TgcToken_Set(LpPitToken* token, uint8_t patternID, uint8_t runNum, TscTime times
 }
 
 __attribute__((nonnull)) static __rte_always_inline uint8_t
-TgcToken_GetPatternID(const LpPitToken* token)
-{
+TgcToken_GetPatternID(const LpPitToken* token) {
   return token->value[TgcTokenOffsetPatternID];
 }
 
 __attribute__((nonnull)) static __rte_always_inline uint8_t
-TgcToken_GetRunNum(const LpPitToken* token)
-{
+TgcToken_GetRunNum(const LpPitToken* token) {
   return token->value[TgcTokenOffsetRunNum];
 }
 
 __attribute__((nonnull)) static __rte_always_inline TscTime
-TgcToken_GetTimestamp(const LpPitToken* token)
-{
+TgcToken_GetTimestamp(const LpPitToken* token) {
   return *(const unaligned_uint64_t*)RTE_PTR_ADD(token->value, TgcTokenOffsetTimestamp);
 }
 

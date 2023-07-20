@@ -6,15 +6,13 @@
 #include "../pcct/pit-const.h"
 #include "common.h"
 
-typedef struct SgPitDn
-{
+typedef struct SgPitDn {
   TscTime expiry;
   char a_[4];
   FaceID face;
 } __rte_cache_aligned SgPitDn;
 
-typedef struct SgPitUp
-{
+typedef struct SgPitUp {
   char a_[4];
   FaceID face;
   char b_[1];
@@ -27,8 +25,7 @@ typedef struct SgPitUp
 
 typedef struct SgPitEntryExt SgPitEntryExt;
 
-typedef struct SgPitEntry
-{
+typedef struct SgPitEntry {
   uint8_t a_[48];
   SgPitEntryExt* ext;
   SgPitDn dns[PitMaxDns];
@@ -36,8 +33,7 @@ typedef struct SgPitEntry
   uint64_t scratch[PitScratchSize / 8];
 } SgPitEntry;
 
-struct SgPitEntryExt
-{
+struct SgPitEntryExt {
   SgPitDn dns[PitMaxExtDns];
   SgPitUp ups[PitMaxExtUps];
   SgPitEntryExt* next;

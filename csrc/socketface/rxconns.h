@@ -6,8 +6,7 @@
 #include "../iface/rxloop.h"
 
 /** @brief RX from Go net.Conn. */
-typedef struct SocketRxConns
-{
+typedef struct SocketRxConns {
   RxGroup base;
   struct rte_ring* ring;
 } SocketRxConns;

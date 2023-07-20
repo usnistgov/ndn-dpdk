@@ -7,15 +7,13 @@
 #include "../fib/enum.h"
 #include "common.h"
 
-typedef struct SgFibEntryDyn
-{
+typedef struct SgFibEntryDyn {
   uint8_t a_[32];
   uint8_t scratch[FibScratchSize];
   RttValue rtt[FibMaxNexthops];
 } SgFibEntryDyn;
 
-typedef struct SgFibEntry
-{
+typedef struct SgFibEntry {
   uint8_t a_[525];
   uint8_t nNexthops;
   uint8_t b_[2];
@@ -25,8 +23,7 @@ typedef struct SgFibEntry
 typedef uint32_t SgFibNexthopFilter;
 
 SUBROUTINE bool
-SgFibNexthopFilter_Rejected(SgFibNexthopFilter filter, uint8_t i)
-{
+SgFibNexthopFilter_Rejected(SgFibNexthopFilter filter, uint8_t i) {
   static_assert(sizeof(filter) == sizeof(uint32_t), "");
   return (filter & RTE_BIT32(i)) != 0;
 }
@@ -44,8 +41,7 @@ SgFibNexthopFilter_Rejected(SgFibNexthopFilter filter, uint8_t i)
  * }
  * @endcode
  */
-typedef struct SgFibNexthopIt
-{
+typedef struct SgFibNexthopIt {
   const SgFibEntry* entry;
   SgFibNexthopFilter filter;
   uint8_t i;
@@ -53,14 +49,12 @@ typedef struct SgFibNexthopIt
 } SgFibNexthopIt;
 
 SUBROUTINE bool
-SgFibNexthopIt_Valid(const SgFibNexthopIt* it)
-{
+SgFibNexthopIt_Valid(const SgFibNexthopIt* it) {
   return it->i < it->entry->nNexthops;
 }
 
 SUBROUTINE void
-SgFibNexthopIt_Advance_(SgFibNexthopIt* it)
-{
+SgFibNexthopIt_Advance_(SgFibNexthopIt* it) {
   for (; SgFibNexthopIt_Valid(it); ++it->i) {
     if (SgFibNexthopFilter_Rejected(it->filter, it->i)) {
       continue;
@@ -72,8 +66,7 @@ SgFibNexthopIt_Advance_(SgFibNexthopIt* it)
 }
 
 SUBROUTINE void
-SgFibNexthopIt_Init(SgFibNexthopIt* it, const SgFibEntry* entry, SgFibNexthopFilter filter)
-{
+SgFibNexthopIt_Init(SgFibNexthopIt* it, const SgFibEntry* entry, SgFibNexthopFilter filter) {
   it->entry = entry;
   it->filter = filter;
   it->i = 0;
@@ -81,8 +74,7 @@ SgFibNexthopIt_Init(SgFibNexthopIt* it, const SgFibEntry* entry, SgFibNexthopFil
 }
 
 SUBROUTINE void
-SgFibNexthopIt_Next(SgFibNexthopIt* it)
-{
+SgFibNexthopIt_Next(SgFibNexthopIt* it) {
   ++it->i;
   SgFibNexthopIt_Advance_(it);
 }

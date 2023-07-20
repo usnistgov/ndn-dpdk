@@ -3,8 +3,7 @@
 
 /** @file */
 
-enum
-{
+enum {
   PitMaxDns = 6,
   PitMaxUps = 2,
   PitMaxExtDns = 6,

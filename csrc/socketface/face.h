@@ -6,8 +6,7 @@
 #include "../iface/rxloop.h"
 
 /** @brief Socket face private data. */
-typedef struct SocketFacePriv
-{
+typedef struct SocketFacePriv {
   int fd;
 } SocketFacePriv;
 
@@ -20,8 +19,7 @@ SocketFace_HandleError_(Face* face, int err);
  * EAGAIN is ignored.
  */
 __attribute__((nonnull)) static inline void
-SocketFace_HandleError(Face* face, int err)
-{
+SocketFace_HandleError(Face* face, int err) {
   if (likely(err == EAGAIN || err == EWOULDBLOCK)) {
     return;
   }

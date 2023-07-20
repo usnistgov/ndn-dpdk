@@ -1,9 +1,8 @@
 #include "naming.h"
 
 FileServerRequestName
-FileServer_ParseRequest(const PInterest* pi)
-{
-  FileServerRequestName rn = { 0 };
+FileServer_ParseRequest(const PInterest* pi) {
+  FileServerRequestName rn = {0};
   if (unlikely(pi->name.firstNonGeneric < 0)) {
     goto FAIL;
   }
@@ -63,8 +62,7 @@ FAIL:
 }
 
 bool
-FileServer_ToFilename(const PName* name, int16_t mountComps, char filename[PATH_MAX])
-{
+FileServer_ToFilename(const PName* name, int16_t mountComps, char filename[PATH_MAX]) {
   LName path = PName_Slice(name, mountComps, name->firstNonGeneric);
   static_assert(FileServer_MaxPrefixL < PATH_MAX, "");
 

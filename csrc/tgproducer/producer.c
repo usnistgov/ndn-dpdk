@@ -4,8 +4,7 @@
 
 N_LOG_INIT(Tgp);
 
-typedef struct TgpBurstCtx
-{
+typedef struct TgpBurstCtx {
   Tgp* p;
   PacketMempools mp;
   PacketTxAlign faceTxAlign;
@@ -18,8 +17,7 @@ typedef struct TgpBurstCtx
 } TgpBurstCtx;
 
 __attribute__((nonnull(1))) static inline void
-TgpBurstCtx_Tx(TgpBurstCtx* ctx, Packet* npkt)
-{
+TgpBurstCtx_Tx(TgpBurstCtx* ctx, Packet* npkt) {
   if (unlikely(npkt == NULL)) {
     ++ctx->p->nAllocError;
     return;
@@ -29,15 +27,13 @@ TgpBurstCtx_Tx(TgpBurstCtx* ctx, Packet* npkt)
 }
 
 __attribute__((nonnull)) static inline void
-TgpBurstCtx_Discard(TgpBurstCtx* ctx, uint16_t i)
-{
+TgpBurstCtx_Discard(TgpBurstCtx* ctx, uint16_t i) {
   NDNDPDK_ASSERT(i >= ctx->nDiscard);
   ctx->rx[ctx->nDiscard++] = ctx->rx[i];
 }
 
 __attribute__((nonnull)) static void
-Tgp_RespondData(TgpBurstCtx* ctx, uint16_t i, TgpReply* reply)
-{
+Tgp_RespondData(TgpBurstCtx* ctx, uint16_t i, TgpReply* reply) {
   Packet* npkt = ctx->rx[i];
   const PName* interestName = &Packet_GetInterestHdr(npkt)->name;
   LName dataPrefix = PName_ToLName(interestName);
@@ -54,16 +50,14 @@ Tgp_RespondData(TgpBurstCtx* ctx, uint16_t i, TgpReply* reply)
 }
 
 __attribute__((nonnull)) static void
-Tgp_RespondNack(TgpBurstCtx* ctx, uint16_t i, TgpReply* reply)
-{
+Tgp_RespondNack(TgpBurstCtx* ctx, uint16_t i, TgpReply* reply) {
   Packet* npkt = ctx->rx[i];
   npkt = Nack_FromInterest(npkt, reply->nackReason, &ctx->mp, ctx->faceTxAlign);
   TgpBurstCtx_Tx(ctx, npkt);
 }
 
 __attribute__((nonnull)) static void
-Tgp_RespondTimeout(TgpBurstCtx* ctx, uint16_t i, __rte_unused TgpReply* reply)
-{
+Tgp_RespondTimeout(TgpBurstCtx* ctx, uint16_t i, __rte_unused TgpReply* reply) {
   TgpBurstCtx_Discard(ctx, i);
 }
 
@@ -76,8 +70,7 @@ static const Tgp_Respond Tgp_RespondJmp[] = {
 };
 
 __attribute__((nonnull)) static inline void
-Tgp_ProcessInterest(Tgp* p, TgpBurstCtx* ctx, uint16_t i)
-{
+Tgp_ProcessInterest(Tgp* p, TgpBurstCtx* ctx, uint16_t i) {
   Packet* npkt = ctx->rx[i];
   int patternID = LNamePrefixFilter_Find(PName_ToLName(&Packet_GetInterestHdr(npkt)->name),
                                          TgpMaxPatterns, p->prefixL, p->prefixV);
@@ -99,8 +92,7 @@ Tgp_ProcessInterest(Tgp* p, TgpBurstCtx* ctx, uint16_t i)
 }
 
 int
-Tgp_Run(Tgp* p)
-{
+Tgp_Run(Tgp* p) {
   TgpBurstCtx ctx = {
     .p = p,
     .mp = p->mp,

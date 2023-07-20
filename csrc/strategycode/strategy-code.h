@@ -9,8 +9,7 @@
 typedef uint64_t (*StrategyCodeFunc)(void*, size_t);
 
 /** @brief BPF program in a forwarding strategy. */
-typedef struct StrategyCodeProg
-{
+typedef struct StrategyCodeProg {
   struct rte_bpf* bpf;  ///< BPF execution context
   StrategyCodeFunc jit; ///< JIT-compiled function
 } StrategyCodeProg;
@@ -21,14 +20,12 @@ typedef struct StrategyCodeProg
  * @param sizeofArg sizeof(*arg)
  */
 __attribute__((nonnull)) static inline uint64_t
-StrategyCodeProg_Run(StrategyCodeProg prog, void* arg, size_t sizeofArg)
-{
+StrategyCodeProg_Run(StrategyCodeProg prog, void* arg, size_t sizeofArg) {
   return prog.jit(arg, sizeofArg);
 }
 
 /** @brief Forwarding strategy BPF programs. */
-typedef struct StrategyCode
-{
+typedef struct StrategyCode {
   StrategyCodeProg main; ///< dataplane BPF program
   uintptr_t goHandle;    ///< cgo.Handle reference of Go *strategycode.Strategy
   int id;                ///< strategy ID

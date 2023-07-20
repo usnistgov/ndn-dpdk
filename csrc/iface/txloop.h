@@ -7,8 +7,7 @@
 #include "face.h"
 
 /** @brief TX loop thread. */
-typedef struct TxLoop
-{
+typedef struct TxLoop {
   ThreadCtrl ctrl;
   struct cds_hlist_head head;
 } TxLoop;

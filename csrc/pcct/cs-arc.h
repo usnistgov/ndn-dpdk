@@ -16,8 +16,7 @@ extern const ptrdiff_t CsArc_ListOffsets_[];
  * @param l list identifier, which must exist in CsArc struct.
  */
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline CsList*
-CsArc_GetList(CsArc* arc, CsListID l)
-{
+CsArc_GetList(CsArc* arc, CsListID l) {
   return RTE_PTR_ADD(arc, CsArc_ListOffsets_[l]);
 }
 
@@ -31,15 +30,13 @@ CsArc_Init(CsArc* arc, uint32_t c, uint32_t capB2);
 
 /** @brief Return nominal capacity @c c . */
 __attribute__((nonnull)) static __rte_always_inline uint32_t
-CsArc_GetCapacity(const CsArc* arc)
-{
+CsArc_GetCapacity(const CsArc* arc) {
   return CsArc_c(arc);
 }
 
 /** @brief Return number of in-memory entries. */
 static __rte_always_inline uint32_t
-CsArc_CountEntries(const CsArc* arc)
-{
+CsArc_CountEntries(const CsArc* arc) {
   return arc->T1.count + arc->T2.count;
 }
 

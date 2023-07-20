@@ -1,8 +1,7 @@
 #include "pktqueue.h"
 
 __attribute__((nonnull)) static inline PktQueuePopResult
-PktQueue_PopFromRing(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
-{
+PktQueue_PopFromRing(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count) {
   count = RTE_MIN(count, q->dequeueBurstSize);
   PktQueuePopResult res = {
     .count = rte_ring_dequeue_burst(q->ring, (void**)pkts, count, NULL),
@@ -11,14 +10,12 @@ PktQueue_PopFromRing(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count)
 }
 
 __attribute__((nonnull)) static PktQueuePopResult
-PktQueue_PopPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, __rte_unused TscTime now)
-{
+PktQueue_PopPlain(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, __rte_unused TscTime now) {
   return PktQueue_PopFromRing(q, pkts, count);
 }
 
 __attribute__((nonnull)) static PktQueuePopResult
-PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
-{
+PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now) {
   PktQueuePopResult res = PktQueue_PopFromRing(q, pkts, count);
   if (unlikely(res.count == 0)) {
     return res;
@@ -37,8 +34,7 @@ PktQueue_PopDelay(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime 
 #define REC_INV_SQRT_SHIFT (32 - REC_INV_SQRT_BITS)
 
 __attribute__((nonnull)) static inline void
-CoDel_NewtonStep(PktQueue* q)
-{
+CoDel_NewtonStep(PktQueue* q) {
   uint32_t invsqrt = ((uint32_t)q->recInvSqrt) << REC_INV_SQRT_BITS;
   uint32_t invsqrt2 = ((uint64_t)invsqrt * invsqrt) >> 32;
   uint64_t val = (3LL << 32) - ((uint64_t)q->count * invsqrt2);
@@ -48,20 +44,17 @@ CoDel_NewtonStep(PktQueue* q)
 }
 
 static inline uint32_t
-CoDel_ReciprocalScale(uint32_t val, uint32_t epro)
-{
+CoDel_ReciprocalScale(uint32_t val, uint32_t epro) {
   return (uint32_t)(((uint64_t)val * epro) >> 32);
 }
 
 static inline TscTime
-CoDel_ControlLaw(TscTime t, TscDuration interval, uint32_t recInvSqrt)
-{
+CoDel_ControlLaw(TscTime t, TscDuration interval, uint32_t recInvSqrt) {
   return t + CoDel_ReciprocalScale(interval, recInvSqrt << REC_INV_SQRT_SHIFT);
 }
 
 __attribute__((nonnull)) static inline bool
-CoDel_ShouldDrop(PktQueue* q, TscTime timestamp, TscTime now)
-{
+CoDel_ShouldDrop(PktQueue* q, TscTime timestamp, TscTime now) {
   q->sojourn = now - timestamp;
   if (likely(q->sojourn < q->target)) {
     q->firstAboveTime = 0;
@@ -77,8 +70,7 @@ CoDel_ShouldDrop(PktQueue* q, TscTime timestamp, TscTime now)
 }
 
 __attribute__((nonnull)) static PktQueuePopResult
-PktQueue_PopCoDel(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now)
-{
+PktQueue_PopCoDel(PktQueue* q, struct rte_mbuf* pkts[], uint32_t count, TscTime now) {
   PktQueuePopResult res = PktQueue_PopFromRing(q, pkts, count);
   if (unlikely(res.count == 0)) {
     q->firstAboveTime = 0;

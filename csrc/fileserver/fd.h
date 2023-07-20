@@ -18,8 +18,7 @@
 #define FileServerFd_StatTime(t) ((uint64_t)(t).tv_sec * SPDK_SEC_TO_NSEC + (uint64_t)(t).tv_nsec)
 
 /** @brief File descriptor related information in the file server. */
-typedef struct FileServerFd
-{
+typedef struct FileServerFd {
   RTE_MARKER self;                 ///< self reference used in HASH_ADD_BYHASHVALUE
   struct statx st;                 ///< statx result
   UT_hash_handle hh;               ///< fdHt hashtable handle
@@ -63,21 +62,18 @@ FileServerFd_Clear(FileServer* p);
 
 /** @brief Determine whether this entry refers to a regular file. */
 static __rte_always_inline bool
-FileServerFd_IsFile(const FileServerFd* entry)
-{
+FileServerFd_IsFile(const FileServerFd* entry) {
   return S_ISREG(entry->st.stx_mode);
 }
 
 /** @brief Determine whether this entry refers to a directory. */
 static __rte_always_inline bool
-FileServerFd_IsDir(const FileServerFd* entry)
-{
+FileServerFd_IsDir(const FileServerFd* entry) {
   return S_ISDIR(entry->st.stx_mode);
 }
 
 __attribute__((nonnull)) static inline uint32_t
-FileServerFd_SizeofMetadata_(FileServerFd* entry)
-{
+FileServerFd_SizeofMetadata_(FileServerFd* entry) {
   return TlvEncoder_SizeofVarNum(TtName) + TlvEncoder_SizeofVarNum(entry->versionedL) +
          entry->versionedL + entry->metadataL;
 }
@@ -91,8 +87,7 @@ FileServerFd_PrepareMetadata_(FileServer* p, FileServerFd* entry);
  * @return metadata Content TLV-LENGTH.
  */
 __attribute__((nonnull)) static inline uint32_t
-FileServerFd_PrepareMetadata(FileServer* p, FileServerFd* entry)
-{
+FileServerFd_PrepareMetadata(FileServer* p, FileServerFd* entry) {
   if (entry->metadataL != 0) {
     return FileServerFd_SizeofMetadata_(entry);
   }

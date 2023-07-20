@@ -4,26 +4,23 @@
  */
 #include "api.h"
 
-struct
-{
+struct {
   __uint(type, BPF_MAP_TYPE_XSKMAP);
   __uint(max_entries, 64);
   __type(key, int32_t);
   __type(value, int32_t);
 } xsks_map SEC(".maps");
 
-struct
-{
+struct {
   __uint(type, BPF_MAP_TYPE_HASH);
   __uint(max_entries, 64);
   __type(key, EthXdpLocator);
   __type(value, int32_t);
 } face_map SEC(".maps");
 
-SEC("xdp") int xdp_prog(struct xdp_md* ctx)
-{
+SEC("xdp") int xdp_prog(struct xdp_md* ctx) {
   const void* pkt = (const void*)(long)ctx->data;
-  EthXdpLocator loc = { 0 };
+  EthXdpLocator loc = {0};
 
   const struct ethhdr* eth = PacketPtrAs((const struct ethhdr*)pkt, ETH_HLEN);
   pkt += ETH_HLEN;

@@ -16,20 +16,17 @@
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
 
-struct vlanhdr
-{
+struct vlanhdr {
   uint16_t vlan_tci;
   uint16_t eth_proto;
 } __rte_packed;
 
-struct vxlanhdr
-{
+struct vxlanhdr {
   uint32_t vx_flags;
   uint32_t vx_vni;
 } __rte_packed;
 
-enum
-{
+enum {
   UDPPortVXLAN = 4789,
 };
 

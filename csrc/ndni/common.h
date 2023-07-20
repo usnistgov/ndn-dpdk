@@ -14,8 +14,7 @@ typedef struct PData PData;
 typedef struct PNack PNack;
 
 /** @brief Mempools for packet modification. */
-typedef struct PacketMempools
-{
+typedef struct PacketMempools {
   struct rte_mempool* packet;
   struct rte_mempool* indirect;
   struct rte_mempool* header;
@@ -33,8 +32,7 @@ typedef struct PacketMempools
  * arbitrary boundaries. FaceTx will perform fragmentation as needed. @c fragmentPayloadSize
  * is ignored.
  */
-typedef struct PacketTxAlign
-{
+typedef struct PacketTxAlign {
   /** @brief Max payload size per fragment. */
   uint16_t fragmentPayloadSize;
 

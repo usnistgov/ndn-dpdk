@@ -11,8 +11,7 @@
 
 typedef uint8_t TgpReplyID;
 
-typedef struct TgpReply
-{
+typedef struct TgpReply {
   uint64_t nInterests;
   DataGen dataGen;
   uint8_t kind;
@@ -20,8 +19,7 @@ typedef struct TgpReply
 } TgpReply;
 
 /** @brief Per-prefix information in traffic generator producer. */
-typedef struct TgpPattern
-{
+typedef struct TgpPattern {
   uint32_t nWeights;
   uint8_t nReplies;
   TgpReplyID weight[TgpMaxSumWeight];
@@ -29,8 +27,7 @@ typedef struct TgpPattern
 } TgpPattern;
 
 /** @brief Traffic generator producer. */
-typedef struct Tgp
-{
+typedef struct Tgp {
   ThreadCtrl ctrl;
   PktQueue rxQueue;
   PacketMempools mp; ///< mempools for Data encoding

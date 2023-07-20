@@ -10,8 +10,7 @@
 extern const char* CsEntryKind_Strings_[];
 
 __attribute__((returns_nonnull)) static inline const char*
-CsEntryKind_ToString(CsEntryKind kind)
-{
+CsEntryKind_ToString(CsEntryKind kind) {
   return CsEntryKind_Strings_[kind];
 }
 
@@ -20,13 +19,11 @@ CsEntryKind_ToString(CsEntryKind kind)
  *
  * This struct is enclosed in @c PccEntry.
  */
-struct CsEntry
-{
+struct CsEntry {
   CsNode* prev;
   CsNode* next;
 
-  union
-  {
+  union {
     /**
      * @brief The Data packet.
      * @pre kind == CsEntryMemory
@@ -84,15 +81,13 @@ static_assert(CsMaxIndirects < UINT8_MAX, "");
 
 /** @brief Initialize a CS entry. */
 __attribute__((nonnull)) static inline void
-CsEntry_Init(CsEntry* entry)
-{
-  *entry = (CsEntry){ 0 };
+CsEntry_Init(CsEntry* entry) {
+  *entry = (CsEntry){0};
 }
 
 /** @brief Retrieve direct entry. */
 __attribute__((nonnull)) static __rte_always_inline CsEntry*
-CsEntry_GetDirect(CsEntry* entry)
-{
+CsEntry_GetDirect(CsEntry* entry) {
   return unlikely(entry->kind == CsEntryIndirect) ? entry->direct : entry;
 }
 
@@ -102,8 +97,7 @@ CsEntry_GetDirect(CsEntry* entry)
  * @post indirect->kind == CsEntryIndirect
  */
 __attribute__((nonnull)) static inline bool
-CsEntry_Assoc(CsEntry* indirect, CsEntry* direct)
-{
+CsEntry_Assoc(CsEntry* indirect, CsEntry* direct) {
   NDNDPDK_ASSERT(direct->kind != CsEntryIndirect);
   if (unlikely(direct->nIndirects >= CsMaxIndirects)) {
     return false;
@@ -117,8 +111,7 @@ CsEntry_Assoc(CsEntry* indirect, CsEntry* direct)
 
 /** @brief Disassociate an indirect entry. */
 __attribute__((nonnull)) static inline void
-CsEntry_Disassoc(CsEntry* indirect)
-{
+CsEntry_Disassoc(CsEntry* indirect) {
   NDNDPDK_ASSERT(indirect->kind == CsEntryIndirect);
   CsEntry* direct = indirect->direct;
 
@@ -136,8 +129,7 @@ CsEntry_Disassoc(CsEntry* indirect)
 
 /** @brief Clear an entry and prepare it for refresh. */
 __attribute__((nonnull)) static inline void
-CsEntry_Clear(CsEntry* entry)
-{
+CsEntry_Clear(CsEntry* entry) {
   switch (entry->kind) {
     case CsEntryNone:
       break;
@@ -159,8 +151,7 @@ CsEntry_Clear(CsEntry* entry)
  * @pre If entry is direct, no indirect entry depends on it.
  */
 __attribute__((nonnull)) static inline void
-CsEntry_Finalize(CsEntry* entry)
-{
+CsEntry_Finalize(CsEntry* entry) {
   NDNDPDK_ASSERT(entry->kind == CsEntryIndirect || entry->nIndirects == 0);
   CsEntry_Clear(entry);
 }

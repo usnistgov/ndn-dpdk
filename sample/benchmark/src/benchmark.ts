@@ -350,7 +350,7 @@ export class Benchmark {
           case "fileserver": {
             const fileVersion = (this.state.fileServerVersionBypassHi[pLabel] << 32n) | fileVersionTime | BigInt(j);
             assert(fileVersion > 0xFFFFFFFFn);
-            const fileVersionCompV = hexPad(fileVersion, 16).replace(/[\dA-F]{2}/g, "%$&");
+            const fileVersionCompV = hexPad(fileVersion, 16).replaceAll(/[\dA-F]{2}/g, "%$&");
             tasks.push({
               prefix: `${prefix3}/54=${fileVersionCompV}`,
               segmentEnd,

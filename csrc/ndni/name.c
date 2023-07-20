@@ -7,16 +7,14 @@ static SipHashKey LName_HashKey_;
 uint64_t LName_EmptyHash_;
 
 uint64_t
-LName_ComputeHash(LName name)
-{
+LName_ComputeHash(LName name) {
   SipHash h;
   SipHash_Init(&h, &LName_HashKey_);
   SipHash_Write(&h, name.value, name.length);
   return SipHash_Final(&h);
 }
 
-RTE_INIT(InitLNameHash)
-{
+RTE_INIT(InitLNameHash) {
   pcg32_random_t rng;
   // seed with time, because rte_rand() is unavailable before EAL init
   pcg32_srandom_r(&rng, rte_get_tsc_cycles(), 0);
@@ -27,13 +25,12 @@ RTE_INIT(InitLNameHash)
   }
   SipHashKey_FromBuffer(&LName_HashKey_, key);
 
-  LName_EmptyHash_ = LName_ComputeHash((LName){ 0 });
+  LName_EmptyHash_ = LName_ComputeHash((LName){0});
 }
 
 bool
-PName_Parse(PName* p, LName l)
-{
-  *p = (const PName){ .value = l.value, .length = l.length, .firstNonGeneric = -1 };
+PName_Parse(PName* p, LName l) {
+  *p = (const PName){.value = l.value, .length = l.length, .firstNonGeneric = -1};
 
   uint16_t pos = 0, end = 0, type = 0, length = 0;
   while (likely(LName_Component(l, &pos, &type, &length))) {
@@ -57,8 +54,7 @@ PName_Parse(PName* p, LName l)
 }
 
 void
-PName_PrepareHashes_(PName* p)
-{
+PName_PrepareHashes_(PName* p) {
   SipHash h;
   SipHash_Init(&h, &LName_HashKey_);
 

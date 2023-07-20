@@ -9,8 +9,7 @@ __attribute__((nonnull)) void
 CsList_Init(CsList* csl);
 
 static __rte_always_inline void
-CsList_AppendNode_(CsList* csl, CsNode* node)
-{
+CsList_AppendNode_(CsList* csl, CsNode* node) {
   CsNode* last = csl->prev;
   node->prev = last;
   node->next = (CsNode*)csl;
@@ -19,8 +18,7 @@ CsList_AppendNode_(CsList* csl, CsNode* node)
 }
 
 static __rte_always_inline void
-CsList_RemoveNode_(CsList* csl, CsNode* node)
-{
+CsList_RemoveNode_(CsList* csl, CsNode* node) {
   CsNode* prev = node->prev;
   CsNode* next = node->next;
   NDNDPDK_ASSERT(prev->next == node);
@@ -31,16 +29,14 @@ CsList_RemoveNode_(CsList* csl, CsNode* node)
 
 /** @brief Append an entry to back of list. */
 __attribute__((nonnull)) static __rte_always_inline void
-CsList_Append(CsList* csl, CsEntry* entry)
-{
+CsList_Append(CsList* csl, CsEntry* entry) {
   CsList_AppendNode_(csl, (CsNode*)entry);
   ++csl->count;
 }
 
 /** @brief Remove an entry from the list. */
 __attribute__((nonnull)) static __rte_always_inline void
-CsList_Remove(CsList* csl, CsEntry* entry)
-{
+CsList_Remove(CsList* csl, CsEntry* entry) {
   NDNDPDK_ASSERT(csl->count > 0);
   CsList_RemoveNode_(csl, (CsNode*)entry);
   --csl->count;
@@ -48,16 +44,14 @@ CsList_Remove(CsList* csl, CsEntry* entry)
 
 /** @brief Access the front entry of list. */
 __attribute__((nonnull, returns_nonnull)) static __rte_always_inline CsEntry*
-CsList_GetFront(CsList* csl)
-{
+CsList_GetFront(CsList* csl) {
   NDNDPDK_ASSERT(csl->count > 0);
   return (CsEntry*)csl->next;
 }
 
 /** @brief Move an entry to back of list. */
 __attribute__((nonnull)) static __rte_always_inline void
-CsList_MoveToLast(CsList* csl, CsEntry* entry)
-{
+CsList_MoveToLast(CsList* csl, CsEntry* entry) {
   CsList_RemoveNode_(csl, (CsNode*)entry);
   CsList_AppendNode_(csl, (CsNode*)entry);
 }

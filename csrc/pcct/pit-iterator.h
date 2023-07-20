@@ -5,10 +5,8 @@
 
 #include "pit-entry.h"
 
-typedef struct PitDnUpIt_
-{
-  union
-  {
+typedef struct PitDnUpIt_ {
+  union {
     PitDn* dn; ///< current PitDn
     PitUp* up; ///< current PitUp
   };
@@ -16,8 +14,7 @@ typedef struct PitDnUpIt_
 
   int i;   ///< (pvt) index within this array
   int max; ///< (pvt) upper bound of this array
-  union
-  {
+  union {
     void* array; // (pvt) start of array
     PitDn* dns;
     PitUp* ups;
@@ -27,8 +24,7 @@ typedef struct PitDnUpIt_
 } PitDnUpIt_;
 
 __attribute__((nonnull)) static inline void
-PitDnUpIt_Init_(PitDnUpIt_* it, PitEntry* entry, int maxInEntry, size_t offsetInEntry)
-{
+PitDnUpIt_Init_(PitDnUpIt_* it, PitEntry* entry, int maxInEntry, size_t offsetInEntry) {
   it->index = 0;
   it->i = 0;
   it->max = maxInEntry;
@@ -37,8 +33,7 @@ PitDnUpIt_Init_(PitDnUpIt_* it, PitEntry* entry, int maxInEntry, size_t offsetIn
 }
 
 __attribute__((nonnull)) static inline void
-PitDnUpIt_Next_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt)
-{
+PitDnUpIt_Next_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt) {
   NDNDPDK_ASSERT(it->i < it->max);
   ++it->index;
   ++it->i;
@@ -73,21 +68,18 @@ PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt);
 typedef PitDnUpIt_ PitDnIt;
 
 __attribute__((nonnull)) static inline void
-PitDnIt_Init(PitDnIt* it, PitEntry* entry)
-{
+PitDnIt_Init(PitDnIt* it, PitEntry* entry) {
   PitDnUpIt_Init_(it, entry, PitMaxDns, offsetof(PitEntry, dns));
   it->dn = &it->dns[it->i];
 }
 
 __attribute__((nonnull)) static inline bool
-PitDnIt_Valid(PitDnIt* it)
-{
+PitDnIt_Valid(PitDnIt* it) {
   return it->i < it->max;
 }
 
 __attribute__((nonnull)) static inline void
-PitDnIt_Next(PitDnIt* it)
-{
+PitDnIt_Next(PitDnIt* it) {
   PitDnUpIt_Next_(it, PitMaxExtDns, offsetof(PitEntryExt, dns));
   it->dn = &it->dns[it->i];
 }
@@ -98,8 +90,7 @@ PitDnIt_Next(PitDnIt* it)
  * @retval false allocation failure.
  */
 __attribute__((nonnull)) static inline bool
-PitDnIt_Extend(PitDnIt* it, Pit* pit)
-{
+PitDnIt_Extend(PitDnIt* it, Pit* pit) {
   bool ok = PitDnUpIt_Extend_(it, pit, PitMaxExtDns, offsetof(PitEntryExt, dns));
   it->dn = &it->dns[it->i];
   return ok;
@@ -119,21 +110,18 @@ PitDnIt_Extend(PitDnIt* it, Pit* pit)
 typedef PitDnUpIt_ PitUpIt;
 
 __attribute__((nonnull)) static inline void
-PitUpIt_Init(PitUpIt* it, PitEntry* entry)
-{
+PitUpIt_Init(PitUpIt* it, PitEntry* entry) {
   PitDnUpIt_Init_(it, entry, PitMaxUps, offsetof(PitEntry, ups));
   it->up = &it->ups[it->i];
 }
 
 __attribute__((nonnull)) static inline bool
-PitUpIt_Valid(PitUpIt* it)
-{
+PitUpIt_Valid(PitUpIt* it) {
   return it->i < it->max;
 }
 
 __attribute__((nonnull)) static inline void
-PitUpIt_Next(PitUpIt* it)
-{
+PitUpIt_Next(PitUpIt* it) {
   PitDnUpIt_Next_(it, PitMaxExtUps, offsetof(PitEntryExt, ups));
   it->up = &it->ups[it->i];
 }
@@ -144,8 +132,7 @@ PitUpIt_Next(PitUpIt* it)
  * @retval false allocation failure.
  */
 __attribute__((nonnull)) static inline bool
-PitUpIt_Extend(PitDnIt* it, Pit* pit)
-{
+PitUpIt_Extend(PitDnIt* it, Pit* pit) {
   bool ok = PitDnUpIt_Extend_(it, pit, PitMaxExtUps, offsetof(PitEntryExt, ups));
   it->up = &it->ups[it->i];
   return ok;

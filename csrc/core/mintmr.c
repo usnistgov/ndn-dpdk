@@ -5,8 +5,7 @@
 N_LOG_INIT(MinTmr);
 
 MinSched*
-MinSched_New(int nSlotBits, TscDuration interval, MinTmrCb cb, uintptr_t ctx)
-{
+MinSched_New(int nSlotBits, TscDuration interval, MinTmrCb cb, uintptr_t ctx) {
   uint32_t nSlots = RTE_BIT32(nSlotBits);
   NDNDPDK_ASSERT(nSlots != 0);
 
@@ -27,22 +26,19 @@ MinSched_New(int nSlotBits, TscDuration interval, MinTmrCb cb, uintptr_t ctx)
 }
 
 void
-MinSched_Clear(MinSched* sched)
-{
+MinSched_Clear(MinSched* sched) {
   for (uint32_t i = 0; i < sched->nSlots; ++i) {
     CDS_INIT_LIST_HEAD(&sched->slot[i]);
   }
 }
 
 void
-MinSched_Close(MinSched* sched)
-{
+MinSched_Close(MinSched* sched) {
   rte_free(sched);
 }
 
 void
-MinSched_Trigger_(MinSched* sched, TscTime now)
-{
+MinSched_Trigger_(MinSched* sched, TscTime now) {
   while (now >= sched->nextTime) {
     sched->lastSlot = (sched->lastSlot + 1) & sched->slotMask;
     N_LOGV("Trigger sched=%p slot=%" PRIu16 " time=%" PRIu64 " now=%" PRIu64, sched,
@@ -60,15 +56,13 @@ MinSched_Trigger_(MinSched* sched, TscTime now)
 }
 
 void
-MinTmr_Cancel_(MinTmr* tmr)
-{
+MinTmr_Cancel_(MinTmr* tmr) {
   N_LOGD("Cancel tmr=%p", tmr);
   cds_list_del_init(&tmr->h);
 }
 
 bool
-MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched)
-{
+MinTmr_After(MinTmr* tmr, TscDuration after, MinSched* sched) {
   if (likely(tmr->h.next != NULL)) {
     cds_list_del(&tmr->h);
   }

@@ -4,16 +4,14 @@
 
 static_assert(sizeof(PccKeyExt) <= sizeof(PccEntry), "");
 
-enum
-{
+enum {
   PccSearchDebugStringLength = 2 * Base16_BufferSize(NameMaxLength) + 32,
 };
 static RTE_DEFINE_PER_LCORE(
   struct { char buffer[PccSearchDebugStringLength]; }, PccSearchDebugStringBuffer);
 
 const char*
-PccSearch_ToDebugString(const PccSearch* search)
-{
+PccSearch_ToDebugString(const PccSearch* search) {
   int pos = 0;
 #define buffer (RTE_PER_LCORE(PccSearchDebugStringBuffer).buffer)
 #define append(fn, ...)                                                                            \
@@ -38,8 +36,7 @@ PccSearch_ToDebugString(const PccSearch* search)
 
 bool
 PccKey_MatchFieldWithExt_(LName name, const uint8_t* firstV, uint16_t firstCapacity,
-                          const PccKeyExt* ext)
-{
+                          const PccKeyExt* ext) {
   NDNDPDK_ASSERT(name.length > firstCapacity);
   if (memcmp(firstV, name.value, firstCapacity) != 0) {
     return false;
@@ -57,8 +54,7 @@ PccKey_MatchFieldWithExt_(LName name, const uint8_t* firstV, uint16_t firstCapac
 
 int
 PccKey_WriteFieldWithExt_(LName name, uint8_t* firstV, uint16_t firstCapacity, PccKeyExt** next,
-                          PccKeyExt* exts[])
-{
+                          PccKeyExt* exts[]) {
   NDNDPDK_ASSERT(name.length > firstCapacity);
   rte_memcpy(firstV, name.value, firstCapacity);
   int nExts = 0;

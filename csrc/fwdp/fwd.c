@@ -22,8 +22,7 @@ static_assert(sizeof(SgCtx) == offsetof(FwFwdCtx, endofSgCtx), "");
 typedef void (*RxFunc)(FwFwd* fwd, FwFwdCtx* ctx);
 
 __attribute__((nonnull)) static inline uint32_t
-FwFwd_RxBurst(FwFwd* fwd, PktType pktType, PktQueue* q, RxFunc process)
-{
+FwFwd_RxBurst(FwFwd* fwd, PktType pktType, PktQueue* q, RxFunc process) {
   TscTime now = rte_get_tsc_cycles();
   struct rte_mbuf* pkts[MaxBurstSize];
   PktQueuePopResult pop = PktQueue_Pop(q, pkts, RTE_DIM(pkts), now);
@@ -51,8 +50,7 @@ FwFwd_RxBurst(FwFwd* fwd, PktType pktType, PktQueue* q, RxFunc process)
 }
 
 int
-FwFwd_Run(FwFwd* fwd)
-{
+FwFwd_Run(FwFwd* fwd) {
   rcu_register_thread();
   N_LOGI("Run fwd-id=%" PRIu8 " fwd=%p fib=%p pit=%p cs=%p crypto=%p", fwd->id, fwd, fwd->fib,
          fwd->pit, fwd->cs, fwd->cryptoHelper);
