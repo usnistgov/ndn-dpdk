@@ -1,7 +1,7 @@
-FROM debian:bullseye
+FROM debian:bookworm
 RUN apt-get -y -qq update \
  && apt-get -y -qq install --no-install-recommends ca-certificates \
- && echo "deb [arch=amd64 trusted=yes] https://nfd-nightly-apt.ndn.today/debian bullseye main" > /etc/apt/sources.list.d/nfd-nightly.list \
+ && echo "deb [arch=amd64 trusted=yes] https://nfd-nightly-apt.ndn.today/debian bookworm main" > /etc/apt/sources.list.d/nfd-nightly.list \
  && apt-get -y -qq update \
  && apt-get -y -qq install --no-install-recommends infoedit ndnpeek ndnping ndnsec nfd \
  && rm -rf /var/lib/apt/lists/*

@@ -37,12 +37,7 @@ The [installation guide](INSTALL.md) "usage" section describes how to perform th
 You can extract DPDK setup scripts and NDN-DPDK management schemas from the image:
 
 ```bash
-sudo mkdir -p /usr/local/bin /usr/local/share
-CTID=$(docker container create ndn-dpdk)
-docker cp $CTID:/usr/local/bin/dpdk-devbind.py - | sudo tar -x -C /usr/local/bin
-docker cp $CTID:/usr/local/bin/dpdk-hugepages.py - | sudo tar -x -C /usr/local/bin
-docker cp $CTID:/usr/local/share/ndn-dpdk - | sudo tar -x -C /usr/local/share
-docker container rm $CTID
+docker run --rm ndn-dpdk sh -c 'tar -c /usr/local/bin/dpdk-*.py /usr/local/share/ndn-dpdk' | sudo tar -x -C /
 ```
 
 ## Start the NDN-DPDK Service Container

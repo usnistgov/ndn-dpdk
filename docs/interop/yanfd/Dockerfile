@@ -1,11 +1,11 @@
-FROM golang:1.20-bullseye AS build
-ADD https://github.com/TomWright/dasel/releases/download/v2.1.1/dasel_linux_amd64 /dasel
+FROM golang:1.20-bookworm AS build
 RUN git clone https://github.com/named-data/YaNFD.git /app \
  && cd /app \
  && env CGO_ENABLED=0 make
 
-FROM debian:bullseye
-COPY --from=build /app/yanfd /dasel /usr/local/bin/
+FROM debian:bookworm
+ADD https://github.com/TomWright/dasel/releases/download/v2.3.4/dasel_linux_amd64 /usr/local/bin/dasel
+COPY --from=build /app/yanfd /usr/local/bin/
 COPY --from=build /app/yanfd.toml.sample /usr/local/etc/ndn/
 COPY start.sh /
 RUN chmod +x /usr/local/bin/dasel /start.sh
