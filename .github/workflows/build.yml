@@ -15,55 +15,20 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 20
-      - id: compilers
-        name: Install compilers and tools
+      - id: deps
+        name: Install dependencies
         run: |
-          sudo apt-get install clang-15 clang-format-15 doxygen libc6-dev-i386 libelf-dev libpcap-dev liburcu-dev
-          set_alternative() {
-            sudo update-alternatives --remove-all $1 || true
-            sudo update-alternatives --install /usr/bin/$1 $1 $2 1
-          }
-          set_alternative gcc /usr/bin/gcc-12
-          set_alternative cc /usr/bin/gcc
-          set_alternative g++ /usr/bin/g++-12
-          set_alternative c++ /usr/bin/g++
-          set_alternative go $(command -v go)
-          set_alternative gofmt $(command -v gofmt)
-          set_alternative node $(command -v node)
-          go install honnef.co/go/tools/cmd/staticcheck@latest
-          sudo pip install meson
+          docs/ndndpdk-depends.sh -y --node=0 --go=0 --dpdk=0 --spdk=0
           echo meson=$(meson --version) >> $GITHUB_OUTPUT
-      - name: Install uBPF
-        run: |
-          mkdir -p $HOME/ubpf
-          cd $HOME/ubpf
-          curl -fsLS https://github.com/iovisor/ubpf/archive/$UBPFCOMMIT.tar.gz | tar -xz --strip-components=1
-          cd vm
-          make
-          sudo make install
-        env:
-          UBPFCOMMIT: 2b9bc44f42f37fccf2991a50ad4cf18c84161652
-      - name: Install liburing
-        run: |
-          mkdir -p $HOME/liburing
-          cd $HOME/liburing
-          curl -fsLS https://github.com/axboe/liburing/archive/$URINGVER.tar.gz | tar -xz --strip-components=1
-          ./configure --prefix=/usr/local
-          make -C src
-          sudo make install
-        env:
-          CXX: false
-          URINGVER: liburing-2.3
       - name: Cache DPDK and SPDK
         uses: actions/cache@v3
         with:
           path: ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.compilers.outputs.meson }}_20230410
+          key: ${{ matrix.compiler }}_${{ steps.deps.outputs.meson }}_20230721
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: v23.03
           spdk-version: v23.05
-          target-arch: haswell
       - name: Build NDN-DPDK in debug mode
         run: |
           corepack pnpm install
@@ -133,11 +98,11 @@ jobs:
           go-version-file: go.mod
       - name: Install TinyGo
         run: |
-          wget https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo_${TINYGO_VERSION}_amd64.deb
+          wget -nv https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo_${TINYGO_VERSION}_amd64.deb
           sudo dpkg -i tinygo_${TINYGO_VERSION}_amd64.deb
         working-directory: /tmp
         env:
-          TINYGO_VERSION: "0.27.0"
+          TINYGO_VERSION: "0.28.1"
       - name: Build for Linux without cgo
         run: |
           go build -v -o /dev/null ./ndn/...

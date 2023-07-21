@@ -16,10 +16,6 @@ RUN export PATH=$PATH:/usr/local/go/bin \
  && make install
 RUN rm -rf \
       /usr/local/bin/__pycache__ \
-      /usr/local/bin/dpdk-dumpcap \
-      /usr/local/bin/dpdk-pdump \
-      /usr/local/bin/dpdk-proc-info \
-      /usr/local/bin/dpdk-test* \
       /usr/local/bin/meson \
       /usr/local/bin/pip* \
       /usr/local/bin/readelf.py \

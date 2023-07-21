@@ -156,7 +156,7 @@ func TestServer(t *testing.T) {
 			Name          string
 			SetSegmentEnd bool
 		}{
-			{"/usr/local/bin/dpdk-testpmd", "/usr/local-bin/dpdk-testpmd", true},
+			{"/usr/local/lib/librte_eal.so", "/usr/local-lib/librte_eal.so", true},
 			{"/usr/bin/jq", "/usr/bin/jq", false},
 		} {
 			tt := tt

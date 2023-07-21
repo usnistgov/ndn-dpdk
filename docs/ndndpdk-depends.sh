@@ -37,10 +37,10 @@ fi
 DFLT_CODEROOT=$HOME/code
 DFLT_NODEVER=20.x
 DFLT_GOVER=latest
-DFLT_UBPFVER=2b9bc44f42f37fccf2991a50ad4cf18c84161652
-DFLT_LIBBPFVER=v1.2.0
+DFLT_UBPFVER=7c6b84437caffab1de52aad24926fa0a57280a17
+DFLT_LIBBPFVER=v1.2.2
 DFLT_XDPTOOLSVER=v1.2.10
-DFLT_URINGVER=liburing-2.3
+DFLT_URINGVER=liburing-2.4
 DFLT_DPDKVER=v23.03
 DFLT_DPDKPATCH=
 DFLT_DPDKOPTS={}
@@ -165,6 +165,7 @@ set_alternative() {
 APT_PKGS=(
   clang-15
   clang-format-15
+  cmake
   doxygen
   file
   g++-12
@@ -318,12 +319,10 @@ if [[ $GOVER != 0 ]]; then
 fi
 
 if [[ $UBPFVER != 0 ]]; then
-  cd "$CODEROOT"
-  rm -rf "ubpf-${UBPFVER}"
-  curl -fsLS "${NDNDPDK_DL_GITHUB}/iovisor/ubpf/archive/${UBPFVER}.tar.gz" | tar -xz
-  cd "ubpf-${UBPFVER}/vm"
-  make -j${NJOBS}
-  $SUDO make install
+  cd "$(github_download iovisor/ubpf $UBPFVER)"
+  cmake -G Ninja -B build -D BUILD_SHARED_LIBS=1 -D UBPF_ENABLE_INSTALL=1
+  cmake --build build
+  $SUDO cmake --build build -t install
   $SUDO rm -f /usr/local/lib/libubpf.a
 fi
 
@@ -363,7 +362,7 @@ if [[ $DPDKVER != 0 ]]; then
     sh -c "curl -fsLS ${NDNDPDK_DL_DPDK_PATCHES}/series/{}/mbox/ | patch -p1"
   meson setup \
     $(echo "$DPDKOPTS" | jq -r --arg arch "$TARGETARCH" '
-      { debug:true, cpu_instruction_set:$arch, optimization:3, tests:false } + .
+      { debug:true, cpu_instruction_set:$arch, optimization:3, tests:false, disable_apps:"*" } + .
       | to_entries[] | "-D"+.key+"="+(.value|tostring)
     ') --libdir=lib build
   meson compile -C build -j ${NJOBS}

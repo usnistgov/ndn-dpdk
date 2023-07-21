@@ -6,6 +6,7 @@ import (
 	_ "github.com/usnistgov/ndn-dpdk/ndn"
 	_ "github.com/usnistgov/ndn-dpdk/ndn/an"
 	_ "github.com/usnistgov/ndn-dpdk/ndn/endpoint"
+	_ "github.com/usnistgov/ndn-dpdk/ndn/fch"
 	_ "github.com/usnistgov/ndn-dpdk/ndn/keychain"
 	_ "github.com/usnistgov/ndn-dpdk/ndn/l3"
 	_ "github.com/usnistgov/ndn-dpdk/ndn/mgmt"

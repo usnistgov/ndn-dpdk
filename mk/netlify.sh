@@ -9,7 +9,7 @@ cp -r build/docs/html build/netlify/doxygen
 find build/netlify/doxygen -name '*.html' | xargs sed -i '/<\/head>/ i\<script async src="https://www.googletagmanager.com/gtag/js?id=G-YSW3MP43Z4"></script><script>window.dataLayer=[];function gtag(){dataLayer.push(arguments);}if(location.hostname.endsWith(".ndn.today")){gtag("js",new Date());gtag("config","G-YSW3MP43Z4");}</script>'
 
 mkdir -p build/netlify/schema
-find build/share/ndn-dpdk -name '*.json' | xargs cp -t build/netlify/schema/
+find build/share/ndn-dpdk -name '*.json' -or -name '*.npm.tgz' | xargs cp -t build/netlify/schema/
 
 build/bin/ndndpdk-svc &
 NDNDPDK_SVC_PID=$!
