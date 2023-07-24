@@ -13,7 +13,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Optional APT packages: `clang-format-15 doxygen lcov yamllint`
 * Go 1.20
 * Node.js 20.x
-* [Meson build system](https://mesonbuild.com/Getting-meson.html#installing-meson-with-pip)
+* [Meson build system](https://mesonbuild.com/Getting-meson.html) 1.x
 * [ubpf](https://github.com/iovisor/ubpf) 7c6b8443
 * [libbpf](https://github.com/libbpf/libbpf) 1.2.2 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.2.10 (optional)
 * [liburing](https://github.com/axboe/liburing) 2.4

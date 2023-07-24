@@ -184,22 +184,16 @@ APT_PKGS=(
   ninja-build
   pkg-config
   python-is-python3
-  python3-distutils
+  python3-pyelftools
   uuid-dev
   yamllint
 )
-PIP_PKGS=(
-  meson
-  pyelftools
-)
 
 DISTRO=$(lsb_release -sc)
-NEED_PIP=1
 case $DISTRO in
   jammy) ;;
   bookworm)
-    APT_PKGS+=(meson python3-pyelftools)
-    PIP_PKGS=()
+    APT_PKGS+=(meson)
     ;;
   *)
     echo "Distro ${DISTRO} is not supported by this script."
@@ -300,9 +294,10 @@ set_alternative c++ /usr/bin/g++
 if ! [[ -d /usr/include/asm ]]; then
   $SUDO ln -s /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/asm /usr/include/asm
 fi
-if [[ ${#PIP_PKGS[@]} -ne 0 ]]; then
-  curl -fsLS "${NDNDPDK_DL_PYPA_BOOTSTRAP}/get-pip.py" | $SUDO python
-  $SUDO pip install -U "${PIP_PKGS[@]}"
+if ! command -v meson >/dev/null ; then
+  cd "$(github_download mesonbuild/meson 1.2.0)"
+  ./packaging/create_zipapp.py --outfile meson.pyz .
+  $SUDO install -m0755 meson.pyz /usr/local/bin/meson
 fi
 
 if [[ $GOVER != 0 ]]; then

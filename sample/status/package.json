@@ -4,12 +4,12 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@8.6.9",
+  "packageManager": "pnpm@8.6.10",
   "dependencies": {
     "@fastify/express": "^2.3.0",
     "@fastify/http-proxy": "^9.2.1",
     "@fastify/static": "^6.10.2",
-    "@typescript/lib-dom": "npm:@types/web@0.0.109",
+    "@typescript/lib-dom": "npm:@types/web@0.0.111",
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz",
     "delay": "^6.0.0",
     "fastify": "^4.20.0",

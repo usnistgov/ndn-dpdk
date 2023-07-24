@@ -84,6 +84,7 @@ jobs:
           tags: ndn-dpdk
           build-args: |
             BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
+            DEPENDS_ARGS='-Ddisable_drivers=common/cnxk,common/dpaax,net/bnxt'
             MAKE_ENV=NDNDPDK_MK_RELEASE=1
       - name: Show image size
         run: docker image inspect -f '{{.Size}}' ndn-dpdk

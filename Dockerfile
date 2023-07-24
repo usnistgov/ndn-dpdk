@@ -17,22 +17,17 @@ RUN export PATH=$PATH:/usr/local/go/bin \
 RUN rm -rf \
       /usr/local/bin/__pycache__ \
       /usr/local/bin/meson \
-      /usr/local/bin/pip* \
       /usr/local/bin/readelf.py \
       /usr/local/bin/spdk_* \
       /usr/local/bin/wheel \
-      /usr/local/etc \
-      /usr/local/games \
       /usr/local/go \
       /usr/local/include \
       /usr/local/lib/pkgconfig \
-      /usr/local/lib/python* \
       /usr/local/lib/systemd \
       /usr/local/man \
       /usr/local/sbin \
       /usr/local/share/dpdk \
       /usr/local/share/man \
-      /usr/local/share/polkit-1 \
       /usr/local/share/xdp-tools \
       /usr/local/src \
  && mkdir -p /shlibdeps/debian && cd /shlibdeps && touch debian/control \
