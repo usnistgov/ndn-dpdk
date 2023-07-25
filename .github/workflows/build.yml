@@ -24,7 +24,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/setup-dpdk
-          key: ${{ matrix.compiler }}_${{ steps.deps.outputs.meson }}_20230721
+          key: ${{ steps.deps.outputs.meson }}_20230721
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: v23.03
@@ -62,9 +62,9 @@ jobs:
         run: make doxygen
       - name: Build docs site
         run: mk/netlify.sh
-        if: ${{ matrix.compiler == 'gcc-7' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
+        if: ${{ github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
       - name: Deploy docs site
-        uses: nwtgck/actions-netlify@v2
+        uses: nwtgck/actions-netlify@30aa80fe8d5eec30813fc8b17b77e0a6663f09b5
         with:
           publish-dir: ./build/netlify/
           production-deploy: true
@@ -72,10 +72,12 @@ jobs:
           deploy-message: ${{ github.sha }} ${{ github.run_id }}
           enable-pull-request-comment: false
           enable-commit-comment: false
+          enable-commit-status: false
+          enable-github-deployment: false
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: a0fbfa66-eecb-46d0-9e0b-093ddd1d0fad
-        if: ${{ matrix.compiler == 'gcc-7' && github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
+        if: ${{ github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
   docker:
     runs-on: ubuntu-22.04
     steps:
