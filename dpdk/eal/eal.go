@@ -50,12 +50,12 @@ func UpdateLCoreSockets(lcoreSockets map[int]int, mainLCoreID int) (undo func())
 			Workers = append(Workers, LCoreFromID(lcID))
 		}
 	}
-	slices.SortFunc(Workers, func(a, b LCore) bool { return a.v < b.v })
+	slices.SortFunc(Workers, func(a, b LCore) int { return a.v - b.v })
 
 	socketIDs.Each(func(socketID int) {
 		Sockets = append(Sockets, NumaSocketFromID(socketID))
 	})
-	slices.SortFunc(Sockets, func(a, b NumaSocket) bool { return a.v < b.v })
+	slices.SortFunc(Sockets, func(a, b NumaSocket) int { return a.v - b.v })
 
 	return
 }

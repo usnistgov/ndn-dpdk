@@ -189,7 +189,7 @@ func NewFaceSource(cfg FaceConfig) (s *FaceSource, e error) {
 	pcg32.Init(unsafe.Pointer(&s.c.rng))
 
 	// sort by descending name length for longest prefix match
-	slices.SortFunc(s.Names, func(a, b NameFilterEntry) bool { return len(a.Name) > len(b.Name) })
+	slices.SortFunc(s.Names, func(a, b NameFilterEntry) int { return len(b.Name) - len(a.Name) })
 	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&s.c.nameL), unsafe.Sizeof(s.c.nameL),
 		unsafe.Pointer(&s.c.nameV), unsafe.Sizeof(s.c.nameV))
 	for i, nf := range s.Names {
