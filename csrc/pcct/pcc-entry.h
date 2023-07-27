@@ -21,12 +21,13 @@ typedef struct PccEntry PccEntry;
  *
  * Each slot has room for either a PIT entry or a CS entry.
  */
-typedef struct PccSlot {
-  PccEntry* pccEntry; ///< NULL indicates unoccupied slot
-  union {
-    PitEntry pitEntry;
-    CsEntry csEntry;
+typedef union PccSlot {
+  struct {
+    uint64_t a_[2];
+    PccEntry* pccEntry; ///< NULL indicates unoccupied slot
   };
+  PitEntry pitEntry;
+  CsEntry csEntry;
 } PccSlot;
 
 /** @brief Identify a PCC entry slot. */
@@ -184,12 +185,6 @@ PccEntry_RemovePitEntry1(PccEntry* entry) {
   entry->pitEntry1Slot = PCC_SLOT_NONE;
 }
 
-/** @brief Access @c PccEntry struct containing given PIT entry. */
-__attribute__((nonnull, returns_nonnull)) static inline PccEntry*
-PccEntry_FromPitEntry(PitEntry* pitEntry) {
-  return container_of(pitEntry, PccSlot, pitEntry)->pccEntry;
-}
-
 /**
  * @brief Get CS entry from @p entry .
  * @pre @c entry->hasCsEntry
@@ -222,14 +217,6 @@ __attribute__((nonnull)) static inline void
 PccEntry_RemoveCsEntry(PccEntry* entry) {
   PccEntry_ClearSlot_(entry, entry->csEntrySlot);
   entry->csEntrySlot = PCC_SLOT_NONE;
-}
-
-/** @brief Access @c PccEntry struct containing given CS entry. */
-__attribute__((nonnull, returns_nonnull)) static inline PccEntry*
-PccEntry_FromCsEntry(CsEntry* csEntry) {
-  PccEntry* entry = container_of(csEntry, PccSlot, csEntry)->pccEntry;
-  NDNDPDK_ASSERT(entry->hasCsEntry);
-  return entry;
 }
 
 #endif // NDNDPDK_PCCT_PCC_ENTRY_H

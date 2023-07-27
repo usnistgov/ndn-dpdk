@@ -11,6 +11,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/zap"
 )
 
 // Entry represents a CS entry.
@@ -47,8 +48,11 @@ func (entry *Entry) ListIndirects() (indirects []*Entry) {
 
 // Data returns the Data packet on this entry.
 func (entry *Entry) Data() *ndni.Packet {
-	if entry.Kind() != EntryMemory {
-		panic("Entry.Data is only available on in-memory entry")
+	if kind := entry.Kind(); kind != EntryMemory {
+		logger.Panic("Entry.Data is only available on in-memory entry",
+			zap.Uintptr("entry", uintptr(unsafe.Pointer(entry))),
+			zap.Int("kind", int(kind)),
+		)
 	}
 	return ndni.PacketFromPtr(C.CsEntry_Data((*C.CsEntry)(entry)))
 }

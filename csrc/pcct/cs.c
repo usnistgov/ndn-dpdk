@@ -8,7 +8,7 @@ N_LOG_INIT(Cs);
 
 __attribute__((nonnull)) static void
 CsEraseBatch_Append(PcctEraseBatch* peb, CsEntry* entry, const char* kind) {
-  PccEntry* pccEntry = PccEntry_FromCsEntry(entry);
+  PccEntry* pccEntry = entry->pccEntry;
   PccEntry_RemoveCsEntry(pccEntry);
   if (likely(!pccEntry->hasEntries)) {
     N_LOGD("^ cs=%p(%s) pcc=%p(erase)", entry, kind, pccEntry);
@@ -117,8 +117,7 @@ __attribute__((nonnull)) static inline void
 Cs_EraseImplicitDigestIndirect(Cs* cs, CsEntry* direct, size_t dataNameL) {
   for (uint8_t i = 0; i < direct->nIndirects; ++i) {
     CsEntry* indirect = direct->indirect[i];
-    PccEntry* indirectPcc = PccEntry_FromCsEntry(indirect);
-    if (unlikely(indirectPcc->key.nameL > dataNameL)) {
+    if (unlikely(indirect->pccEntry->key.nameL > dataNameL)) {
       N_LOGD("^ erase-implicit-digest-indirect indirect=%p direct=%p", indirect, direct);
       Cs_EraseEntry(cs, indirect);
       break;
@@ -281,10 +280,9 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound) {
 CsEntry*
 Cs_MatchInterest(Cs* cs, CsEntry* entry, Packet* interestNpkt) {
   CsEntry* direct = CsEntry_GetDirect(entry);
-  PccEntry* pccDirect = PccEntry_FromCsEntry(direct);
-
   PInterest* interest = Packet_GetInterestHdr(interestNpkt);
-  bool violateCanBePrefix = !interest->canBePrefix && interest->name.length < pccDirect->key.nameL;
+  bool violateCanBePrefix =
+    !interest->canBePrefix && interest->name.length < direct->pccEntry->key.nameL;
   bool violateMustBeFresh =
     interest->mustBeFresh && direct->freshUntil <= Mbuf_GetTimestamp(Packet_ToMbuf(interestNpkt));
   N_LOGD(

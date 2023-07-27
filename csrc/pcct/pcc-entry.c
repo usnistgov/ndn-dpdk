@@ -1,10 +1,8 @@
 #include "pcc-entry.h"
 #include "pcct.h"
 
-__attribute__((nonnull, returns_nonnull)) static inline struct rte_mempool*
-PccEntry_ToMempool(PccEntry* entry) {
-  return rte_mempool_from_obj(entry);
-}
+static_assert(offsetof(PccSlot, pccEntry) == offsetof(PitEntry, pccEntry), "");
+static_assert(offsetof(PccSlot, pccEntry) == offsetof(CsEntry, pccEntry), "");
 
 PccSlotIndex
 PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot) {
@@ -20,7 +18,7 @@ PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot) {
   }
 
   if (entry->ext == NULL) {
-    int res = rte_mempool_get(PccEntry_ToMempool(entry), (void**)&entry->ext);
+    int res = rte_mempool_get(rte_mempool_from_obj(entry), (void**)&entry->ext);
     if (unlikely(res != 0)) {
       goto FAIL;
     }
@@ -68,6 +66,6 @@ PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot) {
       break;
   }
 
-  rte_mempool_put(PccEntry_ToMempool(entry), entry->ext);
+  rte_mempool_put(rte_mempool_from_obj(entry), entry->ext);
   entry->ext = NULL;
 }

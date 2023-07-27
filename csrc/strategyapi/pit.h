@@ -26,7 +26,7 @@ typedef struct SgPitUp {
 typedef struct SgPitEntryExt SgPitEntryExt;
 
 typedef struct SgPitEntry {
-  uint8_t a_[48];
+  uint8_t a_[56];
   SgPitEntryExt* ext;
   SgPitDn dns[PitMaxDns];
   SgPitUp ups[PitMaxUps];

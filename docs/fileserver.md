@@ -161,12 +161,12 @@ $ ndncat file-client /fileserver/usr-local-bin /tmp/usr-local-bin-retrieved
 ### Retrieve a Directory
 
 NDN-DPDK file server also supports directory listing as defined in the [ndn6-file-server protocol](https://github.com/yoursunny/ndn6-tools/blob/main/file-server.md).
-You can use the [ndncat command](https://ndnts-docs.ndn.today/typedoc/modules/cat.html) to view the directory listing or recursively retrieve a directory.
+You can use the [ndncat command](https://ndnts-docs.ndn.today/typedoc/modules/_ndn_cat.html) to view the directory listing or recursively retrieve a directory.
 
 Example command and (partial) output:
 
 ```shell
-$ $ ndncat get-segmented --ver=rdr /fileserver/usr-local-share/32=ls | tr '\0' '\n'
+$ ndncat get-segmented --ver=rdr /fileserver/usr-local-share/32=ls | tr '\0' '\n'
 ca-certificates/
 bash-completion/
 ndn-dpdk/

@@ -102,7 +102,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry) {
 
 void
 Pit_Erase(Pit* pit, PitEntry* entry) {
-  PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
+  PccEntry* pccEntry = entry->pccEntry;
   if (!entry->mustBeFresh) {
     NDNDPDK_ASSERT(pccEntry->hasPitEntry0);
     PccEntry_RemovePitEntry0(pccEntry);

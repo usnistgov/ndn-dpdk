@@ -23,16 +23,19 @@ typedef struct PitEntryExt PitEntryExt;
  */
 struct PitEntry {
   Packet* npkt;   ///< representative Interest packet
-  MinTmr timeout; ///< timeout timer
   TscTime expiry; ///< when all DNs expire
+  struct PccEntry* pccEntry;
+  MinTmr timeout; ///< timeout timer
 
-  uint64_t fibPrefixHash;                     ///< hash value of FIB prefix
-  uint32_t fibSeqNum;                         ///< FIB entry sequence number
-  uint8_t nCanBePrefix;                       ///< how many DNs want CanBePrefix?
-  uint8_t txHopLimit;                         ///< HopLimit for outgoing Interests
-  uint16_t fibPrefixL : PitFibPrefixLenBits_; ///< TLV-LENGTH of FIB prefix
-  bool mustBeFresh : 1;                       ///< entry for MustBeFresh 0 or 1?
-  bool hasSgTimer : 1;                        ///< whether timeout is set by strategy or expiry
+  uint64_t fibPrefixHash; ///< hash value of FIB prefix
+  struct {
+    uint32_t fibSeqNum;                         ///< FIB entry sequence number
+    uint8_t nCanBePrefix;                       ///< how many DNs want CanBePrefix?
+    uint8_t txHopLimit;                         ///< HopLimit for outgoing Interests
+    uint16_t fibPrefixL : PitFibPrefixLenBits_; ///< TLV-LENGTH of FIB prefix
+    bool mustBeFresh : 1;                       ///< entry for MustBeFresh 0 or 1?
+    bool hasSgTimer : 1;                        ///< whether timeout is set by strategy or expiry
+  } __rte_packed;
 
   PitEntryExt* ext;
   PitDn dns[PitMaxDns];

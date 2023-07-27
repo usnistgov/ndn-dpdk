@@ -70,7 +70,7 @@ Pit_FindByNack(Pit* pit, Packet* npkt, uint64_t token);
 __attribute__((nonnull)) static inline uint64_t
 PitEntry_GetToken(PitEntry* entry) {
   // Declaration is in pit-entry.h.
-  PccEntry* pccEntry = PccEntry_FromPitEntry(entry);
+  PccEntry* pccEntry = entry->pccEntry;
   NDNDPDK_ASSERT(pccEntry->hasToken);
   return pccEntry->token;
 }

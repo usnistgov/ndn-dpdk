@@ -22,7 +22,9 @@ CsEntryKind_ToString(CsEntryKind kind) {
 struct CsEntry {
   CsNode* prev;
   CsNode* next;
+  struct PccEntry* pccEntry;
 
+  RTE_MARKER zeroizeBegin_;
   union {
     /**
      * @brief The Data packet.
@@ -64,6 +66,7 @@ struct CsEntry {
   uint8_t nIndirects;
 
   CsListID arcList;
+  RTE_MARKER zeroizeEnd_;
 
   /**
    * @brief Associated indirect entries.
@@ -82,7 +85,7 @@ static_assert(CsMaxIndirects < UINT8_MAX, "");
 /** @brief Initialize a CS entry. */
 __attribute__((nonnull)) static inline void
 CsEntry_Init(CsEntry* entry) {
-  *entry = (CsEntry){0};
+  memset(entry->zeroizeBegin_, 0, RTE_PTR_DIFF(entry->zeroizeEnd_, entry->zeroizeBegin_));
 }
 
 /** @brief Retrieve direct entry. */

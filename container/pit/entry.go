@@ -3,6 +3,7 @@ package pit
 /*
 #include "../../csrc/pcct/pit-entry.h"
 #include "../../csrc/pcct/pit.h"
+enum { c_offsetof_PitEntry_fibSeqNum = offsetof(PitEntry, fibSeqNum) };
 */
 import "C"
 import (
@@ -29,8 +30,7 @@ func (entry *Entry) ptr() *C.PitEntry {
 }
 
 func (entry *Entry) pitPtr() *C.Pit {
-	pccEntryC := C.PccEntry_FromPitEntry(entry.ptr())
-	mempoolC := C.rte_mempool_from_obj(unsafe.Pointer(pccEntryC))
+	mempoolC := C.rte_mempool_from_obj(unsafe.Pointer(entry.pccEntry))
 	pcctC := (*C.Pcct)(C.rte_mempool_get_priv(mempoolC))
 	return &pcctC.pit
 }
@@ -42,7 +42,7 @@ func (entry *Entry) PitToken() uint64 {
 
 // FibSeqNum returns the FIB insertion sequence number recorded in this entry.
 func (entry *Entry) FibSeqNum() uint32 {
-	return uint32(entry.fibSeqNum)
+	return *(*uint32)(unsafe.Add(entry.Ptr(), C.c_offsetof_PitEntry_fibSeqNum))
 }
 
 // DnRecords returns downstream records.
