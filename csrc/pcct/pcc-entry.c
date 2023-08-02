@@ -44,28 +44,31 @@ FAIL:
 #undef AssignSlot
 }
 
-void
+PccSlotIndex
 PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot) {
   switch (slot) {
     case PCC_SLOT_NONE:
-      return;
+      goto FINISH;
     case PCC_SLOT1:
       entry->slot1.pccEntry = NULL;
-      return;
+      goto FINISH;
     case PCC_SLOT2:
       entry->ext->slot2.pccEntry = NULL;
       if (entry->ext->slot3.pccEntry != NULL) {
-        return;
+        goto FINISH;
       }
       break;
     case PCC_SLOT3:
       entry->ext->slot3.pccEntry = NULL;
       if (entry->ext->slot2.pccEntry != NULL) {
-        return;
+        goto FINISH;
       }
       break;
   }
 
   rte_mempool_put(rte_mempool_from_obj(entry), entry->ext);
   entry->ext = NULL;
+
+FINISH:
+  return PCC_SLOT_NONE;
 }

@@ -24,7 +24,6 @@ TlvEncoder_SizeofVarNum(uint32_t n) {
  */
 __attribute__((nonnull)) static __rte_always_inline size_t
 TlvEncoder_WriteVarNum(uint8_t* room, uint32_t n) {
-  NDNDPDK_ASSERT(room != NULL);
   if (likely(n < 0xFD)) {
     room[0] = n;
     return 1;

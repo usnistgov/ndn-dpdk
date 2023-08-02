@@ -190,7 +190,7 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry) {
     if (likely(entry->kind == CsEntryIndirect)) {
       // refresh indirect entry
       CsEntry_Disassoc(entry);
-      CsList_MoveToLast(&cs->indirect, entry);
+      CsList_Remove(&cs->indirect, entry);
     } else if (unlikely(entry->nIndirects > 0)) {
       // don't overwrite direct entry with dependencies
       N_LOGD("PutIndirect has-dependency cs=%p npkt=%p pcc-entry-%p cs-entry=%p", cs, direct,
@@ -198,31 +198,31 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry) {
       return false;
     } else {
       // change direct entry to indirect entry
+      CsArc_Remove(&cs->direct, entry);
       CsEntry_Clear(entry);
-      CsList_Append(&cs->indirect, entry);
     }
-    N_LOGD("PutIndirect refresh cs=%p npkt=%p pcc-entry-%p cs-entry=%p count=%" PRIu32, cs, direct,
-           pccEntry, entry, cs->indirect.count);
+    N_LOGD("PutIndirect refresh cs=%p npkt=%p pcc-entry-%p cs-entry=%p", cs, direct, pccEntry,
+           entry);
   } else {
     // insert indirect entry
     entry = PccEntry_AddCsEntry(pccEntry);
     if (unlikely(entry == NULL)) {
       N_LOGW("PutIndirect alloc-err cs=%p npkt=%p pcc-entry-%p", cs, direct, pccEntry);
-      return NULL;
+      return false;
     }
     CsEntry_Init(entry);
-    CsList_Append(&cs->indirect, entry);
-    N_LOGD("PutIndirect insert cs=%p npkt=%p pcc-entry-%p cs-entry=%p count=%" PRIu32, cs, direct,
-           pccEntry, entry, cs->indirect.count);
+    N_LOGD("PutIndirect insert cs=%p npkt=%p pcc-entry-%p cs-entry=%p", cs, direct, pccEntry,
+           entry);
   }
 
   if (likely(CsEntry_Assoc(entry, direct))) {
-    N_LOGV("^ indirect=%p direct=%p(%" PRId8 ")", entry, entry->direct, entry->direct->nIndirects);
+    CsList_Append(&cs->indirect, entry);
+    N_LOGV("^ count=%" PRIu32 " indirect=%p direct=%p(%" PRId8 ")", cs->indirect.count, entry,
+           entry->direct, entry->direct->nIndirects);
     return true;
   }
 
   N_LOGD("^ indirect-assoc-err");
-  CsList_Remove(&cs->indirect, entry);
   PccEntry_RemoveCsEntry(pccEntry);
   if (likely(!pccEntry->hasEntries)) {
     Pcct_Erase(Pcct_FromCs(cs), pccEntry);

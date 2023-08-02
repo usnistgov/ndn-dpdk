@@ -114,7 +114,7 @@ PccEntry_GetSlot_(PccEntry* entry, PccSlotIndex slot) {
 __attribute__((nonnull)) PccSlotIndex
 PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot);
 
-__attribute__((nonnull)) void
+__attribute__((nonnull)) PccSlotIndex
 PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot);
 
 /**
@@ -147,8 +147,7 @@ PccEntry_AddPitEntry0(PccEntry* entry) {
 /** @brief Remove PIT entry of MustBeFresh=0 from @p entry . */
 __attribute__((nonnull)) static inline void
 PccEntry_RemovePitEntry0(PccEntry* entry) {
-  PccEntry_ClearSlot_(entry, entry->pitEntry0Slot);
-  entry->pitEntry0Slot = PCC_SLOT_NONE;
+  entry->pitEntry0Slot = PccEntry_ClearSlot_(entry, entry->pitEntry0Slot);
 }
 
 /**
@@ -181,8 +180,7 @@ PccEntry_AddPitEntry1(PccEntry* entry) {
 /** @brief Remove PIT entry of MustBeFresh=1 from @p entry . */
 __attribute__((nonnull)) static inline void
 PccEntry_RemovePitEntry1(PccEntry* entry) {
-  PccEntry_ClearSlot_(entry, entry->pitEntry1Slot);
-  entry->pitEntry1Slot = PCC_SLOT_NONE;
+  entry->pitEntry1Slot = PccEntry_ClearSlot_(entry, entry->pitEntry1Slot);
 }
 
 /**
@@ -215,8 +213,7 @@ PccEntry_AddCsEntry(PccEntry* entry) {
 /** @brief Remove CS entry from @p entry . */
 __attribute__((nonnull)) static inline void
 PccEntry_RemoveCsEntry(PccEntry* entry) {
-  PccEntry_ClearSlot_(entry, entry->csEntrySlot);
-  entry->csEntrySlot = PCC_SLOT_NONE;
+  entry->csEntrySlot = PccEntry_ClearSlot_(entry, entry->csEntrySlot);
 }
 
 #endif // NDNDPDK_PCCT_PCC_ENTRY_H
