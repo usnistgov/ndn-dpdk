@@ -3,6 +3,7 @@ package pit_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibreplica"
@@ -37,30 +38,30 @@ var (
 )
 
 type Fixture struct {
+	require    *require.Assertions
 	Pcct       *pcct.Pcct
 	Pit        *pit.Pit
+	Face       iface.ID
 	Fib        *fib.Fib
 	FibReplica *fibreplica.Table
 	FibEntry   *fibreplica.Entry
 }
 
 func NewFixture(t testing.TB, pcctCapacity int) *Fixture {
-	fixture := &Fixture{}
+	fixture := &Fixture{
+		require: require.New(t),
+	}
 	var e error
 	fixture.Pcct, e = pcct.New(pcct.Config{PcctCapacity: pcctCapacity}, eal.NumaSocket{})
-	if e != nil {
-		panic(e)
-	}
+	fixture.require.NoError(e)
 	fixture.Pit = pit.FromPcct(fixture.Pcct)
 
+	fixture.Face = iface.AllocID()
 	fixture.Fib, e = fib.New(fibdef.Config{Capacity: 1023}, []fib.LookupThread{&fibtestenv.LookupThread{}})
-	if e != nil {
-		panic(e)
-	}
+	fixture.require.NoError(e)
 	placeholderName := ndn.ParseName("/75f3c2eb-6147-4030-afbc-585b3ce876a9")
-	if e = fixture.Fib.Insert(fibtestenv.MakeEntry(placeholderName, nil, 9999)); e != nil {
-		panic(e)
-	}
+	e = fixture.Fib.Insert(fibtestenv.MakeEntry(placeholderName, nil, fixture.Face))
+	fixture.require.NoError(e)
 	fixture.FibReplica = fixture.Fib.Replica(eal.NumaSocket{})
 	fixture.FibEntry = fixture.FibReplica.Lpm(placeholderName)
 
@@ -76,18 +77,21 @@ func (fixture *Fixture) CountMpInUse() int {
 	return fixture.Pcct.AsMempool().CountInUse()
 }
 
-// Insert inserts a PIT entry.
+// Insert inserts a PIT entry and DN record.
 // Returns the PIT entry.
 // If CS entry is found, returns nil and frees interest.
 func (fixture *Fixture) Insert(interest *ndni.Packet) *pit.Entry {
+	if m := interest.Mbuf(); m.Port() == 0 {
+		m.SetPort(uint16(fixture.Face))
+	}
 	pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.FibEntry)
 	if csEntry != nil {
 		interest.Close()
 		return nil
 	}
-	if pitEntry == nil {
-		panic("Pit.Insert failed")
-	}
+	fixture.require.NotNil(pitEntry, "Pit.Insert failed")
+	dn := pitEntry.InsertDnRecord(interest)
+	fixture.require.NotNil(dn, "pitEntry.InsertDnRecord failed")
 	return pitEntry
 }
 
@@ -100,8 +104,7 @@ func (fixture *Fixture) FindByData(data *ndni.Packet, token uint64) pit.FindResu
 
 func (fixture *Fixture) InsertFibEntry(name string, nexthop iface.ID) *fibreplica.Entry {
 	n := ndn.ParseName(name)
-	if e := fixture.Fib.Insert(fibtestenv.MakeEntry(n, nil, nexthop)); e != nil {
-		panic(e)
-	}
+	e := fixture.Fib.Insert(fibtestenv.MakeEntry(n, nil, nexthop))
+	fixture.require.NoError(e)
 	return fixture.FibReplica.Lpm(n)
 }

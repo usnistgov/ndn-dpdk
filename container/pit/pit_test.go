@@ -93,25 +93,53 @@ func TestCanBePrefixMustBeFresh(t *testing.T) {
 		}
 	}
 
-	t.Run("none => cbp+mbf", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+	t.Run("none, cbp+mbf", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
 		entry0 = fixture.Insert(makeInterest("/A"))
 		entry1 = fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag))
 		return
 	}))
 
-	t.Run("cbp+mbf => none", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+	t.Run("none, cbp+mbf, mbf", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+		entry0 = fixture.Insert(makeInterest("/A"))
+		fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag, setFace(fixture.Face+1)))
+		entry1 = fixture.Insert(makeInterest("/A", ndn.MustBeFreshFlag))
+		return
+	}))
+
+	t.Run("none, mbf, cbp+mbf", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+		entry0 = fixture.Insert(makeInterest("/A"))
+		fixture.Insert(makeInterest("/A", ndn.MustBeFreshFlag, setFace(fixture.Face+1)))
+		entry1 = fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag))
+		return
+	}))
+
+	t.Run("cbp+mbf, none", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
 		entry1 = fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag))
 		entry0 = fixture.Insert(makeInterest("/A"))
 		return
 	}))
 
-	t.Run("cbp => mbf", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+	t.Run("mbf, cbp+mbf, none", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+		fixture.Insert(makeInterest("/A", ndn.MustBeFreshFlag, setFace(fixture.Face+1)))
+		entry1 = fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag))
+		entry0 = fixture.Insert(makeInterest("/A"))
+		return
+	}))
+
+	t.Run("cbp+mbf, mbf, none", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+		fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag, setFace(fixture.Face+1)))
+		entry1 = fixture.Insert(makeInterest("/A", ndn.MustBeFreshFlag))
+		entry0 = fixture.Insert(makeInterest("/A"))
+		return
+	}))
+
+	t.Run("cbp, mbf", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
 		entry1 = fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag))
 		entry0 = fixture.Insert(makeInterest("/A", ndn.MustBeFreshFlag))
 		return
 	}))
 
-	t.Run("mbf => cbp", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+	t.Run("mbf, cbp", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
 		entry0 = fixture.Insert(makeInterest("/A", ndn.MustBeFreshFlag))
 		entry1 = fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag))
 		return

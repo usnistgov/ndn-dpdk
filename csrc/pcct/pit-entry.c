@@ -185,19 +185,23 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt) {
   uint32_t lifetime = RTE_MIN(interest->lifetime, PIT_MAX_LIFETIME);
   dn->expiry = Mbuf_GetTimestamp(pkt) + TscDuration_FromMillis(lifetime);
 
-  // record CanBePrefix and prefer CBP=1 for representative Interest
-  if (entry->nCanBePrefix != (uint8_t)interest->canBePrefix) {
-    NDNDPDK_ASSERT(entry->npkt != npkt);
-    rte_pktmbuf_free(Packet_ToMbuf(entry->npkt));
-    entry->npkt = npkt;
-  } else if (entry->npkt != npkt) {
-    rte_pktmbuf_free(pkt);
-  }
-  entry->nCanBePrefix += (uint8_t)interest->canBePrefix;
-
   // update txHopLimit
   NDNDPDK_ASSERT(interest->hopLimit > 0); // decoder rejects HopLimit=0
   entry->txHopLimit = RTE_MAX(entry->txHopLimit, interest->hopLimit - 1);
+
+  // record CanBePrefix and prefer CBP=1 for representative Interest
+  if (entry->npkt != npkt) {
+    entry->nCanBePrefix += (uint8_t)interest->canBePrefix;
+    if (entry->nCanBePrefix == (uint8_t)interest->canBePrefix) {
+      rte_pktmbuf_free(Packet_ToMbuf(entry->npkt));
+      entry->npkt = npkt;
+    } else {
+      rte_pktmbuf_free(pkt);
+    }
+  }
+  NULLize(npkt);
+  NULLize(pkt);
+  NULLize(interest);
 
   // set expiry timer
   if (dn->expiry > entry->expiry) {

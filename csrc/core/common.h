@@ -49,9 +49,14 @@
 #include <spdk/util.h>
 
 #ifdef NDEBUG
-#define NDNDPDK_ASSERT(x) RTE_SET_USED(x)
+#define NDNDPDK_ASSERT(x)                                                                          \
+  do {                                                                                             \
+    if (__builtin_constant_p((x)) && !(x)) {                                                       \
+      __builtin_unreachable();                                                                     \
+    }                                                                                              \
+  } while (false)
 #else
-#define NDNDPDK_ASSERT(x) RTE_VERIFY(x)
+#define NDNDPDK_ASSERT(x) RTE_VERIFY((x))
 #endif
 
 #endif // __BPF__

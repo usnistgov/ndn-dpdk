@@ -15,26 +15,21 @@ func TestEntryExpiry(t *testing.T) {
 	fixture := NewFixture(t, 255)
 
 	nonce1 := ndn.Nonce{0xA0, 0xA1, 0xA2, 0xA3}
-	token1 := []byte{0xB0}
-	interest1 := makeInterest("/A/B", 100*time.Millisecond, nonce1, setPitToken(token1), setFace(1001))
-
 	nonce2 := ndn.Nonce{0xA4, 0xA5, 0xA6, 0xA7}
+	token1 := []byte{0xB0}
 	token2 := []byte{0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF, 0xB0, 0xB1, 0xB2}
-	interest2 := makeInterest("/A/B", 400*time.Millisecond, nonce2, setPitToken(token2), setFace(1002))
 
-	entry := fixture.Insert(interest1)
+	entry := fixture.Insert(makeInterest("/A/B", 100*time.Millisecond, nonce1, setPitToken(token1), setFace(1001)))
 	require.NotNil(entry)
-	assert.Len(entry.DnRecords(), 0)
-	assert.NotNil(entry.InsertDnRecord(interest1))
+	assert.Len(entry.DnRecords(), 1)
 	dnRecords := entry.DnRecords()
 	assert.Len(dnRecords, 1)
 	assert.Equal(token1, dnRecords[0].PitToken())
 	assert.Equal(nonce1, dnRecords[0].Nonce())
 
-	entry2 := fixture.Insert(interest2)
+	entry2 := fixture.Insert(makeInterest("/A/B", 400*time.Millisecond, nonce2, setPitToken(token2), setFace(1002)))
 	require.NotNil(entry2)
 	assert.Equal(uintptr(entry.Ptr()), uintptr(entry2.Ptr()))
-	assert.NotNil(entry.InsertDnRecord(interest2))
 	dnRecords = entry.DnRecords()
 	assert.Len(dnRecords, 2)
 	assert.Equal(token2, dnRecords[1].PitToken())
@@ -57,9 +52,17 @@ func TestEntryExtend(t *testing.T) {
 	for i := 0; i < 512; i++ {
 		interest := makeInterest("/A/B", setFace(iface.ID(1000+i)))
 
-		entry = fixture.Insert(interest)
-		require.NotNil(entry)
-		assert.NotNil(entry.InsertDnRecord(interest))
+		pitEntry, csEntry := fixture.Pit.Insert(interest, fixture.FibEntry)
+		assert.Nil(csEntry, i)
+		require.NotNil(pitEntry, i)
+		assert.NotNil(pitEntry.InsertDnRecord(interest), i)
+		assert.Len(pitEntry.DnRecords(), 1+i, i)
+
+		if i == 0 {
+			entry = pitEntry
+		} else {
+			assert.Equal(entry, pitEntry)
+		}
 	}
 
 	assert.Equal(1, fixture.Pit.Len())
