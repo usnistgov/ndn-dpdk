@@ -97,7 +97,7 @@ lint:
 test: godeps
 	mk/gotest.sh
 
-.PHONY: coverage coverage
+.PHONY: coverage
 coverage:
 	ninja -C build coverage-html
 

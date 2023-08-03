@@ -107,7 +107,7 @@ After running unit tests, you can generate coverage report with `make coverage` 
 The default is `gcc`.
 
 `BPFCC` environment variable specifies a compiler for eBPF programs.
-The default is `clang-11`.
+The default is `clang-15`.
 
 C code (including DPDK and SPDK, excluding eBPF) is compiled with `-march=native` flag by default.
 It selects the CPU instruction sets available on the local machine, and makes the compiled binaries incompatible with any other CPU model.

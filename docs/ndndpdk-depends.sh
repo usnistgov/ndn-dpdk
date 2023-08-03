@@ -169,9 +169,9 @@ APT_PKGS=(
   doxygen
   file
   g++-12
+  gcc-12
   git
   lcov
-  llvm-15
   libaio-dev
   libc6-dev-i386
   libelf-dev
@@ -179,6 +179,7 @@ APT_PKGS=(
   libpcap-dev
   libssl-dev
   liburcu-dev
+  llvm-15
   m4
   make
   ninja-build
@@ -291,6 +292,7 @@ set_alternative gcc /usr/bin/gcc-12
 set_alternative cc /usr/bin/gcc
 set_alternative g++ /usr/bin/g++-12
 set_alternative c++ /usr/bin/g++
+set_alternative gcov /usr/bin/gcov-12
 if ! [[ -d /usr/include/asm ]]; then
   $SUDO ln -s /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/asm /usr/include/asm
 fi
