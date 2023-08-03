@@ -1,7 +1,7 @@
 import { Component } from "preact";
 
 export abstract class AbortableComponent<P = {}, S = {}> extends Component<P, S> {
-  protected constructor() {
+  constructor() {
     super();
     this.signal = this.abort.signal;
   }
