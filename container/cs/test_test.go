@@ -142,9 +142,18 @@ func (f *Fixture) Insert(interest *ndni.Packet, data *ndni.Packet) (isReplacing 
 		panic("Pit.Insert failed")
 	}
 
-	pitFound := f.Pit.FindByData(data, pitEntry.PitToken())
-	if len(pitFound.ListEntries()) == 0 {
-		panic("Pit.FindByData returned empty result")
+	var pitFound pit.FindResult
+	for {
+		pitFound = f.Pit.FindByData(data, pitEntry.PitToken())
+		if len(pitFound.ListEntries()) == 0 {
+			panic("Pit.FindByData returned empty result")
+		}
+
+		if pitFound.NeedDataDigest() {
+			data.ComputeDataImplicitDigest()
+		} else {
+			break
+		}
 	}
 
 	f.Cs.Insert(data, pitFound)

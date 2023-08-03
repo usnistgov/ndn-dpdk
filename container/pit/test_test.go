@@ -71,12 +71,12 @@ func NewFixture(t testing.TB, pcctCapacity int) *Fixture {
 	return fixture
 }
 
-// Return number of in-use entries in PCCT's underlying mempool.
+// CountMpInUse returns number of in-use entries in PCCT's underlying mempool.
 func (fixture *Fixture) CountMpInUse() int {
 	return fixture.Pcct.AsMempool().CountInUse()
 }
 
-// Insert a PIT entry.
+// Insert inserts a PIT entry.
 // Returns the PIT entry.
 // If CS entry is found, returns nil and frees interest.
 func (fixture *Fixture) Insert(interest *ndni.Packet) *pit.Entry {
@@ -89,6 +89,13 @@ func (fixture *Fixture) Insert(interest *ndni.Packet) *pit.Entry {
 		panic("Pit.Insert failed")
 	}
 	return pitEntry
+}
+
+// FindByData finds PIT entries by Data packet.
+// data is auto-released.
+func (fixture *Fixture) FindByData(data *ndni.Packet, token uint64) pit.FindResult {
+	defer data.Close()
+	return fixture.Pit.FindByData(data, token)
 }
 
 func (fixture *Fixture) InsertFibEntry(name string, nexthop iface.ID) *fibreplica.Entry {

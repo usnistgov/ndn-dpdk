@@ -182,8 +182,6 @@ Cs_InsertDirect(Cs* cs, Packet* npkt, PInterest* interest) {
 /** @brief Add or refresh an indirect entry in @p pccEntry and associate with @p direct . */
 __attribute__((nonnull)) static bool
 Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry) {
-  NDNDPDK_ASSERT(!pccEntry->hasPitEntry0);
-
   CsEntry* entry = NULL;
   if (unlikely(pccEntry->hasCsEntry)) {
     entry = PccEntry_GetCsEntry(pccEntry);
@@ -192,8 +190,8 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry) {
       CsEntry_Disassoc(entry);
       CsList_Remove(&cs->indirect, entry);
     } else if (unlikely(entry->nIndirects > 0)) {
-      // don't overwrite direct entry with dependencies
-      N_LOGD("PutIndirect has-dependency cs=%p npkt=%p pcc-entry-%p cs-entry=%p", cs, direct,
+      // don't overwrite direct entry that has dependencies
+      N_LOGD("PutIndirect has-dependency cs=%p npkt=%p pcc-entry=%p cs-entry=%p", cs, direct,
              pccEntry, entry);
       return false;
     } else {
@@ -201,13 +199,13 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry) {
       CsArc_Remove(&cs->direct, entry);
       CsEntry_Clear(entry);
     }
-    N_LOGD("PutIndirect refresh cs=%p npkt=%p pcc-entry-%p cs-entry=%p", cs, direct, pccEntry,
+    N_LOGD("PutIndirect refresh cs=%p npkt=%p pcc-entry=%p cs-entry=%p", cs, direct, pccEntry,
            entry);
   } else {
     // insert indirect entry
     entry = PccEntry_AddCsEntry(pccEntry);
     if (unlikely(entry == NULL)) {
-      N_LOGW("PutIndirect alloc-err cs=%p npkt=%p pcc-entry-%p", cs, direct, pccEntry);
+      N_LOGW("PutIndirect alloc-err cs=%p npkt=%p pcc-entry=%p", cs, direct, pccEntry);
       return false;
     }
     CsEntry_Init(entry);
@@ -218,11 +216,11 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry) {
   if (likely(CsEntry_Assoc(entry, direct))) {
     CsList_Append(&cs->indirect, entry);
     N_LOGV("^ count=%" PRIu32 " indirect=%p direct=%p(%" PRId8 ")", cs->indirect.count, entry,
-           entry->direct, entry->direct->nIndirects);
+           direct, direct->nIndirects);
     return true;
   }
 
-  N_LOGD("^ indirect-assoc-err");
+  N_LOGD("^ indirect-assoc-err direct=%p(%" PRId8 ")", direct, direct->nIndirects);
   PccEntry_RemoveCsEntry(pccEntry);
   if (likely(!pccEntry->hasEntries)) {
     Pcct_Erase(Pcct_FromCs(cs), pccEntry);
@@ -243,7 +241,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound) {
   if (unlikely(interest->name.nComps != data->name.nComps)) {
     direct = Cs_InsertDirect(cs, npkt, interest);
     if (unlikely(direct == NULL)) { // direct entry insertion failed
-      Pit_RawErase01_(&pcct->pit, pccEntry);
+      Pit_EraseSatisfied(&pcct->pit, pitFound);
       rte_pktmbuf_free(pkt);
       if (likely(!pccEntry->hasCsEntry)) {
         Pcct_Erase(pcct, pccEntry);
@@ -255,7 +253,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound) {
   }
 
   // delete PIT entries
-  Pit_RawErase01_(&pcct->pit, pccEntry);
+  Pit_EraseSatisfied(&pcct->pit, pitFound);
   NULLize(interest);
 
   if (likely(direct == NULL)) {

@@ -47,9 +47,12 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry);
 __attribute__((nonnull)) void
 Pit_Erase(Pit* pit, PitEntry* entry);
 
-/** @brief Erase both PIT entries on a PccEntry but retain the PccEntry. */
+/**
+ * @brief Erase satisfied PIT entries but retain the PccEntry.
+ * @param res find result, must not have PIT_FIND_NEED_DIGEST.
+ */
 __attribute__((nonnull)) void
-Pit_RawErase01_(Pit* pit, PccEntry* pccEntry);
+Pit_EraseSatisfied(Pit* pit, PitFindResult res);
 
 /**
  * @brief Find PIT entries matching a Data.

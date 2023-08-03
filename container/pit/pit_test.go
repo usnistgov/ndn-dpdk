@@ -65,6 +65,59 @@ func TestInsertErase(t *testing.T) {
 	assert.Zero(fixture.CountMpInUse())
 }
 
+func TestCanBePrefixMustBeFresh(t *testing.T) {
+	// insertTo shall insert two PIT entries at /A name, where CanBePrefix and MustBeFresh is each placed on only one
+	// PIT entry, returns entry0 lacking CanBePrefix and entry1 having CanBePrefix
+	test := func(insertTo func(fixture *Fixture) (entry0, entry1 *pit.Entry)) func(t *testing.T) {
+		return func(t *testing.T) {
+			fixture := NewFixture(t, 255)
+			assert, _ := makeAR(t)
+
+			entry0, entry1 := insertTo(fixture)
+			assert.Equal(2, fixture.Pit.Len())
+			assert.Equal(entry0.PitToken(), entry1.PitToken())
+
+			if found := fixture.FindByData(makeData("/A/Z"), entry0.PitToken()).ListEntries(); assert.Len(found, 1) {
+				assert.Equal(entry1.Ptr(), found[0].Ptr())
+			}
+
+			if found := fixture.FindByData(makeData("/A"), entry0.PitToken()).ListEntries(); assert.Len(found, 2) {
+				if entry0.Ptr() == found[0].Ptr() {
+					assert.Equal(entry0.Ptr(), found[0].Ptr())
+					assert.Equal(entry1.Ptr(), found[1].Ptr())
+				} else {
+					assert.Equal(entry0.Ptr(), found[1].Ptr())
+					assert.Equal(entry1.Ptr(), found[0].Ptr())
+				}
+			}
+		}
+	}
+
+	t.Run("none => cbp+mbf", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+		entry0 = fixture.Insert(makeInterest("/A"))
+		entry1 = fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag))
+		return
+	}))
+
+	t.Run("cbp+mbf => none", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+		entry1 = fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag, ndn.MustBeFreshFlag))
+		entry0 = fixture.Insert(makeInterest("/A"))
+		return
+	}))
+
+	t.Run("cbp => mbf", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+		entry1 = fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag))
+		entry0 = fixture.Insert(makeInterest("/A", ndn.MustBeFreshFlag))
+		return
+	}))
+
+	t.Run("mbf => cbp", test(func(fixture *Fixture) (entry0 *pit.Entry, entry1 *pit.Entry) {
+		entry0 = fixture.Insert(makeInterest("/A", ndn.MustBeFreshFlag))
+		entry1 = fixture.Insert(makeInterest("/A", ndn.CanBePrefixFlag))
+		return
+	}))
+}
+
 type testTokenRecord struct {
 	name  string
 	data  *ndni.Packet
@@ -113,37 +166,37 @@ func TestToken(t *testing.T) {
 	for i, record := range records {
 		found := pit.FindByData(record.data, record.token)
 		foundEntries := found.ListEntries()
-		if assert.Len(foundEntries, 1) {
-			assert.Equal(uintptr(record.entry.Ptr()), uintptr(foundEntries[0].Ptr()))
+		if assert.Len(foundEntries, 1, i) {
+			assert.Equal(uintptr(record.entry.Ptr()), uintptr(foundEntries[0].Ptr()), i)
 		}
 
 		// Interest carries implicit digest, so Data digest is needed
-		if i < nImplicitDigest && assert.True(found.NeedDataDigest()) {
+		if i < nImplicitDigest && assert.True(found.NeedDataDigest(), i) {
 			record.data.ComputeDataImplicitDigest()
 			found = pit.FindByData(record.data, record.token)
 			foundEntries = found.ListEntries()
-			if assert.Len(foundEntries, 1) {
-				assert.Equal(uintptr(record.entry.Ptr()), uintptr(foundEntries[0].Ptr()))
+			if assert.Len(foundEntries, 1, i) {
+				assert.Equal(uintptr(record.entry.Ptr()), uintptr(foundEntries[0].Ptr()), i)
 			}
 		}
-		assert.False(found.NeedDataDigest())
+		assert.False(found.NeedDataDigest(), i)
 
 		// high 16 bits of the token should be ignored
 		token2 := record.token ^ 0x79BC000000000000
 		nack := makeNack(ndn.MakeInterest(record.name), an.NackNoRoute)
 		foundEntry := pit.FindByNack(nack, token2)
-		if assert.NotNil(foundEntry) {
-			assert.Equal(uintptr(record.entry.Ptr()), uintptr(foundEntry.Ptr()))
+		if assert.NotNil(foundEntry, i) {
+			assert.Equal(uintptr(record.entry.Ptr()), uintptr(foundEntry.Ptr()), i)
 		}
 
 		// name mismatch
 		data2 := makeData(fmt.Sprintf("/K/%d", i))
 		foundEntries = pit.FindByData(data2, record.token).ListEntries()
-		assert.Len(foundEntries, 0)
+		assert.Len(foundEntries, 0, i)
 
 		pit.Erase(record.entry)
 		foundEntry = pit.FindByNack(nack, record.token)
-		assert.Nil(foundEntry)
+		assert.Nil(foundEntry, i)
 
 		must.Close(record.data)
 		must.Close(nack)

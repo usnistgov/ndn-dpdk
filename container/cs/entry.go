@@ -3,7 +3,7 @@ package cs
 /*
 #include "../../csrc/pcct/cs-entry.h"
 
-static void* CsEntry_Data(CsEntry* entry) { return entry->data; }
+static void* c_CsEntry_Data(CsEntry* entry) { return entry->data; }
 */
 import "C"
 import (
@@ -35,7 +35,9 @@ func (entry *Entry) Kind() EntryKind {
 // Panics if this is not a direct entry.
 func (entry *Entry) ListIndirects() (indirects []*Entry) {
 	if entry.Kind() == EntryIndirect {
-		panic("Entry.ListIndirects is unavailable on indirect entry")
+		logger.Panic("Entry.ListIndirects is unavailable on indirect entry",
+			zap.Uintptr("entry", uintptr(unsafe.Pointer(entry))),
+		)
 	}
 
 	c := entry.ptr()
@@ -54,7 +56,7 @@ func (entry *Entry) Data() *ndni.Packet {
 			zap.Int("kind", int(kind)),
 		)
 	}
-	return ndni.PacketFromPtr(C.CsEntry_Data((*C.CsEntry)(entry)))
+	return ndni.PacketFromPtr(C.c_CsEntry_Data((*C.CsEntry)(entry)))
 }
 
 // FreshUntil returns a timestamp when this entry would become non-fresh.

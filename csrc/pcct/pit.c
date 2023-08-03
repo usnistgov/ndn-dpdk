@@ -97,6 +97,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry) {
            (int)pitEntry->mustBeFresh, pit, PccSearch_ToDebugString(&search), pccEntry, pitEntry);
   }
 
+  N_LOGD("^ pcc=%p has-entries=%d", pccEntry, pccEntry->hasEntries);
   return (PitInsertResult){.kind = PIT_INSERT_PIT, .pitEntry = pitEntry};
 }
 
@@ -123,18 +124,40 @@ Pit_Erase(Pit* pit, PitEntry* entry) {
 }
 
 void
-Pit_RawErase01_(Pit* pit, PccEntry* pccEntry) {
-  if (pccEntry->hasPitEntry0) {
-    --pit->nEntries;
-    PitEntry_Finalize(PccEntry_GetPitEntry0(pccEntry));
-    PccEntry_RemovePitEntry0(pccEntry);
+Pit_EraseSatisfied(Pit* pit, PitFindResult res) {
+  NDNDPDK_ASSERT(!PitFindResult_Is(res, PIT_FIND_NEED_DIGEST));
+  if (unlikely(PitFindResult_Is(res, PIT_FIND_NONE))) {
+    return;
   }
-  if (pccEntry->hasPitEntry1) {
+
+  PitEntry* entry0 = PitFindResult_GetPitEntry0(res);
+  if (entry0 != NULL) {
     --pit->nEntries;
-    PitEntry_Finalize(PccEntry_GetPitEntry1(pccEntry));
-    PccEntry_RemovePitEntry1(pccEntry);
+    PitEntry_Finalize(entry0);
+    PccEntry_RemovePitEntry0(res.entry);
   }
-  Pcct_RemoveToken(Pcct_FromPit(pit), pccEntry);
+
+  PitEntry* entry1 = PitFindResult_GetPitEntry1(res);
+  if (entry1 != NULL) {
+    --pit->nEntries;
+    PitEntry_Finalize(entry1);
+    PccEntry_RemovePitEntry1(res.entry);
+  }
+}
+
+__attribute__((nonnull)) static inline PitFindResultFlag
+Pit_MatchData(PitEntry* entry, PData* data, PitFindResultFlag positionFlag) {
+  PInterest* interest = Packet_GetInterestHdr(entry->npkt);
+  DataSatisfyResult satisfy = PData_CanSatisfy(data, interest);
+  switch (satisfy) {
+    case DataSatisfyYes:
+      return positionFlag;
+    case DataSatisfyNo:
+      return PIT_FIND_NONE;
+    case DataSatisfyNeedDigest:
+      return positionFlag | PIT_FIND_NEED_DIGEST;
+  }
+  NDNDPDK_ASSERT(false);
 }
 
 PitFindResult
@@ -145,34 +168,22 @@ Pit_FindByData(Pit* pit, Packet* npkt, uint64_t token) {
     return (PitFindResult){.kind = PIT_FIND_NONE};
   }
 
+  PData* data = Packet_GetDataHdr(npkt);
   PitFindResultFlag flags = PIT_FIND_NONE;
-  PInterest* interest = NULL;
-  if (pccEntry->hasPitEntry1) {
-    flags |= PIT_FIND_PIT1;
-    interest = Packet_GetInterestHdr(PccEntry_GetPitEntry1(pccEntry)->npkt);
-  }
   if (pccEntry->hasPitEntry0) {
-    flags |= PIT_FIND_PIT0;
-    interest = Packet_GetInterestHdr(PccEntry_GetPitEntry0(pccEntry)->npkt);
+    flags |= Pit_MatchData(PccEntry_GetPitEntry0(pccEntry), data, PIT_FIND_PIT0);
+  }
+  if (pccEntry->hasPitEntry1) {
+    flags |= Pit_MatchData(PccEntry_GetPitEntry1(pccEntry), data, PIT_FIND_PIT1);
   }
 
-  if (likely(flags != PIT_FIND_NONE)) {
-    PData* data = Packet_GetDataHdr(npkt);
-    DataSatisfyResult satisfy = PData_CanSatisfy(data, interest);
-    switch (satisfy) {
-      case DataSatisfyYes:
-        ++pit->nDataHit;
-        break;
-      case DataSatisfyNo:
-        flags = PIT_FIND_NONE;
-        ++pit->nDataMiss;
-        break;
-      case DataSatisfyNeedDigest:
-        flags |= PIT_FIND_NEED_DIGEST;
-        // do not increment either counter: caller should compute Data digest
-        // and reinvoke Pit_FindByData that leads to either Data hit or miss.
-        break;
-    }
+  if (flags == PIT_FIND_NONE) {
+    ++pit->nDataMiss;
+  } else if ((flags & PIT_FIND_NEED_DIGEST) != 0) {
+    // do not increment either counter: caller should compute Data digest
+    // and reinvoke Pit_FindByData that leads to either Data hit or miss.
+  } else {
+    ++pit->nDataHit;
   }
   return (PitFindResult){.entry = pccEntry, .kind = flags};
 }

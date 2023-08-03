@@ -63,16 +63,18 @@ PitFindResult_GetPitEntry1(PitFindResult res) {
   return PccEntry_GetPitEntry1(res.entry);
 }
 
-/** @brief Get a representative Interest from either PIT entry. */
-static inline PInterest*
+/**
+ * @brief Get a representative Interest from either PIT entry.
+ * @pre !PitFindResult_Is(res,PIT_FIND_NONE)
+ * @return representative Interest; Name and FwHint shall be same in both PIT entries.
+ */
+__attribute__((returns_nonnull)) static inline PInterest*
 PitFindResult_GetInterest(PitFindResult res) {
   PitEntry* pitEntry = PitFindResult_GetPitEntry0(res);
   if (pitEntry == NULL) {
     pitEntry = PitFindResult_GetPitEntry1(res);
   }
-  if (pitEntry == NULL) {
-    return NULL;
-  }
+  NDNDPDK_ASSERT(pitEntry != NULL);
   return Packet_GetInterestHdr(pitEntry->npkt);
 }
 
