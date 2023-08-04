@@ -153,6 +153,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt) {
     dn = &entry->dns[0];
     NDNDPDK_ASSERT(dn->face == 0);
     dn->face = face;
+    entry->dns[1].face = 0;
   } else { // find DN slot
     PitDnIt it;
     for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it) || PitDnIt_Extend(&it, pit);
@@ -162,6 +163,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt) {
         break;
       }
       if (dn->face == 0) {
+        PitDnIt_Use(&it);
         dn->face = face;
         break;
       }
@@ -226,17 +228,24 @@ PitEntry_FindUp(PitEntry* entry, FaceID face) {
 
 PitUp*
 PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceID face) {
+  PitUp* up = NULL;
   PitUpIt it;
   for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it) || PitUpIt_Extend(&it, pit);
        PitUpIt_Next(&it)) {
-    PitUp* up = it.up;
+    up = it.up;
     if (up->face == face) {
       return up;
     }
-    if (up->face == 0 || up->lastTx == 0) {
-      PitUp_Reset(up, face);
-      return up;
+    if (up->face == 0) {
+      PitDnIt_Use(&it);
+      goto NEW;
+    }
+    if (up->lastTx == 0) {
+      goto NEW;
     }
   }
   return NULL;
+NEW:
+  PitUp_Reset(up, face);
+  return up;
 }

@@ -74,7 +74,7 @@ PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry) {
   MinTmr_Init(&entry->timeout);
   entry->expiry = 0;
 
-  entry->nCanBePrefix = interest->canBePrefix;
+  entry->nCanBePrefix = (uint8_t)interest->canBePrefix;
   entry->txHopLimit = 0;
   entry->mustBeFresh = interest->mustBeFresh;
 

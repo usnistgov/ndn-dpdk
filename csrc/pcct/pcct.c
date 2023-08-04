@@ -101,6 +101,10 @@ Pcct_Insert(Pcct* pcct, const PccSearch* search, bool* isNew) {
     return NULL;
   }
   entry = (PccEntry*)objs[0];
+  POISON(entry);
+  for (int i = 0; i < nExts; ++i) {
+    POISON((PccKeyExt*)objs[1 + i]);
+  }
 
   PccKey_CopyFromSearch(&entry->key, search, (PccKeyExt**)&objs[1], nExts);
   entry->tokenQword = 0;

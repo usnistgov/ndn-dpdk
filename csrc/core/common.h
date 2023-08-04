@@ -67,12 +67,36 @@
 #ifdef NDEBUG
 #define NULLize(x) RTE_SET_USED(x)
 #else
-/** @brief Set x to NULL to crash on memory access bugs. */
+/** @brief Set x to NULL to expose memory access bugs. */
 #define NULLize(x)                                                                                 \
   do {                                                                                             \
     (x) = NULL;                                                                                    \
   } while (false)
 #endif
+
+#ifdef NDNDPDK_POISON
+#define POISON_2_(x, size)                                                                         \
+  do {                                                                                             \
+    memset((x), 0x99, size);                                                                       \
+  } while (false)
+#else
+#define POISON_2_(x, size)                                                                         \
+  do {                                                                                             \
+    RTE_SET_USED(x);                                                                               \
+    RTE_SET_USED(size);                                                                            \
+  } while (false)
+#endif
+#define POISON_1_(x) POISON_2_((x), sizeof(*(x)))
+#define POISON_Arg3_(a1, a2, a3, ...) a3
+#define POISON_Choose_(...) POISON_Arg3_(__VA_ARGS__, POISON_2_, POISON_1_)
+/**
+ * @brief Write junk to memory region to expose memory access bugs.
+ * @code
+ * POISON(&var);
+ * POISON(&var, sizeof(var));
+ * @endcode
+ */
+#define POISON(...) POISON_Choose_(__VA_ARGS__)(__VA_ARGS__)
 
 #define CLAMP(x, lo, hi) RTE_MAX((lo), RTE_MIN((hi), (x)))
 

@@ -97,6 +97,9 @@ Unless indicated otherwise, you must run `make clean` when switching compile-tim
 
 `NDNDPDK_MK_RELEASE=1` environment variable selects release mode that disables assertions and verbose logging in C code.
 
+`NDNDPDK_MK_POISON=1` environment variable enables memory poisoning in C code.
+This helps expose memory access bugs, but has substantial overhead.
+
 `NDNDPDK_MK_THREADSLEEP=1` environment variable causes a polling thread to sleep for a short duration if it processed zero packets in a loop iteration.
 This reduces CPU utilization when running on a machine with fewer CPU cores, but may impair performance.
 

@@ -97,6 +97,19 @@ PitDnIt_Extend(PitDnIt* it, Pit* pit) {
 }
 
 /**
+ * @brief Mark current DN slot is used.
+ * @pre This and subsequent DN slots are unused.
+ * @post This DN slot is used, subsequent DN slots are unused.
+ */
+__attribute__((nonnull)) static inline void
+PitDnIt_Use(PitDnIt* it) {
+  int next = it->i + 1;
+  if (next < it->max) {
+    it->dns[next].face = 0;
+  }
+}
+
+/**
  * @brief Iterator of UP slots in PIT entry.
  *
  * @code
@@ -136,6 +149,19 @@ PitUpIt_Extend(PitDnIt* it, Pit* pit) {
   bool ok = PitDnUpIt_Extend_(it, pit, PitMaxExtUps, offsetof(PitEntryExt, ups));
   it->up = &it->ups[it->i];
   return ok;
+}
+
+/**
+ * @brief Mark current UP slot is used.
+ * @pre This and subsequent UP slots are unused.
+ * @post This UP slot is used, subsequent UP slots are unused.
+ */
+__attribute__((nonnull)) static inline void
+PitUpIt_Use(PitUpIt* it) {
+  int next = it->i + 1;
+  if (next < it->max) {
+    it->ups[next].face = 0;
+  }
 }
 
 #endif // NDNDPDK_PCCT_PIT_DN_UP_IT_H

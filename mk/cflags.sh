@@ -6,6 +6,9 @@ LGCOV=
 if [[ ${NDNDPDK_MK_RELEASE:-} -eq 1 ]]; then
   CFLAGS+=' -DNDEBUG -DN_LOG_LEVEL=RTE_LOG_NOTICE'
 fi
+if [[ ${NDNDPDK_MK_POISON:-} -eq 1 ]]; then
+  CFLAGS+=' -DNDNDPDK_POISON'
+fi
 if [[ ${NDNDPDK_MK_THREADSLEEP:-} -eq 1 ]]; then
   CFLAGS+=' -DNDNDPDK_THREADSLEEP'
 fi
