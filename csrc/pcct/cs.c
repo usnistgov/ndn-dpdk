@@ -37,15 +37,7 @@ CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry) {
     CsEraseBatch_Append(peb, indirect, "indirect-dep");
   }
 
-  switch (entry->kind) {
-    case CsEntryNone:
-      break;
-    case CsEntryMemory:
-      CsEntry_FreeData(entry);
-      break;
-    default:
-      NDNDPDK_ASSERT(false);
-  }
+  NDNDPDK_ASSERT(entry->kind == CsEntryNone);
   CsEraseBatch_Append(peb, entry, "direct");
 }
 
@@ -53,19 +45,12 @@ CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry) {
 __attribute__((nonnull)) static void
 Cs_EraseEntry(Cs* cs, CsEntry* entry) {
   PcctEraseBatch peb = PcctEraseBatch_New(Pcct_FromCs(cs));
-  switch (entry->kind) {
-    case CsEntryIndirect:
-      CsList_Remove(&cs->indirect, entry);
-      CsEraseBatch_AddIndirect(&peb, entry);
-      break;
-    case CsEntryDisk:
-      CsDisk_Delete(cs, entry);
-      // fallthrough
-    case CsEntryNone:
-    case CsEntryMemory:
-      CsArc_Remove(&cs->direct, entry);
-      CsEraseBatch_AddDirect(&peb, entry);
-      break;
+  if (entry->kind == CsEntryIndirect) {
+    CsList_Remove(&cs->indirect, entry);
+    CsEraseBatch_AddIndirect(&peb, entry);
+  } else {
+    CsArc_Remove(&cs->direct, entry);
+    CsEraseBatch_AddDirect(&peb, entry);
   }
   PcctEraseBatch_Finish(&peb);
 }
@@ -147,14 +132,15 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry) {
       case CsEntryMemory:
         CsEntry_FreeData(entry);
         // fallthrough
+      case CsEntryDisk:
+        // diskSlot will be released by CsArc_Add that invokes CsDisk_ArcMove
+        // fallthrough
       case CsEntryNone:
         Cs_EraseImplicitDigestIndirect(cs, entry, data->name.length);
         break;
       case CsEntryIndirect:
         CsEntry_Disassoc(entry);
         break;
-      case CsEntryDisk: // TODO would this happen?
-        NDNDPDK_ASSERT(false);
     }
   } else {
     // insert direct entry
@@ -213,17 +199,6 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry) {
     } else {
       // change direct entry to indirect entry
       CsArc_Remove(&cs->direct, entry);
-      switch (entry->kind) {
-        case CsEntryNone:
-          break;
-        case CsEntryMemory:
-          rte_pktmbuf_free(Packet_ToMbuf(entry->data));
-          entry->kind = CsEntryNone;
-          break;
-        case CsEntryDisk: // TODO would this happen?
-        default:
-          NDNDPDK_ASSERT(false);
-      }
     }
     N_LOGD("PutIndirect refresh cs=%p npkt=%p pcc-entry=%p cs-entry=%p", cs, direct, pccEntry,
            entry);
@@ -261,36 +236,27 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound) {
   PData* data = Packet_GetDataHdr(npkt);
   PccEntry* pccEntry = pitFound.entry;
   PInterest* interest = PitFindResult_GetInterest(pitFound);
-  CsEntry* direct = NULL;
 
-  // if Interest name differs from Data name, insert a direct entry elsewhere
-  if (unlikely(interest->name.nComps != data->name.nComps)) {
-    direct = Cs_InsertDirect(cs, npkt, interest);
-    if (unlikely(direct == NULL)) { // direct entry insertion failed
-      Pit_EraseSatisfied(&pcct->pit, pitFound);
-      rte_pktmbuf_free(pkt);
-      if (likely(!pccEntry->hasCsEntry)) {
-        Pcct_Erase(pcct, pccEntry);
-      }
-      return;
+  if (interest->name.nComps == data->name.nComps) { // exact match, direct entry here
+    Pit_EraseSatisfied(&pcct->pit, pitFound);
+    NULLize(interest);
+
+    CsEntry* direct = Cs_PutDirect(cs, npkt, pccEntry);
+    if (unlikely(direct == NULL)) {
+      goto FAIL_DIRECT;
     }
-    NULLize(npkt);
-    NULLize(pkt); // owned by direct entry
-  }
+  } else { // prefix match, indirect entry here, direct entry elsewhere
+    CsEntry* direct = Cs_InsertDirect(cs, npkt, interest);
+    Pit_EraseSatisfied(&pcct->pit, pitFound);
+    NULLize(interest);
 
-  // delete PIT entries
-  Pit_EraseSatisfied(&pcct->pit, pitFound);
-  NULLize(interest);
-
-  if (likely(direct == NULL)) {
-    // put direct CS entry at pccEntry
-    direct = Cs_PutDirect(cs, npkt, pccEntry);
-    // alloc-err cannot happen because PccSlots are freed from PIT entries
-    NDNDPDK_ASSERT(direct != NULL); // TODO this may happen now
-  } else {
-    // put indirect CS entry at pccEntry
+    if (unlikely(direct == NULL)) {
+      goto FAIL_DIRECT;
+    }
     Cs_PutIndirect(cs, direct, pccEntry);
   }
+  NULLize(npkt); // owned by direct entry
+  NULLize(pkt);
 
   // evict if over capacity
   if (unlikely(cs->indirect.count > cs->indirect.capacity)) {
@@ -298,6 +264,13 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound) {
   }
   if (unlikely(cs->direct.Del.count >= CsEvictBulk)) {
     Cs_Evict(cs, &cs->direct.Del, "direct", Cs_EvictEntryDirect);
+  }
+
+  return;
+FAIL_DIRECT:
+  rte_pktmbuf_free(pkt);
+  if (likely(!pccEntry->hasEntries)) {
+    Pcct_Erase(pcct, pccEntry);
   }
 }
 

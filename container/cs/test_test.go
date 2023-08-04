@@ -24,7 +24,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
-	"go4.org/must"
 )
 
 func TestMain(m *testing.M) {
@@ -42,7 +41,8 @@ var (
 )
 
 type Fixture struct {
-	t testing.TB
+	t       testing.TB
+	require *require.Assertions
 
 	Pcct       *pcct.Pcct
 	Cs         *cs.Cs
@@ -58,7 +58,7 @@ type Fixture struct {
 }
 
 func NewFixture(t testing.TB, cfg pcct.Config) (f *Fixture) {
-	f = &Fixture{t: t}
+	f = &Fixture{t: t, require: require.New(t)}
 
 	cfg.PcctCapacity = 4095
 	if cfg.CsMemoryCapacity == 0 {
@@ -70,46 +70,40 @@ func NewFixture(t testing.TB, cfg pcct.Config) (f *Fixture) {
 
 	var e error
 	f.Pcct, e = pcct.New(cfg, eal.NumaSocket{})
-	if e != nil {
-		panic(e)
-	}
+	f.require.NoError(e)
 	f.Cs = cs.FromPcct(f.Pcct)
 	f.Pit = pit.FromPcct(f.Pcct)
 
 	f.Fib, e = fib.New(fibdef.Config{Capacity: 1023}, []fib.LookupThread{&fibtestenv.LookupThread{}})
-	f.noError(e)
+	f.require.NoError(e)
 	placeholderName := ndn.ParseName("/75f3c2eb-6147-4030-afbc-585b3ce876a9")
 	e = f.Fib.Insert(makeFibEntry(placeholderName, nil, 9999))
-	f.noError(e)
+	f.require.NoError(e)
 	f.FibReplica = f.Fib.Replica(eal.NumaSocket{})
 	f.FibEntry = f.FibReplica.Lpm(placeholderName)
 
 	t.Cleanup(func() {
-		must.Close(f.Fib)
-		must.Close(f.Pcct)
+		f.require.NoError(f.Fib.Close())
+		f.require.NoError(f.Pcct.Close())
 		ealthread.AllocClear()
 	})
 	return f
-}
-
-func (f *Fixture) noError(e error) {
-	require.NoError(f.t, e)
 }
 
 // EnableDisk enables on-disk caching on a Malloc Bdev.
 func (f *Fixture) EnableDisk(nSlots int64) {
 	var e error
 	f.Bdev, e = bdev.NewMalloc((1 + nSlots) * 16)
-	f.noError(e)
+	f.require.NoError(e)
 	f.t.Cleanup(func() { f.Bdev.Close() })
 
 	f.SpdkTh, e = spdkenv.NewThread()
-	f.noError(e)
+	f.require.NoError(e)
 	f.t.Cleanup(func() { f.SpdkTh.Close() })
-	f.noError(ealthread.AllocLaunch(f.SpdkTh))
+	f.require.NoError(ealthread.AllocLaunch(f.SpdkTh))
 
 	f.DiskStore, e = disk.NewStore(f.Bdev, f.SpdkTh, 16, disk.StoreGetDataGo)
-	f.noError(e)
+	f.require.NoError(e)
 
 	min, max := f.DiskStore.SlotRange()
 	f.DiskAlloc = disk.NewAlloc(min, max, eal.NumaSocket{})
@@ -119,7 +113,7 @@ func (f *Fixture) EnableDisk(nSlots int64) {
 	})
 
 	e = f.Cs.SetDisk(f.DiskStore, f.DiskAlloc)
-	f.noError(e)
+	f.require.NoError(e)
 }
 
 // CountMpInUse returns number of in-use entries in PCCT's underlying mempool.
@@ -138,15 +132,13 @@ func (f *Fixture) Insert(interest *ndni.Packet, data *ndni.Packet) (isReplacing 
 		data.Close()
 		return false
 	}
-	if pitEntry == nil {
-		panic("Pit.Insert failed")
-	}
+	f.require.NotNil(pitEntry, "Pit.Insert failed")
 
 	var pitFound pit.FindResult
 	for {
 		pitFound = f.Pit.FindByData(data, pitEntry.PitToken())
 		if len(pitFound.ListEntries()) == 0 {
-			panic("Pit.FindByData returned empty result")
+			f.require.Fail("Pit.FindByData returned empty result")
 		}
 
 		if pitFound.NeedDataDigest() {

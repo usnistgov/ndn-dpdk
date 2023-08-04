@@ -49,6 +49,8 @@ void
 CsDisk_ArcMove(CsEntry* entry, CsListID src, CsListID dst, uintptr_t ctx) {
   Cs* cs = (Cs*)ctx;
   switch (CsArc_MoveDir(src, dst)) {
+    case CsArc_MoveDirC(T1, Del):
+    case CsArc_MoveDirC(T2, Del):
     case CsArc_MoveDirC(T1, B1):
       CsEntry_FreeData(entry);
       break;
@@ -65,7 +67,7 @@ CsDisk_ArcMove(CsEntry* entry, CsListID src, CsListID dst, uintptr_t ctx) {
     case CsArc_MoveDirC(T1, T2):
     case CsArc_MoveDirC(B1, T2):
     case CsArc_MoveDirC(B1, Del):
-    case CsArc_MoveDirC(T1, Del):
+      NDNDPDK_ASSERT(entry->kind != CsEntryDisk);
       break;
     default:
       NDNDPDK_ASSERT(false);

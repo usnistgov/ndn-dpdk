@@ -31,6 +31,8 @@ const ptrdiff_t CsArc_ListOffsets_[] = {
 __attribute__((nonnull)) static void
 CsArc_MoveHandler(CsEntry* entry, CsListID src, CsListID dst, __rte_unused uintptr_t ctx) {
   switch (CsArc_MoveDir(src, dst)) {
+    case CsArc_MoveDirC(T1, Del):
+    case CsArc_MoveDirC(T2, Del):
     case CsArc_MoveDirC(T1, B1):
     case CsArc_MoveDirC(T2, B2):
       CsEntry_FreeData(entry);
@@ -40,7 +42,6 @@ CsArc_MoveHandler(CsEntry* entry, CsListID src, CsListID dst, __rte_unused uintp
     case CsArc_MoveDirC(B1, T2):
     case CsArc_MoveDirC(B2, T2):
     case CsArc_MoveDirC(B1, Del):
-    case CsArc_MoveDirC(T1, Del):
     case CsArc_MoveDirC(B2, Del):
       break;
     default:
@@ -175,7 +176,8 @@ CsArc_Add(CsArc* arc, CsEntry* entry) {
 
 void
 CsArc_Remove(CsArc* arc, CsEntry* entry) {
-  N_LOGD("Remove arc=%p cs-entry=%p", arc, entry);
+  N_LOGD("Remove arc=%p cs-entry=%p from=%d", arc, entry, (int)entry->arcList);
   CsList_Remove(CsArc_GetList(arc, entry->arcList), entry);
+  arc->moveCb((entry), entry->arcList, CslDirectDel, arc->moveCtx);
   entry->arcList = 0;
 }
