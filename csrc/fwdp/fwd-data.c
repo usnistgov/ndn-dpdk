@@ -49,8 +49,7 @@ FwFwd_DataSatisfy(FwFwd* fwd, FwFwdCtx* ctx) {
   uint8_t upCongMark = Packet_GetLpL3Hdr(ctx->npkt)->congMark;
   N_LOGD("^ pit-entry=%p(%s)", ctx->pitEntry, PitEntry_ToDebugString(ctx->pitEntry));
 
-  PitDnIt it;
-  for (PitDnIt_Init(&it, ctx->pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
+  PitDn_Each(it, ctx->pitEntry, false) {
     PitDn* dn = it.dn;
     if (unlikely(dn->face == 0)) {
       if (it.index == 0) {

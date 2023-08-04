@@ -37,8 +37,7 @@ PitEntry_ToDebugString(PitEntry* entry) {
   append(snprintf, ",DN[");
   {
     const char* delim = "";
-    PitDnIt it;
-    for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
+    PitDn_Each(it, entry, false) {
       if (it.dn->face == 0) {
         break;
       }
@@ -54,8 +53,7 @@ PitEntry_ToDebugString(PitEntry* entry) {
   append(snprintf, "],UP[");
   {
     const char* delim = "";
-    PitUpIt it;
-    for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
+    PitUp_Each(it, entry, false) {
       if (it.up->face == 0) {
         break;
       }
@@ -125,8 +123,7 @@ PitEntry_Timeout_(MinTmr* tmr, uintptr_t pitPtr) {
 
 FaceID
 PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceID dnFace) {
-  PitDnIt it;
-  for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
+  PitDn_Each(it, entry, false) {
     PitDn* dn = it.dn;
     if (dn->face == 0) {
       break;
@@ -141,6 +138,36 @@ PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceID dnFace) {
   return 0;
 }
 
+__attribute__((nonnull)) static inline PitDn*
+PitEntry_ReserveDn(PitEntry* entry, FaceID face, TscTime now) {
+  PitDn* dn = &entry->dns[0];
+  if (likely(dn->face == 0)) { // first DN record in new PIT entry
+    entry->dns[1].face = 0;
+    goto NEW;
+  }
+
+  PitDn_Each(it, entry, true) {
+    dn = it.dn;
+    if (dn->face == face) {
+      return dn;
+    }
+    if (dn->face == 0) {
+      PitDn_UseSlot(&it);
+      goto NEW;
+    }
+    if (dn->expiry < now) {
+      NDNDPDK_ASSERT(entry->nCanBePrefix >= (uint8_t)dn->canBePrefix);
+      entry->nCanBePrefix -= (uint8_t)dn->canBePrefix;
+      goto NEW;
+    }
+  }
+  return NULL;
+NEW:
+  POISON(dn);
+  dn->face = face;
+  return dn;
+}
+
 PitDn*
 PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt) {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
@@ -148,35 +175,9 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt) {
   LpL3* lpl3 = Packet_GetLpL3Hdr(npkt);
   PInterest* interest = Packet_GetInterestHdr(npkt);
 
-  PitDn* dn = NULL;
-  if (entry->npkt == npkt) { // new PIT entry
-    dn = &entry->dns[0];
-    NDNDPDK_ASSERT(dn->face == 0);
-    dn->face = face;
-    entry->dns[1].face = 0;
-  } else { // find DN slot
-    PitDnIt it;
-    for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it) || PitDnIt_Extend(&it, pit);
-         PitDnIt_Next(&it)) {
-      dn = it.dn;
-      if (dn->face == face) {
-        break;
-      }
-      if (dn->face == 0) {
-        PitDnIt_Use(&it);
-        dn->face = face;
-        break;
-      }
-      if (dn->expiry < Mbuf_GetTimestamp(pkt)) {
-        NDNDPDK_ASSERT(entry->nCanBePrefix >= (uint8_t)dn->canBePrefix);
-        entry->nCanBePrefix -= (uint8_t)dn->canBePrefix;
-        dn->face = face;
-        break;
-      }
-    }
-    if (unlikely(!PitDnIt_Valid(&it))) {
-      return NULL;
-    }
+  PitDn* dn = PitEntry_ReserveDn(entry, face, Mbuf_GetTimestamp(pkt));
+  if (unlikely(dn == NULL)) {
+    return NULL;
   }
 
   // refresh DN record
@@ -216,28 +217,28 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt) {
 
 PitUp*
 PitEntry_FindUp(PitEntry* entry, FaceID face) {
-  PitUpIt it;
-  for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
+  PitUp_Each(it, entry, false) {
     PitUp* up = it.up;
     if (up->face == face) {
       return up;
+    }
+    if (up->face == 0) {
+      break;
     }
   }
   return NULL;
 }
 
 PitUp*
-PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceID face) {
+PitEntry_ReserveUp(PitEntry* entry, FaceID face) {
   PitUp* up = NULL;
-  PitUpIt it;
-  for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it) || PitUpIt_Extend(&it, pit);
-       PitUpIt_Next(&it)) {
+  PitUp_Each(it, entry, true) {
     up = it.up;
     if (up->face == face) {
       return up;
     }
     if (up->face == 0) {
-      PitDnIt_Use(&it);
+      PitUp_UseSlot(&it);
       goto NEW;
     }
     if (up->lastTx == 0) {

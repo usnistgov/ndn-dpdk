@@ -7,6 +7,7 @@
 
 typedef struct PitDnUpIt_ {
   union {
+    void* current;
     PitDn* dn; ///< current PitDn
     PitUp* up; ///< current PitUp
   };
@@ -20,23 +21,47 @@ typedef struct PitDnUpIt_ {
     PitUp* ups;
   };
 
-  PitEntryExt** nextPtr; ///< (pvt) next extension
+  PitEntryExt** nextPtr;     ///< (pvt) next extension
+  struct PccEntry* pccEntry; ///< (pvt) PCC entry for obtaining mempool
 } PitDnUpIt_;
 
-__attribute__((nonnull)) static inline void
-PitDnUpIt_Init_(PitDnUpIt_* it, PitEntry* entry, int maxInEntry, size_t offsetInEntry) {
-  it->index = 0;
-  it->i = 0;
-  it->max = maxInEntry;
-  it->array = RTE_PTR_ADD(entry, offsetInEntry);
-  it->nextPtr = &entry->ext;
+__attribute__((nonnull)) static inline PitDnUpIt_
+PitDnUpIt_New_(PitEntry* entry, int maxInEntry, void* array) {
+  return (PitDnUpIt_){
+    current: array,
+    max: maxInEntry,
+    array: array,
+    nextPtr: &entry->ext,
+    pccEntry: entry->pccEntry,
+  };
+}
+
+__attribute__((nonnull)) bool
+PitDnUpIt_Extend_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt);
+
+__attribute__((nonnull)) static inline bool
+PitDnUpIt_Valid_(PitDnUpIt_* it, bool canExtend, int maxInExt, size_t offsetInExt) {
+  if (likely(it->i < it->max)) {
+    return true;
+  }
+  return canExtend && PitDnUpIt_Extend_(it, maxInExt, offsetInExt);
 }
 
 __attribute__((nonnull)) static inline void
-PitDnUpIt_Next_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt) {
+PitDnUpIt_EnterExt_(PitDnUpIt_* it, PitEntryExt* ext, int maxInExt, size_t offsetInExt) {
+  it->i = 0;
+  it->max = maxInExt;
+  it->array = RTE_PTR_ADD(ext, offsetInExt);
+  it->current = it->array;
+  it->nextPtr = &ext->next;
+}
+
+__attribute__((nonnull)) static inline void
+PitDnUpIt_Next_(PitDnUpIt_* it, size_t sizeofRecord, int maxInExt, size_t offsetInExt) {
   NDNDPDK_ASSERT(it->i < it->max);
   ++it->index;
   ++it->i;
+  it->current = RTE_PTR_ADD(it->current, sizeofRecord);
   if (likely(it->i < it->max)) {
     return;
   }
@@ -45,56 +70,11 @@ PitDnUpIt_Next_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt) {
   if (ext == NULL) {
     return;
   }
-  it->i = 0;
-  it->max = maxInExt;
-  it->array = RTE_PTR_ADD(ext, offsetInExt);
-  it->nextPtr = &ext->next;
+  PitDnUpIt_EnterExt_(it, ext, maxInExt, offsetInExt);
 }
 
-__attribute__((nonnull)) bool
-PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt);
-
-/**
- * @brief Iterator of DN slots in PIT entry.
- *
- * @code
- * PitDnIt it;
- * for (PitDnIt_Init(&it, entry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
- *   int index = it.index;
- *   PitDn* dn = it.dn;
- * }
- * @endcode
- */
+/** @brief Iterator of DN slots in PIT entry. */
 typedef PitDnUpIt_ PitDnIt;
-
-__attribute__((nonnull)) static inline void
-PitDnIt_Init(PitDnIt* it, PitEntry* entry) {
-  PitDnUpIt_Init_(it, entry, PitMaxDns, offsetof(PitEntry, dns));
-  it->dn = &it->dns[it->i];
-}
-
-__attribute__((nonnull)) static inline bool
-PitDnIt_Valid(PitDnIt* it) {
-  return it->i < it->max;
-}
-
-__attribute__((nonnull)) static inline void
-PitDnIt_Next(PitDnIt* it) {
-  PitDnUpIt_Next_(it, PitMaxExtDns, offsetof(PitEntryExt, dns));
-  it->dn = &it->dns[it->i];
-}
-
-/**
- * @brief Add an extension for more DN slots.
- * @retval true extension added, iterator points to next slot.
- * @retval false allocation failure.
- */
-__attribute__((nonnull)) static inline bool
-PitDnIt_Extend(PitDnIt* it, Pit* pit) {
-  bool ok = PitDnUpIt_Extend_(it, pit, PitMaxExtDns, offsetof(PitEntryExt, dns));
-  it->dn = &it->dns[it->i];
-  return ok;
-}
 
 /**
  * @brief Mark current DN slot is used.
@@ -102,54 +82,48 @@ PitDnIt_Extend(PitDnIt* it, Pit* pit) {
  * @post This DN slot is used, subsequent DN slots are unused.
  */
 __attribute__((nonnull)) static inline void
-PitDnIt_Use(PitDnIt* it) {
+PitDn_UseSlot(PitDnIt* it) {
   int next = it->i + 1;
-  if (next < it->max) {
+  if (likely(next < it->max)) {
     it->dns[next].face = 0;
   }
 }
 
 /**
- * @brief Iterator of UP slots in PIT entry.
+ * @brief Iterate over DN slots in PIT entry.
  *
  * @code
- * PitUpIt it;
- * for (PitUpIt_Init(&it, entry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
+ * PitDn_Each(it, pitEntry, false) {
  *   int index = it.index;
- *   PitUp* up = it.up;
+ *   PitDn* dn = it.dn;
+ *   if (dn->face == 0) { // reaching the end of used slots
+ *     break;
+ *   }
+ *   // access the DN record
+ * }
+ * @endcode
+ *
+ * @code
+ * PitDn_Each(it, pitEntry, true) {
+ *   int index = it.index;
+ *   PitDn* dn = it.dn;
+ *   if (dn->face == faceID) { // found existing slot with wanted face
+ *   }
+ *   if (dn->face == 0) { // reaching the end of used slots
+ *     PitDn_UseSlot(&it); // claim this slot as used
+ *     dn->face = faceID;
+ *     // initialized the slot
+ *   }
  * }
  * @endcode
  */
+#define PitDn_Each(var, entry, canExtend)                                                          \
+  for (PitDnIt var = PitDnUpIt_New_((entry), PitMaxDns, (entry)->dns);                             \
+       PitDnUpIt_Valid_(&var, (canExtend), PitMaxExtDns, offsetof(PitEntryExt, dns));              \
+       PitDnUpIt_Next_(&var, sizeof(PitDn), PitMaxExtDns, offsetof(PitEntryExt, dns)))
+
+/** @brief Iterator of UP slots in PIT entry. */
 typedef PitDnUpIt_ PitUpIt;
-
-__attribute__((nonnull)) static inline void
-PitUpIt_Init(PitUpIt* it, PitEntry* entry) {
-  PitDnUpIt_Init_(it, entry, PitMaxUps, offsetof(PitEntry, ups));
-  it->up = &it->ups[it->i];
-}
-
-__attribute__((nonnull)) static inline bool
-PitUpIt_Valid(PitUpIt* it) {
-  return it->i < it->max;
-}
-
-__attribute__((nonnull)) static inline void
-PitUpIt_Next(PitUpIt* it) {
-  PitDnUpIt_Next_(it, PitMaxExtUps, offsetof(PitEntryExt, ups));
-  it->up = &it->ups[it->i];
-}
-
-/**
- * @brief Add an extension for more UP slots.
- * @retval true extension added, iterator points to next slot.
- * @retval false allocation failure.
- */
-__attribute__((nonnull)) static inline bool
-PitUpIt_Extend(PitDnIt* it, Pit* pit) {
-  bool ok = PitDnUpIt_Extend_(it, pit, PitMaxExtUps, offsetof(PitEntryExt, ups));
-  it->up = &it->ups[it->i];
-  return ok;
-}
 
 /**
  * @brief Mark current UP slot is used.
@@ -157,11 +131,27 @@ PitUpIt_Extend(PitDnIt* it, Pit* pit) {
  * @post This UP slot is used, subsequent UP slots are unused.
  */
 __attribute__((nonnull)) static inline void
-PitUpIt_Use(PitUpIt* it) {
+PitUp_UseSlot(PitUpIt* it) {
   int next = it->i + 1;
-  if (next < it->max) {
+  if (likely(next < it->max)) {
     it->ups[next].face = 0;
   }
 }
+
+/**
+ * @brief Iterate over DN slots in PIT entry.
+ * @sa PitDn_Each
+ *
+ * @code
+ * PitUp_Each(it, pitEntry, false) {
+ *   int index = it.index;
+ *   PitUp* up = it.up;
+ * }
+ * @endcode
+ */
+#define PitUp_Each(var, entry, canExtend)                                                          \
+  for (PitUpIt var = PitDnUpIt_New_((entry), PitMaxUps, (entry)->ups);                             \
+       PitDnUpIt_Valid_(&var, (canExtend), PitMaxExtUps, offsetof(PitEntryExt, ups));              \
+       PitDnUpIt_Next_(&var, sizeof(PitUp), PitMaxExtUps, offsetof(PitEntryExt, ups)))
 
 #endif // NDNDPDK_PCCT_PIT_DN_UP_IT_H

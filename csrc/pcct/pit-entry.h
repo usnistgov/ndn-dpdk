@@ -182,7 +182,7 @@ PitEntry_FindUp(PitEntry* entry, FaceID face);
  *       it will be overwritten on the next @c PitEntry_ReserveUp invocation.
  */
 __attribute__((nonnull)) PitUp*
-PitEntry_ReserveUp(PitEntry* entry, Pit* pit, FaceID face);
+PitEntry_ReserveUp(PitEntry* entry, FaceID face);
 
 /**
  * @brief Calculate InterestLifetime for TX Interest.

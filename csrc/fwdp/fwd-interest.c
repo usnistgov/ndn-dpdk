@@ -193,7 +193,7 @@ SgForwardInterest(SgCtx* ctx0, FaceID nh) {
     return SGFWDI_BADFACE;
   }
 
-  PitUp* up = PitEntry_ReserveUp(ctx->pitEntry, fwd->pit, nh);
+  PitUp* up = PitEntry_ReserveUp(ctx->pitEntry, nh);
   if (unlikely(up == NULL)) {
     N_LOGD("^ no-interest-to=%" PRI_FaceID " drop=PitUp-full", nh);
     return SGFWDI_ALLOCERR;

@@ -2,16 +2,17 @@
 #include "pit.h"
 
 bool
-PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt) {
+PitDnUpIt_Extend_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt) {
   NDNDPDK_ASSERT(it->i == it->max);
   NDNDPDK_ASSERT(*it->nextPtr == NULL);
 
   // allocate PitEntryExt
   PitEntryExt* ext;
-  int res = rte_mempool_get(Pcct_FromPit(pit)->mp, (void**)&ext);
+  int res = rte_mempool_get(rte_mempool_from_obj(it->pccEntry), (void**)&ext);
   if (unlikely(res != 0)) {
     return false;
   }
+  POISON(ext);
 
   // clear PitEntryExt
   ext->dns[0].face = 0;
@@ -22,9 +23,6 @@ PitDnUpIt_Extend_(PitDnUpIt_* it, Pit* pit, int maxInExt, size_t offsetInExt) {
   *it->nextPtr = ext;
 
   // update iterator
-  it->i = 0;
-  it->max = maxInExt;
-  it->array = RTE_PTR_ADD(ext, offsetInExt);
-  it->nextPtr = &ext->next;
+  PitDnUpIt_EnterExt_(it, ext, maxInExt, offsetInExt);
   return true;
 }

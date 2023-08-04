@@ -23,7 +23,7 @@ FetchTask_TxBurst(FetchTask* fp, FetchThread* fth) {
   TscTime now = rte_get_tsc_cycles();
   uint64_t segNums[MaxBurstSize];
   size_t count = FetchLogic_TxInterestBurst(&fp->logic, segNums, RTE_DIM(segNums), now);
-  if (unlikely(count == 0)) {
+  if (count == 0) {
     return count;
   }
 

@@ -10,8 +10,7 @@ N_LOG_INIT(FwFwd);
 __attribute__((nonnull)) static void
 FwFwd_TxNacks(FwFwd* fwd, PitEntry* pitEntry, TscTime now, NackReason reason,
               uint8_t nackHopLimit) {
-  PitDnIt it;
-  for (PitDnIt_Init(&it, pitEntry); PitDnIt_Valid(&it); PitDnIt_Next(&it)) {
+  PitDn_Each(it, pitEntry, false) {
     PitDn* dn = it.dn;
     if (dn->face == 0) {
       break;
@@ -116,8 +115,7 @@ FwFwd_ProcessNack(FwFwd* fwd, FwFwdCtx* ctx) {
   // count remaining pending upstreams and find least severe Nack reason
   int nPending = 0;
   NackReason leastSevere = reason;
-  PitUpIt it;
-  for (PitUpIt_Init(&it, ctx->pitEntry); PitUpIt_Valid(&it); PitUpIt_Next(&it)) {
+  PitUp_Each(it, ctx->pitEntry, false) {
     if (it.up->face == 0) {
       continue;
     }
