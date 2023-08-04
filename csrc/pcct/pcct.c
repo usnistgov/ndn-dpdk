@@ -65,7 +65,7 @@ Pcct_Clear(Pcct* pcct) {
       case CsEntryNone:
         break;
       case CsEntryMemory:
-        CsEntry_Clear(csEntry);
+        CsEntry_FreeData(csEntry);
         break;
       case CsEntryDisk:
         // DiskAlloc will be discarded, unnecessary to clear

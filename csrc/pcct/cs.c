@@ -22,8 +22,7 @@ CsEraseBatch_Append(PcctEraseBatch* peb, CsEntry* entry, const char* kind) {
 __attribute__((nonnull)) static void
 CsEraseBatch_AddIndirect(PcctEraseBatch* peb, CsEntry* entry) {
   N_LOGV("^ indirect=%p direct=%p(%" PRId8 ")", entry, entry->direct, entry->direct->nIndirects);
-
-  CsEntry_Finalize(entry);
+  CsEntry_Disassoc(entry);
   CsEraseBatch_Append(peb, entry, "indirect");
 }
 
@@ -33,12 +32,20 @@ CsEraseBatch_AddDirect(PcctEraseBatch* peb, CsEntry* entry) {
   Cs* cs = &peb->pcct->cs;
   for (int i = 0; i < entry->nIndirects; ++i) {
     CsEntry* indirect = entry->indirect[i];
+    // skip CsEntry_Disassoc because the direct entry is being released
     CsList_Remove(&cs->indirect, indirect);
     CsEraseBatch_Append(peb, indirect, "indirect-dep");
   }
-  entry->nIndirects = 0;
 
-  CsEntry_Finalize(entry);
+  switch (entry->kind) {
+    case CsEntryNone:
+      break;
+    case CsEntryMemory:
+      CsEntry_FreeData(entry);
+      break;
+    default:
+      NDNDPDK_ASSERT(false);
+  }
   CsEraseBatch_Append(peb, entry, "direct");
 }
 
@@ -136,10 +143,19 @@ Cs_PutDirect(Cs* cs, Packet* npkt, PccEntry* pccEntry) {
     // refresh direct entry
     entry = PccEntry_GetCsEntry(pccEntry);
     N_LOGD("PutDirect(refresh) cs=%p npkt=%p pcc-entry=%p cs-entry=%p", cs, npkt, pccEntry, entry);
-    if (entry->kind != CsEntryIndirect) {
-      Cs_EraseImplicitDigestIndirect(cs, entry, data->name.length);
+    switch (entry->kind) {
+      case CsEntryMemory:
+        CsEntry_FreeData(entry);
+        // fallthrough
+      case CsEntryNone:
+        Cs_EraseImplicitDigestIndirect(cs, entry, data->name.length);
+        break;
+      case CsEntryIndirect:
+        CsEntry_Disassoc(entry);
+        break;
+      case CsEntryDisk: // TODO would this happen?
+        NDNDPDK_ASSERT(false);
     }
-    CsEntry_Clear(entry);
   } else {
     // insert direct entry
     entry = PccEntry_AddCsEntry(pccEntry);
@@ -197,7 +213,17 @@ Cs_PutIndirect(Cs* cs, CsEntry* direct, PccEntry* pccEntry) {
     } else {
       // change direct entry to indirect entry
       CsArc_Remove(&cs->direct, entry);
-      CsEntry_Clear(entry);
+      switch (entry->kind) {
+        case CsEntryNone:
+          break;
+        case CsEntryMemory:
+          rte_pktmbuf_free(Packet_ToMbuf(entry->data));
+          entry->kind = CsEntryNone;
+          break;
+        case CsEntryDisk: // TODO would this happen?
+        default:
+          NDNDPDK_ASSERT(false);
+      }
     }
     N_LOGD("PutIndirect refresh cs=%p npkt=%p pcc-entry=%p cs-entry=%p", cs, direct, pccEntry,
            entry);
@@ -260,7 +286,7 @@ Cs_Insert(Cs* cs, Packet* npkt, PitFindResult pitFound) {
     // put direct CS entry at pccEntry
     direct = Cs_PutDirect(cs, npkt, pccEntry);
     // alloc-err cannot happen because PccSlots are freed from PIT entries
-    NDNDPDK_ASSERT(direct != NULL);
+    NDNDPDK_ASSERT(direct != NULL); // TODO this may happen now
   } else {
     // put indirect CS entry at pccEntry
     Cs_PutIndirect(cs, direct, pccEntry);

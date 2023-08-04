@@ -63,7 +63,6 @@ Pcct_Erase(Pcct* pcct, PccEntry* entry);
 
 /**
  * @brief Assign a token to an entry.
- * @retval 0 No token available.
  * @return New or existing token.
  */
 __attribute__((nonnull)) uint64_t

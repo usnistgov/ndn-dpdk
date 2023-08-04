@@ -95,6 +95,18 @@ CsEntry_GetDirect(CsEntry* entry) {
 }
 
 /**
+ * @brief Delete the Data on an in-memory entry.
+ * @pre entry->kind == CsEntryMemory
+ */
+__attribute__((nonnull)) static inline void
+CsEntry_FreeData(CsEntry* entry) {
+  NDNDPDK_ASSERT(entry->kind == CsEntryMemory);
+  rte_pktmbuf_free(Packet_ToMbuf(entry->data));
+  NULLize(entry->data);
+  entry->kind = CsEntryNone;
+}
+
+/**
  * @brief Associate an indirect entry.
  * @pre direct->kind == CsEntryMemory || direct->kind == CsEntryDisk
  * @post indirect->kind == CsEntryIndirect
@@ -128,35 +140,6 @@ CsEntry_Disassoc(CsEntry* indirect) {
 
   direct->indirect[i] = direct->indirect[--direct->nIndirects];
   indirect->kind = CsEntryNone;
-}
-
-/** @brief Clear an entry and prepare it for refresh. */
-__attribute__((nonnull)) static inline void
-CsEntry_Clear(CsEntry* entry) {
-  switch (entry->kind) {
-    case CsEntryNone:
-      break;
-    case CsEntryMemory:
-      rte_pktmbuf_free(Packet_ToMbuf(entry->data));
-      entry->kind = CsEntryNone;
-      break;
-    case CsEntryDisk:
-      NDNDPDK_ASSERT(false); // caller must free disk slot
-      break;
-    case CsEntryIndirect:
-      CsEntry_Disassoc(entry);
-      break;
-  }
-}
-
-/**
- * @brief Finalize an entry.
- * @pre If entry is direct, no indirect entry depends on it.
- */
-__attribute__((nonnull)) static inline void
-CsEntry_Finalize(CsEntry* entry) {
-  NDNDPDK_ASSERT(entry->kind == CsEntryIndirect || entry->nIndirects == 0);
-  CsEntry_Clear(entry);
 }
 
 #endif // NDNDPDK_PCCT_CS_ENTRY_H

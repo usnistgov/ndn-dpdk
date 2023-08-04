@@ -9,20 +9,18 @@ N_LOG_INIT(CsDisk);
 
 void
 CsDisk_Insert(Cs* cs, CsEntry* entry) {
+  NDNDPDK_ASSERT(entry->kind == CsEntryMemory);
   uint64_t slot = DiskAlloc_Alloc(cs->diskAlloc);
   if (unlikely(slot == 0)) {
     N_LOGD("Insert entry=%p data=%p" N_LOG_ERROR("no-slot"), entry, entry->data);
-    CsEntry_Clear(entry);
     ++cs->nDiskFull;
-    return;
+    goto FAIL;
   }
 
-  NDNDPDK_ASSERT(entry->kind == CsEntryMemory);
   bool ok = DiskStore_PutPrepare(cs->diskStore, entry->data, &entry->diskStored);
   if (unlikely(!ok)) {
     N_LOGW("Insert error entry=%p data=%p" N_LOG_ERROR("prepare"), entry, entry->data);
-    CsEntry_Clear(entry);
-    return;
+    goto FAIL;
   }
 
   N_LOGD("Insert entry=%p data=%p slot=%" PRIu64 " sp-pktLen=%" PRIu16 " sp-saveTotal=%" PRIu16,
@@ -31,6 +29,10 @@ CsDisk_Insert(Cs* cs, CsEntry* entry) {
   entry->kind = CsEntryDisk;
   entry->diskSlot = slot;
   ++cs->nDiskInsert;
+  return;
+
+FAIL:
+  CsEntry_FreeData(entry);
 }
 
 void
@@ -39,6 +41,7 @@ CsDisk_Delete(Cs* cs, CsEntry* entry) {
   NDNDPDK_ASSERT(entry->kind == CsEntryDisk);
   DiskAlloc_Free(cs->diskAlloc, entry->diskSlot);
   entry->kind = CsEntryNone;
+  entry->diskSlot = 0;
   ++cs->nDiskDelete;
 }
 
@@ -47,7 +50,7 @@ CsDisk_ArcMove(CsEntry* entry, CsListID src, CsListID dst, uintptr_t ctx) {
   Cs* cs = (Cs*)ctx;
   switch (CsArc_MoveDir(src, dst)) {
     case CsArc_MoveDirC(T1, B1):
-      CsEntry_Clear(entry);
+      CsEntry_FreeData(entry);
       break;
     case CsArc_MoveDirC(T2, B2):
       CsDisk_Insert(cs, entry);

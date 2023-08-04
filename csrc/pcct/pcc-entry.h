@@ -57,6 +57,7 @@ struct PccEntry {
   PccKey key;
   UT_hash_handle hh;
 
+  RTE_MARKER a_;
   union {
     struct {
       bool hasToken : 1;
@@ -86,13 +87,12 @@ struct PccEntry {
     } __rte_packed;
     uint64_t tokenQword;
   };
-  RTE_MARKER tokenAfter_;
+  RTE_MARKER b_;
 
   PccSlot slot1;
   PccEntryExt* ext;
 };
-static_assert(offsetof(PccEntry, tokenQword) + sizeof(uint64_t) == offsetof(PccEntry, tokenAfter_),
-              "");
+static_assert(offsetof(PccEntry, b_) - offsetof(PccEntry, a_) == sizeof(uint64_t), "");
 
 __attribute__((nonnull)) static __rte_always_inline PccSlot*
 PccEntry_GetSlot_(PccEntry* entry, PccSlotIndex slot) {

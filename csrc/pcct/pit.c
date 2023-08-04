@@ -57,13 +57,7 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry) {
 
   // assign token if it does not exist
   uint64_t token = Pcct_AddToken(pcct, pccEntry);
-  if (unlikely(token == 0)) {
-    if (isNewPcc) {
-      Pcct_Erase(pcct, pccEntry);
-    }
-    ++pit->nAllocErr;
-    return (PitInsertResult){.kind = PIT_INSERT_FULL};
-  }
+  NDNDPDK_ASSERT(token != 0);
 
   PitEntry* pitEntry = NULL;
   bool isNew = false;
@@ -104,7 +98,9 @@ Pit_Insert(Pit* pit, Packet* npkt, const FibEntry* fibEntry) {
 void
 Pit_Erase(Pit* pit, PitEntry* entry) {
   PccEntry* pccEntry = entry->pccEntry;
-  if (!entry->mustBeFresh) {
+  bool mustBeFresh = entry->mustBeFresh;
+  PitEntry_Finalize(entry);
+  if (!mustBeFresh) {
     NDNDPDK_ASSERT(pccEntry->hasPitEntry0);
     PccEntry_RemovePitEntry0(pccEntry);
     N_LOGD("Erase del-PIT0 pit=%p pcc-entry=%p pit-entry=%p", pit, pccEntry, entry);
@@ -113,7 +109,7 @@ Pit_Erase(Pit* pit, PitEntry* entry) {
     PccEntry_RemovePitEntry1(pccEntry);
     N_LOGD("Erase del-PIT1 pit=%p pcc-entry=%p pit-entry=%p", pit, pccEntry, entry);
   }
-  PitEntry_Finalize(entry);
+  NULLize(entry);
 
   --pit->nEntries;
   if (!pccEntry->hasEntries) {

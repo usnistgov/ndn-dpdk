@@ -8,6 +8,7 @@ PccSlotIndex
 PccEntry_AllocateSlot_(PccEntry* entry, PccSlot** slot) {
 #define AssignSlot(s)                                                                              \
   do {                                                                                             \
+    POISON(&s);                                                                                    \
     (s).pccEntry = entry;                                                                          \
     *slot = &(s);                                                                                  \
   } while (false)
@@ -49,21 +50,27 @@ PccEntry_ClearSlot_(PccEntry* entry, PccSlotIndex slot) {
   switch (slot) {
     case PCC_SLOT_NONE:
       goto FINISH;
-    case PCC_SLOT1:
+    case PCC_SLOT1: {
+      POISON(&entry->slot1);
       entry->slot1.pccEntry = NULL;
       goto FINISH;
-    case PCC_SLOT2:
+    }
+    case PCC_SLOT2: {
+      POISON(&entry->ext->slot2);
       entry->ext->slot2.pccEntry = NULL;
       if (entry->ext->slot3.pccEntry != NULL) {
         goto FINISH;
       }
       break;
-    case PCC_SLOT3:
+    }
+    case PCC_SLOT3: {
+      POISON(&entry->ext->slot3);
       entry->ext->slot3.pccEntry = NULL;
       if (entry->ext->slot2.pccEntry != NULL) {
         goto FINISH;
       }
       break;
+    }
   }
 
   rte_mempool_put(rte_mempool_from_obj(entry), entry->ext);

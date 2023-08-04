@@ -28,12 +28,12 @@ const ptrdiff_t CsArc_ListOffsets_[] = {
  *
  * If an entry is moved from T1/T2 to a non-T1/T2 list, its Data packet is released.
  */
-__attribute__((nonnull)) static inline void
+__attribute__((nonnull)) static void
 CsArc_MoveHandler(CsEntry* entry, CsListID src, CsListID dst, __rte_unused uintptr_t ctx) {
   switch (CsArc_MoveDir(src, dst)) {
     case CsArc_MoveDirC(T1, B1):
     case CsArc_MoveDirC(T2, B2):
-      CsEntry_Clear(entry);
+      CsEntry_FreeData(entry);
       break;
     case CsArc_MoveDirC(New, T1):
     case CsArc_MoveDirC(T1, T2):
