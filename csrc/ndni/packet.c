@@ -9,10 +9,13 @@ const char* PktType_Strings_[] = {
 
 bool
 Packet_Parse(Packet* npkt, ParseFor parseFor) {
-  PacketPriv* priv = Packet_GetPriv_(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  NDNDPDK_ASSERT(pkt->priv_size >= sizeof(*priv));
+  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_pktmbuf_is_contiguous(pkt) &&
+                 rte_mbuf_refcnt_read(pkt) == 1);
   pkt->packet_type = 0;
+  PacketPriv* priv = Packet_GetPriv_(npkt);
+  NDNDPDK_ASSERT(pkt->priv_size >= sizeof(*priv));
+  POISON(priv);
 
   LpHeader* lph = &priv->lp;
   if (unlikely(!LpHeader_Parse(lph, pkt))) {
@@ -36,6 +39,7 @@ bool
 Packet_ParseL3(Packet* npkt, ParseFor parseFor) {
   PacketPriv* priv = Packet_GetPriv_(npkt);
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
+  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt));
   NDNDPDK_ASSERT(pkt->data_len >= 1);
 
   uint8_t type = rte_pktmbuf_mtod(pkt, const uint8_t*)[0];

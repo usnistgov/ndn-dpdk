@@ -138,8 +138,7 @@ Packet_Parse(Packet* npkt, ParseFor parseFor);
  * @param parseFor see @c PInterest_Parse and @c PData_Parse .
  * @return whether success.
  * @post Packet_GetType(npkt) returns @c PktInterest , @c PktData , or @c PktNack .
- * @post If the packet is not fragmented, one of @c PInterest , @c PData , or @c PNack is
- * initialized.
+ * @post One of @c PInterest , @c PData , or @c PNack is initialized.
  */
 __attribute__((nonnull, warn_unused_result)) bool
 Packet_ParseL3(Packet* npkt, ParseFor parseFor);

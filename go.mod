@@ -14,7 +14,7 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/schema v1.2.0
 	github.com/graphql-go/graphql v0.8.1
-	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20230328201059-365e72989107
+	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20230801000641-8736a9d41aaa
 	github.com/jacobsa/fuse v0.0.0-20230624161425-b8484ee15dad
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
@@ -38,10 +38,10 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	github.com/zyedidia/generic v1.2.1
 	go.fd.io/govpp/extras v0.1.0
-	go.uber.org/zap v1.24.0
+	go.uber.org/zap v1.25.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/exp v0.0.0-20230725093048-515e97ebf090
-	golang.org/x/sys v0.10.0
+	golang.org/x/exp v0.0.0-20230801115018-d63ba01acd4b
+	golang.org/x/sys v0.11.0
 )
 
 require (
@@ -67,8 +67,7 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/term v0.10.0 // indirect
