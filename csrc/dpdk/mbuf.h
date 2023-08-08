@@ -114,6 +114,33 @@ Mbuf_ChainVector(struct rte_mbuf* vec[], uint16_t count) {
 }
 
 /**
+ * @brief Free a sequence of segments.
+ * @param begin pointer to first segment pointer.
+ * @param end exclusive last segment, will not be freed.
+ * @param pktLen pointer to packet length, will be decremented.
+ * @return number of freed segments.
+ * @post @c *begin is freed, but @c end is not freed.
+ * @post *begin == end
+ * @code
+ * // free second through last segments of an mbuf
+ * pkt->nb_segs -= Mbuf_FreeSegs(&pkt->next, NULL, &pkt->pkt_len);
+ * @endcode
+ */
+__attribute__((nonnull(1, 3))) static inline uint16_t
+Mbuf_FreeSegs(struct rte_mbuf** begin, struct rte_mbuf* end, uint32_t* pktLen) {
+  uint16_t count = 0;
+  for (struct rte_mbuf* seg = *begin; seg != end;) {
+    struct rte_mbuf* next = seg->next;
+    ++count;
+    *pktLen -= seg->data_len;
+    rte_pktmbuf_free_seg(seg);
+    seg = next;
+  }
+  *begin = end;
+  return count;
+}
+
+/**
  * @brief Enqueue a burst of packets to a ring buffer.
  * @param autoFree if true, rejected packets are freed.
  * @return number of rejected packets.

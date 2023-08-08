@@ -73,9 +73,9 @@ To receive and parse a packet, calling code should:
 ### Interest Decoding Details
 
 `PInterest_Parse` function decodes an Interest.
-If the Interest carries a *forwarding hint*, up to `PInterestMaxFwHints` delegations are recognized, and any remaining delegations are ignored.
+If the Interest carries a *forwarding hint*, up to `PInterestMaxFwHints` names are recognized, and any remaining names are ignored.
 The decoder only determines the length of each name, but does not parse at component level.
-`PInterest_SelectFwHint` function activates a forwarding hint, parses the delegation into components on demand; only one delegation name can be active at any time.
+`PInterest_SelectFwHint` function activates a forwarding hint, parses the name into components on demand; only one name can be active at any time.
 
 Although the packet format specifies Nonce as optional, it is required when an Interest is transmitted over network links.
 Thus, `PInterest_Parse` requires Nonce to be present.

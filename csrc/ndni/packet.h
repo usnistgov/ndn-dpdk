@@ -122,7 +122,7 @@ Packet_GetNackHdr(Packet* npkt) {
 
 /**
  * @brief Parse layer 2 and layer 3 in mbuf.
- * @param npkt a uniquely owned, unsegmented, direct mbuf.
+ * @param npkt a uniquely owned, possibly segmented, direct mbuf.
  * @param parseFor see @c PInterest_Parse and @c PData_Parse .
  * @return whether success.
  * @post If the packet is fragmented, Packet_GetType(npkt) returns @c PktFragment .

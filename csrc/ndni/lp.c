@@ -46,32 +46,40 @@ LpHeader_ParseNack(LpHeader* lph, TlvDecoder* d) {
 
 bool
 LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt) {
-  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_pktmbuf_is_contiguous(pkt) &&
-                 rte_mbuf_refcnt_read(pkt) == 1);
+  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
   *lph = (const LpHeader){0};
   lph->l2.fragCount = 1;
+  uint64_t seqNum = 0;
 
   TlvDecoder d = TlvDecoder_Init(pkt);
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
-  pkt->pkt_len = pkt->data_len = d.offset + length0; // strip Ethernet trailer, if any
-  d.length = length0;
   switch (type0) {
     case TtInterest:
-    case TtData:
-      return true;
+    case TtData: {
+      uint32_t trailerL = d.length - length0;
+      if (likely(trailerL == 0)) {
+        // no Ethernet trailer, no truncation needed
+        return true;
+      }
+      d = TlvDecoder_Init(pkt);
+      d.length -= trailerL;
+      goto ACCEPT;
+    }
     case TtLpPacket:
+      d.length = length0;
       break;
     default:
       return false;
   }
 
-  uint64_t seqNum = 0;
   TlvDecoder_EachTL (&d, type, length) {
     switch (type) {
       case TtLpPayload: {
-        pkt->data_off += d.offset;
-        pkt->pkt_len = pkt->data_len = length;
-        goto FOUND_PAYLOAD;
+        if (unlikely(length == 0)) {
+          return false;
+        }
+        d.length = length;
+        goto ACCEPT;
       }
       case TtLpSeqNum: {
         if (unlikely(length != 8 || !TlvDecoder_ReadNniTo(&d, length, &seqNum))) {
@@ -121,10 +129,18 @@ LpHeader_Parse(LpHeader* lph, struct rte_mbuf* pkt) {
     }
   }
 
-  pkt->pkt_len = pkt->data_len = 0; // no payload
-FOUND_PAYLOAD:;
+  // no payload i.e. IDLE packet, no feature depends on it
+  return false;
+
+ACCEPT:;
   lph->l2.seqNumBase = seqNum - lph->l2.fragIndex;
-  return lph->l2.fragIndex < lph->l2.fragCount;
+  if (unlikely(lph->l2.fragIndex >= lph->l2.fragCount)) {
+    return false;
+  }
+
+  // truncate pkt to d.length that covers fragment
+  TlvDecoder_Truncate(&d);
+  return true;
 }
 
 void

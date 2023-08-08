@@ -199,3 +199,5 @@ func ctestTlvDecoderValueDecoder(t *testing.T) {
 	assert.EqualValues(4, vd.length)
 	assert.EqualValues(0, d.length)
 }
+
+// TlvDecoder_Truncate is tested in ctestTlvDecoderTruncate

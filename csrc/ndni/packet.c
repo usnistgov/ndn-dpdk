@@ -10,8 +10,7 @@ const char* PktType_Strings_[] = {
 bool
 Packet_Parse(Packet* npkt, ParseFor parseFor) {
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_pktmbuf_is_contiguous(pkt) &&
-                 rte_mbuf_refcnt_read(pkt) == 1);
+  NDNDPDK_ASSERT(RTE_MBUF_DIRECT(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
   pkt->packet_type = 0;
   PacketPriv* priv = Packet_GetPriv_(npkt);
   NDNDPDK_ASSERT(pkt->priv_size >= sizeof(*priv));
@@ -19,11 +18,6 @@ Packet_Parse(Packet* npkt, ParseFor parseFor) {
 
   LpHeader* lph = &priv->lp;
   if (unlikely(!LpHeader_Parse(lph, pkt))) {
-    return false;
-  }
-
-  if (unlikely(pkt->pkt_len == 0)) {
-    // there isn't any feature that depends on IDLE packets yet
     return false;
   }
 

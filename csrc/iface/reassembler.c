@@ -91,10 +91,13 @@ Reassembler_Reassemble_(Reassembler* reass, LpL2* pm, hash_sig_t hash) {
 Packet*
 Reassembler_Accept(Reassembler* reass, Packet* fragment) {
   struct rte_mbuf* pkt = Packet_ToMbuf(fragment);
+  if (unlikely(!rte_pktmbuf_is_contiguous(pkt))) {
+    goto DROP_PKT;
+  }
   LpL2* l2 = &Packet_GetLpHdr(fragment)->l2;
   NDNDPDK_ASSERT(l2->fragCount > 1 && // single fragment packets should bypass reassembler
                  l2->fragCount <= LpMaxFragments && RTE_MBUF_DIRECT(pkt) &&
-                 rte_pktmbuf_is_contiguous(pkt) && rte_mbuf_refcnt_read(pkt) == 1);
+                 rte_mbuf_refcnt_read(pkt) == 1);
 
   hash_sig_t hash = rte_hash_hash(reass->table, &l2->seqNumBase);
   LpL2* pm = NULL;

@@ -1,6 +1,58 @@
 #include "tlv-decoder.h"
 
 void
+TlvDecoder_Truncate(TlvDecoder* d) {
+  uint32_t length = d->length;
+  NDNDPDK_ASSERT(length > 0);
+
+  if (unlikely(d->m != d->p)) { // d->m is not the first segment
+    // move 1 octet from d->m to d->p so that the first segment is non-empty
+    NDNDPDK_ASSERT(d->p->data_len >= 1);
+    d->p->pkt_len -= (d->p->data_len - 1);
+    d->p->data_len = 1;
+    d->p->data_off = RTE_PKTMBUF_HEADROOM;
+    TlvDecoder_Copy(d, rte_pktmbuf_mtod(d->p, uint8_t*), 1);
+    rte_mbuf_sanity_check(d->p, true);
+
+    if (unlikely(d->length == 0)) { // 1-octet packet, already in d->p
+      d->p->nb_segs -= Mbuf_FreeSegs(&d->p->next, NULL, &d->p->pkt_len);
+      goto FINISH;
+    }
+
+    // delete segments after d->p and before d->m
+    d->p->nb_segs -= Mbuf_FreeSegs(&d->p->next, d->m, &d->p->pkt_len);
+    rte_mbuf_sanity_check(d->p, true);
+  }
+
+  // delete d->m[:d->offset] range
+  d->p->pkt_len -= d->offset;
+  d->m->data_len -= d->offset;
+  d->m->data_off += d->offset;
+  d->offset = 0;
+  rte_mbuf_sanity_check(d->p, true);
+
+  // skip over to end of fragment
+  struct rte_mbuf* last = d->m;
+  TlvDecoder_Skip_(d, d->length, &last);
+  if (d->offset == 0) { // d->m does not contain useful octets
+    // delete d->m and segments after d->m
+    d->p->nb_segs -= Mbuf_FreeSegs(&last->next, NULL, &d->p->pkt_len);
+  } else { // d->m contains useful octets
+    // delete d->m[d->offset:] range
+    d->p->pkt_len -= (d->m->data_len - d->offset);
+    d->m->data_len = d->offset;
+
+    // delete segments after d->m
+    d->p->nb_segs -= Mbuf_FreeSegs(&d->m->next, NULL, &d->p->pkt_len);
+  }
+
+FINISH:;
+  rte_mbuf_sanity_check(d->p, true);
+  NDNDPDK_ASSERT(d->p->pkt_len == length);
+  POISON(d);
+}
+
+void
 TlvDecoder_Copy_(TlvDecoder* d, uint8_t* output, uint16_t count) {
   for (uint16_t remain = count; remain > 0;) {
     uint16_t here = d->m->data_len - d->offset;
@@ -122,13 +174,8 @@ TlvDecoder_Fragment(TlvDecoder* d, uint32_t count, struct rte_mbuf* frames[], ui
 
 __attribute__((nonnull)) static void
 Linearize_Delete_(TlvDecoder* d, struct rte_mbuf* c) {
-  for (struct rte_mbuf* seg = c->next; seg != d->m;) {
-    struct rte_mbuf* next = seg->next;
-    rte_pktmbuf_free_seg(seg);
-    --d->p->nb_segs;
-    seg = next;
-  }
-  c->next = d->m;
+  uint32_t unusedPktLen = UINT32_MAX;
+  d->p->nb_segs -= Mbuf_FreeSegs(&c->next, d->m, &unusedPktLen);
   if (likely(d->m != NULL)) {
     d->m->data_len -= d->offset;
     d->m->data_off += d->offset;

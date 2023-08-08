@@ -6,6 +6,7 @@ package ndnitest
 import "C"
 import (
 	"bytes"
+	"strings"
 	"testing"
 	"unsafe"
 
@@ -28,9 +29,10 @@ func ctestLpParse(t *testing.T) {
 		var lph C.LpHeader
 		ok := bool(C.LpHeader_Parse(&lph, p.mbuf))
 
-		if tt.Bad {
+		if tt.Bad || tt.PayloadL == 0 {
 			assert.False(ok, tt.Input)
 		} else if assert.True(ok, tt.Input) {
+			C.rte_mbuf_sanity_check(p.mbuf, 1)
 			assert.EqualValues(tt.SeqNum, C.LpL2_GetSeqNum(&lph.l2), tt.Input)
 			assert.EqualValues(tt.FragIndex, lph.l2.fragIndex, tt.Input)
 			assert.EqualValues(generic.Max(1, tt.FragCount), lph.l2.fragCount, tt.Input)
@@ -46,6 +48,62 @@ func ctestLpParse(t *testing.T) {
 	}
 }
 
+func ctestLpParseTruncate(t *testing.T) {
+	assert, require := makeAR(t)
+	for _, tt := range []struct {
+		Input   string
+		SegLens []int
+	}{
+		// 1-octet payload
+		{"6407 pittoken=6202A0A1 payload=5001C0", []int{1}},
+		{"6407 pittoken=6202A0A1 payload=5001C0 trailer=F0F1F2F3", []int{1}},
+		{"6407 pittoken=6202 / A0A1 payload=5001C0", []int{1}},
+		{"6407 pittoken=6202 / A0A1 payload=5001C0 trailer=F0F1F2F3", []int{1}},
+		{"6407 pittoken=6202 / A0A1 payload=5001C0 / trailer=F0F1F2F3", []int{1}},
+		{"6407 pittoken=6202A0A1 payload=5001 / C0", []int{1}},
+		{"6407 pittoken=6202A0A1 payload=5001 / C0 trailer=F0F1F2F3", []int{1}},
+		{"6407 pittoken=6202 / A0A1 payload=5001 / C0", []int{1}},
+		{"6407 pittoken=6202 / A0A1 payload=5001 / C0 trailer=F0F1F2F3", []int{1}},
+		// 4-octet unsegmented payload
+		{"640A pittoken=6202A0A1 payload=5004C0C1C2C3", []int{4}},
+		{"640A pittoken=6202A0A1 payload=5004C0C1C2C3 trailer=F0F1F2F3", []int{4}},
+		{"640A pittoken=6202A0A1 payload=5004C0C1C2C3 / trailer=F0F1F2F3", []int{4}},
+		{"640A pittoken=6202A0A1 payload=5004C0C1C2C3 trailer=F0F1 / F2F3", []int{4}},
+		{"640A pittoken=6202 / A0A1 payload=5004C0C1C2C3", []int{1, 3}},
+		{"640A pittoken=6202 / A0A1 payload=5004C0C1C2C3 trailer=F0F1F2F3", []int{1, 3}},
+		{"640A pittoken=6202 / A0A1 payload=5004C0C1C2C3 / trailer=F0F1F2F3", []int{1, 3}},
+		{"640A pittoken=6202A0A1 payload=5004 / C0C1C2C3", []int{1, 3}},
+		{"640A pittoken=6202A0A1 payload=5004 / C0C1C2C3 trailer=F0F1F2F3", []int{1, 3}},
+		{"640A pittoken=6202 / A0A1 payload=5004 / C0C1C2C3", []int{1, 3}},
+		{"640A pittoken=6202 / A0A1 payload=5004 / C0C1C2C3 trailer=F0F1F2F3", []int{1, 3}},
+		// 4-octet segmented payload
+		{"640A pittoken=6202A0A1 payload=5004C0C1C2 / C3", []int{3, 1}},
+		{"640A pittoken=6202A0A1 payload=5004C0C1C2 / C3 trailer=F0F1F2F3", []int{3, 1}},
+		{"640A pittoken=6202 / A0A1 payload=5004C0C1C2 / C3", []int{1, 2, 1}},
+		{"640A pittoken=6202 / A0A1 payload=5004C0C1C2 / C3 trailer=F0F1F2F3", []int{1, 2, 1}},
+		{"640A pittoken=6202 / A0A1 payload=5004C0C1C2 / C3 / trailer=F0F1F2F3", []int{1, 2, 1}},
+		{"640A pittoken=6202A0A1 payload=5004C0 / C1C2C3", []int{1, 3}},
+		{"640A pittoken=6202A0A1 payload=5004C0 / C1C2C3 trailer=F0F1F2F3", []int{1, 3}},
+		{"640A pittoken=6202 / A0A1 payload=5004C0 / C1C2C3", []int{1, 3}},
+		{"640A pittoken=6202 / A0A1 payload=5004C0 / C1C2C3 trailer=F0F1F2F3", []int{1, 3}},
+		{"640A pittoken=6202 / A0A1 payload=5004C0 / C1C2C3 / trailer=F0F1F2F3", []int{1, 3}},
+	} {
+		p := makePacket(strings.Split(tt.Input, "/"))
+		defer p.Close()
+
+		var lph C.LpHeader
+		ok := bool(C.LpHeader_Parse(&lph, p.mbuf))
+		require.True(ok, tt.Input)
+		C.rte_mbuf_sanity_check(p.mbuf, 1)
+		segs := p.Packet.SegmentBytes()
+		if assert.Len(segs, len(tt.SegLens), tt.Input) {
+			for i, seg := range segs {
+				assert.Len(seg, tt.SegLens[i], "%s %i", tt.Input, i)
+			}
+		}
+	}
+}
+
 func ctestPacketClone(t *testing.T) {
 	assert, require := makeAR(t)
 	mp := ndnitestenv.MakeMempools()
@@ -53,6 +111,7 @@ func ctestPacketClone(t *testing.T) {
 	data := ndn.MakeData("/D", bytes.Repeat([]byte{0xC0}, 1200))
 	wire, _ := tlv.EncodeFrom(data)
 	p := makePacket(wire)
+	// XXX 4
 	defer p.Close()
 
 	single := toPacket(unsafe.Pointer(p.N.Clone(mp, ndni.PacketTxAlign{

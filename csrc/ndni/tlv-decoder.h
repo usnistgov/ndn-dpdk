@@ -29,14 +29,11 @@ TlvDecoder_Init(struct rte_mbuf* p) {
   };
 }
 
-/**
- * @brief Skip @p count octets.
- * @pre Decoder has no less than @p count remaining octets.
- */
 __attribute__((nonnull)) static inline void
-TlvDecoder_Skip(TlvDecoder* d, uint32_t count) {
+TlvDecoder_Skip_(TlvDecoder* d, uint32_t count, struct rte_mbuf** last) {
   NDNDPDK_ASSERT(count <= d->length);
   for (uint32_t remain = count; remain > 0;) {
+    *last = d->m;
     uint32_t here = d->m->data_len - d->offset;
     if (likely(remain < here)) {
       d->offset += remain;
@@ -48,6 +45,26 @@ TlvDecoder_Skip(TlvDecoder* d, uint32_t count) {
   }
   d->length -= count;
 }
+
+/**
+ * @brief Skip @p count octets.
+ * @pre Decoder has no less than @p count remaining octets.
+ */
+__attribute__((nonnull)) static inline void
+TlvDecoder_Skip(TlvDecoder* d, uint32_t count) {
+  struct rte_mbuf* unusedLast = NULL;
+  TlvDecoder_Skip_(d, count, &unusedLast);
+}
+
+/**
+ * @brief Truncate mbuf to the remaining bytes.
+ * @param d decoder.
+ *          It shall have a uniquely owned, possibly segmented, direct mbuf.
+ *          Its remaining length shall be non-zero.
+ * @post @p d cannot be further used.
+ */
+void
+TlvDecoder_Truncate(TlvDecoder* d);
 
 __attribute__((nonnull)) void
 TlvDecoder_Copy_(TlvDecoder* d, uint8_t* output, uint16_t count);
@@ -63,6 +80,15 @@ TlvDecoder_Copy(TlvDecoder* d, uint8_t* output, uint16_t count) {
   if (unlikely(count == 0)) {
     return;
   }
+
+  uint16_t here = d->m->data_len - d->offset;
+  if (likely(count < here)) {
+    rte_memcpy(output, rte_pktmbuf_mtod_offset(d->m, const uint8_t*, d->offset), count);
+    d->offset += count;
+    d->length -= count;
+    return;
+  }
+
   TlvDecoder_Copy_(d, output, count);
 }
 

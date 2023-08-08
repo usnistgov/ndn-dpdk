@@ -67,7 +67,7 @@ typedef struct LpHeader {
 
 /**
  * @brief Parse NDNLPv2 header and strip from mbuf.
- * @param pkt a uniquely owned, unsegmented, direct mbuf.
+ * @param pkt a uniquely owned, possibly segmented, direct mbuf.
  * @return whether success.
  * @post @p pkt contains only (fragment of) network layer packet.
  *
