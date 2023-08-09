@@ -15,7 +15,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/endpoint"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
-	"github.com/zyedidia/generic"
 )
 
 // SegmentRange specifies range of segment numbers.
@@ -201,7 +200,7 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 		}
 
 		switch {
-		case len(pendings)-retxQ.N >= generic.Min(ca.Cwnd(), f.MaxCwnd):
+		case len(pendings)-retxQ.N >= min(ca.Cwnd(), f.MaxCwnd):
 			// congestion window full
 
 		case retxQ.N > 0:
@@ -324,7 +323,7 @@ func (f *fetcher) Count() int {
 }
 
 func (f *fetcher) EstimatedTotal() int {
-	segLast := generic.Min(f.SegmentEnd, f.finalBlock)
+	segLast := min(f.SegmentEnd, f.finalBlock)
 	if segLast == math.MaxUint64 {
 		return -1
 	}

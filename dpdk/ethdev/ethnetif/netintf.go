@@ -13,7 +13,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/vishvananda/netlink"
-	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
 )
 
@@ -107,8 +106,8 @@ func (n *netIntf) SetOneChannel() {
 	}
 
 	channelsUpdate := channels
-	channelsUpdate.RxCount = generic.Min(channels.MaxRx, 1)
-	channelsUpdate.CombinedCount = generic.Min(channels.MaxCombined, 1)
+	channelsUpdate.RxCount = min(channels.MaxRx, 1)
+	channelsUpdate.CombinedCount = min(channels.MaxCombined, 1)
 
 	logEntry := n.logger.With(
 		zap.Uint32("old-rx", channels.RxCount),

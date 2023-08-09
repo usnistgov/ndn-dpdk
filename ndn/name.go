@@ -4,10 +4,10 @@ import (
 	"encoding"
 	"strings"
 
+	"slices"
+
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
-	"github.com/zyedidia/generic"
-	"golang.org/x/exp/slices"
 )
 
 // Name represents a name.
@@ -109,7 +109,7 @@ func (name Name) IsPrefixOf(other Name) bool {
 }
 
 func (name Name) compareCommonPrefix(other Name) int {
-	commonPrefixLen := generic.Min(len(name), len(other))
+	commonPrefixLen := min(len(name), len(other))
 	for i := 0; i < commonPrefixLen; i++ {
 		if d := name[i].Compare(other[i]); d != 0 {
 			return d

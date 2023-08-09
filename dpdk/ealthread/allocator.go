@@ -2,10 +2,10 @@ package ealthread
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go.uber.org/zap"
-	"golang.org/x/exp/slices"
 )
 
 var allocated [eal.MaxLCoreID]string

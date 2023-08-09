@@ -1,6 +1,6 @@
 module github.com/usnistgov/ndn-dpdk
 
-go 1.20
+go 1.21
 
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
@@ -40,7 +40,7 @@ require (
 	go.fd.io/govpp/extras v0.1.0
 	go.uber.org/zap v1.25.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/exp v0.0.0-20230801115018-d63ba01acd4b
+	golang.org/x/exp v0.0.0-20230809094429-853ea248256d
 	golang.org/x/sys v0.11.0
 )
 

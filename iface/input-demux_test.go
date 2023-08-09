@@ -14,7 +14,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
-	"github.com/zyedidia/generic"
 	"github.com/zyedidia/generic/mapset"
 )
 
@@ -109,14 +108,14 @@ func testInputDemuxRoundRobin(t testing.TB, n int) {
 	assert.Empty(fixture.Rejects)
 
 	cnt := fixture.Counts()
-	sum, min, max := 0, math.MaxInt, math.MinInt
+	cntSum, cntMin, cntMax := 0, math.MaxInt, math.MinInt
 	for _, c := range cnt {
-		sum += c
-		min = generic.Min(min, c)
-		max = generic.Max(max, c)
+		cntSum += c
+		cntMin = min(cntMin, c)
+		cntMax = max(cntMax, c)
 	}
-	assert.Equal(500, sum)
-	assert.InDelta(min, max, 1.0)
+	assert.Equal(500, cntSum)
+	assert.InDelta(cntMin, cntMax, 1.0)
 }
 
 func TestInputDemuxRoundRobin5(t *testing.T) {

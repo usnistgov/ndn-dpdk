@@ -17,7 +17,7 @@ PitUp_ChooseNonce(PitUp* up, PitEntry* entry, TscTime now, uint32_t* nonce) {
     return true;
   }
 
-  PitDn_Each(it, entry, false) {
+  PitDn_Each (it, entry, false) {
     PitDn* dn = it.dn;
     if (dn->face == 0) {
       break;

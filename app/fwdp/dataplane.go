@@ -16,7 +16,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/zyedidia/generic"
 	"go4.org/must"
 )
 
@@ -62,7 +61,7 @@ func (cfg *Config) validate() error {
 		cfg.FwdNackQueue.DequeueBurstSize = cfg.FwdDataQueue.DequeueBurstSize
 	}
 	if cfg.FwdInterestQueue.DequeueBurstSize <= 0 {
-		cfg.FwdInterestQueue.DequeueBurstSize = generic.Max(cfg.FwdDataQueue.DequeueBurstSize/2, 1)
+		cfg.FwdInterestQueue.DequeueBurstSize = max(cfg.FwdDataQueue.DequeueBurstSize/2, 1)
 	}
 	if cfg.LatencySampleInterval <= 0 {
 		cfg.LatencySampleInterval = 1 << 16

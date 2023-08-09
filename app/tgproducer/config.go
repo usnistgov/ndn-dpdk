@@ -10,7 +10,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/zyedidia/generic"
 )
 
 const (
@@ -46,7 +45,7 @@ type Config struct {
 
 // Validate applies defaults and validates the configuration.
 func (cfg *Config) Validate() error {
-	cfg.NThreads = generic.Max(1, cfg.NThreads)
+	cfg.NThreads = max(1, cfg.NThreads)
 	cfg.RxQueue.DisableCoDel = true
 
 	if len(cfg.Patterns) == 0 {
@@ -92,7 +91,7 @@ func (pattern *Pattern) applyDefaults() (sumWeight, nDataGen int) {
 
 	for i := range pattern.Replies {
 		reply := &pattern.Replies[i]
-		reply.Weight = generic.Max(1, reply.Weight)
+		reply.Weight = max(1, reply.Weight)
 		sumWeight += reply.Weight
 		if reply.Kind() == ReplyData {
 			nDataGen++

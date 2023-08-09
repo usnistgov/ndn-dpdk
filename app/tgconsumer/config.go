@@ -10,7 +10,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/zyedidia/generic"
 )
 
 const (
@@ -102,5 +101,5 @@ type Pattern struct {
 }
 
 func (pattern *Pattern) applyDefaults() {
-	pattern.Weight = generic.Max(1, pattern.Weight)
+	pattern.Weight = max(1, pattern.Weight)
 }

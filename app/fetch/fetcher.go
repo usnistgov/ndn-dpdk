@@ -7,6 +7,7 @@ package fetch
 import "C"
 import (
 	"errors"
+	"maps"
 	"math"
 
 	"github.com/usnistgov/ndn-dpdk/app/tg/tgdef"
@@ -15,7 +16,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/zyedidia/generic"
-	"golang.org/x/exp/maps"
 )
 
 var logger = logging.New("fetch")

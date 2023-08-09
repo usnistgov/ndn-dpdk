@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
-	"github.com/zyedidia/generic"
 )
 
 // Bridge bridges two memif interfaces.
@@ -28,7 +27,7 @@ type Bridge struct {
 }
 
 func (bridge *Bridge) transferLoop(src, dst *handle) {
-	buf := make([]byte, generic.Max(src.loc.Dataroom, dst.loc.Dataroom))
+	buf := make([]byte, max(src.loc.Dataroom, dst.loc.Dataroom))
 	for {
 		select {
 		case <-bridge.closing:

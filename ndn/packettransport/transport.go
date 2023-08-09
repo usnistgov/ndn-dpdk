@@ -7,12 +7,13 @@ import (
 	"io"
 	"net"
 
+	"slices"
+
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndnlayer"
-	"golang.org/x/exp/slices"
 )
 
 // PacketDataHandle represents a network interface to send and receive Ethernet frames.

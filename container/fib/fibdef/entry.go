@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 
+	"slices"
+
 	"github.com/suzuki-shunsuke/go-dataeq/dataeq"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"golang.org/x/exp/slices"
 )
 
 // EntryBody contains logical FIB entry contents except name.

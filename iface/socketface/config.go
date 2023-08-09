@@ -1,12 +1,13 @@
 package socketface
 
 import (
+	"slices"
+
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ringbuffer"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndn/sockettransport"
-	"golang.org/x/exp/slices"
 )
 
 // Config contains socket face configuration.

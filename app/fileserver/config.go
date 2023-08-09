@@ -111,7 +111,7 @@ type Config struct {
 
 // Validate applies defaults and validates the configuration.
 func (cfg *Config) Validate() error {
-	cfg.NThreads = generic.Max(1, cfg.NThreads)
+	cfg.NThreads = max(1, cfg.NThreads)
 
 	cfg.RxQueue.DisableCoDel = true
 
@@ -197,7 +197,7 @@ func (cfg *Config) checkPayloadMempool() error {
 	}
 
 	suggestDataroom := pktmbuf.DefaultHeadroom + ndni.NameMaxLength +
-		generic.Max(cfg.SegmentLen, ndni.NameMaxLength+EstimatedMetadataSize) + ndni.DataEncNullSigLen + 64
+		max(cfg.SegmentLen, ndni.NameMaxLength+EstimatedMetadataSize) + ndni.DataEncNullSigLen + 64
 	if tpl.Dataroom < suggestDataroom {
 		logger.Warn("PAYLOAD dataroom too small for configured segmentLen, Interests with long names may be dropped",
 			zap.Int("configured-dataroom", tpl.Dataroom),
@@ -206,7 +206,7 @@ func (cfg *Config) checkPayloadMempool() error {
 		)
 	}
 
-	cfg.payloadHeadroom = tpl.Dataroom - ndni.DataEncNullSigLen - generic.Max(cfg.SegmentLen, EstimatedMetadataSize)
+	cfg.payloadHeadroom = tpl.Dataroom - ndni.DataEncNullSigLen - max(cfg.SegmentLen, EstimatedMetadataSize)
 	if cfg.payloadHeadroom < pktmbuf.DefaultHeadroom {
 		return fmt.Errorf("PAYLOAD dataroom %d too small for segmentLen %d; increase PAYLOAD dataroom to %d",
 			tpl.Dataroom, cfg.SegmentLen, suggestDataroom)

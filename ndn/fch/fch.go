@@ -17,7 +17,6 @@ import (
 
 	"github.com/gorilla/schema"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/zyedidia/generic"
 )
 
 var encoder = schema.NewEncoder()
@@ -46,7 +45,7 @@ func (req *Request) applyDefaults() {
 	if req.Server == "" {
 		req.Server = DefaultServer
 	}
-	req.Count = generic.Max(1, req.Count)
+	req.Count = max(1, req.Count)
 	if req.Transport == "" {
 		req.Transport = DefaultTransport
 	}

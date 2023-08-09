@@ -3,8 +3,9 @@ package tlv
 import (
 	"math"
 
+	"slices"
+
 	"golang.org/x/exp/constraints"
-	"golang.org/x/exp/slices"
 )
 
 // EncodingBuffer is an encoding buffer.

@@ -12,7 +12,6 @@ import (
 
 	"github.com/sethvargo/go-retry"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
-	"github.com/zyedidia/generic"
 )
 
 // Config contains socket transport configuration.
@@ -41,7 +40,7 @@ func (cfg *Config) applyDefaults() {
 	if cfg.RedialBackoffMaximum <= 0 {
 		cfg.RedialBackoffMaximum = 60 * time.Second
 	}
-	cfg.RedialBackoffMaximum = generic.Max(cfg.RedialBackoffMaximum, cfg.RedialBackoffInitial)
+	cfg.RedialBackoffMaximum = max(cfg.RedialBackoffMaximum, cfg.RedialBackoffInitial)
 }
 
 // Counters contains socket transport counters.

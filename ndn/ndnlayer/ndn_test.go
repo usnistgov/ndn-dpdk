@@ -5,6 +5,8 @@ import (
 	"net/netip"
 	"testing"
 
+	"slices"
+
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
@@ -12,7 +14,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/ndnlayer"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
-	"golang.org/x/exp/slices"
 )
 
 var (

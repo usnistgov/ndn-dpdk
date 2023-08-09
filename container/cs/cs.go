@@ -14,7 +14,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/container/pcct"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
 )
 
@@ -103,7 +102,7 @@ func init() {
 			if v <= 0 {
 				v = dflt
 			}
-			return generic.Max(v, min)
+			return max(v, min)
 		}
 
 		capMemory := adjustCapacity(cfg.CsMemoryCapacity, EvictBulk, cfg.PcctCapacity/4)

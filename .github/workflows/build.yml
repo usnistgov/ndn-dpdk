@@ -20,6 +20,7 @@ jobs:
         run: |
           docs/ndndpdk-depends.sh -y --node=0 --go=0 --dpdk=0 --spdk=0
           echo meson=$(meson --version) >> $GITHUB_OUTPUT
+          sudo update-alternatives --install /usr/bin/go go $(command -v go) 1
       - name: Cache DPDK and SPDK
         uses: actions/cache@v3
         with:
@@ -123,3 +124,4 @@ jobs:
         run: |
           tinygo build -o /dev/null -target=wasm ./ndn/ndntestenv/tiny
           make -C sample/wasm
+        continue-on-error: true

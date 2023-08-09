@@ -14,7 +14,6 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
-	"github.com/zyedidia/generic"
 )
 
 // Limits and defaults.
@@ -40,7 +39,7 @@ type FaceConfig struct {
 }
 
 func (cfg *FaceConfig) applyDefaults() {
-	cfg.ReassemblerCapacity = generic.Max(cfg.ReassemblerCapacity, MinReassemblerCapacity)
+	cfg.ReassemblerCapacity = max(cfg.ReassemblerCapacity, MinReassemblerCapacity)
 	if cfg.RxQueueSize <= 0 {
 		cfg.RxQueueSize = DefaultRxQueueSize
 	}

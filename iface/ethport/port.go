@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
 
 	"github.com/usnistgov/ndn-dpdk/core/logging"
@@ -208,7 +207,7 @@ func New(cfg Config) (port *Port, e error) {
 	case ethdev.DriverXDP:
 		if port.rxBouncePool, e = pktmbuf.NewPool(pktmbuf.PoolConfig{
 			Capacity: cfg.RxQueueSize + iface.MaxBurstSize,
-			Dataroom: generic.Max(pktmbuf.DefaultHeadroom+cfg.MTU, xdpMinDataroom),
+			Dataroom: max(pktmbuf.DefaultHeadroom+cfg.MTU, xdpMinDataroom),
 		}, cfg.EthDev.NumaSocket()); e != nil {
 			return nil, e
 		}

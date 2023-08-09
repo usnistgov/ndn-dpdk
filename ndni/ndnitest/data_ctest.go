@@ -12,12 +12,13 @@ import (
 	"time"
 	"unsafe"
 
+	"slices"
+
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
-	"golang.org/x/exp/slices"
 )
 
 func ctestDataParse(t *testing.T) {

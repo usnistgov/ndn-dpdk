@@ -75,7 +75,7 @@ func (retx RetxOptions) IntervalIterable(lifetime time.Duration) RetxIterable {
 		count++
 
 		d = time.Duration(nextInterval * (1 - retx.Randomize + rand.Float64()*2*retx.Randomize))
-		nextInterval = generic.Min(nextInterval*retx.Backoff, max)
+		nextInterval = min(nextInterval*retx.Backoff, max)
 		return d
 	}
 }

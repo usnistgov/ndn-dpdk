@@ -2,9 +2,9 @@ package gqlserver
 
 import (
 	"reflect"
+	"slices"
 
 	"github.com/graphql-go/graphql"
-	"golang.org/x/exp/slices"
 )
 
 // FieldDefToField converts FieldDefinition to *Field.

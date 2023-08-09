@@ -35,7 +35,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
-	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
 	"go4.org/must"
 )
@@ -170,7 +169,7 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 		}
 		fallthrough
 	case WriteModeDwordAlign:
-		bufAlign = generic.Max(bufAlign, 4)
+		bufAlign = max(bufAlign, 4)
 	}
 
 	bd = &Bdev{Device: device}

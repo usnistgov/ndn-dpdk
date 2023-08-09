@@ -11,8 +11,8 @@ ForEachMacros:
   - cds_lfht_for_each
   - cds_list_for_each_safe
   - HASH_ITER
-  - PitDnIt_Each
-  - PitUpIt_Each
+  - PitDn_Each
+  - PitUp_Each
   - TlvDecoder_EachTL
 FixNamespaceComments: true
 IncludeIsMainRegex: '(\.t)?$'

@@ -3,7 +3,6 @@ package fibtree
 import (
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/zyedidia/generic"
 )
 
 type component struct {
@@ -40,7 +39,7 @@ func (n *node) RemoveChild(child *node) {
 func (n *node) UpdateHeight() {
 	h := -1
 	for _, child := range n.children {
-		h = generic.Max(h, child.height)
+		h = max(h, child.height)
 	}
 	n.height = h + 1
 }

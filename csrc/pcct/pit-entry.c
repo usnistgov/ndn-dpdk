@@ -37,7 +37,7 @@ PitEntry_ToDebugString(PitEntry* entry) {
   append(snprintf, ",DN[");
   {
     const char* delim = "";
-    PitDn_Each(it, entry, false) {
+    PitDn_Each (it, entry, false) {
       if (it.dn->face == 0) {
         break;
       }
@@ -53,7 +53,7 @@ PitEntry_ToDebugString(PitEntry* entry) {
   append(snprintf, "],UP[");
   {
     const char* delim = "";
-    PitUp_Each(it, entry, false) {
+    PitUp_Each (it, entry, false) {
       if (it.up->face == 0) {
         break;
       }
@@ -123,7 +123,7 @@ PitEntry_Timeout_(MinTmr* tmr, uintptr_t pitPtr) {
 
 FaceID
 PitEntry_FindDuplicateNonce(PitEntry* entry, uint32_t nonce, FaceID dnFace) {
-  PitDn_Each(it, entry, false) {
+  PitDn_Each (it, entry, false) {
     PitDn* dn = it.dn;
     if (dn->face == 0) {
       break;
@@ -146,7 +146,7 @@ PitEntry_ReserveDn(PitEntry* entry, FaceID face, TscTime now) {
     goto NEW;
   }
 
-  PitDn_Each(it, entry, true) {
+  PitDn_Each (it, entry, true) {
     dn = it.dn;
     if (dn->face == face) {
       return dn;
@@ -217,7 +217,7 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt) {
 
 PitUp*
 PitEntry_FindUp(PitEntry* entry, FaceID face) {
-  PitUp_Each(it, entry, false) {
+  PitUp_Each (it, entry, false) {
     PitUp* up = it.up;
     if (up->face == face) {
       return up;
@@ -232,7 +232,7 @@ PitEntry_FindUp(PitEntry* entry, FaceID face) {
 PitUp*
 PitEntry_ReserveUp(PitEntry* entry, FaceID face) {
   PitUp* up = NULL;
-  PitUp_Each(it, entry, true) {
+  PitUp_Each (it, entry, true) {
     up = it.up;
     if (up->face == face) {
       return up;

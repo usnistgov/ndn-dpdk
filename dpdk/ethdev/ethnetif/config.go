@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"maps"
+
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
-	"golang.org/x/exp/maps"
 )
 
 var logger = logging.New("ethnetif")

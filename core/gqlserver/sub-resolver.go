@@ -1,13 +1,13 @@
 package gqlserver
 
 import (
+	"maps"
 	"reflect"
 	"time"
 
 	"github.com/graphql-go/graphql"
 	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/core/subtract"
-	"golang.org/x/exp/maps"
 )
 
 // PublishChan publishes a channel in reply to GraphQL subscription.

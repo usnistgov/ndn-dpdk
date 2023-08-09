@@ -3,7 +3,6 @@ package hwinfo
 
 import (
 	"github.com/usnistgov/ndn-dpdk/core/logging"
-	"github.com/zyedidia/generic"
 	"github.com/zyedidia/generic/mapset"
 )
 
@@ -32,7 +31,7 @@ func (cores Cores) ByNumaSocket() (m map[int]Cores) {
 func (cores Cores) MaxNumaSocket() int {
 	maxSocket := -1
 	for _, core := range cores {
-		maxSocket = generic.Max(maxSocket, core.NumaSocket)
+		maxSocket = max(maxSocket, core.NumaSocket)
 	}
 	return maxSocket
 }

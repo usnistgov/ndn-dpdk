@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"slices"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -34,9 +35,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn/rdr/ndn6file"
 	"github.com/usnistgov/ndn-dpdk/ndn/segmented"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
-	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
-	"golang.org/x/exp/slices"
 )
 
 type FileServerFixture struct {
@@ -372,7 +371,7 @@ func (fs *fuseFS) ReadFile(ctx context.Context, op *fuseops.ReadFileOp) (e error
 		return e
 	case fuseInoFileZ:
 		randBytes(op.Dst)
-		op.BytesRead = generic.Min(len(op.Dst), int(fs.sizeZ-uint64(op.Offset)))
+		op.BytesRead = min(len(op.Dst), int(fs.sizeZ-uint64(op.Offset)))
 		return nil
 	default:
 		return fuse.EIO
@@ -408,7 +407,7 @@ func (fs *fuseFS) dirRoot(op *fuseops.ReadDirOp) error {
 }
 
 func (fs *fuseFS) dirA(op *fuseops.ReadDirOp) error {
-	for ino := generic.Max(uint64(op.Offset), uint64(fuseInoALo)); ino <= uint64(fuseInoAHi); ino++ {
+	for ino := max(uint64(op.Offset), uint64(fuseInoALo)); ino <= uint64(fuseInoAHi); ino++ {
 		n := fuseutil.WriteDirent(op.Dst[op.BytesRead:], fuseutil.Dirent{
 			Offset: fuseops.DirOffset(1 + ino),
 			Inode:  fuseops.InodeID(ino),

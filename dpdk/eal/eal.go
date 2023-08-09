@@ -3,12 +3,12 @@ package eal
 
 import (
 	"math/rand"
+	"slices"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/zyedidia/generic/mapset"
-	"golang.org/x/exp/slices"
 )
 
 var logger = logging.New("eal")

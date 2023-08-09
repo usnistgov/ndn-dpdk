@@ -12,7 +12,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
-	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
 )
 
@@ -64,7 +63,7 @@ func New(cfg Config, socket eal.NumaSocket) (pcct *Pcct, e error) {
 	cfg.applyDefaults()
 	mp, e := mempool.New(mempool.Config{
 		Capacity:       cfg.PcctCapacity,
-		ElementSize:    generic.Max(C.sizeof_PccEntry, C.sizeof_PccEntryExt),
+		ElementSize:    max(C.sizeof_PccEntry, C.sizeof_PccEntryExt),
 		PrivSize:       C.sizeof_Pcct,
 		Socket:         socket,
 		SingleProducer: true,

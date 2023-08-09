@@ -91,7 +91,7 @@ func (c *Config) ApplyDefaults() {
 
 // WithMaxMTU returns a copy of Config with consideration of device MTU.
 func (c Config) WithMaxMTU(max int) Config {
-	c.maxMTU = generic.Min(max, MaxMTU)
+	c.maxMTU = min(max, MaxMTU)
 	return c
 }
 

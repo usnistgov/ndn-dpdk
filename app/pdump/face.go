@@ -13,6 +13,8 @@ import (
 	"sync"
 	"unsafe"
 
+	"slices"
+
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcapgo"
 	"github.com/usnistgov/ndn-dpdk/core/pcg32"
@@ -23,7 +25,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"go.uber.org/zap"
-	"golang.org/x/exp/slices"
 )
 
 // Direction indicates traffic direction.

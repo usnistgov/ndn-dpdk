@@ -223,7 +223,7 @@ fi
 
 if [[ $GOVER != 0 ]]; then
   if [[ $GOVER == latest ]]; then
-    GOVER=$(curl -fsLS "${NDNDPDK_DL_GODEV}/VERSION?m=text")
+    GOVER=$(curl -fsLS "${NDNDPDK_DL_GODEV}/VERSION?m=text" | head -1)
   fi
   echo "Will install Go ${GOVER}"
 elif ! command -v go >/dev/null; then
