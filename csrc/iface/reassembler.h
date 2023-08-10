@@ -36,7 +36,6 @@ Reassembler_Close(Reassembler* reass);
 /**
  * @brief Accept an incoming fragment.
  * @param fragment an NDNLPv2 fragment. It must have type PktFragment and FragCount greater than 1.
- *                 Non-contiguous packet is unsupported and will be rejected.
  * @return a reassembled network layer packet, unparsed.
  * @retval NULL no network layer packet is ready.
  */

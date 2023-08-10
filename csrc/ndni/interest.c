@@ -190,8 +190,9 @@ ModifyGuiders_Linear(Packet* npkt, InterestGuiders guiders, PacketMempools* mp,
   TlvDecoder_Fragment(&d, d.length, frames, &fragIndex, fragCount, fragmentPayloadSize,
                       RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom);
 
-  Mbuf_ChainVector(frames, fragCount);
-  return Packet_EncodeFinish_(frames[0], TtInterest, PktSInterest);
+  pkt = Mbuf_ChainVector(frames, fragCount);
+  NDNDPDK_ASSERT(pkt != NULL);
+  return Packet_EncodeFinish_(pkt, TtInterest, PktSInterest);
 }
 
 __attribute__((nonnull)) static Packet*
@@ -199,23 +200,23 @@ ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMempools* mp)
   // segs[0] = Interest TL, with headroom for lower layer headers
   // segs[1] = clone of Interest V before Nonce, such as Name and ForwardingHint
   // segs[2] = new guiders
-  // seg3    = (optional) clone of Interest V after guiders, such as AppParameters
-  struct rte_mbuf* segs[3];
+  // segs[3] = (optional) clone of Interest V after guiders, such as AppParameters
+  struct rte_mbuf* segs[4];
   if (unlikely(rte_pktmbuf_alloc_bulk(mp->header, segs, 2) != 0)) {
     return NULL;
   }
   segs[2] = segs[1];
+  NULLize(segs[1]);
+  segs[3] = NULL;
 
   PInterest* interest = Packet_GetInterestHdr(npkt);
   TlvDecoder d = TlvDecoder_Init(Packet_ToMbuf(npkt));
   uint32_t length0, type0 = TlvDecoder_ReadTL(&d, &length0);
   NDNDPDK_ASSERT(type0 == TtInterest);
 
-  struct rte_mbuf* last1 = NULL;
-  segs[1] = TlvDecoder_Clone(&d, interest->nonceOffset, mp->indirect, &last1);
+  segs[1] = TlvDecoder_Clone(&d, interest->nonceOffset, mp->indirect);
   if (unlikely(segs[1] == NULL)) {
-    rte_pktmbuf_free_bulk(segs, RTE_DIM(segs));
-    return NULL;
+    goto FAIL;
   }
   TlvDecoder_Skip(&d, interest->guiderSize);
 
@@ -223,24 +224,22 @@ ModifyGuiders_Chained(Packet* npkt, InterestGuiders guiders, PacketMempools* mp)
   ModifyGuiders_Append(segs[2], guiders);
 
   if (unlikely(d.length > 0)) {
-    struct rte_mbuf* seg3 = TlvDecoder_Clone(&d, d.length, mp->indirect, NULL);
-    if (unlikely(seg3 == NULL) || unlikely(!Mbuf_Chain(segs[2], segs[2], seg3))) {
-      rte_pktmbuf_free_bulk(segs, RTE_DIM(segs));
-      return NULL;
+    segs[3] = TlvDecoder_Clone(&d, d.length, mp->indirect);
+    if (unlikely(segs[3] == NULL)) {
+      goto FAIL;
     }
   }
 
-  if (unlikely(!Mbuf_Chain(segs[1], last1, segs[2]))) {
-    rte_pktmbuf_free_bulk(segs, RTE_DIM(segs));
-    return NULL;
-  }
-
   segs[0]->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom + L3TypeLengthHeadroom;
-  if (unlikely(!Mbuf_Chain(segs[0], segs[0], segs[1]))) {
-    rte_pktmbuf_free_bulk(segs, 2);
-    return NULL;
+  struct rte_mbuf* pkt = Mbuf_ChainVector(segs, RTE_DIM(segs));
+  if (unlikely(pkt == NULL)) {
+    goto FAIL;
   }
-  return Packet_EncodeFinish_(segs[0], TtInterest, PktSInterest);
+  return Packet_EncodeFinish_(pkt, TtInterest, PktSInterest);
+
+FAIL:;
+  rte_pktmbuf_free_bulk(segs, RTE_DIM(segs));
+  return NULL;
 }
 
 Packet*

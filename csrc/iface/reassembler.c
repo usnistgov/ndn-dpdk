@@ -77,23 +77,22 @@ Reassembler_Insert_(Reassembler* reass, Packet* fragment, LpL2* pm, hash_sig_t h
   ++reass->count;
 }
 
-__attribute__((nonnull, returns_nonnull)) static inline Packet*
+__attribute__((nonnull)) static inline Packet*
 Reassembler_Reassemble_(Reassembler* reass, LpL2* pm, hash_sig_t hash) {
-  static_assert(LpMaxFragments <= RTE_MBUF_MAX_NB_SEGS, "");
+  struct rte_mbuf* pkt = Mbuf_ChainVector((struct rte_mbuf**)pm->reassFrags, pm->fragCount);
+  if (unlikely(pkt == NULL)) {
+    reass->nDropFragments += pm->fragCount;
+  } else {
+    ++reass->nDeliverPackets;
+    reass->nDeliverFragments += pm->fragCount;
+  }
   Reassembler_Delete_(reass, pm, hash);
-  Mbuf_ChainVector((struct rte_mbuf**)pm->reassFrags, pm->fragCount);
-
-  ++reass->nDeliverPackets;
-  reass->nDeliverFragments += pm->fragCount;
-  return pm->reassFrags[0];
+  return Packet_FromMbuf(pkt);
 }
 
 Packet*
 Reassembler_Accept(Reassembler* reass, Packet* fragment) {
   struct rte_mbuf* pkt = Packet_ToMbuf(fragment);
-  if (unlikely(!rte_pktmbuf_is_contiguous(pkt))) {
-    goto DROP_PKT;
-  }
   LpL2* l2 = &Packet_GetLpHdr(fragment)->l2;
   NDNDPDK_ASSERT(l2->fragCount > 1 && // single fragment packets should bypass reassembler
                  l2->fragCount <= LpMaxFragments && RTE_MBUF_DIRECT(pkt) &&

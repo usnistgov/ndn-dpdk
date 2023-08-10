@@ -42,6 +42,7 @@ TxLoop_Transfer(Face* face, int txThread) {
   for (uint16_t i = 0; i < count; ++i) {
     Packet* npkt = npkts[i];
     PktType framePktType = PktType_ToFull(Packet_GetType(npkt));
+    NDNDPDK_ASSERT(framePktType != PktFragment);
     ++txt->nFrames[framePktType];
 
     if (hrlRing != NULL) {

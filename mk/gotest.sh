@@ -46,7 +46,7 @@ elif [[ $# -eq 2 ]]; then
   if [[ ${TEST,,} == bench* ]]; then
     RUN+=(-bench "$TEST")
   fi
-  $SUDO env GODEBUG=cgocheck=2 mk/go.sh test ./"$TESTPKG" -v -count=$TESTCOUNT "${RUN[@]}"
+  $SUDO env GODEBUG=cgocheck=1 mk/go.sh test ./"$TESTPKG" -v -count=$TESTCOUNT "${RUN[@]}"
 
 elif [[ $# -eq 3 ]]; then
   # run one test with debug tool

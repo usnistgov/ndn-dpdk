@@ -50,6 +50,7 @@ Mbuf_AllocRoom(struct rte_mempool* mp, struct iovec* iov, int* iovcnt, uint16_t 
     nSegs += SPDK_CEIL_DIV(pktLen - firstDataLen, eachDataLen);
   }
   struct rte_mbuf* segs[64];
+  static_assert(RTE_DIM(segs) <= RTE_MBUF_MAX_NB_SEGS);
   if (unlikely(nSegs > RTE_MIN(*iovcnt, (int)RTE_DIM(segs)))) {
     rte_errno = EFBIG;
     return NULL;

@@ -94,8 +94,7 @@ FaceTx_ChainedFrag(Face* face, int txThread, Packet* npkt,
     frame->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
 
     uint32_t fragSize = RTE_MIN(face->txAlign.fragmentPayloadSize, d.length);
-    struct rte_mbuf* payload =
-      TlvDecoder_Clone(&d, fragSize, face->impl->txMempools.indirect, NULL);
+    struct rte_mbuf* payload = TlvDecoder_Clone(&d, fragSize, face->impl->txMempools.indirect);
     if (unlikely(payload == NULL)) {
       ++txt->nAllocFails;
       rte_pktmbuf_free_bulk(frames, l2.fragCount);
@@ -105,8 +104,8 @@ FaceTx_ChainedFrag(Face* face, int txThread, Packet* npkt,
 
     if (unlikely(!Mbuf_Chain(frame, frame, payload))) {
       ++txt->nL3OverLength;
+      frames[l2.fragIndex] = NULL; // frame is freed by Mbuf_Chain
       rte_pktmbuf_free_bulk(frames, l2.fragCount);
-      rte_pktmbuf_free(payload);
       rte_pktmbuf_free(pkt);
       return 0;
     }

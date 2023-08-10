@@ -143,15 +143,18 @@ func TestReassembly(t *testing.T) {
 	locA := makeEtherLocator(vnet.Ports[0])
 	txHdrA := ethport.NewTxHdr(locA, false)
 	txqA := portA.TxQueues()[0]
-	sendA := func(pkt *ndn.Packet) {
-		b, e := tlv.EncodeFrom(pkt)
-		require.NoError(e)
-		m := mbuftestenv.MakePacket(b)
+	sendMbufA := func(m *pktmbuf.Packet) {
 		txHdrA.Prepend(m, false)
 		n := txqA.TxBurst(pktmbuf.Vector{m})
 		if !assert.Equal(1, n) {
 			m.Close()
 		}
+	}
+	sendA := func(pkt *ndn.Packet) {
+		b, e := tlv.EncodeFrom(pkt)
+		require.NoError(e)
+		m := mbuftestenv.MakePacket(b)
+		sendMbufA(m)
 	}
 
 	locB := makeEtherLocator(vnet.Ports[1])
@@ -174,40 +177,57 @@ func TestReassembly(t *testing.T) {
 		}
 	}
 
-	{ // reassemble 2 fragments
+	// reassemble 2 fragments
+	t.Run("2", func(t *testing.T) {
+		assert, require := makeAR(t)
 		fragmenter := ndn.NewLpFragmenter(5000)
+
 		data := ndn.MakeData("/D", payload)
 		frags, e := fragmenter.Fragment(data.ToPacket())
 		require.NoError(e)
 		require.Len(frags, 2)
 		sendA(frags[0])
 		sendA(frags[1])
+
 		cntB := readCntB()
 		assert.Equal(2, int(cntB.RxFrames), cntB)
 		assert.Equal(1, int(cntB.RxReassPackets), cntB)
 		assert.Equal(0, int(cntB.RxReassDrops), cntB)
 		assert.Equal(1, int(cntB.RxData), cntB)
-	}
+	})
 
-	{ // reassemble 3 fragments, with reordering and duplicate
+	// reassemble 3 fragments, with segmented mbuf, reordering, duplicate
+	t.Run("3", func(t *testing.T) {
+		assert, require := makeAR(t)
 		fragmenter := ndn.NewLpFragmenter(2900)
+
 		data := ndn.MakeData("/D", payload)
 		frags, e := fragmenter.Fragment(data.ToPacket())
 		require.NoError(e)
 		require.Len(frags, 3)
-		sendA(frags[0])
+		{
+			b, e := tlv.EncodeFrom(frags[0])
+			require.NoError(e)
+			require.Greater(len(b), 1000)
+			m := mbuftestenv.MakePacket(b[:500], b[500:1000], b[1000:])
+			sendMbufA(m)
+		}
 		sendA(frags[2])
 		sendA(frags[2])
 		sendA(frags[1])
+
 		cntB := readCntB()
 		assert.Equal(4, int(cntB.RxFrames), cntB)
 		assert.Equal(1, int(cntB.RxReassPackets), cntB)
 		assert.Equal(1, int(cntB.RxReassDrops), cntB)
 		assert.Equal(1, int(cntB.RxData), cntB)
-	}
+	})
 
-	{ // discard packet due to unexpected FragCount change
+	// discard packet due to unexpected FragCount change
+	t.Run("FragCountChange", func(t *testing.T) {
+		assert, require := makeAR(t)
 		fragmenter := ndn.NewLpFragmenter(2900)
+
 		data := ndn.MakeData("/D", payload)
 		frags, e := fragmenter.Fragment(data.ToPacket())
 		require.NoError(e)
@@ -216,15 +236,19 @@ func TestReassembly(t *testing.T) {
 		sendA(frags[0])
 		sendA(frags[2])
 		sendA(frags[1])
+
 		cntB := readCntB()
 		assert.Equal(3, int(cntB.RxFrames), cntB)
 		assert.Equal(0, int(cntB.RxReassPackets), cntB)
 		assert.Equal(3, int(cntB.RxReassDrops), cntB)
 		assert.Equal(0, int(cntB.RxData), cntB)
-	}
+	})
 
-	{ // too many incomplete packets
+	// too many incomplete packets
+	t.Run("TooManyIncomplete", func(t *testing.T) {
+		assert, require := makeAR(t)
 		fragmenter := ndn.NewLpFragmenter(4000)
+
 		secondFrag := make([]*ndn.Packet, 200)
 		for i := range secondFrag {
 			data := ndn.MakeData(fmt.Sprintf("/D/%d", i), payload)
@@ -243,6 +267,7 @@ func TestReassembly(t *testing.T) {
 			}
 			time.Sleep(time.Millisecond)
 		}
+
 		cntB := readCntB()
 		assert.LessOrEqual(int(cntB.RxFrames), 303, cntB)
 		assert.GreaterOrEqual(int(cntB.RxFrames), 303-locB.ReassemblerCapacity, cntB)
@@ -250,6 +275,6 @@ func TestReassembly(t *testing.T) {
 		assert.LessOrEqual(int(cntB.RxReassDrops), 99, cntB)
 		assert.GreaterOrEqual(int(cntB.RxReassDrops), 99-locB.ReassemblerCapacity, cntB)
 		assert.Equal(102, int(cntB.RxData), cntB)
-		// incomplete packets are left in the reassembler; do not add another test after this
-	}
+	})
+	// incomplete packets are left in the reassembler; do not add another test after this
 }

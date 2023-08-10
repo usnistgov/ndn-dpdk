@@ -70,7 +70,7 @@ func ctestTlvDecoderClone(t *testing.T) {
 			d := C.TlvDecoder_Init(p.mbuf)
 			C.TlvDecoder_Skip(&d, C.uint32_t(offset))
 
-			clone := C.TlvDecoder_Clone(&d, C.uint32_t(count), (*C.struct_rte_mempool)(indirectMp.Ptr()), nil)
+			clone := C.TlvDecoder_Clone(&d, C.uint32_t(count), (*C.struct_rte_mempool)(indirectMp.Ptr()))
 			if !assert.NotNil(clone, "%d-%d", offset, count) {
 				continue
 			}

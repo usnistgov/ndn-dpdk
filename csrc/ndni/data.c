@@ -327,12 +327,12 @@ __attribute__((nonnull)) static inline struct rte_mbuf*
 DataEnc_SignChain(struct rte_mbuf* pkt, struct rte_mbuf* tail, PacketMempools* mp) {
   struct rte_mbuf* sigSeg = rte_pktmbuf_alloc(mp->packet);
   if (unlikely(sigSeg == NULL)) {
+    rte_pktmbuf_free(pkt);
     return NULL;
   }
   sigSeg->data_off = RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom;
 
   if (unlikely(!Mbuf_Chain(pkt, tail, sigSeg))) {
-    rte_pktmbuf_free(sigSeg);
     return NULL;
   }
   return sigSeg;
@@ -361,7 +361,6 @@ DataEnc_Sign(struct rte_mbuf* pkt, PacketMempools* mp, PacketTxAlign align) {
   }
 
   if (unlikely(tail == NULL)) {
-    rte_pktmbuf_free(pkt);
     return NULL;
   }
 

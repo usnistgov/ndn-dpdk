@@ -78,12 +78,15 @@ Mbuf_RemainingIovec(struct spdk_iov_xfer ix, struct iovec* iov, int* iovcnt);
  * @brief Chain @p tail onto @p head.
  * @param lastSeg must be rte_pktmbuf_lastseg(head)
  * @return whether success.
+ * @post in case of failure, both mbufs are freed.
  */
 __attribute__((nonnull, warn_unused_result)) static inline bool
 Mbuf_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tail) {
-  NDNDPDK_ASSERT(lastSeg == rte_pktmbuf_lastseg(head));
-
+  rte_mbuf_sanity_check(head, 1);
+  rte_mbuf_sanity_check(tail, 1);
   if (unlikely(head->nb_segs + tail->nb_segs > RTE_MBUF_MAX_NB_SEGS)) {
+    struct rte_mbuf* mbufs[2] = {head, tail};
+    rte_pktmbuf_free_bulk(mbufs, RTE_DIM(mbufs));
     return false;
   }
 
@@ -95,21 +98,36 @@ Mbuf_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tai
 
 /**
  * @brief Chain a vector of mbufs together.
- * @param vec a non-empty vector of mbufs, each must be unsegmented.
+ * @param vec a vector of mbufs, may contain NULL, each mbuf is possibly segmented.
+ * @return chained mbuf.
+ * @retval NULL failure, or all elements in vector are NULL.
+ * @post in case of failure, all mbufs are freed.
  */
-__attribute__((nonnull, returns_nonnull)) static inline struct rte_mbuf*
+__attribute__((nonnull, warn_unused_result)) static inline struct rte_mbuf*
 Mbuf_ChainVector(struct rte_mbuf* vec[], uint16_t count) {
-  NDNDPDK_ASSERT(count > 0);
-  static_assert(UINT16_MAX <= RTE_MBUF_MAX_NB_SEGS, ""); // count <= RTE_MBUF_MAX_NB_SEGS
-  struct rte_mbuf* head = vec[0];
-  NDNDPDK_ASSERT(rte_pktmbuf_is_contiguous(head));
+  struct rte_mbuf* head = NULL;
+  struct rte_mbuf* last = NULL;
+  for (uint16_t i = 0; i < count; ++i) {
+    struct rte_mbuf* m = vec[i];
+    if (unlikely(m == NULL)) {
+      continue;
+    }
 
-  for (uint16_t i = 1; i < count; ++i) {
-    NDNDPDK_ASSERT(rte_pktmbuf_is_contiguous(vec[i]));
-    head->pkt_len += vec[i]->data_len;
-    vec[i - 1]->next = vec[i];
+    if (head == NULL) {
+      head = m;
+      last = rte_pktmbuf_lastseg(m);
+      continue;
+    }
+
+    struct rte_mbuf* mLast = rte_pktmbuf_lastseg(m);
+    bool ok = Mbuf_Chain(head, last, m);
+    if (unlikely(!ok)) {
+      ++i;
+      rte_pktmbuf_free_bulk(&vec[i], count - i);
+      return NULL;
+    }
+    last = mLast;
   }
-  head->nb_segs = count;
   return head;
 }
 

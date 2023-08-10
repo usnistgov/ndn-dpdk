@@ -12,7 +12,6 @@ TlvDecoder_Truncate(TlvDecoder* d) {
     d->p->data_len = 1;
     d->p->data_off = RTE_PKTMBUF_HEADROOM;
     TlvDecoder_Copy(d, rte_pktmbuf_mtod(d->p, uint8_t*), 1);
-    rte_mbuf_sanity_check(d->p, true);
 
     if (unlikely(d->length == 0)) { // 1-octet packet, already in d->p
       d->p->nb_segs -= Mbuf_FreeSegs(&d->p->next, NULL, &d->p->pkt_len);
@@ -21,7 +20,6 @@ TlvDecoder_Truncate(TlvDecoder* d) {
 
     // delete segments after d->p and before d->m
     d->p->nb_segs -= Mbuf_FreeSegs(&d->p->next, d->m, &d->p->pkt_len);
-    rte_mbuf_sanity_check(d->p, true);
   }
 
   // delete d->m[:d->offset] range
@@ -29,7 +27,6 @@ TlvDecoder_Truncate(TlvDecoder* d) {
   d->m->data_len -= d->offset;
   d->m->data_off += d->offset;
   d->offset = 0;
-  rte_mbuf_sanity_check(d->p, true);
 
   // skip over to end of fragment
   struct rte_mbuf* last = d->m;
@@ -47,7 +44,6 @@ TlvDecoder_Truncate(TlvDecoder* d) {
   }
 
 FINISH:;
-  rte_mbuf_sanity_check(d->p, true);
   NDNDPDK_ASSERT(d->p->pkt_len == length);
   POISON(d);
 }
@@ -72,8 +68,7 @@ TlvDecoder_Copy_(TlvDecoder* d, uint8_t* output, uint16_t count) {
 }
 
 struct rte_mbuf*
-TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
-                 struct rte_mbuf** lastseg) {
+TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp) {
   NDNDPDK_ASSERT(count <= d->length);
   TlvDecoder d0 = *d;
 
@@ -125,11 +120,9 @@ TlvDecoder_Clone(TlvDecoder* d, uint32_t count, struct rte_mempool* indirectMp,
   d->length -= count;
   NDNDPDK_ASSERT(i == nSegs);
 
-  Mbuf_ChainVector(segs, nSegs);
-  if (lastseg != NULL) {
-    *lastseg = segs[nSegs - 1];
-  }
-  return segs[0];
+  struct rte_mbuf* pkt = Mbuf_ChainVector(segs, nSegs);
+  NDNDPDK_ASSERT(pkt != NULL);
+  return pkt;
 }
 
 __attribute__((nonnull)) static void

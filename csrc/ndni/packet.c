@@ -73,8 +73,9 @@ Clone_Linear(Packet* npkt, PacketMempools* mp, PacketTxAlign align) {
   TlvDecoder_Fragment(&d, d.length, frames, &fragIndex, fragCount, align.fragmentPayloadSize,
                       RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom);
 
-  Mbuf_ChainVector(frames, fragCount);
-  return Clone_Finish(npkt, frames[0]);
+  pkt = Mbuf_ChainVector(frames, fragCount);
+  NDNDPDK_ASSERT(pkt != NULL);
+  return Clone_Finish(npkt, pkt);
 }
 
 __attribute__((nonnull)) static Packet*
@@ -91,8 +92,6 @@ Clone_Chained(Packet* npkt, PacketMempools* mp) {
     return NULL;
   }
   if (unlikely(!Mbuf_Chain(header, header, payload))) {
-    rte_pktmbuf_free(header);
-    rte_pktmbuf_free(payload);
     return NULL;
   }
 
