@@ -13,7 +13,7 @@ export CC=$PWD/mk/godefcc.sh
 mk_cgostruct() {
   pushd "$1" >/dev/null
   set +e
-  go tool cgo -godefs -- cgostruct.in.go > cgostruct.go
+  go tool cgo -godefs -- cgostruct.in.go >cgostruct.go
   EXITCODE=$?
   set -e
   rm -rf _obj
@@ -27,6 +27,6 @@ mk_cgostruct() {
   return $EXITCODE
 }
 
-for D do
+for D; do
   mk_cgostruct "$D"
 done

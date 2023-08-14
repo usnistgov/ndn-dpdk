@@ -82,8 +82,6 @@ Mbuf_RemainingIovec(struct spdk_iov_xfer ix, struct iovec* iov, int* iovcnt);
  */
 __attribute__((nonnull, warn_unused_result)) static inline bool
 Mbuf_Chain(struct rte_mbuf* head, struct rte_mbuf* lastSeg, struct rte_mbuf* tail) {
-  rte_mbuf_sanity_check(head, 1);
-  rte_mbuf_sanity_check(tail, 1);
   if (unlikely(head->nb_segs + tail->nb_segs > RTE_MBUF_MAX_NB_SEGS)) {
     struct rte_mbuf* mbufs[2] = {head, tail};
     rte_pktmbuf_free_bulk(mbufs, RTE_DIM(mbufs));

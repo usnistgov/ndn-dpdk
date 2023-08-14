@@ -20,8 +20,8 @@ getTestPkg() {
 
 if [[ $# -eq 0 ]]; then
   # run all tests, optional filter in $MK_GOTEST_FILTER
-  find -name '*_test.go' -printf '%h\n' | sort -u | sed -E "${MK_GOTEST_FILTER:-}" \
-    | xargs -I{} $SUDO mk/go.sh test {} -count=$TESTCOUNT
+  find -name '*_test.go' -printf '%h\n' | sort -u | sed -E "${MK_GOTEST_FILTER:-}" |
+    xargs -I{} $SUDO mk/go.sh test {} -count=$TESTCOUNT
 
 elif [[ $# -eq 1 ]]; then
   # run tests in one package
@@ -56,9 +56,12 @@ elif [[ $# -eq 3 ]]; then
   TEST=$3
 
   case $DBGTOOL in
-    gdb) DBG='gdb --silent --args';;
-    valgrind) DBG='valgrind';;
-    *) echo "Unknown debug tool: $DBGTOOL" >/dev/stderr; exit 1;;
+    gdb) DBG='gdb --silent --args' ;;
+    valgrind) DBG='valgrind' ;;
+    *)
+      echo "Unknown debug tool: $DBGTOOL" >/dev/stderr
+      exit 1
+      ;;
   esac
 
   mk/go.sh test -c ./"$TESTPKG" -o /tmp/gotest.exe

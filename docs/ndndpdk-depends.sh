@@ -24,11 +24,11 @@ if [[ -z ${SKIPROOTCHECK:-} ]]; then
 fi
 
 for B in "${NEEDED_BINARIES[@]}"; do
-  if ! command -v "$B" >/dev/null ; then
+  if ! command -v "$B" >/dev/null; then
     MISSING_BINARIES+=("$B")
   fi
 done
-if [[ ${#MISSING_BINARIES[@]} -gt 0 ]] ; then
+if [[ ${#MISSING_BINARIES[@]} -gt 0 ]]; then
   echo "Missing commands (${MISSING_BINARIES[*]}) to start this script. To install, run:"
   echo "  ${APTINSTALL} ca-certificates curl jq lsb-release ${SUDOPKG}"
   exit 1
@@ -68,23 +68,72 @@ ARGS=$(getopt -o 'hy' -l 'dir:,node:,go:,ubpf:,libbpf:,xdp:,dpdk:,dpdk-patch:,dp
 eval set -- "$ARGS"
 while true; do
   case $1 in
-    -h) HELP=1; shift;;
-    -y) CONFIRM=1; shift;;
-    --dir) CODEROOT=$2; shift 2;;
-    --node) NODEVER=$2; shift 2;;
-    --go) GOVER=$2; shift 2;;
-    --ubpf) UBPFVER=$2; shift 2;;
-    --libbpf) LIBBPFVER=$2; shift 2;;
-    --xdp) XDPTOOLSVER=$2; shift 2;;
-    --uring) URINGVER=$2; shift 2;;
-    --dpdk) DPDKVER=$2; DPDKPATCH=''; shift 2;;
-    --dpdk-patch) DPDKPATCH=$2; shift 2;;
-    --dpdk-opts) DPDKOPTS=$2; shift 2;;
-    --spdk) SPDKVER=$2; shift 2;;
-    --jobs) NJOBS=$2; shift 2;;
-    --arch) TARGETARCH=$2; shift 2;;
-    --) shift; break;;
-    *) exit 1;;
+    -h)
+      HELP=1
+      shift
+      ;;
+    -y)
+      CONFIRM=1
+      shift
+      ;;
+    --dir)
+      CODEROOT=$2
+      shift 2
+      ;;
+    --node)
+      NODEVER=$2
+      shift 2
+      ;;
+    --go)
+      GOVER=$2
+      shift 2
+      ;;
+    --ubpf)
+      UBPFVER=$2
+      shift 2
+      ;;
+    --libbpf)
+      LIBBPFVER=$2
+      shift 2
+      ;;
+    --xdp)
+      XDPTOOLSVER=$2
+      shift 2
+      ;;
+    --uring)
+      URINGVER=$2
+      shift 2
+      ;;
+    --dpdk)
+      DPDKVER=$2
+      DPDKPATCH=''
+      shift 2
+      ;;
+    --dpdk-patch)
+      DPDKPATCH=$2
+      shift 2
+      ;;
+    --dpdk-opts)
+      DPDKOPTS=$2
+      shift 2
+      ;;
+    --spdk)
+      SPDKVER=$2
+      shift 2
+      ;;
+    --jobs)
+      NJOBS=$2
+      shift 2
+      ;;
+    --arch)
+      TARGETARCH=$2
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *) exit 1 ;;
   esac
 done
 
@@ -206,7 +255,7 @@ case $DISTRO in
 esac
 
 if [[ $(uname -r | awk -F. '{ print ($1*1000+$2>=5015) }') -ne 1 ]] &&
-   [[ -z ${SKIPKERNELCHECK:-} ]] && ! [[ -f /.dockerenv ]]; then
+  [[ -z ${SKIPKERNELCHECK:-} ]] && ! [[ -f /.dockerenv ]]; then
   echo 'Linux kernel 5.15 or newer is required'
   echo 'To skip this check, set the environment variable SKIPKERNELCHECK=1'
   exit 1
@@ -296,7 +345,7 @@ set_alternative gcov /usr/bin/gcov-12
 if ! [[ -d /usr/include/asm ]]; then
   $SUDO ln -s /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/asm /usr/include/asm
 fi
-if ! command -v meson >/dev/null ; then
+if ! command -v meson >/dev/null; then
   cd "$(github_download mesonbuild/meson 1.2.0)"
   ./packaging/create_zipapp.py --outfile meson.pyz .
   $SUDO install -m0755 meson.pyz /usr/local/bin/meson
@@ -391,6 +440,7 @@ fi
   cd /tmp
   go install golang.org/x/tools/cmd/godoc@latest
   go install honnef.co/go/tools/cmd/staticcheck@latest
+  go install mvdan.cc/sh/v3/cmd/shfmt@latest
 )
 
 echo "NDN-DPDK dependencies installation completed"

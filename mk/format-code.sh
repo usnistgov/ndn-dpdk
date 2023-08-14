@@ -16,6 +16,11 @@ if [[ -z $LANG ]] || [[ $LANG == go ]]; then
   staticcheck ./...
 fi
 
+# bash
+if [[ -z $LANG ]] || [[ $LANG == sh ]]; then
+  git ls-files -- '**/*.sh' | xargs shfmt -l -w -s -i=2 -ci
+fi
+
 # TypeScript
 if [[ -z $LANG ]] || [[ $LANG == ts ]]; then
   node_modules/.bin/xo-yoursunny --fix

@@ -19,7 +19,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * [liburing](https://github.com/axboe/liburing) 2.4
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 23.03
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) 23.05
-* [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc) and [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck) commands (optional)
+* [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc), [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck), [shfmt](https://github.com/mvdan/sh) commands (optional)
 
 You can run the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to the script for specific configuration options.
 Certain hardware drivers may require installing extra dependencies before building DPDK or running the script; see [hardware known to work](hardware.md) for more information.
@@ -88,7 +88,7 @@ For example:
   You can also use `mk/gotest.sh <PKG>` to run the tests for a given package.
 * `make doxygen` builds C documentation (requires the `doxygen` dependency).
 * To view Go documentation, run `godoc &` and access the website on port 6060 (requires `godoc` dependency).
-* `make lint` fixes code style issues before committing (requires `clang-format-15`, `staticcheck`, and `yamllint` dependencies).
+* `make lint` fixes code style issues before committing (requires `clang-format-15`, `staticcheck`, `shfmt`, and `yamllint` dependencies).
 
 ## Compile-Time Settings
 

@@ -19,7 +19,7 @@ mk_cgoflags() {
     PKGNAME=$(grep -h '^package ' $GOFILES | head -n1 | awk '{print $2}')
   fi
 
-  gofmt -s > "$PKG"/cgoflags.go <<EOF
+  gofmt -s >"$PKG"/cgoflags.go <<EOF
 package $PKGNAME
 
 /*
@@ -30,6 +30,6 @@ import "C"
 EOF
 }
 
-for D do
+for D; do
   mk_cgoflags "$D"
 done

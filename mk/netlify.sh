@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-cd "$( dirname "${BASH_SOURCE[0]}" )"/..
+cd "$(dirname "${BASH_SOURCE[0]}")"/..
 
 rm -rf build/netlify
 mkdir -p build/netlify
@@ -13,12 +13,12 @@ find build/share/ndn-dpdk -name '*.json' -or -name '*.npm.tgz' | xargs cp -t bui
 
 build/bin/ndndpdk-svc &
 NDNDPDK_SVC_PID=$!
-corepack pnpm -s dlx graphqurl http://127.0.0.1:3030 --introspect > build/netlify/schema/ndndpdk-svc.graphql
+corepack pnpm -s dlx graphqurl http://127.0.0.1:3030 --introspect >build/netlify/schema/ndndpdk-svc.graphql
 kill $NDNDPDK_SVC_PID
 
 cp docs/favicon.ico build/netlify/
 
-cat > build/netlify/_redirects <<EOT
+cat >build/netlify/_redirects <<EOT
 https://ndn-dpdk.netlify.app/* https://ndn-dpdk.ndn.today/:splat 301!
 https://ndn-dpdk.ndn.today/ https://github.com/usnistgov/ndn-dpdk 301!
 EOT
