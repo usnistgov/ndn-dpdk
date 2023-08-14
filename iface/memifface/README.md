@@ -7,6 +7,7 @@ The underlying implementation is in [package ethport](../ethport).
 
 In the data plane:
 
-* NDN-DPDK and application should operate its memif interface in opposite roles.
+* NDN-DPDK and application must operate its memif interface in opposite roles.
 * Each packet is an NDN packet without Ethernet header.
-* `MEMIF_DESC_FLAG_NEXT` is unusable.
+* `MEMIF_DESC_FLAG_NEXT` may cause stability issue in the RX path.
+  It is currently disabled in the TX path during face creation.

@@ -88,10 +88,6 @@ func (info DevInfo) canIgnorePromiscError() bool {
 // HasTxMultiSegOffload determines whether device can transmit multi-segment packets.
 func (info DevInfo) HasTxMultiSegOffload() bool {
 	switch info.Driver() {
-	case DriverMemif:
-		// multi-segment TX creates MEMIF_DESC_FLAG_NEXT that is incompatible with NDN-DPDK RX path
-		// (e.g. both LpHeader_Parse and the reassembler expect contiguous mbuf)
-		return false
 	case DriverRing:
 		// some drivers support multi-segment TX but do not advertise it
 		return true

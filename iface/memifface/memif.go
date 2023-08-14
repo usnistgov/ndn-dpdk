@@ -31,7 +31,9 @@ func (loc Locator) EthCLocator() (c ethport.CLocator) {
 
 // EthFaceConfig implements ethport.Locator interface.
 func (loc Locator) EthFaceConfig() (cfg ethport.FaceConfig) {
-	return
+	return ethport.FaceConfig{
+		DisableTxMultiSegOffload: true,
+	}
 }
 
 // CreateFace creates a memif face.

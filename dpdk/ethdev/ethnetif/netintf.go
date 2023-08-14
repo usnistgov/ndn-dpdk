@@ -16,6 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// etht is an ethtool instance.
+// This is assigned when netIntfByName() is invoked for the first time.
 var etht *ethtool.Ethtool
 
 type netIntf struct {
@@ -33,6 +35,7 @@ func (n *netIntf) save(link netlink.Link) {
 	)
 }
 
+// Refresh refreshes netlink information stores in this struct.
 func (n *netIntf) Refresh() {
 	link, e := netlink.LinkByIndex(n.Index)
 	if e != nil {
@@ -42,10 +45,13 @@ func (n *netIntf) Refresh() {
 	n.save(link)
 }
 
+// VDevName constructs virtual device name for a particular driver.
 func (n netIntf) VDevName(drv string) string {
 	return fmt.Sprintf("%s_%d", drv, n.Index)
 }
 
+// EnsureLinkUp brings up the link.
+// If skipBringUp is true but the interface is down, returns an error.
 func (n *netIntf) EnsureLinkUp(skipBringUp bool) error {
 	if n.Flags&net.FlagUp != 0 {
 		return nil
@@ -62,6 +68,7 @@ func (n *netIntf) EnsureLinkUp(skipBringUp bool) error {
 	return nil
 }
 
+// PCIAddr determines the PCI address of a physical network interface.
 func (n netIntf) PCIAddr() (a pciaddr.PCIAddress, e error) {
 	busInfo, e := etht.BusInfo(n.Name)
 	if e != nil {
@@ -71,6 +78,7 @@ func (n netIntf) PCIAddr() (a pciaddr.PCIAddress, e error) {
 	return pciaddr.Parse(filepath.Base(busInfo))
 }
 
+// NumaSocket determines the NUMA socket of a physical network interface.
 func (n netIntf) NumaSocket() (socket eal.NumaSocket) {
 	body, e := os.ReadFile(filepath.Join("/dev/class/net", n.Name, "device/numa_node"))
 	if e != nil {
@@ -84,6 +92,7 @@ func (n netIntf) NumaSocket() (socket eal.NumaSocket) {
 	return eal.NumaSocketFromID(int(i))
 }
 
+// FindDev locates an existing EthDev for the network interface.
 func (n netIntf) FindDev() (dev ethdev.EthDev) {
 	if pciAddr, e := n.PCIAddr(); e == nil {
 		if dev = ethdev.FromPCI(pciAddr); dev != nil {
@@ -98,6 +107,8 @@ func (n netIntf) FindDev() (dev ethdev.EthDev) {
 	return nil
 }
 
+// SetOneChannel modifies the Ethernet device to have only one RX channel.
+// This helps ensure all traffic goes into the XDP program.
 func (n *netIntf) SetOneChannel() {
 	channels, e := etht.GetChannels(n.Name)
 	if e != nil {
@@ -131,6 +142,8 @@ func (n *netIntf) SetOneChannel() {
 	n.Refresh()
 }
 
+// DisableVLANOffload modifies the Ethernet device to disable VLAN offload.
+// This helps ensure all traffic goes into the XDP program.
 func (n *netIntf) DisableVLANOffload() {
 	logEntry := n.logger
 
@@ -163,6 +176,8 @@ func (n *netIntf) DisableVLANOffload() {
 	n.Refresh()
 }
 
+// UnloadXDP unloads any existing XDP program on a network interface.
+// This allows libxdp to load a new XDP program.
 func (n *netIntf) UnloadXDP() {
 	if n.Xdp == nil || !n.Xdp.Attached {
 		n.logger.Debug("netlink has no attached XDP program")
@@ -179,6 +194,8 @@ func (n *netIntf) UnloadXDP() {
 	n.Refresh()
 }
 
+// netIntfByName creates netIntf by network interface name.
+// If the network interface does not exist, returns an error.
 func netIntfByName(ifname string) (n netIntf, e error) {
 	if etht == nil {
 		if etht, e = ethtool.NewEthtool(); e != nil {
