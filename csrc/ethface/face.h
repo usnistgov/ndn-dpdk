@@ -12,6 +12,7 @@ typedef struct EthRxFlow {
   FaceID faceID;
   uint16_t port;
   uint16_t queue;
+  uint16_t burstSize;
   uint16_t hdrLen;
   EthRxMatch* rxMatch; // when not flow isolated
 } __rte_cache_aligned EthRxFlow;

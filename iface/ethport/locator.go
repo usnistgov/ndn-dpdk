@@ -15,11 +15,11 @@ import (
 // UDPPortVXLAN is the default UDP destination port for VXLAN.
 const UDPPortVXLAN = C.RTE_VXLAN_DEFAULT_PORT
 
-func (loc *CLocator) ptr() *C.EthLocator {
+func (loc *LocatorC) ptr() *C.EthLocator {
 	return (*C.EthLocator)(unsafe.Pointer(loc))
 }
 
-func (loc CLocator) toXDP() []byte {
+func (loc LocatorC) toXDP() []byte {
 	var buf [C.sizeof_EthXdpLocator]byte
 	C.EthXdpLocator_Prepare((*C.EthXdpLocator)(unsafe.Pointer(&buf)), loc.ptr())
 	return buf[:]
@@ -28,7 +28,7 @@ func (loc CLocator) toXDP() []byte {
 // Locator is an Ethernet-based face locator.
 type Locator interface {
 	iface.Locator
-	EthCLocator() CLocator
+	EthLocatorC() LocatorC
 	EthFaceConfig() FaceConfig
 }
 
@@ -43,7 +43,7 @@ func (e LocatorConflictError) Error() string {
 
 // CheckLocatorCoexist determines whether two locators can coexist on the same port.
 func CheckLocatorCoexist(a, b Locator) error {
-	aC, bC := a.EthCLocator(), b.EthCLocator()
+	aC, bC := a.EthLocatorC(), b.EthLocatorC()
 	if C.EthLocator_CanCoexist(aC.ptr(), bC.ptr()) {
 		return nil
 	}
@@ -69,7 +69,7 @@ func (match RxMatch) HdrLen() int {
 
 // NewRxMatch creates RxMatch from a locator.
 func NewRxMatch(loc Locator) (match RxMatch) {
-	locC := loc.EthCLocator()
+	locC := loc.EthLocatorC()
 	C.EthRxMatch_Prepare((*C.EthRxMatch)(&match), locC.ptr())
 	return
 }
@@ -97,7 +97,7 @@ func (hdr TxHdr) Prepend(pkt *pktmbuf.Packet, newBurst bool) {
 
 // NewTxHdr creates TxHdr from a locator.
 func NewTxHdr(loc Locator, hasChecksumOffloads bool) (hdr TxHdr) {
-	cLoc := loc.EthCLocator()
-	C.EthTxHdr_Prepare((*C.EthTxHdr)(&hdr), cLoc.ptr(), C.bool(hasChecksumOffloads))
+	locC := loc.EthLocatorC()
+	C.EthTxHdr_Prepare((*C.EthTxHdr)(&hdr), locC.ptr(), C.bool(hasChecksumOffloads))
 	return
 }

@@ -36,8 +36,8 @@ func (impl *rxMemif) Start(face *Face) error {
 		return e
 	}
 
-	cLoc := face.loc.EthCLocator()
-	C.EthFace_SetupRxMemif(face.priv, cLoc.ptr())
+	locC := face.loc.EthLocatorC()
+	C.EthFace_SetupRxMemif(face.priv, locC.ptr())
 
 	rxf := &rxgFlow{
 		face:  face,

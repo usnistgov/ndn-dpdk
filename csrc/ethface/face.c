@@ -4,10 +4,17 @@
 
 N_LOG_INIT(EthFace);
 
+enum {
+  EthMaxBurstSize = RTE_DIM(((RxGroupBurstCtx*)NULL)->pkts),
+
+  // https://bugs.dpdk.org/show_bug.cgi?id=1273
+  MemifMaxBurstSize = 32,
+};
+
 __attribute__((nonnull)) static __rte_always_inline void
 EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool skipCheck) {
   EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
-  ctx->nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, RTE_DIM(ctx->pkts));
+  ctx->nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, rxf->burstSize);
   uint64_t now = rte_get_tsc_cycles();
 
   for (uint16_t i = 0; i < ctx->nRx; ++i) {
@@ -69,17 +76,23 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
 
   for (int i = 0; i < (int)RTE_DIM(priv->rxf); ++i) {
     EthRxFlow* rxf = &priv->rxf[i];
-    *rxf = (const EthRxFlow){0};
     if (i >= nQueues) {
+      *rxf = (const EthRxFlow){0};
       continue;
     }
-    rxf->base.rxBurst = isolated ? EthRxFlow_RxBurst_Unchecked : EthRxFlow_RxBurst_Checked;
-    rxf->base.rxThread = i;
-    rxf->faceID = priv->faceID;
-    rxf->port = priv->port;
-    rxf->queue = queues[i];
-    rxf->hdrLen = priv->rxMatch.len; // don't access priv->rxMatch in unchecked mode
-    rxf->rxMatch = &priv->rxMatch;
+    *rxf = (const EthRxFlow){
+      .base =
+        {
+          .rxBurst = isolated ? EthRxFlow_RxBurst_Unchecked : EthRxFlow_RxBurst_Checked,
+          .rxThread = i,
+        },
+      .faceID = priv->faceID,
+      .port = priv->port,
+      .queue = queues[i],
+      .burstSize = EthMaxBurstSize,
+      .hdrLen = priv->rxMatch.len,
+      .rxMatch = isolated ? NULL : &priv->rxMatch,
+    };
   }
   return flow;
 }
@@ -87,14 +100,11 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
 __attribute__((nonnull)) void
 EthFace_SetupRxMemif(EthFacePriv* priv, const EthLocator* loc) {
   priv->rxf[0] = (const EthRxFlow){
-    .base =
-      {
-        .rxBurst = EthRxFlow_RxBurst_Unchecked,
-        .rxThread = 0,
-      },
+    .base = {.rxBurst = EthRxFlow_RxBurst_Unchecked, .rxThread = 0},
     .faceID = priv->faceID,
     .port = priv->port,
     .queue = 0,
+    .burstSize = RTE_MIN(EthMaxBurstSize, MemifMaxBurstSize),
     .hdrLen = 0,
     .rxMatch = NULL,
   };

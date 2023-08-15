@@ -55,10 +55,10 @@ func (loc IPLocator) Validate() error {
 	return nil
 }
 
-func (loc IPLocator) cLoc() (c ethport.CLocator) {
-	c = loc.EtherLocator.EthCLocator()
-	c.LocalIP = loc.LocalIP.As16()
-	c.RemoteIP = loc.RemoteIP.As16()
+func (loc IPLocator) ipLocatorC() (locC ethport.LocatorC) {
+	locC = loc.EtherLocator.EthLocatorC()
+	locC.LocalIP = loc.LocalIP.As16()
+	locC.RemoteIP = loc.RemoteIP.As16()
 	return
 }
 
@@ -95,11 +95,11 @@ func (loc UDPLocator) Validate() error {
 	return nil
 }
 
-// EthCLocator implements ethport.Locator interface.
-func (loc UDPLocator) EthCLocator() (c ethport.CLocator) {
-	c = loc.IPLocator.cLoc()
-	c.LocalUDP = uint16(loc.LocalUDP)
-	c.RemoteUDP = uint16(loc.RemoteUDP)
+// EthLocatorC implements ethport.Locator interface.
+func (loc UDPLocator) EthLocatorC() (locC ethport.LocatorC) {
+	locC = loc.IPLocator.ipLocatorC()
+	locC.LocalUDP = uint16(loc.LocalUDP)
+	locC.RemoteUDP = uint16(loc.RemoteUDP)
 	return
 }
 

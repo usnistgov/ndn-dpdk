@@ -22,8 +22,8 @@ func (EtherLocator) Scheme() string {
 	return schemeEther
 }
 
-// EthCLocator implements ethport.Locator interface.
-func (loc EtherLocator) EthCLocator() (c ethport.CLocator) {
+// EthLocatorC implements ethport.Locator interface.
+func (loc EtherLocator) EthLocatorC() (c ethport.LocatorC) {
 	copy(c.Local.Bytes[:], []uint8(loc.Local.HardwareAddr))
 	copy(c.Remote.Bytes[:], []uint8(loc.Remote.HardwareAddr))
 	c.Vlan = uint16(loc.VLAN)

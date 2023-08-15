@@ -147,7 +147,7 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 				face.logger.Error("face start error; change Port config or locator, and try again", zap.Error(e))
 				return e
 			}
-			ethnetif.XDPInsertFaceMapEntry(face.port.dev, face.loc.EthCLocator().toXDP(), 0)
+			ethnetif.XDPInsertFaceMapEntry(face.port.dev, face.loc.EthLocatorC().toXDP(), 0)
 
 			face.port.activateTx(face)
 			face.logger.Info("face started")
@@ -164,7 +164,7 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			id := face.ID()
 			delete(face.port.faces, id)
 
-			ethnetif.XDPDeleteFaceMapEntry(face.port.dev, face.loc.EthCLocator().toXDP())
+			ethnetif.XDPDeleteFaceMapEntry(face.port.dev, face.loc.EthLocatorC().toXDP())
 			if e := face.port.rxImpl.Stop(face); e != nil {
 				face.logger.Warn("face stop error", zap.Error(e))
 			} else {

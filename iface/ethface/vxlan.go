@@ -62,14 +62,14 @@ func (loc VxlanLocator) Validate() error {
 	return nil
 }
 
-// EthCLocator implements ethport.Locator interface.
-func (loc VxlanLocator) EthCLocator() (c ethport.CLocator) {
-	c = loc.IPLocator.cLoc()
-	c.LocalUDP = ethport.UDPPortVXLAN
-	c.RemoteUDP = ethport.UDPPortVXLAN
-	c.Vxlan = uint32(loc.VXLAN)
-	copy(c.InnerLocal.Bytes[:], loc.InnerLocal.HardwareAddr)
-	copy(c.InnerRemote.Bytes[:], loc.InnerRemote.HardwareAddr)
+// EthLocatorC implements ethport.Locator interface.
+func (loc VxlanLocator) EthLocatorC() (locC ethport.LocatorC) {
+	locC = loc.IPLocator.ipLocatorC()
+	locC.LocalUDP = ethport.UDPPortVXLAN
+	locC.RemoteUDP = ethport.UDPPortVXLAN
+	locC.Vxlan = uint32(loc.VXLAN)
+	copy(locC.InnerLocal.Bytes[:], loc.InnerLocal.HardwareAddr)
+	copy(locC.InnerRemote.Bytes[:], loc.InnerRemote.HardwareAddr)
 	return
 }
 

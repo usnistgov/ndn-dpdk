@@ -7,6 +7,6 @@ package ethport
 */
 import "C"
 
-type CLocator C.EthLocator
+type LocatorC C.EthLocator
 
-type CEtherAddr C.struct_rte_ether_addr
+type EtherAddrC C.struct_rte_ether_addr

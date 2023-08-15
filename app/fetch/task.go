@@ -71,6 +71,7 @@ type TaskDef struct {
 	ndni.InterestTemplateConfig
 
 	// SegmentRange specifies range of segment numbers.
+	// If writing to a file, SegmentEnd must be explicitly specified.
 	segmented.SegmentRange
 
 	// Filename is the output file name.

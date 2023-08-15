@@ -24,8 +24,8 @@ func (Locator) Scheme() string {
 	return schemeMemif
 }
 
-// EthCLocator implements ethport.Locator interface.
-func (loc Locator) EthCLocator() (c ethport.CLocator) {
+// EthLocatorC implements ethport.Locator interface.
+func (loc Locator) EthLocatorC() (c ethport.LocatorC) {
 	return
 }
 

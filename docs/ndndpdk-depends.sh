@@ -343,7 +343,7 @@ set_alternative g++ /usr/bin/g++-12
 set_alternative c++ /usr/bin/g++
 set_alternative gcov /usr/bin/gcov-12
 if ! [[ -d /usr/include/asm ]]; then
-  $SUDO ln -s /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/asm /usr/include/asm
+  $SUDO ln -s /usr/include/x86_64-linux-gnu/asm /usr/include/asm
 fi
 if ! command -v meson >/dev/null; then
   cd "$(github_download mesonbuild/meson 1.2.0)"
