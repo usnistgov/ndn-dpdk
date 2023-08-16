@@ -22,17 +22,25 @@ var (
 	_ encoding.BinaryUnmarshaler = (*DirectoryListing)(nil)
 )
 
-// MarshalBinary encodes to segmented object payload.
-func (ls DirectoryListing) MarshalBinary() (value []byte, e error) {
+func (ls DirectoryListing) format(delim byte) []byte {
 	var b bytes.Buffer
 	for _, f := range ls {
 		b.WriteString(f.Name())
 		if f.IsDir() {
 			b.WriteByte('/')
 		}
-		b.WriteByte(0)
+		b.WriteByte(delim)
 	}
-	return b.Bytes(), nil
+	return b.Bytes()
+}
+
+func (ls DirectoryListing) String() string {
+	return string(ls.format('\n'))
+}
+
+// MarshalBinary encodes to segmented object payload.
+func (ls DirectoryListing) MarshalBinary() (value []byte, e error) {
+	return ls.format(0), nil
 }
 
 // UnmarshalBinary decodes from segmented object payload.

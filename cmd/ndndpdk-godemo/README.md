@@ -70,9 +70,19 @@ openssl sha256 /tmp/1GB.bin
 # start producer
 ndndpdk-godemo --mtu 6000 put --name /segmented/1GB.bin --file /tmp/1GB.bin --chunk-size 4096
 
-# (on another console) run consumer and compute downloaded digest
-ndndpdk-godemo --mtu 6000 get --name /segmented/1GB.bin | openssl sha256
+# (on another console) run consumer
+ndndpdk-godemo --mtu 6000 get --name /segmented/1GB.bin >/tmp/1GB.retrieved
+
+# compare original and retrieved files
+sha256sum /tmp/1GB.bin /tmp/1GB.retrieved
 ```
+
+## File Server API
+
+[ndn6file.go](ndn6file.go) implements a client for ndn6-file-server compatible file servers.
+This subcommand requires a local forwarder that connects to a file server.
+This subcommand does not need sudo privilege, but you may need to manually create `/run/ndn` directory beforehand.
+See [NDN-DPDK file server](../../docs/fileserver.md) for a usage example.
 
 ## NFD Management API
 

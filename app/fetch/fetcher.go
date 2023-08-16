@@ -1,4 +1,4 @@
-// Package fetch simulates bulk file transfer traffic patterns.
+// Package fetch retrieves segmented objects.
 package fetch
 
 /*

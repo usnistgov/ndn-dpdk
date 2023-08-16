@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	iofs "io/fs"
-	"math"
 	"math/rand"
 	"os"
 	"path"
@@ -59,16 +58,6 @@ func (f *FileServerFixture) RetrieveMetadataOpts(name string, opts endpoint.Cons
 	return
 }
 
-func (FileServerFixture) LastSeg(t testing.TB, finalBlock ndn.NameComponent) (lastSeg tlv.NNI) {
-	assert, _ := makeAR(t)
-	lastSeg = math.MaxUint64
-	if assert.True(finalBlock.Valid()) {
-		assert.EqualValues(an.TtSegmentNameComponent, finalBlock.Type)
-		assert.NoError(lastSeg.UnmarshalBinary(finalBlock.Value))
-	}
-	return
-}
-
 func (FileServerFixture) ChangeVersion(name ndn.Name, f func(uint64) uint64) ndn.Name {
 	name = slices.Clone(name)
 	versionComp := &name[len(name)-1]
@@ -80,14 +69,12 @@ func (FileServerFixture) ChangeVersion(name ndn.Name, f func(uint64) uint64) ndn
 	return name
 }
 
-func (f *FileServerFixture) FetchPayload(name ndn.Name, lastSeg *tlv.NNI) (payload []byte, e error) {
+func (f *FileServerFixture) FetchPayload(name ndn.Name, segmentEnd uint64) (payload []byte, e error) {
 	opts := segmented.FetchOptions{
 		RetxLimit: 3,
 		MaxCwnd:   256,
 	}
-	if lastSeg != nil {
-		opts.SegmentEnd = 1 + uint64(*lastSeg)
-	}
+	opts.SegmentEnd = segmentEnd
 	return f.FetchPayloadOpts(name, opts)
 }
 
@@ -98,7 +85,7 @@ func (f *FileServerFixture) FetchPayloadOpts(name ndn.Name, opts segmented.Fetch
 }
 
 func (f *FileServerFixture) ListDirectory(name ndn.Name) (ls ndn6file.DirectoryListing, e error) {
-	payload, e := f.FetchPayload(name, nil)
+	payload, e := f.FetchPayload(name, 0)
 	if e != nil {
 		return ls, e
 	}
@@ -170,16 +157,16 @@ func TestServer(t *testing.T) {
 				m, e := f.RetrieveMetadata(tt.Name)
 				require.NoError(e)
 
-				lastSeg := f.LastSeg(t, m.FinalBlock)
+				segmentEnd := m.SegmentEnd()
+				assert.NotZero(segmentEnd)
 				assert.EqualValues(cfg.SegmentLen, m.SegmentSize)
 				assert.EqualValues(len(content), m.Size)
 				assert.False(m.Mtime.IsZero())
 
-				fetcherLastSeg := &lastSeg
 				if !tt.SetSegmentEnd {
-					fetcherLastSeg = nil
+					segmentEnd = 0
 				}
-				payload, e := f.FetchPayload(m.Name, fetcherLastSeg)
+				payload, e := f.FetchPayload(m.Name, segmentEnd)
 				require.NoError(e)
 				assert.Len(payload, len(content))
 				assert.Equal(digest, sha256.Sum256(payload))
@@ -563,9 +550,9 @@ func TestFuse(t *testing.T) {
 			m, e := f.RetrieveMetadata("/fs/X")
 			require.NoError(e)
 			assert.EqualValues(0, m.Size)
-			assert.EqualValues(0, f.LastSeg(t, m.FinalBlock))
+			assert.EqualValues(1, m.SegmentEnd())
 
-			payload, e := f.FetchPayload(m.Name, nil)
+			payload, e := f.FetchPayload(m.Name, 0)
 			require.NoError(e)
 			assert.Len(payload, 0)
 		})
@@ -579,11 +566,11 @@ func TestFuse(t *testing.T) {
 			assert.True(m.IsFile())
 			assert.False(m.IsDir())
 			assert.EqualValues(len(fs.payloadY), m.Size)
-			assert.EqualValues(15, f.LastSeg(t, m.FinalBlock))
+			assert.EqualValues(16, m.SegmentEnd())
 			assert.Equal(fs.ctime, m.Ctime)
 			assert.Equal(fs.mtime, m.Mtime)
 
-			payload, e := f.FetchPayload(m.Name, nil)
+			payload, e := f.FetchPayload(m.Name, 0)
 			require.NoError(e)
 			assert.Equal(fs.payloadY, payload)
 
@@ -611,8 +598,7 @@ func TestFuse(t *testing.T) {
 				assert, _ := makeAR(t)
 
 				name := f.ChangeVersion(m.Name, func(version uint64) uint64 { return uint64(f.p.VersionBypassHi)<<32 | uint64(rand.Uint32()) })
-				lastSeg := tlv.NNI(0)
-				_, e := f.FetchPayload(name, &lastSeg)
+				_, e := f.FetchPayload(name, 1)
 				assert.NoError(e)
 			})
 		})
@@ -624,12 +610,11 @@ func TestFuse(t *testing.T) {
 			m, e := f.RetrieveMetadata("/fs/Z")
 			require.NoError(e)
 			assert.EqualValues(fs.sizeZ, m.Size)
-			assert.EqualValues(79999, f.LastSeg(t, m.FinalBlock))
+			assert.EqualValues(80000, m.SegmentEnd())
 			assert.Equal(fs.ctime, m.Ctime)
 			assert.Equal(fs.mtime, m.Mtime)
 
-			lastSeg := tlv.NNI(3)
-			payload, e := f.FetchPayload(m.Name, &lastSeg)
+			payload, e := f.FetchPayload(m.Name, 4)
 			if assert.NoError(e) {
 				assert.Len(payload, cfg.SegmentLen*4)
 			}
@@ -638,7 +623,7 @@ func TestFuse(t *testing.T) {
 			fs.mtimeZ.Store(mtimeZ.UnixNano())
 			time.Sleep(2 * cfg.StatValidity.Duration())
 			var fetchOpts segmented.FetchOptions
-			fetchOpts.SegmentEnd = 1 + uint64(lastSeg)
+			fetchOpts.SegmentEnd = 4
 			fetchOpts.RetxLimit = 1
 			_, e = f.FetchPayloadOpts(m.Name, fetchOpts)
 			assert.Error(e)

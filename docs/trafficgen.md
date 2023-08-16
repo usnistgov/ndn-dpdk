@@ -159,19 +159,36 @@ This step is necessary even if the fetch task has finished.
 Sample commands:
 
 ```bash
-FID=fad42ea2  # set to .fetcher.id when starting a traffic generator
+FID=fad42ea2  # set to .fetcher.id returned from startTrafficGen mutation
 
 # fetch segmented object and write to file
 TASKID=$(ndndpdk-ctrl start-fetch --fetcher $FID --name /P/0 --segment-begin 0 --segment-end 1000 \
          --segment-len 4096 --filename /tmp/P0.bin | tee /dev/stderr | jq -r .id)
-# watch the progress; --auto-stop may be used with a finite-sized segmented object (--segment-end specified)
-# to automatically stop the task upon finish, replacing stop-fetch command
+# watch the progress and stop the task upon finish
+# (--auto-stop may be used with a finite-sized segmented object, i.e. --segment-end specified)
 ndndpdk-ctrl watch-fetch --id $TASKID --auto-stop
 
 # or, generate file retrieval like traffic but don't write to file
 TASKID=$(ndndpdk-ctrl start-fetch --fetcher $FID --name /P/0 | tee /dev/stderr | jq -r .id)
-# watch the progress; --auto-stop is ineffective because the segmented object is infinite-sized
+# watch the progress (--auto-stop is ineffective because the segmented object is infinite-sized)
 ndndpdk-ctrl watch-fetch --id $TASKID
 # abort the fetch task
 ndndpdk-ctrl stop-fetch --id $TASKID
+```
+
+The congestion aware fetcher, on its own, cannot retrieve files from the [file server](fileserver.md), because it does not recognize file metadata or perform version discovery.
+You may use another consumer application to retrieve and process file metadata, and then delegate the actual retrieval to the congestion aware fetcher.
+The `ndndpdk-godemo fetch` and `ndndpdk-ctrl start-fetch` commands may be used together for this purpose.
+
+Sample commands:
+
+```bash
+# retrieve metadata and generate command line arguments for ndndpdk-ctrl start-fetch
+# (--gqlserver should refer to a forwarder)
+FETCHARGS=$(ndndpdk-godemo --gqlserver http://127.0.0.1:3030 fetch --name /fileserver/1G.bin --tg-fetcher | tee /dev/stderr)
+
+# fetch file version and write to file
+# (--gqlserver should refer to a traffic generator that contains a fetcher)
+TASKID=$(ndndpdk-ctrl --gqlserver http://127.0.0.1:3032 start-fetch --fetcher $FID --filename /tmp/P0.bin $FETCHARGS \
+         | tee /dev/stderr | jq -r .id)
 ```

@@ -59,6 +59,17 @@ func (m Metadata) IsDir() bool {
 	return m.Mode&sIFDIR == sIFDIR
 }
 
+// SegmentEnd returns the last segment number plus one.
+// If FinalBlock is unset, returns zero.
+func (m Metadata) SegmentEnd() uint64 {
+	var lastSeg tlv.NNI
+	if m.FinalBlock.Valid() && m.FinalBlock.Type == an.TtSegmentNameComponent &&
+		lastSeg.UnmarshalBinary(m.FinalBlock.Value) == nil {
+		return uint64(lastSeg) + 1
+	}
+	return 0
+}
+
 // MarshalBinary encodes to TLV-VALUE.
 func (m Metadata) MarshalBinary() (value []byte, e error) {
 	extensions := []tlv.Fielder{}

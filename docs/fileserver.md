@@ -140,7 +140,7 @@ One of the mountpoints defined in the activation parameters is:
 
 This means that the file `/usr/local/bin/ndndpdk-svc` will have the NDN name prefix `/fileserver/usr-local-bin/ndndpdk-svc`.
 
-You can use the [ndncat command](https://ndnts-docs.ndn.today/typedoc/modules/cat.html) to retrieve the file, and then compare it against the original.
+You can use [ndncat](https://ndnts-docs.ndn.today/typedoc/modules/_ndn_cat.html) or [ndndpdk-godemo](../cmd/ndndpdk-godemo) command to retrieve the file, and then compare it against the original.
 
 Example command and output:
 
@@ -149,19 +149,26 @@ $ export NDNTS_UPLINK=ndndpdk-udp:
 $ export NDNTS_NDNDPDK_GQLSERVER=http://127.0.0.1:3030
 $ alias ndncat='npx -y -p https://ndnts-nightly.ndn.today/cat.tgz ndncat'
 
-$ ndncat get-segmented --ver=rdr /fileserver/usr-local-bin/ndndpdk-svc > /tmp/ndndpdk-svc.retrieved
+$ ndncat get-segmented --ver=rdr /fileserver/usr-local-bin/ndndpdk-svc >/tmp/ndndpdk-svc.ndncat.retrieved
 
-$ sha256sum /usr/local/bin/ndndpdk-svc /tmp/ndndpdk-svc.retrieved
-d7d68600dd33a2e344bb4e4895e10302d4f9781930b601241d5ec5aaacab6392  /usr/local/bin/ndndpdk-svc
-d7d68600dd33a2e344bb4e4895e10302d4f9781930b601241d5ec5aaacab6392  /tmp/ndndpdk-svc.retrieved
+$ ndndpdk-godemo fetch --name /fileserver/usr-local-bin/ndndpdk-svc --filename /tmp/ndndpdk-svc.go.retrieved
+2023/08/16 17:08:12 uplink opened, state is down
+2023/08/16 17:08:12 uplink state changes to up
+2023/08/16 17:08:14 retrieved metadata /8=fileserver/8=usr-local-bin/8=ndndpdk-svc/54=%17%7B%EC%18%F9%B7%1C%DF
+2023/08/16 17:08:14 file has 24772368 octets in 4032 segments of size 6144
+2023/08/16 17:08:15 finished 4032 segments in 544ms
+2023/08/16 17:08:15 uplink closed, error is <nil>
 
-$ ndncat file-client /fileserver/usr-local-bin /tmp/usr-local-bin-retrieved
+$ sha256sum /usr/local/bin/ndndpdk-svc /tmp/ndndpdk-svc.ndncat.retrieved /tmp/ndndpdk-svc.go.retrieved
+7ca236418b813998a28a0d63be416c96ee88d310c731410b4741ca0e53052d90  /usr/local/bin/ndndpdk-svc
+7ca236418b813998a28a0d63be416c96ee88d310c731410b4741ca0e53052d90  /tmp/ndndpdk-svc.ndncat.retrieved
+7ca236418b813998a28a0d63be416c96ee88d310c731410b4741ca0e53052d90  /tmp/ndndpdk-svc.go.retrieved
 ```
 
 ### Retrieve a Directory
 
 NDN-DPDK file server also supports directory listing as defined in the [ndn6-file-server protocol](https://github.com/yoursunny/ndn6-tools/blob/main/file-server.md).
-You can use the [ndncat command](https://ndnts-docs.ndn.today/typedoc/modules/_ndn_cat.html) to view the directory listing or recursively retrieve a directory.
+You can use [ndncat](https://ndnts-docs.ndn.today/typedoc/modules/_ndn_cat.html) or [ndndpdk-godemo](../cmd/ndndpdk-godemo) to view the directory listing or recursively retrieve a directory.
 
 Example command and (partial) output:
 
@@ -181,4 +188,9 @@ FOLDER /tmp/usr-local-share/ndn-dpdk folders=0 files=7
 FILE /tmp/usr-local-share/ndn-dpdk/locator.schema.json size=8210
 FILE /tmp/usr-local-share/ndn-dpdk/ndn-dpdk.npm.tgz size=10980
 FILE /tmp/usr-local-share/ndn-dpdk/fileserver.schema.json size=22270
+
+$ ndndpdk-godemo ls --name /fileserver/usr-local-share/ndn-dpdk 2>/dev/null
+locator.schema.json
+trafficgen.schema.json
+forwarder.schema.json
 ```
