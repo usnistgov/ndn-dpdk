@@ -20,9 +20,7 @@ typedef struct PitDnUpIt_ {
     PitDn* dns;
     PitUp* ups;
   };
-
-  PitEntryExt** nextPtr;     ///< (pvt) next extension
-  struct PccEntry* pccEntry; ///< (pvt) PCC entry for obtaining mempool
+  PitEntryExt** nextPtr; ///< (pvt) next extension
 } PitDnUpIt_;
 
 __attribute__((nonnull)) static inline PitDnUpIt_
@@ -32,19 +30,19 @@ PitDnUpIt_New_(PitEntry* entry, int maxInEntry, void* array) {
     max: maxInEntry,
     array: array,
     nextPtr: &entry->ext,
-    pccEntry: entry->pccEntry,
   };
 }
 
 __attribute__((nonnull)) bool
-PitDnUpIt_Extend_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt);
+PitDnUpIt_Extend_(PitDnUpIt_* it, PitEntry* entry, int maxInExt, size_t offsetInExt);
 
 __attribute__((nonnull)) static inline bool
-PitDnUpIt_Valid_(PitDnUpIt_* it, bool canExtend, int maxInExt, size_t offsetInExt) {
+PitDnUpIt_Valid_(PitDnUpIt_* it, bool canExtend, PitEntry* entry, int maxInExt,
+                 size_t offsetInExt) {
   if (likely(it->i < it->max)) {
     return true;
   }
-  return canExtend && PitDnUpIt_Extend_(it, maxInExt, offsetInExt);
+  return canExtend && PitDnUpIt_Extend_(it, entry, maxInExt, offsetInExt);
 }
 
 __attribute__((nonnull)) static inline void
@@ -119,7 +117,7 @@ PitDn_UseSlot(PitDnIt* it) {
  */
 #define PitDn_Each(var, entry, canExtend)                                                          \
   for (PitDnIt var = PitDnUpIt_New_((entry), PitMaxDns, (entry)->dns);                             \
-       PitDnUpIt_Valid_(&var, (canExtend), PitMaxExtDns, offsetof(PitEntryExt, dns));              \
+       PitDnUpIt_Valid_(&var, (canExtend), (entry), PitMaxExtDns, offsetof(PitEntryExt, dns));     \
        PitDnUpIt_Next_(&var, sizeof(PitDn), PitMaxExtDns, offsetof(PitEntryExt, dns)))
 
 /** @brief Iterator of UP slots in PIT entry. */
@@ -139,7 +137,7 @@ PitUp_UseSlot(PitUpIt* it) {
 }
 
 /**
- * @brief Iterate over DN slots in PIT entry.
+ * @brief Iterate over UP slots in PIT entry.
  * @sa PitDn_Each
  *
  * @code
@@ -151,7 +149,7 @@ PitUp_UseSlot(PitUpIt* it) {
  */
 #define PitUp_Each(var, entry, canExtend)                                                          \
   for (PitUpIt var = PitDnUpIt_New_((entry), PitMaxUps, (entry)->ups);                             \
-       PitDnUpIt_Valid_(&var, (canExtend), PitMaxExtUps, offsetof(PitEntryExt, ups));              \
+       PitDnUpIt_Valid_(&var, (canExtend), (entry), PitMaxExtUps, offsetof(PitEntryExt, ups));     \
        PitDnUpIt_Next_(&var, sizeof(PitUp), PitMaxExtUps, offsetof(PitEntryExt, ups)))
 
 #endif // NDNDPDK_PCCT_PIT_DN_UP_IT_H

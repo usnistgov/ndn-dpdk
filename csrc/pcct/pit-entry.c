@@ -193,9 +193,19 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt) {
   entry->txHopLimit = RTE_MAX(entry->txHopLimit, interest->hopLimit - 1);
 
   // record CanBePrefix and prefer CBP=1 for representative Interest
-  if (entry->npkt != npkt) {
+  if (entry->npkt == npkt) {
+    // first DN record, entry->npkt and entry->nCanBePrefix are assigned in PitEntry_Init
+  } else {
     entry->nCanBePrefix += (uint8_t)interest->canBePrefix;
     if (entry->nCanBePrefix == (uint8_t)interest->canBePrefix) {
+      // this happens in two situations:
+      // A. two conditions, both are met:
+      //    1. interest->canBePrefix is true
+      //    2. entry->nCanBePrefix was 0 before this Interest
+      // B. three conditions, all are met:
+      //    1. interest->canBePrefix is false
+      //    2. entry->nCanBePrefix was 1 before this Interest
+      //    3. entry->nCanBePrefix is decremented in PitEntry_ReserveDn due to expired DN record
       rte_pktmbuf_free(Packet_ToMbuf(entry->npkt));
       entry->npkt = npkt;
     } else {

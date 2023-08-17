@@ -2,13 +2,13 @@
 #include "pit.h"
 
 bool
-PitDnUpIt_Extend_(PitDnUpIt_* it, int maxInExt, size_t offsetInExt) {
+PitDnUpIt_Extend_(PitDnUpIt_* it, PitEntry* entry, int maxInExt, size_t offsetInExt) {
   NDNDPDK_ASSERT(it->i == it->max);
   NDNDPDK_ASSERT(*it->nextPtr == NULL);
 
   // allocate PitEntryExt
-  PitEntryExt* ext;
-  int res = rte_mempool_get(rte_mempool_from_obj(it->pccEntry), (void**)&ext);
+  PitEntryExt* ext = NULL;
+  int res = rte_mempool_get(rte_mempool_from_obj(entry->pccEntry), (void**)&ext);
   if (unlikely(res != 0)) {
     return false;
   }
