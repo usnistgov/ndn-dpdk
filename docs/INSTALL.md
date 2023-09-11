@@ -8,7 +8,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 
 ## Dependencies
 
-* Linux kernel 5.15 or newer
+* Linux kernel 5.14 or newer
 * Required APT packages: `clang-15 g++-12 git jq libc6-dev-i386 libelf-dev libpcap-dev libssl-dev liburcu-dev make ninja-build pkg-config`
 * Optional APT packages: `clang-format-15 doxygen lcov yamllint`
 * Go 1.21
@@ -17,8 +17,8 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * [ubpf](https://github.com/iovisor/ubpf) 89b84c6f
 * [libbpf](https://github.com/libbpf/libbpf) 1.2.2 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.2.10 (optional)
 * [liburing](https://github.com/axboe/liburing) 2.4
-* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 23.03
-* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 23.05
+* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 23.07
+* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 7662387c
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc), [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck), [shfmt](https://github.com/mvdan/sh) commands (optional)
 
 You can run the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to the script for specific configuration options.

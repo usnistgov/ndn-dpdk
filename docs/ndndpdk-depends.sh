@@ -42,10 +42,10 @@ DFLT_UBPFVER=89b84c6fc4d740b05e6bf7a19f6d2116b1469c7f
 DFLT_LIBBPFVER=v1.2.2
 DFLT_XDPTOOLSVER=v1.2.10
 DFLT_URINGVER=liburing-2.4
-DFLT_DPDKVER=v23.03
+DFLT_DPDKVER=v23.07
 DFLT_DPDKPATCH=
 DFLT_DPDKOPTS={}
-DFLT_SPDKVER=v23.05
+DFLT_SPDKVER=7662387cbd219fdf5b18f8a96fb222a35a73774a
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -255,8 +255,8 @@ case $DISTRO in
     ;;
 esac
 
-if [[ $(uname -r | awk -F. '{ print ($1*1000+$2>=5015) }') -ne 1 ]] &&
-  [[ -z ${SKIPKERNELCHECK:-} ]] && ! [[ -f /.dockerenv ]]; then
+if [[ $(uname -r | awk -F. '{ print ($1*1000+$2>=5014) }') -ne 1 ]] &&
+  [[ -z ${SKIPKERNELCHECK:-} ]]; then
   echo 'Linux kernel 5.15 or newer is required'
   echo 'To skip this check, set the environment variable SKIPKERNELCHECK=1'
   exit 1
@@ -330,9 +330,13 @@ echo 'Dpkg::Options {
 APT::Install-Recommends "no";
 APT::Install-Suggests "no";' | $SUDO tee /etc/apt/apt.conf.d/80custom >/dev/null
 if [[ $NODEVER != 0 ]]; then
-  curl -fsLS https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | $SUDO gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODEVER.x nodistro main" |
-    $SUDO tee /etc/apt/sources.list.d/nodesource.list
+  if ! [[ -f /etc/apt/keyrings/nodesource.gpg ]]; then
+    curl -fsLS ${NDNDPDK_DL_NODESOURCE_DEB}/gpgkey/nodesource-repo.gpg.key | $SUDO gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  fi
+  if ! [[ -f /etc/apt/sources.list.d/nodesource.list ]]; then
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] ${NDNDPDK_DL_NODESOURCE_DEB}/node_$NODEVER.x nodistro main" |
+      $SUDO tee /etc/apt/sources.list.d/nodesource.list
+  fi
   APT_PKGS+=(nodejs)
 fi
 $SUDO apt-get -qq update
