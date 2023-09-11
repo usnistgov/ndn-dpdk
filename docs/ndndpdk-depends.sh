@@ -3,6 +3,7 @@ set -euo pipefail
 
 NEEDED_BINARIES=(
   curl
+  gpg
   jq
   lsb_release
 )
@@ -30,14 +31,14 @@ for B in "${NEEDED_BINARIES[@]}"; do
 done
 if [[ ${#MISSING_BINARIES[@]} -gt 0 ]]; then
   echo "Missing commands (${MISSING_BINARIES[*]}) to start this script. To install, run:"
-  echo "  ${APTINSTALL} ca-certificates curl jq lsb-release ${SUDOPKG}"
+  echo "  ${APTINSTALL} ca-certificates curl gpg jq lsb-release ${SUDOPKG}"
   exit 1
 fi
 
 DFLT_CODEROOT=$HOME/code
-DFLT_NODEVER=20.x
+DFLT_NODEVER=20
 DFLT_GOVER=latest
-DFLT_UBPFVER=7c6b84437caffab1de52aad24926fa0a57280a17
+DFLT_UBPFVER=89b84c6fc4d740b05e6bf7a19f6d2116b1469c7f
 DFLT_LIBBPFVER=v1.2.2
 DFLT_XDPTOOLSVER=v1.2.10
 DFLT_URINGVER=liburing-2.4
@@ -145,7 +146,7 @@ ndndpdk-depends.sh [OPTION]...
   --dir=${DFLT_CODEROOT}
       Set where to download and compile the code.
   --node=${DFLT_NODEVER}
-      Set Node.js version. '0' to skip.
+      Set Node.js major version. '0' to skip.
   --go=${DFLT_GOVER}
       Set Go version. 'latest' for the latest 1.x version. '0' to skip.
   --ubpf=${DFLT_UBPFVER}
@@ -265,9 +266,9 @@ echo "Will download to ${CODEROOT}"
 echo 'Will install C compiler and build tools'
 
 if [[ $NODEVER != 0 ]]; then
-  echo "Will install Node ${NODEVER}"
-elif ! command -v node >/dev/null; then
-  echo '--node=0 specified but the `node` command was not found, which may cause build errors'
+  echo "Will install Node ${NODEVER}.x"
+elif ! command -v corepack >/dev/null; then
+  echo '--node=0 specified but the `corepack` command was not found, which may cause build errors'
 fi
 
 if [[ $GOVER != 0 ]]; then
@@ -328,13 +329,14 @@ echo 'Dpkg::Options {
 }
 APT::Install-Recommends "no";
 APT::Install-Suggests "no";' | $SUDO tee /etc/apt/apt.conf.d/80custom >/dev/null
-$SUDO apt-get -qq update
-$SUDO env DEBIAN_FRONTEND=noninteractive apt-get -qq dist-upgrade
-
 if [[ $NODEVER != 0 ]]; then
-  curl -fsLS "${NDNDPDK_DL_NODESOURCE_DEB}/setup_${NODEVER}" | $SUDO bash -
+  curl -fsLS https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | $SUDO gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODEVER.x nodistro main" |
+    $SUDO tee /etc/apt/sources.list.d/nodesource.list
   APT_PKGS+=(nodejs)
 fi
+$SUDO apt-get -qq update
+$SUDO env DEBIAN_FRONTEND=noninteractive apt-get -qq dist-upgrade
 
 $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -qq install "${APT_PKGS[@]}"
 set_alternative gcc /usr/bin/gcc-12
@@ -346,7 +348,7 @@ if ! [[ -d /usr/include/asm ]]; then
   $SUDO ln -s /usr/include/x86_64-linux-gnu/asm /usr/include/asm
 fi
 if ! command -v meson >/dev/null; then
-  cd "$(github_download mesonbuild/meson 1.2.0)"
+  cd "$(github_download mesonbuild/meson 1.2.1)"
   ./packaging/create_zipapp.py --outfile meson.pyz .
   $SUDO install -m0755 meson.pyz /usr/local/bin/meson
 fi

@@ -14,7 +14,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Go 1.21
 * Node.js 20.x
 * [Meson build system](https://mesonbuild.com/Getting-meson.html) 1.x
-* [ubpf](https://github.com/iovisor/ubpf) 7c6b8443
+* [ubpf](https://github.com/iovisor/ubpf) 89b84c6f
 * [libbpf](https://github.com/libbpf/libbpf) 1.2.2 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.2.10 (optional)
 * [liburing](https://github.com/axboe/liburing) 2.4
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 23.03

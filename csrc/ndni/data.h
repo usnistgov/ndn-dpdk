@@ -114,7 +114,7 @@ DataEnc_EncodeRoom(LName prefix, LName suffix, const uint8_t* meta, uint32_t roo
 
 /**
  * @brief Append Null signature to Data.
- * @param m result of @c DataEnc_EncodeTpl or @c DataEnc_EncodeRoom .
+ * @param pkt result of @c DataEnc_EncodeTpl or @c DataEnc_EncodeRoom .
  * @return encoded packet, or NUL upon failure.
  * @post If failure, @p pkt is freed.
  */

@@ -5,7 +5,7 @@ ARG DEPENDS_ARGS=
 ARG MAKE_ENV=
 COPY ./docs/ndndpdk-depends.sh /root/ndndpdk-depends.sh
 RUN sh -c 'apt-get -y -qq update' \
- && apt-get -y -qq install --no-install-recommends ca-certificates curl dpkg-dev jq lsb-release ${APT_PKGS} \
+ && apt-get -y -qq install --no-install-recommends ca-certificates curl dpkg-dev gpg jq lsb-release ${APT_PKGS} \
  && env SKIPROOTCHECK=1 ${DEPENDS_ENV} /root/ndndpdk-depends.sh --dir=/root/ndndpdk-depends -y ${DEPENDS_ARGS} \
  && rm -rf /root/ndndpdk-depends
 COPY . /root/ndn-dpdk/

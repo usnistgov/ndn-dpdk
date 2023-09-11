@@ -1,5 +1,5 @@
 #!/usr/bin/awk -f
-/warning: The following parameters of .* are not documented:/ {
+/warning: The following parameter[s]? of .* (is|are) not documented:/ {
   skip = 1
   next
 }
