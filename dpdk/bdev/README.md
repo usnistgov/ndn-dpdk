@@ -21,7 +21,8 @@ For best performance, you should keep the file on a local disk, not a network st
 It contains one or more **NvmeNamespace**s, each is a block device.
 Although SPDK NVMe driver supports both local PCIe drives and NVMe over Fabrics, this implementation is limited to local drives only.
 SPDK would have exclusive control over the PCI device, which means you cannot use the NVMe driver on the same NVMe device where you have kernel filesystems.
-In most cases, the PCI device should be bound to `vfio-pci` kernel driver.
+In most cases, the PCI device should be bound to `vfio-pci` or `uio_pci_generic` kernel driver.
+You can setup PCI binding with [SPDK setup.sh script](https://github.com/spdk/spdk/blob/master/scripts/setup.sh), example command: `sudo NRHUGE=0 PCI_ALLOWED="0000:00:09.0" ./scripts/setup.sh`.
 Importantly, once you assign an NVMe device to be used with NDN-DPDK via the SPDK NVMe driver, all existing data will be erased.
 
 **Delay** type represents a virtual block device that wraps an existing block device, adding a delay to each I/O operation.
