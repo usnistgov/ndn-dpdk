@@ -6,7 +6,7 @@ LANG=${LANG,,}
 
 # C
 if [[ -z $LANG ]] || [[ $LANG == c ]]; then
-  git ls-files -- 'csrc/**/*.[hc]' 'bpf/**/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-15 -i -style=file
+  git ls-files -- 'csrc/*.[hc]' 'bpf/*.[hc]' -x ':!:csrc/vendor' | xargs clang-format-15 -i -style=file
 fi
 
 # Go
@@ -18,7 +18,7 @@ fi
 
 # bash
 if [[ -z $LANG ]] || [[ $LANG == sh ]]; then
-  git ls-files -- '**/*.sh' | xargs shfmt -l -w -s -i=2 -ci
+  git ls-files -- '*.sh' | xargs shfmt -l -w -s -i=2 -ci
 fi
 
 # TypeScript
@@ -38,5 +38,5 @@ fi
 
 # Docker
 if [[ -z $LANG ]] || [[ $LANG == docker ]]; then
-  node_modules/.bin/dockerfilelint Dockerfile $(git ls-files -- '**/Dockerfile')
+  node_modules/.bin/dockerfilelint $(git ls-files -- Dockerfile '*/Dockerfile')
 fi

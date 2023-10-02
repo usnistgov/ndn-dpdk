@@ -32,7 +32,7 @@ func initRPC() error {
 	sockNameC := C.CString(sockName)
 	defer C.free(unsafe.Pointer(sockNameC))
 
-	res := C.spdk_rpc_initialize(sockNameC)
+	res := C.spdk_rpc_initialize(sockNameC, nil)
 	if res != 0 {
 		return fmt.Errorf("spdk_rpc_initialize error: %w", eal.MakeErrno(res))
 	}

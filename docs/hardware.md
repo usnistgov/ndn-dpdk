@@ -246,7 +246,7 @@ docker run \
 * `--privileged` flag enables writing to PCI device config.
 * `--mount target=/lib/firmware` flag enables read-only access to firmware files.
 
-### Unsupported Ethernet Adapters
+### Ethernet Adapters Not Supported by DPDK
 
 NDN-DPDK can work with any Ethernet adapter supported by the Linux kernel via XDP and AF\_PACKET drivers.
 This allows the use of Ethernet adapters not supported by DPDK PCI drivers.

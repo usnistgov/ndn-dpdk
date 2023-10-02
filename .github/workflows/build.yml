@@ -8,7 +8,7 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
           go-version-file: go.mod
@@ -25,11 +25,11 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/setup-dpdk
-          key: ${{ steps.deps.outputs.meson }}_20230911
+          key: ${{ steps.deps.outputs.meson }}_20231002
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: v23.07
-          spdk-version: 7662387cbd219fdf5b18f8a96fb222a35a73774a
+          spdk-version: v23.09
       - name: Build NDN-DPDK in debug mode
         run: |
           corepack pnpm install
@@ -65,7 +65,7 @@ jobs:
         run: mk/netlify.sh
         if: ${{ github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
       - name: Deploy docs site
-        uses: nwtgck/actions-netlify@30aa80fe8d5eec30813fc8b17b77e0a6663f09b5
+        uses: nwtgck/actions-netlify@v2.1
         with:
           publish-dir: ./build/netlify/
           production-deploy: true
@@ -82,7 +82,7 @@ jobs:
   docker:
     runs-on: ubuntu-22.04
     steps:
-      - uses: docker/build-push-action@v3
+      - uses: docker/build-push-action@v5
         with:
           tags: ndn-dpdk
           build-args: |
@@ -96,7 +96,7 @@ jobs:
   library:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
           go-version-file: go.mod

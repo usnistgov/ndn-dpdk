@@ -14,15 +14,15 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Go 1.21
 * Node.js 20.x
 * [Meson build system](https://mesonbuild.com/Getting-meson.html) 1.x
-* [ubpf](https://github.com/iovisor/ubpf) 89b84c6f
+* [ubpf](https://github.com/iovisor/ubpf) ac7bcc3b
 * [libbpf](https://github.com/libbpf/libbpf) 1.2.2 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.2.10 (optional)
 * [liburing](https://github.com/axboe/liburing) 2.4
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 23.07
-* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 7662387c
+* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 23.09
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc), [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck), [shfmt](https://github.com/mvdan/sh) commands (optional)
 
 You can run the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to the script for specific configuration options.
-Certain hardware drivers may require installing extra dependencies before building DPDK or running the script; see [hardware known to work](hardware.md) for more information.
+Certain hardware drivers may require extra dependencies before building DPDK or running the script; see [hardware known to work](hardware.md) for more information.
 
 The script automatically downloads dependencies from the Internet.
 If your network cannot reach certain download sites, you can specify a mirror site via `NDNDPDK_DL_*` environment variables.
