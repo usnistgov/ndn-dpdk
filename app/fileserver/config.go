@@ -96,6 +96,9 @@ type Config struct {
 	// Keeping them open can speed up subsequent requests referencing the same file.
 	KeepFds int `json:"keepFds,omitempty" gqldesc:"Maximum unused file descriptors per thread."`
 
+	// ResolveBeneath disallows absolute symbolic links during path resolution.
+	ResolveBeneath bool `json:"resolveBeneath,omitempty" gqldesc:"Disallow absolute symbolic links during path resolution."`
+
 	// StatValidity is the validity period of statx result.
 	StatValidity nnduration.Nanoseconds `json:"statValidity,omitempty" gqldesc:"statx result validity period."`
 

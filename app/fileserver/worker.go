@@ -18,6 +18,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/mempool"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"golang.org/x/sys/unix"
 )
 
 type worker struct {
@@ -126,6 +127,12 @@ func newWorker(faceID iface.ID, socket eal.NumaSocket, cfg Config) (w *worker, e
 	w.c.uringWaitLbound = C.uint32_t(cfg.uringWaitLbound)
 	w.c.nFdHtBuckets = C.uint32_t(binutils.PrevPowerOfTwo(int64(cfg.OpenFds)))
 	w.c.fdQCapacity = C.uint16_t(cfg.KeepFds)
+
+	w.c.openHow.flags = unix.O_RDONLY
+	w.c.openHow.resolve = unix.RESOLVE_NO_MAGICLINKS
+	if cfg.ResolveBeneath {
+		w.c.openHow.resolve |= unix.RESOLVE_BENEATH
+	}
 
 	prefixes := ndni.NewLNamePrefixFilterBuilder(unsafe.Pointer(&w.c.mountPrefixL), unsafe.Sizeof(w.c.mountPrefixL),
 		unsafe.Pointer(&w.c.mountPrefixV), unsafe.Sizeof(w.c.mountPrefixV))

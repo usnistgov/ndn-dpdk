@@ -16,6 +16,7 @@ export interface FileServerConfig {
   uringWaitThres?: Ratio;
   openFds?: Uint;
   keepFds?: Uint;
+  resolveBeneath?: boolean;
   statValidity?: NNNanoseconds;
   wantVersionBypass?: boolean;
 }

@@ -245,6 +245,7 @@ const (
 	fuseInoFileZ
 	fuseInoSymlinkP
 	fuseInoSymlinkQ
+	fuseInoSymlinkAbsolute
 	fuseInoSocket
 	fuseInoPipe
 	fuseInoBlockDev
@@ -265,14 +266,16 @@ var fuseRootDir = []fuseutil.Dirent{
 	{Offset: 5, Inode: fuseInoFileZ, Name: "Z", Type: fuseutil.DT_File},
 	{Offset: 6, Inode: fuseInoSymlinkP, Name: "P"},
 	{Offset: 7, Inode: fuseInoSymlinkQ, Name: "Q", Type: fuseutil.DT_Link},
-	{Offset: 8, Inode: fuseInoSocket, Name: "socket"},
-	{Offset: 9, Inode: fuseInoPipe, Name: "pipe"},
-	{Offset: 10, Inode: fuseInoBlockDev, Name: "block", Type: fuseutil.DT_Block},
-	{Offset: 11, Inode: fuseInoCharDev, Name: "char"},
+	{Offset: 8, Inode: fuseInoSymlinkAbsolute, Name: "absolute-symlink", Type: fuseutil.DT_Link},
+	{Offset: 9, Inode: fuseInoSocket, Name: "socket"},
+	{Offset: 10, Inode: fuseInoPipe, Name: "pipe"},
+	{Offset: 11, Inode: fuseInoBlockDev, Name: "block", Type: fuseutil.DT_Block},
+	{Offset: 12, Inode: fuseInoCharDev, Name: "char"},
 }
 
 type fuseFS struct {
 	fuseutil.NotImplementedFileSystem
+	dir      string
 	atime    time.Time
 	ctime    time.Time
 	mtime    time.Time
@@ -327,7 +330,7 @@ func (fs *fuseFS) inoAttr(ino fuseops.InodeID, attr *fuseops.InodeAttributes) er
 	case fuseInoFileZ:
 		attr.Size = fs.sizeZ
 		attr.Mtime = time.Unix(0, fs.mtimeZ.Load())
-	case fuseInoSymlinkP, fuseInoSymlinkQ:
+	case fuseInoSymlinkP, fuseInoSymlinkQ, fuseInoSymlinkAbsolute:
 		attr.Mode |= iofs.ModeSymlink
 	case fuseInoSocket:
 		attr.Mode |= iofs.ModeSocket
@@ -415,6 +418,8 @@ func (fs *fuseFS) ReadSymlink(ctx context.Context, op *fuseops.ReadSymlinkOp) er
 		op.Target = "B"
 	case fuseInoSymlinkQ:
 		op.Target = "socket"
+	case fuseInoSymlinkAbsolute:
+		op.Target = path.Join(fs.dir, "X")
 	default:
 		return fuse.ENOENT
 	}
@@ -425,7 +430,7 @@ func TestFuse(t *testing.T) {
 	assert, require := makeAR(t)
 	dir := t.TempDir()
 
-	var fs fuseFS
+	fs := fuseFS{dir: dir}
 	mount, e := fuse.Mount(dir, fuseutil.NewFileSystemServer(&fs), &fuse.MountConfig{
 		FSName:                    "NDN-DPDK fileserver test suite",
 		ReadOnly:                  true,
@@ -452,6 +457,7 @@ func TestFuse(t *testing.T) {
 		StatValidity:      nnduration.Nanoseconds(100 * time.Millisecond),
 		OpenFds:           500,
 		KeepFds:           12,
+		ResolveBeneath:    true,
 		WantVersionBypass: true,
 	}
 	f := newFileServerFixture(t, cfg)
@@ -475,19 +481,23 @@ func TestFuse(t *testing.T) {
 			ls, e := f.ListDirectory(m.Name)
 			require.NoError(e)
 
-			require.Len(ls, 6)
-			assert.Equal("A", ls[0].Name())
-			assert.True(ls[0].IsDir())
-			assert.Equal("B", ls[1].Name())
-			assert.True(ls[1].IsDir())
-			assert.Equal("X", ls[2].Name())
-			assert.False(ls[2].IsDir())
-			assert.Equal("Y", ls[3].Name())
-			assert.False(ls[3].IsDir())
-			assert.Equal("Z", ls[4].Name())
-			assert.False(ls[4].IsDir())
-			assert.Equal("P", ls[5].Name())
-			assert.True(ls[5].IsDir())
+			expected := []struct {
+				name  string
+				isDir bool
+			}{
+				{"A", true},
+				{"B", true},
+				{"X", false},
+				{"Y", false},
+				{"Z", false},
+				{"P", true},
+				{"absolute-symlink", false},
+			}
+			require.Len(ls, len(expected))
+			for i, item := range expected {
+				assert.Equal(item.name, ls[i].Name(), i)
+				assert.Equal(item.isDir, ls[i].IsDir(), i)
+			}
 		})
 
 		t.Run("A", func(t *testing.T) {
@@ -639,6 +649,7 @@ func TestFuse(t *testing.T) {
 		}{
 			{"/no-such-mount/autoexec.bat", false},
 			{"nonexistent", true},
+			{"absolute-symlink", true},
 			{"socket", true},
 			{"pipe", true},
 			{"block", true},

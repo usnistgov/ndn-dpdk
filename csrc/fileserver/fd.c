@@ -59,8 +59,8 @@ FileServerFd_HasStatBit(const FileServerFd* entry, uint32_t bit) {
 static __rte_always_inline int
 FileServerFd_InvokeStatx(FileServer* p, FileServerFd* entry, int dfd, const char* restrict pathname,
                          TscTime now) {
-  int res = syscall(__NR_statx, dfd, pathname, AT_EMPTY_PATH,
-                    FileServerStatxRequired | FileServerStatxOptional, &entry->st);
+  int res = statx(dfd, pathname, AT_EMPTY_PATH, FileServerStatxRequired | FileServerStatxOptional,
+                  &entry->st);
   entry->st.FdStx_NextUpdate = now + p->statValidity;
   if (unlikely(res != 0)) {
     return errno;
@@ -168,14 +168,14 @@ FileServerFd_New(FileServer* p, const PName* name, LName prefix, uint64_t hash, 
   const char* logFilename = NULL;
   if (likely(filename[0] != '\0')) {
     logFilename = filename;
-    entry->fd = openat(dfd, filename, O_RDONLY);
+    entry->fd = syscall(SYS_openat2, dfd, filename, &p->openHow, sizeof(p->openHow));
   } else {
     logFilename = "(empty)";
     entry->fd = dup(dfd);
   }
 
   if (unlikely(entry->fd < 0)) {
-    N_LOGD("New openat-err mount=%d dfd=%d filename=%s" N_LOG_ERROR_ERRNO, mount, dfd, logFilename,
+    N_LOGD("New openat2-err mount=%d dfd=%d filename=%s" N_LOG_ERROR_ERRNO, mount, dfd, logFilename,
            errno);
     goto FAIL;
   }
@@ -336,7 +336,7 @@ FileServerFd_DirentType(FileServerFd* entry, struct dirent64* de) {
   }
 
   struct statx st;
-  int res = syscall(__NR_statx, entry->fd, de->d_name, 0, STATX_TYPE, &st);
+  int res = statx(entry->fd, de->d_name, 0, STATX_TYPE, &st);
   if (unlikely(res < 0 || (st.stx_mask & STATX_TYPE) == 0)) {
     return DT_UNKNOWN;
   }

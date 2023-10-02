@@ -8,6 +8,7 @@
 #include "../iface/face.h"
 #include "../iface/pktqueue.h"
 #include "enum.h"
+#include <linux/openat2.h>
 
 typedef struct FileServerFd FileServerFd;
 
@@ -45,6 +46,7 @@ typedef struct FileServer {
   uint16_t fdQCount;
   uint16_t fdQCapacity;
 
+  struct open_how openHow;
   int dfd[FileServerMaxMounts];
   int16_t mountPrefixComps[FileServerMaxMounts];
   uint16_t mountPrefixL[FileServerMaxMounts];

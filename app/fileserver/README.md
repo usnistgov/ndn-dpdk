@@ -17,7 +17,7 @@ Upon receiving an Interest, the name prefix consisting of only GenericNameCompon
 * request for a file segment
 * unrecognized request - dropped
 
-The file server invokes `openat` to open the file or directory (or `dup` in case of a request to the mountpoint directory itself), and then gathers information about file size, etc, via `statx` syscall.
+The file server invokes `openat2` to open the file or directory (or `dup` in case of a request to the mountpoint directory itself), and then gathers information about file size, etc, via `statx` syscall.
 Metadata and directory listing requests are responded right away.
 
 For each file segment request, the file server constructs a reply Data packet that contains everything except the Content payload.
@@ -27,7 +27,7 @@ Later, the file server polls for **io\_uring** completions and transmits Data pa
 ## File Descriptor Caching
 
 The file server maintains a hashtable of open file descriptors.
-If a request refers to a file or directory that already has an open file descriptor, the same file descriptor is reused instead of calling `openat` again.
+If a request refers to a file or directory that already has an open file descriptor, the same file descriptor is reused instead of calling `openat2` again.
 Each open file descriptor is associated with a reference count, which indicates how many inflight READV operations are using this file descriptor.
 
 As soon as the reference count reaches zero, i.e. the file descriptor becomes unused, it is placed in a cleanup queue (doubly linked list).
