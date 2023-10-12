@@ -15,7 +15,7 @@ require (
 	github.com/gorilla/schema v1.2.0
 	github.com/graphql-go/graphql v0.8.1
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20230801000641-8736a9d41aaa
-	github.com/jacobsa/fuse v0.0.0-20230810134708-ab21db1af836
+	github.com/jacobsa/fuse v0.0.0-20231012060820-40a7e03ed117
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
@@ -40,8 +40,8 @@ require (
 	go.fd.io/govpp/extras v0.1.0
 	go.uber.org/zap v1.26.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
-	golang.org/x/sys v0.12.0
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
+	golang.org/x/sys v0.13.0
 )
 
 require (
@@ -56,7 +56,7 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.27.10 // indirect
+	github.com/onsi/gomega v1.28.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -68,8 +68,8 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/crypto v0.11.0 // indirect
-	golang.org/x/net v0.12.0 // indirect
-	golang.org/x/term v0.10.0 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/term v0.13.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
