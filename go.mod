@@ -12,9 +12,9 @@ require (
 	github.com/functionalfoundry/graphqlws v0.0.0-20200611113535-7bc58903ce7b
 	github.com/gogf/greuse v1.1.0
 	github.com/google/gopacket v1.1.19
-	github.com/gorilla/schema v1.2.0
+	github.com/gorilla/schema v1.2.1
 	github.com/graphql-go/graphql v0.8.1
-	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20230801000641-8736a9d41aaa
+	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20231130194700-cfcb2fd150eb
 	github.com/jacobsa/fuse v0.0.0-20231012060820-40a7e03ed117
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
@@ -32,7 +32,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
-	github.com/urfave/cli/v2 v2.25.7
+	github.com/urfave/cli/v2 v2.26.0
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
@@ -40,8 +40,8 @@ require (
 	go.fd.io/govpp/extras v0.1.0
 	go.uber.org/zap v1.26.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
-	golang.org/x/sys v0.13.0
+	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb
+	golang.org/x/sys v0.15.0
 )
 
 require (
@@ -56,7 +56,7 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.28.0 // indirect
+	github.com/onsi/gomega v1.30.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect

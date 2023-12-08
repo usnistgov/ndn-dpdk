@@ -12,41 +12,68 @@ However, the kernel may still place other programs onto the same CPU cores, whic
 It is recommended to setup CPU isolation to maximize NDN-DPDK performance on a large server with many CPU cores.
 This would assign distinct CPU cores to NDN-DPDK and other programs, so that they do not compete with each other.
 
-To configure CPU isolation for the NDN-DPDK systemd service:
+To configure CPU isolation:
 
 1. Run `lscpu` and look at "NUMA node*X* CPU(s)" line to determine the available CPU cores on your system.
 
-2. Run `sudoedit /etc/systemd/system.conf.d/cpuset.conf`, and assign CPU cores to programs other than NDN-DPDK, such as:
+2. Assign CPU cores to programs other than NDN-DPDK, such as:
 
-    ```ini
-    [Manager]
-    CPUAffinity=0-5 18-23
+    ```bash
+    SYSTEM_CPUSET=0-5,8-23
+    sudo mkdir -p /etc/systemd/system/init.scope.d
+    sudo mkdir -p /etc/systemd/system/service.d
+    sudo mkdir -p /etc/systemd/system/user.slice.d
+    echo -e "[Scope]\nAllowedCPUs=$SYSTEM_CPUSET" | sudo tee /etc/systemd/system/init.scope.d/cpuset.conf
+    echo -e "[Service]\nAllowedCPUs=$SYSTEM_CPUSET" | sudo tee /etc/systemd/system/service.d/cpuset.conf
+    echo -e "[Slice]\nAllowedCPUs=$SYSTEM_CPUSET" | sudo tee /etc/systemd/system/user.slice.d/cpuset.conf
     ```
 
    Generally, the lowest numbered CPU core on each NUMA socket should be assigned to programs other than NDN-DPDK.
 
-3. Run `sudo systemctl edit ndndpdk-svc@127.0.0.1:3030`, assign CPU cores to NDN-DPDK service, such as:
+3. Assign CPU cores to NDN-DPDK systemd service, such as:
 
-    ```ini
-    [Service]
-    CPUAffinity=6-17 24-35
+    ```bash
+    UNIT_ARG=127.0.0.1:3030
+    UNIT_DIR=/etc/systemd/system/ndndpdk-svc@$(systemd-escape $UNIT_ARG).service.d
+    UNIT_CPUSET=6-17,24-35
+    sudo mkdir -p $UNIT_DIR
+    echo -e "[Service]\nAllowedCPUs=$UNIT_CPUSET" | sudo tee $UNIT_DIR/cpuset.conf
     ```
 
-4. Reboot the server for the settings to take effect.
+   Repeat this step if you plan to run multiple instances of NDN-DPDK systemd service.
+   Each instance should have distinct CPU cores.
 
-To configure CPU isolation for the NDN-DPDK Docker container:
+   Skip this step if you are running NDN-DPDK as Docker containers.
 
-1. Following the above instructions to assign CPU cores to non-containerized programs in `cpuset.conf`.
+4. Assign CPU cores to Docker, such as:
 
-2. When launching the NDN-DPDK service container, add the `--cpuset-cpus` flag, such as:
+    ```bash
+    UNIT_CPUSET=6-17,24-35
+    sudo mkdir -p /etc/systemd/system/docker-.scope.d
+    echo -e "[Scope]\nAllowedCPUs=$UNIT_CPUSET" | sudo tee /etc/systemd/system/docker-.scope.d/cpuset.conf
+    ```
+
+   These CPU cores may be used collectively by all Docker containers.
+   The CPU cores for each container may be further assigned in a later step.
+
+   Skip this step if you are not using Docker.
+
+5. Reboot the server for the settings to take effect.
+
+6. Assign CPU cores to a Docker container, such as:
 
     ```bash
     docker run \
-      --cpuset-cpus "6-17,24-35" \
+      --cpuset-cpus "6-11,24-29" \
       [other arguments]
     ```
 
-3. When launching other containers, add the `--cpuset-cpus` flag but specify distinct CPU cores.
+   The specified CPU cores must be a subset of CPU cores listed in `/etc/systemd/system/docker-.scope.d/cpuset.conf`.
+
+   Repeat this step if you are running multiple NDN-DPDK Docker containers.
+   Each container should have distinct CPU cores.
+
+   Skip this step if you are not running NDN-DPDK as Docker containers.
 
 ## LCore Allocation
 
