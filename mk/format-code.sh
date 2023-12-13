@@ -11,6 +11,7 @@ fi
 
 # Go
 if [[ -z $LANG ]] || [[ $LANG == go ]]; then
+  source mk/goenv.sh
   gofmt -l -w -s .
   go mod tidy
   staticcheck ./...

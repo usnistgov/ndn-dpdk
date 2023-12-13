@@ -15,7 +15,7 @@ require (
 	github.com/gorilla/schema v1.2.1
 	github.com/graphql-go/graphql v0.8.1
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20231130194700-cfcb2fd150eb
-	github.com/jacobsa/fuse v0.0.0-20231012060820-40a7e03ed117
+	github.com/jacobsa/fuse v0.0.0-20231212222509-2b0495a1d5e0
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
