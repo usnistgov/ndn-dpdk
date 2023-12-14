@@ -5,15 +5,15 @@
     "start": "tsx",
     "typecheck": "tsc"
   },
-  "packageManager": "pnpm@8.7.4",
+  "packageManager": "pnpm@8.12.1",
   "dependencies": {
     "stdout-stream": "^2.0.0",
     "tslib": "^2.6.2",
-    "tsx": "^3.12.8",
-    "typescript": "~5.2.2"
+    "tsx": "^4.6.2",
+    "typescript": "~5.3.3"
   },
   "devDependencies": {
-    "@types/stdout-stream": "^1.4.0",
+    "@types/stdout-stream": "^1.4.2",
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz"
   },
   "engines": {
