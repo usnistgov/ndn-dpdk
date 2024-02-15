@@ -376,15 +376,15 @@ export class Benchmark {
 }
 
 interface State {
-  /** TgNodeLabel => forwarder side face ID */
+  /** TgNodeLabel =\> forwarder side face ID */
   face: Record<string, string>;
   /** whether NDT duplicates are detected */
   ndtDuplicate: boolean;
-  /** TgNodeLabel => fetcher ID */
+  /** TgNodeLabel =\> fetcher ID */
   fetcher: Record<string, string>;
-  /** TgNodeLabel => fileserver versionBypassHi */
+  /** TgNodeLabel =\> fileserver versionBypassHi */
   fileServerVersionBypassHi: Record<string, bigint>;
-  /** TgNodeLabel => fetcher task IDs */
+  /** TgNodeLabel =\> fetcher task IDs */
   tasks: Record<string, string[]>;
 }
 

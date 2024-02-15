@@ -26,7 +26,7 @@ export class WorkersTable extends Component<Props> {
           </tr>
         </thead>
         <tbody>
-          {workerEntries.map(([role, workers]) => workers.sort((a, b) => a.nid - b.nid).map((w, i) => (
+          {workerEntries.map(([role, workers]) => workers.toSorted((a, b) => a.nid - b.nid).map((w, i) => (
             <tr key={w.id}>
               {i === 0 ? (
                 <td rowSpan={workers.length}>{role}</td>

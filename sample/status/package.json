@@ -4,24 +4,24 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "packageManager": "pnpm@8.12.1",
+  "packageManager": "pnpm@8.15.3+sha256.fc4a49bd609550a41e14d20efbce802a4b892aa4cac877322de2f0924f122991",
   "dependencies": {
     "@fastify/express": "^2.3.0",
-    "@fastify/http-proxy": "^9.3.0",
-    "@fastify/static": "^6.12.0",
-    "@typescript/lib-dom": "npm:@types/web@0.0.127",
+    "@fastify/http-proxy": "^9.4.0",
+    "@fastify/static": "^7.0.1",
+    "@typescript/lib-dom": "npm:@types/web@0.0.139",
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz",
     "delay": "^6.0.0",
-    "fastify": "^4.25.0",
+    "fastify": "^4.26.1",
     "hashquery": "^1.0.0",
     "numd": "^3.1.0",
-    "preact": "^10.19.3",
+    "preact": "^10.19.4",
     "ts-loader": "^9.5.1",
     "tslib": "^2.6.2",
     "typescript": "~5.3.3",
     "url-parse-lax": "^5.0.0",
-    "webpack": "^5.89.0",
-    "webpack-dev-middleware": "^6.1.1",
+    "webpack": "^5.90.2",
+    "webpack-dev-middleware": "^7.0.0",
     "yargs": "^17.7.2"
   },
   "engines": {

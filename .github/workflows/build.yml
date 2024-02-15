@@ -22,7 +22,7 @@ jobs:
           echo meson=$(meson --version) >> $GITHUB_OUTPUT
           sudo update-alternatives --install /usr/bin/go go $(command -v go) 1
       - name: Cache DPDK and SPDK
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/setup-dpdk
           key: ${{ steps.deps.outputs.meson }}_20231213
@@ -124,3 +124,4 @@ jobs:
         run: |
           tinygo build -o /dev/null -target=wasm ./ndn/ndntestenv/tiny
           make -C sample/wasm
+        continue-on-error: true  # https://github.com/tinygo-org/tinygo/issues/4120

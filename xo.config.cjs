@@ -17,6 +17,16 @@ module.exports = {
     },
     {
       files: [
+        "js/types/**/*.ts",
+      ],
+      ...merge(js, ts, {
+        rules: {
+          "tsdoc/syntax": "off", // `@` tags are for ts-json-schema-generator
+        },
+      }),
+    },
+    {
+      files: [
         "sample/benchmark/**/*.tsx",
         "sample/status/**/*.tsx",
       ],

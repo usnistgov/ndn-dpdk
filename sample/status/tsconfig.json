@@ -4,6 +4,7 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
+    "lib": ["ES2023"],
     "importHelpers": true,
     "jsx": "react",
     "jsxFactory": "h",

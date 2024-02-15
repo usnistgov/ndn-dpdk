@@ -9,7 +9,7 @@ export { gql };
 export class GqlClient {
   /**
    * Constructor.
-   * @param uri NDN-DPDK GraphQL server URI.
+   * @param uri - NDN-DPDK GraphQL server URI.
    */
   constructor(uri: string | URL) {
     uri = new URL(uri, globalThis.document?.URL);
@@ -24,7 +24,7 @@ export class GqlClient {
   private async reconnect(): Promise<void> {
     this.client ??= await this.mutex(async () => new Promise<GraphQLWebSocketClient>((resolve, reject) => {
       const ws = new WebSocket(this.uri, GraphQLWebSocketClient.PROTOCOL);
-      ws.addEventListener("error", (evt) => reject(evt.error));
+      ws.addEventListener("error", (evt) => reject(evt.error as Error));
       ws.addEventListener("close", () => { this.client = undefined; });
 
       const client = new GraphQLWebSocketClient(ws as any, {

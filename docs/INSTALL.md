@@ -11,11 +11,11 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Linux kernel 5.14 or newer
 * Required APT packages: `clang-15 g++-12 git jq libc6-dev-i386 libelf-dev libpcap-dev libssl-dev liburcu-dev make ninja-build pkg-config`
 * Optional APT packages: `clang-format-15 doxygen lcov yamllint`
-* Go 1.21
+* Go 1.22
 * Node.js 20.x
 * [Meson build system](https://mesonbuild.com/Getting-meson.html) 1.x
 * [ubpf](https://github.com/iovisor/ubpf) a3e69808
-* [libbpf](https://github.com/libbpf/libbpf) 1.3.0 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.4.1 (optional)
+* [libbpf](https://github.com/libbpf/libbpf) 1.3.0 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.4.2 (optional)
 * [liburing](https://github.com/axboe/liburing) 2.5
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 23.11
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) c47b9b42
@@ -25,7 +25,7 @@ You can run the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these
 Certain hardware drivers may require extra dependencies before building DPDK or running the script; see [hardware known to work](hardware.md) for more information.
 
 The script automatically downloads dependencies from the Internet.
-If your network cannot reach certain download sites, you can specify a mirror site via `NDNDPDK_DL_*` environment variables.
+If your network cannot reach certain download sites, you can specify mirror sites via `NDNDPDK_DL_*` environment variables.
 See script source code for variable names and their default values.
 
 ## Build Steps
