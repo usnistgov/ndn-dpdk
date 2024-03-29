@@ -9,7 +9,7 @@
   "type": "module",
   "main": "build/js/mod.js",
   "types": "js/mod.ts",
-  "packageManager": "pnpm@8.15.3+sha256.fc4a49bd609550a41e14d20efbce802a4b892aa4cac877322de2f0924f122991",
+  "packageManager": "pnpm@8.15.5+sha256.4b4efa12490e5055d59b9b9fc9438b7d581a6b7af3b5675eb5c5f447cee1a589",
   "dependencies": {
     "graphql": "^16.8.1",
     "graphql-request": "^6.1.0",
@@ -26,7 +26,7 @@
     "json-stable-stringify": "^1.1.1",
     "markdownlint-cli": "^0.39.0",
     "ts-json-schema-generator": "^1.5.0",
-    "typescript": "~5.3.3"
+    "typescript": "~5.4.3"
   },
   "engines": {
     "node": "20.x"

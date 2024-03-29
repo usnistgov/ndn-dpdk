@@ -73,7 +73,7 @@ build/share/bash_autocomplete: go.mod
 npm: build/share/ndn-dpdk/ndn-dpdk.npm.tgz
 
 build/share/ndn-dpdk/ndn-dpdk.npm.tgz:
-	node_modules/.bin/tsc
+	$$(corepack pnpm bin)/tsc
 	mkdir -p $(@D)
 	mv $$(corepack pnpm pack -s .) $@
 

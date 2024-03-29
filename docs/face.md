@@ -11,7 +11,7 @@ After activating NDN-DPDK service, each role offers a different API that accepts
 
 * [forwarder](forwarder.md): `ndndpdk-ctrl create-face` command or `createFace` mutation.
 * [traffic generator](trafficgen.md): `ndndpdk-ctrl start-trafficgen` command or `startTrafficGen` mutation.
-* [file server](fileserver.md): `activate` mutation or `ndndpdk-ctrl activate-fileserver` command.
+* [file server](fileserver.md): `ndndpdk-ctrl activate-fileserver` command or `activate` mutation.
 
 In any role, you can retrieve a list of faces with `ndndpdk-ctrl list-face` command or programmatically via GraphQL `faces` query.
 The response contains the locator of each existing face.

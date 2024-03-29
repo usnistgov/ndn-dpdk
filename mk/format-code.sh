@@ -24,7 +24,7 @@ fi
 
 # TypeScript
 if [[ -z $LANG ]] || [[ $LANG == ts ]]; then
-  node_modules/.bin/xo-yoursunny --fix
+  $(corepack pnpm bin)/xo-yoursunny --fix
 fi
 
 # YAML
@@ -34,10 +34,10 @@ fi
 
 # Markdown
 if [[ -z $LANG ]] || [[ $LANG == md ]]; then
-  git ls-files '*.md' | xargs node_modules/.bin/markdownlint
+  git ls-files '*.md' | xargs $(corepack pnpm bin)/markdownlint
 fi
 
 # Docker
 if [[ -z $LANG ]] || [[ $LANG == docker ]]; then
-  node_modules/.bin/dockerfilelint $(git ls-files -- Dockerfile '*/Dockerfile')
+  $(corepack pnpm bin)/dockerfilelint $(git ls-files -- Dockerfile '*/Dockerfile')
 fi
