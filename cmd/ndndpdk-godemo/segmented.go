@@ -29,6 +29,8 @@ func defineFetchOptionsFlags(fetchOptions *segmented.FetchOptions, flags []cli.F
 }
 
 func retrieveSegmented(ctx context.Context, name ndn.Name, filename string, segmentLen int, fetchOptions segmented.FetchOptions) (e error) {
+	_ = segmentLen
+
 	out := os.Stdout
 	if filename != "" {
 		file, e := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0o666)

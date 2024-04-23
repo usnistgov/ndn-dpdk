@@ -16,14 +16,13 @@ typedef struct FetchLogic {
   TcpCubic ca;
   struct cds_list_head retxQ;
   MinSched* sched;
-  uint64_t segmentEnd;            ///< last segnum desired plus one
-  TscTime startTime;              ///< start time
-  TscTime finishTime;             ///< finish time, 0 if not finished
-  uint64_t nTxRetx;               ///< retransmitted Interests
-  uint64_t nRxData;               ///< non-duplicate Data
-  uint64_t hiDataSegNum;          ///< highest Data segnum received
-  uint64_t cwndDecInterestSegNum; ///< highest Interest segnum when cwnd was last decreased
-  uint32_t nInFlight;             ///< count of in-flight Interests
+  uint64_t segmentEnd; ///< last segnum desired plus one
+  TscTime startTime;   ///< start time
+  TscTime finishTime;  ///< finish time, 0 if not finished
+  TscTime nextCwndDec; ///< when cwnd may be decreased again
+  uint64_t nTxRetx;    ///< retransmitted Interests
+  uint64_t nRxData;    ///< non-duplicate Data
+  uint32_t nInFlight;  ///< count of in-flight Interests
 } FetchLogic;
 
 __attribute__((nonnull)) void

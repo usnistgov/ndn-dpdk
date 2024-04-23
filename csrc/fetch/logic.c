@@ -68,16 +68,16 @@ FetchLogic_TxInterestBurst(FetchLogic* fl, uint64_t* segNums, size_t limit, TscT
 
 __attribute__((nonnull)) static inline bool
 FetchLogic_DecreaseCwnd(FetchLogic* fl, const char* caller, uint64_t segNum, TscTime now) {
-  if (unlikely(fl->hiDataSegNum <= fl->cwndDecInterestSegNum)) {
+  if (unlikely(now < fl->nextCwndDec)) {
     return false;
   }
   TcpCubic_Decrease(&fl->ca, now);
-  fl->cwndDecInterestSegNum = fl->win.hiSegNum;
+  fl->nextCwndDec = now + fl->rtte.rto;
 
-  N_LOGD("%s fl=%p seg=%" PRIu64 " win=[%" PRIu64 ",%" PRIu64 ") hi-data=%" PRIu64 " rto=%" PRId64
-         " cwnd=%" PRIu32 " nInFlight=%" PRIu32 "",
-         caller, fl, segNum, fl->win.loSegNum, fl->win.hiSegNum, fl->hiDataSegNum,
-         TscDuration_ToMillis(fl->rtte.rto), TcpCubic_GetCwnd(&fl->ca), fl->nInFlight);
+  N_LOGD("%s fl=%p seg=%" PRIu64 " win=[%" PRIu64 ",%" PRIu64 ") rto=%" PRId64 " cwnd=%" PRIu32
+         " nInFlight=%" PRIu32 "",
+         caller, fl, segNum, fl->win.loSegNum, fl->win.hiSegNum, TscDuration_ToMillis(fl->rtte.rto),
+         TcpCubic_GetCwnd(&fl->ca), fl->nInFlight);
   return true;
 }
 
@@ -114,7 +114,6 @@ FetchLogic_RxData(FetchLogic* fl, TscTime now, uint64_t segNum, bool hasCongMark
     fl->segmentEnd = segNum + 1;
   }
 
-  fl->hiDataSegNum = RTE_MAX(fl->hiDataSegNum, segNum);
   FetchWindow_Delete(&fl->win, segNum);
 }
 
@@ -176,9 +175,8 @@ FetchLogic_Reset(FetchLogic* fl, uint64_t segmentBegin, uint64_t segmentEnd) {
   fl->segmentEnd = segmentEnd;
   fl->startTime = rte_get_tsc_cycles();
   fl->finishTime = 0;
+  fl->nextCwndDec = 0;
   fl->nTxRetx = 0;
   fl->nRxData = 0;
-  fl->hiDataSegNum = 0;
-  fl->cwndDecInterestSegNum = 0;
   fl->nInFlight = 0;
 }

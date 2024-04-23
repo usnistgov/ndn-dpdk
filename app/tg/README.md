@@ -2,7 +2,7 @@
 
 This package implements an NDN traffic generator.
 
-Unlike named-data.net's [ndnping](https://github.com/named-data/ndn-tools/tree/ndn-tools-22.02/tools/ping) and [ndn-traffic-generator](https://github.com/named-data/ndn-traffic-generator) programs, this implementation does not use a local forwarder, but directly sends and receives packets on a network interface.
+Unlike named-data.net's [ndnping](https://github.com/named-data/ndn-tools/tree/ndn-tools-22.02/tools/ping) and [ndn-traffic-generator](https://github.com/named-data/ndn-traffic-generator) programs, this implementation does not require a local forwarder, but can directly sends and receives packets on a network interface.
 
 This traffic generator has up to five threads for each face:
 
