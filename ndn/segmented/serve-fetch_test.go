@@ -31,7 +31,7 @@ type ServeFetchFixture struct {
 
 func (f *ServeFetchFixture) EnableBridge() {
 	relay := ndntestenv.BridgeRelayConfig{
-		Loss:     0.01,
+		Loss:     0.05,
 		MinDelay: 40 * time.Millisecond,
 		MaxDelay: 80 * time.Millisecond,
 	}
@@ -199,7 +199,7 @@ func TestVerifySlow(t *testing.T) {
 	fixture := NewServeFetchFixture(t)
 	fixture.EnableBridge()
 
-	fixture.Prepare(5000, 600)
+	fixture.Prepare(50000, 600)
 	fixture.FOpt.Verifier = verifySlowVerifier{}
 	defer fixture.Serve()()
 
@@ -210,5 +210,5 @@ func TestVerifySlow(t *testing.T) {
 	payload, e := f.Payload(ctx)
 	require.NoError(e)
 	assert.Equal(fixture.Payload, payload)
-	assert.Equal(9, f.Count())
+	assert.Equal(84, f.Count())
 }

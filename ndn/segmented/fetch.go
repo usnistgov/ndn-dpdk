@@ -125,6 +125,17 @@ func (f *fetcher) unverified(ctx context.Context, unverified chan<- *ndn.Data) e
 
 	rtte := rttest.New()
 	ca := newCubic()
+	var nextCwndDecrease time.Time
+	decreaseCwnd := func(now time.Time) bool {
+		if now.Before(nextCwndDecrease) {
+			// react to one congestion event per RTO
+			return false
+		}
+		nextCwndDecrease = now.Add(rtte.RTO())
+		ca.Decrease(now)
+		return true
+	}
+
 	pendings := map[uint64]*fetchSeg{}
 	retxQ := makeRetxQueue()
 	ticker := time.NewTicker(time.Millisecond)
@@ -166,7 +177,7 @@ func (f *fetcher) unverified(ctx context.Context, unverified chan<- *ndn.Data) e
 				rtte.Push(rtt, len(pendings))
 			}
 			if pkt.Lp.CongMark != 0 {
-				ca.Decrease(now)
+				decreaseCwnd(now)
 			} else {
 				ca.Increase(now, rtt)
 			}
@@ -193,8 +204,10 @@ func (f *fetcher) unverified(ctx context.Context, unverified chan<- *ndn.Data) e
 				if fs.NRetx >= f.RetxLimit {
 					return fmt.Errorf("exceed retx limit on segment %d", seg)
 				}
-				rtte.Backoff()
-				ca.Decrease(fs.RtoExpiry)
+				// effective time of RTO backoff and cwnd decrease is when RTO timer expired, not 'now'
+				if decreaseCwnd(fs.RtoExpiry) {
+					rtte.Backoff()
+				}
 				retxQ.Push(seg, fs)
 			}
 		}
@@ -236,7 +249,8 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 	for data := range unverified {
 		if e := f.Verifier.Verify(data); e != nil {
 			cancel()
-			return fmt.Errorf("verify %s: %w", data.Name, e)
+			seg, _ := extractSegment(data.Name, len(f.prefix))
+			return fmt.Errorf("verify segment %d: %w", seg, e)
 		}
 		unordered <- data
 	}
@@ -320,7 +334,10 @@ func (f *fetcher) Packets(ctx context.Context) (packets []*ndn.Data, e error) {
 	for packet := range ordered {
 		packets = append(packets, packet)
 	}
-	return packets, <-done
+	if e := <-done; e != nil {
+		return nil, e
+	}
+	return packets, nil
 }
 
 func (f *fetcher) Payload(ctx context.Context) ([]byte, error) {
