@@ -39,13 +39,13 @@ DFLT_CODEROOT=$HOME/code
 DFLT_NODEVER=20
 DFLT_GOVER=latest
 DFLT_UBPFVER=a3e69808888b0f48e3a7972dd94115e46dad1e74
-DFLT_LIBBPFVER=v1.3.0
+DFLT_LIBBPFVER=v1.4.0
 DFLT_XDPTOOLSVER=v1.4.2
 DFLT_URINGVER=liburing-2.5
 DFLT_DPDKVER=v23.11
 DFLT_DPDKPATCH=
 DFLT_DPDKOPTS={}
-DFLT_SPDKVER=c47b9b42589d27dd5fb2598d89fe1bf2521b0f07
+DFLT_SPDKVER=v24.01
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -174,9 +174,7 @@ EOT
 fi
 
 : "${NDNDPDK_DL_GITHUB:=https://github.com}"
-: "${NDNDPDK_DL_LLVM_APT:=https://apt.llvm.org}"
 : "${NDNDPDK_DL_NODESOURCE_DEB:=https://deb.nodesource.com}"
-: "${NDNDPDK_DL_PYPA_BOOTSTRAP:=https://bootstrap.pypa.io}"
 : "${NDNDPDK_DL_GODEV:=https://go.dev}"
 : "${NDNDPDK_DL_DPDK_PATCHES:=https://patches.dpdk.org}"
 # you can also set the GOPROXY environment variable, which will be persisted
@@ -191,9 +189,7 @@ curl_test() {
   fi
 }
 curl_test NDNDPDK_DL_GITHUB /robots.txt
-curl_test NDNDPDK_DL_LLVM_APT
 curl_test NDNDPDK_DL_NODESOURCE_DEB
-curl_test NDNDPDK_DL_PYPA_BOOTSTRAP
 curl_test NDNDPDK_DL_GODEV /VERSION
 curl_test NDNDPDK_DL_DPDK_PATCHES
 
@@ -233,8 +229,10 @@ APT_PKGS=(
   m4
   make
   ninja-build
+  patchelf
   pkg-config
   python-is-python3
+  python3-pip
   python3-pyelftools
   uuid-dev
   yamllint

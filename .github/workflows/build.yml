@@ -25,11 +25,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/setup-dpdk
-          key: ${{ steps.deps.outputs.meson }}_20231213
+          key: ${{ steps.deps.outputs.meson }}_20240423
       - uses: yoursunny/setup-dpdk@main
         with:
           dpdk-version: v23.11
-          spdk-version: c47b9b42589d27dd5fb2598d89fe1bf2521b0f07
+          spdk-version: v24.01
       - name: Build NDN-DPDK in debug mode
         run: |
           corepack pnpm install
