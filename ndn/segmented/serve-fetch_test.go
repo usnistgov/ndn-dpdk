@@ -3,6 +3,7 @@ package segmented_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -81,6 +82,7 @@ func TestInexact(t *testing.T) {
 	f := fixture.Fetch()
 	ctx, cancel := context.WithTimeout(context.Background(), fetchTimeout)
 	defer cancel()
+
 	pkts, e := f.Packets(ctx)
 	require.NoError(e)
 	require.Len(pkts, 4)
@@ -142,4 +144,71 @@ func TestEmpty(t *testing.T) {
 	payload, e := f2.Payload(ctx)
 	require.NoError(e)
 	require.Len(payload, 0)
+}
+
+type verifyErrorVerifier struct{}
+
+func (verifyErrorVerifier) Verify(packet ndn.Verifiable) error {
+	return packet.VerifyWith(func(name ndn.Name, si ndn.SigInfo) (ndn.LLVerify, error) {
+		seg := name[len(name)-1].Value[0]
+		if seg == 1 {
+			return nil, errors.New("mock-verify-error")
+		}
+		return func(input, sig []byte) error { return nil }, nil
+	})
+}
+
+func TestVerifyError(t *testing.T) {
+	assert, _ := makeAR(t)
+	fixture := NewServeFetchFixture(t)
+	fixture.EnableBridge()
+
+	fixture.Prepare(5000, 3000)
+	fixture.FOpt.Verifier = verifyErrorVerifier{}
+	defer fixture.Serve()()
+
+	f := fixture.Fetch()
+	ctx, cancel := context.WithTimeout(context.Background(), fetchTimeout)
+	defer cancel()
+
+	pkts, e := f.Packets(ctx)
+	assert.Error(e)
+	assert.Nil(pkts)
+}
+
+type verifySlowVerifier struct{}
+
+func (verifySlowVerifier) Verify(packet ndn.Verifiable) error {
+	return packet.VerifyWith(func(name ndn.Name, si ndn.SigInfo) (ndn.LLVerify, error) {
+		seg := name[len(name)-1].Value[0]
+		switch seg % 4 {
+		case 0:
+		case 1:
+			time.Sleep(30 * time.Millisecond)
+		case 2:
+			time.Sleep(10 * time.Millisecond)
+		case 3:
+			time.Sleep(20 * time.Millisecond)
+		}
+		return func(input, sig []byte) error { return nil }, nil
+	})
+}
+
+func TestVerifySlow(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewServeFetchFixture(t)
+	fixture.EnableBridge()
+
+	fixture.Prepare(5000, 600)
+	fixture.FOpt.Verifier = verifySlowVerifier{}
+	defer fixture.Serve()()
+
+	f := fixture.Fetch()
+	ctx, cancel := context.WithTimeout(context.Background(), fetchTimeout)
+	defer cancel()
+
+	payload, e := f.Payload(ctx)
+	require.NoError(e)
+	assert.Equal(fixture.Payload, payload)
+	assert.Equal(9, f.Count())
 }

@@ -115,8 +115,8 @@ func (f *fetcher) makeInterest(seg uint64) ndn.Interest {
 	return ndn.MakeInterest(name)
 }
 
-func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) error {
-	defer close(unordered)
+func (f *fetcher) unverified(ctx context.Context, unverified chan<- *ndn.Data) error {
+	defer close(unverified)
 	face, e := endpoint.NewLFace(f.Fw)
 	if e != nil {
 		return e
@@ -141,7 +141,7 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 
 		case l3pkt := <-face.Rx():
 			pkt := l3pkt.ToPacket()
-			if pkt.Data == nil || f.Verifier.Verify(pkt.Data) != nil {
+			if pkt.Data == nil {
 				break
 			}
 			now := time.Now()
@@ -175,7 +175,7 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 				segLast = seg
 			}
 			f.count++
-			unordered <- pkt.Data
+			unverified <- pkt.Data
 
 			retxQ.Delete(fs)
 			delete(pendings, seg)
@@ -223,6 +223,26 @@ func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) err
 			return nil
 		}
 	}
+}
+
+func (f *fetcher) Unordered(ctx context.Context, unordered chan<- *ndn.Data) error {
+	defer close(unordered)
+	unverified := make(chan *ndn.Data)
+	done := make(chan error)
+	innerCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() { done <- f.unverified(innerCtx, unverified) }()
+
+	for data := range unverified {
+		if e := f.Verifier.Verify(data); e != nil {
+			cancel()
+			return fmt.Errorf("verify %s: %w", data.Name, e)
+		}
+		unordered <- data
+	}
+
+	cancel()
+	return <-done
 }
 
 func (f *fetcher) Ordered(ctx context.Context, ordered chan<- *ndn.Data) error {
@@ -276,12 +296,12 @@ func (f *fetcher) Chunks(ctx context.Context, chunks chan<- []byte) error {
 }
 
 func (f *fetcher) Pipe(ctx context.Context, w io.Writer) error {
-	ctx, cancel := context.WithCancel(ctx)
+	innerCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	chunks := make(chan []byte)
 	done := make(chan error)
-	go func() { done <- f.Chunks(ctx, chunks) }()
+	go func() { done <- f.Chunks(innerCtx, chunks) }()
 	for chunk := range chunks {
 		if _, e := w.Write(chunk); e != nil {
 			return e
