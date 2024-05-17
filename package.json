@@ -9,7 +9,7 @@
   "type": "module",
   "main": "build/js/mod.js",
   "types": "js/mod.ts",
-  "packageManager": "pnpm@9.0.5+sha256.61bd66913b52012107ec25a6ee4d6a161021ab99e04f6acee3aa50d0e34b4af9",
+  "packageManager": "pnpm@9.1.1+sha512.14e915759c11f77eac07faba4d019c193ec8637229e62ec99eefb7cf3c3b75c64447882b7c485142451ee3a6b408059cdfb7b7fa0341b975f12d0f7629c71195",
   "dependencies": {
     "graphql": "^16.8.1",
     "graphql-request": "^6.1.0",
@@ -17,15 +17,15 @@
     "it-pushable": "^3.2.3",
     "throat": "^6.0.2",
     "tslib": "^2.6.2",
-    "ws": "^8.16.0"
+    "ws": "^8.17.0"
   },
   "devDependencies": {
     "@types/ws": "^8.5.10",
     "@yoursunny/xo-config": "0.58.0",
     "dockerfilelint": "^1.8.0",
     "json-stable-stringify": "^1.1.1",
-    "markdownlint-cli": "^0.39.0",
-    "ts-json-schema-generator": "^2.1.0",
+    "markdownlint-cli": "^0.40.0",
+    "ts-json-schema-generator": "^2.1.1",
     "typescript": "~5.4.5"
   },
   "engines": {
@@ -34,6 +34,11 @@
   "pnpm": {
     "overrides": {
       "@types/eslint": "^8.0.0"
+    },
+    "updateConfig": {
+      "ignoreDependencies": [
+        "graphql-request"
+      ]
     }
   }
 }

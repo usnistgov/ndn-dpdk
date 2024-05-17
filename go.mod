@@ -14,8 +14,8 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/schema v1.3.0
 	github.com/graphql-go/graphql v0.8.1
-	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20240326020559-581a3f7c677f
-	github.com/jacobsa/fuse v0.0.0-20240419171848-edf18a690d4b
+	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20240503222823-736c933a666d
+	github.com/jacobsa/fuse v0.0.0-20240509083815-39f95ce809a8
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
@@ -32,21 +32,21 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
-	github.com/urfave/cli/v2 v2.27.1
+	github.com/urfave/cli/v2 v2.27.2
 	github.com/vishvananda/netlink v1.1.0
 	github.com/xeipuuv/gojsonschema v1.2.0
-	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
+	github.com/youmark/pkcs8 v0.0.0-20240424034433-3c2c7870ae76
 	github.com/zyedidia/generic v1.2.1
 	go.fd.io/govpp/extras v0.1.0
 	go.uber.org/zap v1.27.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
-	golang.org/x/sys v0.19.0
+	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
+	golang.org/x/sys v0.20.0
 )
 
 require (
 	github.com/alecthomas/participle/v2 v2.0.0-alpha6 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -56,7 +56,7 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.33.0 // indirect
+	github.com/onsi/gomega v1.33.1 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -66,10 +66,10 @@ require (
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
-	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
+	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/term v0.18.0 // indirect
+	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/term v0.19.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
