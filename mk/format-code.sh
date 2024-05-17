@@ -38,6 +38,6 @@ if [[ -z $LANG ]] || [[ $LANG == md ]]; then
 fi
 
 # Docker
-if [[ -z $LANG ]] || [[ $LANG == docker ]]; then
-  $(corepack pnpm bin)/dockerfilelint $(git ls-files -- Dockerfile '*/Dockerfile')
+if ([[ -z $LANG ]] || [[ $LANG == docker ]]) && command -v docker &>/dev/null; then
+  git ls-files -- Dockerfile '*/Dockerfile' | xargs docker run --rm -u $(id -u):$(id -g) -v $PWD:/mnt -w /mnt hadolint/hadolint hadolint -t error
 fi
