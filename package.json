@@ -22,7 +22,6 @@
   "devDependencies": {
     "@types/ws": "^8.5.10",
     "@yoursunny/xo-config": "0.58.0",
-    "dockerfilelint": "^1.8.0",
     "json-stable-stringify": "^1.1.1",
     "markdownlint-cli": "^0.40.0",
     "ts-json-schema-generator": "^2.1.1",
