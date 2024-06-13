@@ -25,11 +25,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/setup-dpdk
-          key: ${{ steps.deps.outputs.meson }}_20240423
+          key: ${{ steps.deps.outputs.meson }}_20240613
       - uses: yoursunny/setup-dpdk@main
         with:
-          dpdk-version: v23.11
-          spdk-version: v24.01
+          dpdk-version: v24.03
+          spdk-version: v24.05
       - name: Build NDN-DPDK in debug mode
         run: |
           corepack pnpm install
@@ -65,7 +65,7 @@ jobs:
         run: mk/netlify.sh
         if: ${{ github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
       - name: Deploy docs site
-        uses: nwtgck/actions-netlify@v2.1
+        uses: nwtgck/actions-netlify@v3
         with:
           publish-dir: ./build/netlify/
           production-deploy: true

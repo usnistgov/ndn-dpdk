@@ -15,7 +15,7 @@ require (
 	github.com/gorilla/schema v1.3.0
 	github.com/graphql-go/graphql v0.8.1
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20240503222823-736c933a666d
-	github.com/jacobsa/fuse v0.0.0-20240509083815-39f95ce809a8
+	github.com/jacobsa/fuse v0.0.0-20240607092844-7285af0d05b0
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
@@ -40,8 +40,8 @@ require (
 	go.fd.io/govpp/extras v0.1.0
 	go.uber.org/zap v1.27.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
-	golang.org/x/sys v0.20.0
+	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8
+	golang.org/x/sys v0.21.0
 )
 
 require (
