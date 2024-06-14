@@ -64,19 +64,33 @@ SEC("xdp") int xdp_prog(struct xdp_md* ctx) {
   }
   const struct udphdr* udp = PacketPtrAs((const struct udphdr*)pkt);
   pkt += sizeof(*udp);
+  loc.udpSrc = udp->source;
   loc.udpDst = udp->dest;
-  if (udp->dest != bpf_htons(UDPPortVXLAN)) {
-    loc.udpSrc = udp->source;
-    goto FILTER;
+  switch (udp->dest) {
+    case bpf_htons(UDPPortVXLAN): {
+      loc.udpSrc = 0;
+
+      const struct vxlanhdr* vxlan = PacketPtrAs((const struct udphdr*)pkt);
+      pkt += sizeof(*vxlan);
+      loc.vxlan = vxlan->vx_vni & ~bpf_htonl(0xFF);
+
+      const struct ethhdr* inner = PacketPtrAs((const struct ethhdr*)pkt, ETH_HLEN);
+      pkt += ETH_HLEN;
+      memcpy(loc.inner, inner->h_dest, 2 * ETH_ALEN);
+      break;
+    }
+    case bpf_htons(UDPPortGTP): {
+      const size_t gtpSize = sizeof(EthGtpHdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
+      const EthGtpHdr* gtp = PacketPtrAs((const EthGtpHdr*)pkt, gtpSize);
+      pkt += gtpSize;
+      if (gtp->hdr.e != 1 || gtp->ext.next_ext != 0x85) {
+        goto REJECT;
+      }
+      loc.teid = gtp->hdr.teid;
+      loc.qfi = gtp->psc.qfi;
+      break;
+    }
   }
-
-  const struct vxlanhdr* vxlan = PacketPtrAs((const struct udphdr*)pkt);
-  pkt += sizeof(*vxlan);
-  loc.vxlan = vxlan->vx_vni & ~bpf_htonl(0xFF);
-
-  const struct ethhdr* inner = PacketPtrAs((const struct ethhdr*)pkt, ETH_HLEN);
-  pkt += ETH_HLEN;
-  memcpy(loc.inner, inner->h_dest, 2 * ETH_ALEN);
   goto FILTER;
 
 REJECT:

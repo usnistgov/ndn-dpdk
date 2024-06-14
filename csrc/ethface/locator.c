@@ -314,15 +314,22 @@ EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc) {
     rte_memcpy(RTE_PTR_ADD(xl->ip, RTE_SIZEOF_FIELD(struct rte_ipv6_hdr, src_addr)), loc->localIP,
                RTE_SIZEOF_FIELD(struct rte_ipv6_hdr, dst_addr));
   }
+  xl->udpSrc = rte_cpu_to_be_16(loc->remoteUDP);
   xl->udpDst = rte_cpu_to_be_16(loc->localUDP);
-  if (c.tunnel != 'V') {
-    xl->udpSrc = rte_cpu_to_be_16(loc->remoteUDP);
-    return;
+  switch (c.tunnel) {
+    case 'V': {
+      xl->udpSrc = 0;
+      xl->vxlan = rte_cpu_to_be_32(loc->vxlan << 8);
+      rte_memcpy(xl->inner, &loc->innerLocal, RTE_ETHER_ADDR_LEN);
+      rte_memcpy(RTE_PTR_ADD(xl->inner, RTE_ETHER_ADDR_LEN), &loc->innerRemote, RTE_ETHER_ADDR_LEN);
+      break;
+    }
+    case 'G': {
+      xl->teid = rte_cpu_to_be_32(loc->teid);
+      xl->qfi = loc->qfi;
+      break;
+    }
   }
-
-  xl->vxlan = rte_cpu_to_be_32(loc->vxlan << 8);
-  rte_memcpy(xl->inner, &loc->innerLocal, RTE_ETHER_ADDR_LEN);
-  rte_memcpy(RTE_PTR_ADD(xl->inner, RTE_ETHER_ADDR_LEN), &loc->innerRemote, RTE_ETHER_ADDR_LEN);
 }
 
 static void

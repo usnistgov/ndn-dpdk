@@ -28,6 +28,7 @@ struct vxlanhdr {
 
 enum {
   UDPPortVXLAN = 4789,
+  UDPPortGTP = 2152,
 };
 
 #define PacketPtrAs_(ptr, size, ...)                                                               \
