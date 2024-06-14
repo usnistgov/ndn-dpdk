@@ -90,14 +90,14 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 	var locGTP8 ethface.GtpLocator
 	locGTP8.IPLocator = locUDP4.IPLocator
 	locGTP8.VLAN = 0
-	locGTP8.TEID = 0x10000008
+	locGTP8.UlTEID, locGTP8.DlTEID = 0x10000008, 0x20000008
 	locGTP8.QFI = 2
 	locGTP8.InnerLocalIP = netip.MustParseAddr("192.168.60.3")
 	locGTP8.InnerRemoteIP = netip.MustParseAddr("192.168.60.4")
 	faceGTP8 := addFace(locGTP8)
 
 	locGTP9 := locGTP8
-	locGTP9.TEID = 0x10000009
+	locGTP9.UlTEID, locGTP9.DlTEID = 0x10000009, 0x20000009
 	faceGTP9 := addFace(locGTP9)
 
 	var txEther, txUDP4, txUDP4p1, txUDP6, txVX, txGTP8, txGTP9, txOther atomic.Int32
@@ -208,7 +208,7 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 			&layers.Ethernet{SrcMAC: locGTP8.Remote.HardwareAddr, DstMAC: locGTP8.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv4},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locGTP8.RemoteIP.AsSlice()), DstIP: net.IP(locGTP8.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: 2152, DstPort: 2152},
-			&GTPv1UTPDU{TEID: uint32(locGTP8.TEID), PDUType: 1, QFI: uint8(locGTP8.QFI)},
+			&GTPv1UTPDU{TEID: uint32(locGTP8.UlTEID), PDUType: 1, QFI: uint8(locGTP8.QFI)},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locGTP8.InnerRemoteIP.AsSlice()), DstIP: net.IP(locGTP8.InnerLocalIP.AsSlice())},
 			&layers.UDP{SrcPort: 6363, DstPort: 6363},
 			makeRxFrame("GTP8", i),
@@ -220,7 +220,7 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 			&layers.Ethernet{SrcMAC: locGTP9.Remote.HardwareAddr, DstMAC: locGTP9.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv4},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locGTP9.RemoteIP.AsSlice()), DstIP: net.IP(locGTP9.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: 2152, DstPort: 2152},
-			&GTPv1UTPDU{TEID: uint32(locGTP9.TEID), PDUType: 1, QFI: uint8(locGTP9.QFI)},
+			&GTPv1UTPDU{TEID: uint32(locGTP9.UlTEID), PDUType: 1, QFI: uint8(locGTP9.QFI)},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locGTP9.InnerRemoteIP.AsSlice()), DstIP: net.IP(locGTP9.InnerLocalIP.AsSlice())},
 			&layers.UDP{SrcPort: 6363, DstPort: 6363},
 			makeRxFrame("GTP9", i),

@@ -80,8 +80,8 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b) {
            !rte_is_same_ether_addr(&a->innerRemote, &b->innerRemote);
   }
   if (ac.tunnel == 'G') {
-    // GTP-U faces can coexist if TEID or QFI differ
-    return a->teid != b->teid || a->qfi != b->qfi;
+    // GTP-U faces can coexist if TEID differ
+    return a->ulTEID != b->ulTEID && a->dlTEID != b->dlTEID;
   }
   NDNDPDK_ASSERT(false);
 }
@@ -270,7 +270,7 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc) {
       break;
     }
     case 'G': {
-      match->len += PutGtpHdr(BUF_TAIL, true, loc->teid, loc->qfi);
+      match->len += PutGtpHdr(BUF_TAIL, true, loc->ulTEID, loc->qfi);
       match->len += PutIpv4Hdr(BUF_TAIL, loc->innerLocalIP, loc->innerRemoteIP);
       match->len += PutUdpHdr(BUF_TAIL, UDPPortNDN, UDPPortNDN);
       match->f = MatchGtp;
@@ -325,7 +325,7 @@ EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc) {
       break;
     }
     case 'G': {
-      xl->teid = rte_cpu_to_be_32(loc->teid);
+      xl->teid = rte_cpu_to_be_32(loc->ulTEID);
       xl->qfi = loc->qfi;
       break;
     }
@@ -548,7 +548,7 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
       break;
     }
     case 'G': {
-      hdr->len += PutGtpHdr(BUF_TAIL, false, loc->teid, loc->qfi);
+      hdr->len += PutGtpHdr(BUF_TAIL, false, loc->dlTEID, loc->qfi);
       hdr->len += PutIpv4Hdr(BUF_TAIL, loc->innerLocalIP, loc->innerRemoteIP);
       hdr->len += PutUdpHdr(BUF_TAIL, UDPPortNDN, UDPPortNDN);
       break;

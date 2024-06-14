@@ -21,9 +21,13 @@ const schemeGtp = "gtp"
 type GtpLocator struct {
 	IPLocator
 
-	// TEID is the tunnel endpoint identifier.
+	// UlTEID is the uplink/incoming tunnel endpoint identifier.
 	// This must fit in 32 bits.
-	TEID int `json:"teid"`
+	UlTEID int `json:"ulTEID"`
+
+	// DlTEID is the downlink/outgoing tunnel endpoint identifier.
+	// This must fit in 32 bits.
+	DlTEID int `json:"dlTEID"`
 
 	// QFI is the QoS flow identifier.
 	// This must fit in 6 bits.
@@ -49,7 +53,9 @@ func (loc GtpLocator) Validate() error {
 
 	local, remote := loc.InnerLocalIP.Unmap(), loc.InnerRemoteIP.Unmap()
 	switch {
-	case loc.TEID < 0, loc.TEID > math.MaxUint32:
+	case loc.UlTEID < 0, loc.UlTEID > math.MaxUint32:
+		return ErrTEID
+	case loc.DlTEID < 0, loc.DlTEID > math.MaxUint32:
 		return ErrTEID
 	case loc.QFI < 0, loc.QFI > 0b111111:
 		return ErrQFI
@@ -66,7 +72,8 @@ func (loc GtpLocator) EthLocatorC() (locC ethport.LocatorC) {
 	locC.LocalUDP = ethport.UDPPortGTP
 	locC.RemoteUDP = ethport.UDPPortGTP
 	locC.IsGtp = true
-	locC.Teid = uint32(loc.TEID)
+	locC.UlTEID = uint32(loc.UlTEID)
+	locC.DlTEID = uint32(loc.DlTEID)
 	locC.Qfi = uint8(loc.QFI)
 	locC.InnerLocalIP = loc.InnerLocalIP.As16()
 	locC.InnerRemoteIP = loc.InnerRemoteIP.As16()

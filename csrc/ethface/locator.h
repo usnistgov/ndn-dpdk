@@ -28,7 +28,8 @@ typedef struct EthLocator {
   struct rte_ether_addr innerLocal;
   struct rte_ether_addr innerRemote;
 
-  uint32_t teid;
+  uint32_t ulTEID;
+  uint32_t dlTEID;
   uint8_t innerLocalIP[16];
   uint8_t innerRemoteIP[16];
   uint8_t qfi;
