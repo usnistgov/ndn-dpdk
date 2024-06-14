@@ -81,13 +81,26 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 	faceUDP6 := addFace(locUDP6)
 
 	var locVX ethface.VxlanLocator
-	locVX.EtherLocator, locVX.IPLocator = locUDP6.EtherLocator, locUDP6.IPLocator
+	locVX.IPLocator = locUDP6.IPLocator
 	locVX.VXLAN = 0x887700
 	locVX.InnerLocal.Set("02:00:00:00:01:01")
 	locVX.InnerRemote.Set("02:00:00:00:01:02")
 	faceVX := addFace(locVX)
 
-	var txEther, txUDP4, txUDP4p1, txUDP6, txVX, txOther atomic.Int32
+	var locGTP8 ethface.GtpLocator
+	locGTP8.IPLocator = locUDP4.IPLocator
+	locGTP8.VLAN = 0
+	locGTP8.TEID = 0x10000008
+	locGTP8.QFI = 2
+	locGTP8.InnerLocalIP = netip.MustParseAddr("192.168.60.3")
+	locGTP8.InnerRemoteIP = netip.MustParseAddr("192.168.60.4")
+	faceGTP8 := addFace(locGTP8)
+
+	locGTP9 := locGTP8
+	locGTP9.TEID = 0x10000009
+	faceGTP9 := addFace(locGTP9)
+
+	var txEther, txUDP4, txUDP4p1, txUDP6, txVX, txGTP8, txGTP9, txOther atomic.Int32
 	go func() {
 		buf := make([]byte, port.EthDev().MTU())
 		for {
@@ -96,7 +109,7 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 				break
 			}
 
-			classify, isV4 := &txOther, false
+			classify, isV4, gtp := &txOther, false, 0
 			parsed := gopacket.NewPacket(buf[:n], layers.LayerTypeEthernet, gopacket.NoCopy)
 			for _, l := range parsed.Layers() {
 				switch l := l.(type) {
@@ -107,15 +120,25 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 				case *layers.IPv4:
 					isV4 = true
 				case *layers.UDP:
-					if int(l.SrcPort) == locUDP4p1.LocalUDP {
+					switch {
+					case int(l.SrcPort) == locUDP4p1.LocalUDP:
 						classify = &txUDP4p1
-					} else if isV4 {
-						classify = &txUDP4
-					} else {
+					case isV4:
+						switch gtp {
+						case 0:
+							classify = &txUDP4
+						case 8:
+							classify = &txGTP8
+						case 9:
+							classify = &txGTP9
+						}
+					default:
 						classify = &txUDP6
 					}
 				case *layers.VXLAN:
 					classify = &txVX
+				case *layers.GTPv1U:
+					gtp = int(l.TEID & 0xFF)
 				}
 			}
 			classify.Add(1)
@@ -180,6 +203,30 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 		)
 		assert.NoError(e)
 		iface.TxBurst(faceVX.ID(), makeTxBurst("VX", i))
+
+		_, e = writeToFromLayers(tap,
+			&layers.Ethernet{SrcMAC: locGTP8.Remote.HardwareAddr, DstMAC: locGTP8.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv4},
+			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locGTP8.RemoteIP.AsSlice()), DstIP: net.IP(locGTP8.LocalIP.AsSlice())},
+			&layers.UDP{SrcPort: 2152, DstPort: 2152},
+			&GTPv1UTPDU{TEID: uint32(locGTP8.TEID), PDUType: 1, QFI: uint8(locGTP8.QFI)},
+			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locGTP8.InnerRemoteIP.AsSlice()), DstIP: net.IP(locGTP8.InnerLocalIP.AsSlice())},
+			&layers.UDP{SrcPort: 6363, DstPort: 6363},
+			makeRxFrame("GTP8", i),
+		)
+		assert.NoError(e)
+		iface.TxBurst(faceGTP8.ID(), makeTxBurst("GTP8", i))
+
+		_, e = writeToFromLayers(tap,
+			&layers.Ethernet{SrcMAC: locGTP9.Remote.HardwareAddr, DstMAC: locGTP9.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv4},
+			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locGTP9.RemoteIP.AsSlice()), DstIP: net.IP(locGTP9.LocalIP.AsSlice())},
+			&layers.UDP{SrcPort: 2152, DstPort: 2152},
+			&GTPv1UTPDU{TEID: uint32(locGTP9.TEID), PDUType: 1, QFI: uint8(locGTP9.QFI)},
+			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locGTP9.InnerRemoteIP.AsSlice()), DstIP: net.IP(locGTP9.InnerLocalIP.AsSlice())},
+			&layers.UDP{SrcPort: 6363, DstPort: 6363},
+			makeRxFrame("GTP9", i),
+		)
+		assert.NoError(e)
+		iface.TxBurst(faceGTP9.ID(), makeTxBurst("GTP9", i))
 	}
 
 	time.Sleep(10 * time.Millisecond)
@@ -189,12 +236,16 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 	assert.EqualValues(500, faceUDP4p1.Counters().RxInterests)
 	assert.EqualValues(500, faceUDP6.Counters().RxInterests)
 	assert.EqualValues(500, faceVX.Counters().RxInterests)
+	assert.EqualValues(500, faceGTP8.Counters().RxInterests)
+	assert.EqualValues(500, faceGTP9.Counters().RxInterests)
 
 	assert.EqualValues(500, txEther.Load())
 	assert.EqualValues(500, txUDP4.Load())
 	assert.EqualValues(500, txUDP4p1.Load())
 	assert.EqualValues(500, txUDP6.Load())
 	assert.EqualValues(500, txVX.Load())
+	assert.EqualValues(500, txGTP8.Load())
+	assert.EqualValues(500, txGTP9.Load())
 	assert.Less(int(txOther.Load()), 50)
 }
 

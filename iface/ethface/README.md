@@ -2,6 +2,7 @@
 
 This package implements Ethernet-based faces using DPDK ethdev as transport.
 This includes Ethernet faces (with optional VLAN header), UDP faces, and VXLAN faces.
+Additional, GTP-U faces feature is in development.
 See [face creation](../../docs/face.md) "creating Ethernet-based face" section for locator syntax.
 
 The underlying implementation is in [package ethport](../ethport).

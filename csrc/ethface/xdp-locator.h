@@ -3,7 +3,13 @@
 
 /** @file */
 
+#ifdef __BPF__
+// disable asm instructions
+#define RTE_FORCE_INTRINSICS
+#endif
+
 #include "../core/common.h"
+#include <rte_gtp.h>
 
 /**
  * @brief EthFace address matcher in XDP program.
@@ -19,5 +25,13 @@ typedef struct EthXdpLocator {
   uint8_t inner[2 * 6]; ///< inner Ethernet destination and source
   uint8_t ip[2 * 16];   ///< IPv4/IPv6 source and destination
 } __rte_packed EthXdpLocator;
+
+/** @brief GTP-U header with PDU session container. */
+typedef struct EthGtpHdr {
+  struct rte_gtp_hdr hdr;
+  struct rte_gtp_hdr_ext_word ext;
+  struct rte_gtp_psc_generic_hdr psc;
+  uint8_t next;
+} __rte_packed EthGtpHdr;
 
 #endif // NDNDPDK_ETHFACE_XDP_LOCATOR_H

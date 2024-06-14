@@ -15,6 +15,9 @@ import (
 // UDPPortVXLAN is the default UDP destination port for VXLAN.
 const UDPPortVXLAN = C.RTE_VXLAN_DEFAULT_PORT
 
+// UDPPortGTP is the standard UDP port for GTP-U.
+const UDPPortGTP = C.RTE_GTPU_UDP_PORT
+
 func (loc *LocatorC) ptr() *C.EthLocator {
 	return (*C.EthLocator)(unsafe.Pointer(loc))
 }

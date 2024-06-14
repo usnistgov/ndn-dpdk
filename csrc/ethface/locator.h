@@ -27,6 +27,12 @@ typedef struct EthLocator {
   uint32_t vxlan;
   struct rte_ether_addr innerLocal;
   struct rte_ether_addr innerRemote;
+
+  uint32_t teid;
+  uint8_t innerLocalIP[16];
+  uint8_t innerRemoteIP[16];
+  uint8_t qfi;
+  bool isGtp;
 } EthLocator;
 
 /** @brief Determine whether two locators can coexist on the same port. */
@@ -36,9 +42,9 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b);
 typedef struct EthLocatorClass {
   uint16_t etherType; ///< outer EtherType, 0 for memif
   bool multicast;     ///< is outer Ethernet multicast?
-  bool udp;           ///< is UDP tunnel?
   bool v4;            ///< is IPv4?
-  bool vxlan;         ///< is VXLAN?
+  bool udp;           ///< is UDP?
+  char tunnel;        ///< 'V' for VXLAN, 'G' for GTP-U, 0 otherwise
 } EthLocatorClass;
 
 /** @brief Classify EthFace locator. */
@@ -105,7 +111,7 @@ struct EthTxHdr {
   void (*f)(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst);
   uint8_t len;
   uint8_t l2len;
-  bool vxlanSrcPort;
+  char tunnel;
   uint8_t buf[ETHHDR_MAXLEN];
 };
 

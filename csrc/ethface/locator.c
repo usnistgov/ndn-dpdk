@@ -17,7 +17,12 @@ EthLocator_Classify(const EthLocator* loc) {
   c.multicast = rte_is_multicast_ether_addr(&loc->remote);
   c.udp = loc->remoteUDP != 0;
   c.v4 = memcmp(loc->remoteIP, V4_IN_V6_PREFIX, sizeof(V4_IN_V6_PREFIX)) == 0;
-  c.vxlan = !rte_is_zero_ether_addr(&loc->innerRemote);
+  c.tunnel = 0;
+  if (!rte_is_zero_ether_addr(&loc->innerRemote)) {
+    c.tunnel = 'V';
+  } else if (loc->isGtp) {
+    c.tunnel = 'G';
+  }
   c.etherType = !c.udp ? EtherTypeNDN : c.v4 ? RTE_ETHER_TYPE_IPV4 : RTE_ETHER_TYPE_IPV6;
   return c;
 }
@@ -56,21 +61,29 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b) {
     // different IP addresses can coexist
     return true;
   }
-  if (!ac.vxlan && !bc.vxlan) {
+  if (ac.tunnel == 0 && bc.tunnel == 0) {
     // UDP faces can coexist if either port number differs
     return a->localUDP != b->localUDP || a->remoteUDP != b->remoteUDP;
   }
   if (a->localUDP != b->localUDP && a->remoteUDP != b->remoteUDP) {
-    // UDP face and VXLAN face -or- two VXLAN faces can coexist if both port numbers differ
+    // UDP face and VXLAN/GTP-U face -or- two VXLAN/GTP-U faces can coexist if both port numbers
+    // differ
     return true;
   }
-  if (ac.vxlan != bc.vxlan) {
-    // UDP face and VXLAN face with same port numbers conflict
+  if (ac.tunnel != bc.tunnel) {
+    // UDP face and VXLAN face and GTP-U face with same port numbers conflict
     return false;
   }
-  // VXLAN faces can coexist if VNI or inner MAC address differ
-  return a->vxlan != b->vxlan || !rte_is_same_ether_addr(&a->innerLocal, &b->innerLocal) ||
-         !rte_is_same_ether_addr(&a->innerRemote, &b->innerRemote);
+  if (ac.tunnel == 'V') {
+    // VXLAN faces can coexist if VNI or inner MAC address differ
+    return a->vxlan != b->vxlan || !rte_is_same_ether_addr(&a->innerLocal, &b->innerLocal) ||
+           !rte_is_same_ether_addr(&a->innerRemote, &b->innerRemote);
+  }
+  if (ac.tunnel == 'G') {
+    // GTP-U faces can coexist if TEID or QFI differ
+    return a->teid != b->teid || a->qfi != b->qfi;
+  }
+  NDNDPDK_ASSERT(false);
 }
 
 __attribute__((nonnull)) static uint8_t
@@ -140,6 +153,22 @@ PutVxlanHdr(uint8_t* buffer, uint32_t vni) {
   return sizeof(*vxlan);
 }
 
+__attribute__((nonnull)) static uint8_t
+PutGtpHdr(uint8_t* buffer, bool ul, uint32_t teid, uint8_t qfi) {
+  EthGtpHdr* gtp = (EthGtpHdr*)buffer;
+  static_assert(sizeof(*gtp) == 16, "");
+  gtp->hdr.ver = 1;
+  gtp->hdr.pt = 1;
+  gtp->hdr.e = 1;
+  gtp->hdr.msg_type = 0xFF;
+  gtp->hdr.teid = rte_cpu_to_be_32(teid);
+  gtp->ext.next_ext = 0x85;
+  gtp->psc.ext_hdr_len = 1;
+  gtp->psc.type = (int)ul;
+  gtp->psc.qfi = qfi;
+  return sizeof(*gtp);
+}
+
 __attribute__((nonnull)) static inline bool
 MatchAlways(const EthRxMatch* match, const struct rte_mbuf* m) {
   return true;
@@ -173,7 +202,7 @@ MatchEtherMulticast(const EthRxMatch* match, const struct rte_mbuf* m) {
 
 __attribute__((nonnull)) static inline bool
 MatchUdp(const EthRxMatch* match, const struct rte_mbuf* m) {
-  // UDP: exact match on IP addresses and UDP port numbers
+  // UDP or GTP: exact match on IP addresses and UDP port numbers
   // VXLAN: exact match on IP addresses only
   return MatchEtherUnicast(match, m) &&
          memcmp(rte_pktmbuf_mtod_offset(m, const uint8_t*, match->l3matchOff),
@@ -193,6 +222,16 @@ MatchVxlan(const EthRxMatch* match, const struct rte_mbuf* m) {
   return MatchUdp(match, m) && udpM->dst_port == udpT->dst_port &&
          (vxlanM->vx_vni & ~rte_cpu_to_be_32(0xFF)) == vxlanT->vx_vni &&
          memcmp(innerEthM, innerEthT, RTE_ETHER_HDR_LEN) == 0;
+}
+
+__attribute__((nonnull)) static inline bool
+MatchGtp(const EthRxMatch* match, const struct rte_mbuf* m) {
+  // exact match on TEID and QFI; type=1 for uplink
+  const EthGtpHdr* gtpM =
+    rte_pktmbuf_mtod_offset(m, const EthGtpHdr*, match->udpOff + sizeof(struct rte_udp_hdr));
+  const EthGtpHdr* gtpT = RTE_PTR_ADD(match->buf, match->udpOff + sizeof(struct rte_udp_hdr));
+  return MatchUdp(match, m) && gtpM->hdr.teid == gtpT->hdr.teid && gtpM->hdr.e == 1 &&
+         gtpM->ext.next_ext == 0x85 && gtpM->psc.type == 1 && gtpM->psc.qfi == gtpT->psc.qfi;
 }
 
 void
@@ -221,14 +260,23 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc) {
   match->f = MatchUdp;
   match->l3matchOff = match->udpOff - l3addrsLen;
   match->l3matchLen = l3addrsLen + offsetof(struct rte_udp_hdr, dgram_len);
-  if (!c.vxlan) {
-    return;
-  }
 
-  match->l3matchLen = l3addrsLen;
-  match->len += PutVxlanHdr(BUF_TAIL, loc->vxlan);
-  match->len += PutEtherVlanHdr(BUF_TAIL, &loc->innerRemote, &loc->innerLocal, 0, EtherTypeNDN);
-  match->f = MatchVxlan;
+  switch (c.tunnel) {
+    case 'V': {
+      match->l3matchLen = l3addrsLen;
+      match->len += PutVxlanHdr(BUF_TAIL, loc->vxlan);
+      match->len += PutEtherVlanHdr(BUF_TAIL, &loc->innerRemote, &loc->innerLocal, 0, EtherTypeNDN);
+      match->f = MatchVxlan;
+      break;
+    }
+    case 'G': {
+      match->len += PutGtpHdr(BUF_TAIL, true, loc->teid, loc->qfi);
+      match->len += PutIpv4Hdr(BUF_TAIL, loc->innerLocalIP, loc->innerRemoteIP);
+      match->len += PutUdpHdr(BUF_TAIL, UDPPortNDN, UDPPortNDN);
+      match->f = MatchGtp;
+      break;
+    }
+  }
 
 #undef BUF_TAIL
 }
@@ -267,7 +315,7 @@ EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc) {
                RTE_SIZEOF_FIELD(struct rte_ipv6_hdr, dst_addr));
   }
   xl->udpDst = rte_cpu_to_be_16(loc->localUDP);
-  if (!c.vxlan) {
+  if (c.tunnel != 'V') {
     xl->udpSrc = rte_cpu_to_be_16(loc->remoteUDP);
     return;
   }
@@ -346,8 +394,9 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc) {
   MASK(flow->udpMask.hdr.src_port);
   PutUdpHdr((uint8_t*)(&flow->udpSpec.hdr), loc->remoteUDP, loc->localUDP);
 
-  if (!c.vxlan) {
+  if (c.tunnel != 'V') {
     APPEND(UDP, udp);
+    // TODO GTP-U
     return;
   }
 
@@ -384,11 +433,29 @@ TxEther(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst) {
   TxPrepend(hdr, m);
 }
 
-static __rte_always_inline uint16_t
-TxMakeVxlanSrcPort(bool newBurst) {
-  static_assert((VXLAN_SRCPORT_BASE & VXLAN_SRCPORT_MASK) == 0, "");
-  RTE_PER_LCORE(txVxlanSrcPort) += (uint16_t)newBurst;
-  return (RTE_PER_LCORE(txVxlanSrcPort) & VXLAN_SRCPORT_MASK) | VXLAN_SRCPORT_BASE;
+__attribute__((nonnull)) static __rte_always_inline void
+TxUdpCommon(const EthTxHdr* hdr, struct rte_udp_hdr* udp, uint16_t udpLen, bool newBurst) {
+  udp->dgram_len = rte_cpu_to_be_16(udpLen);
+  switch (hdr->tunnel) {
+    case 'V': {
+      static_assert((VXLAN_SRCPORT_BASE & VXLAN_SRCPORT_MASK) == 0, "");
+      RTE_PER_LCORE(txVxlanSrcPort) += (uint16_t)newBurst;
+      udp->src_port =
+        rte_cpu_to_be_16((RTE_PER_LCORE(txVxlanSrcPort) & VXLAN_SRCPORT_MASK) | VXLAN_SRCPORT_BASE);
+      break;
+    }
+    case 'G': {
+      EthGtpHdr* gtp = RTE_PTR_ADD(udp, sizeof(*udp));
+      struct rte_ipv4_hdr* ip = RTE_PTR_ADD(gtp, sizeof(*gtp));
+      struct rte_udp_hdr* iudp = RTE_PTR_ADD(ip, sizeof(*ip));
+      uint16_t gtpLen = udpLen - sizeof(*udp);
+      gtp->hdr.plen = rte_cpu_to_be_16(gtpLen - sizeof(gtp->hdr));
+      ip->total_length = rte_cpu_to_be_16(gtpLen - sizeof(*gtp));
+      iudp->dgram_len = rte_cpu_to_be_16(gtpLen - sizeof(*gtp) - sizeof(*ip));
+      ip->hdr_checksum = rte_ipv4_cksum(ip);
+      break;
+    }
+  }
 }
 
 __attribute__((nonnull)) static __rte_always_inline struct rte_ipv4_hdr*
@@ -398,10 +465,7 @@ TxUdp4(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst) {
   struct rte_udp_hdr* udp = RTE_PTR_ADD(ip, sizeof(*ip));
   uint16_t ipLen = m->pkt_len - hdr->l2len;
   ip->total_length = rte_cpu_to_be_16(ipLen);
-  udp->dgram_len = rte_cpu_to_be_16(ipLen - sizeof(*ip));
-  if (hdr->vxlanSrcPort) {
-    udp->src_port = rte_cpu_to_be_16(TxMakeVxlanSrcPort(newBurst));
-  }
+  TxUdpCommon(hdr, udp, ipLen - sizeof(*ip), newBurst);
   return ip;
 }
 
@@ -424,11 +488,8 @@ TxUdp6(const EthTxHdr* hdr, struct rte_mbuf* m, bool newBurst) {
   TxPrepend(hdr, m);
   struct rte_ipv6_hdr* ip = rte_pktmbuf_mtod_offset(m, struct rte_ipv6_hdr*, hdr->l2len);
   struct rte_udp_hdr* udp = RTE_PTR_ADD(ip, sizeof(*ip));
-  ip->payload_len = rte_cpu_to_be_16(m->pkt_len - hdr->l2len - sizeof(*ip));
-  udp->dgram_len = ip->payload_len;
-  if (hdr->vxlanSrcPort) {
-    udp->src_port = rte_cpu_to_be_16(TxMakeVxlanSrcPort(newBurst));
-  }
+  TxUdpCommon(hdr, udp, m->pkt_len - hdr->l2len - sizeof(*ip), newBurst);
+  ip->payload_len = udp->dgram_len;
   return ip;
 }
 
@@ -472,12 +533,20 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
   hdr->len += (c.v4 ? PutIpv4Hdr : PutIpv6Hdr)(BUF_TAIL, loc->localIP, loc->remoteIP);
   hdr->len += PutUdpHdr(BUF_TAIL, loc->localUDP, loc->remoteUDP);
 
-  if (!c.vxlan) {
-    return;
+  hdr->tunnel = c.tunnel;
+  switch (c.tunnel) {
+    case 'V': {
+      hdr->len += PutVxlanHdr(BUF_TAIL, loc->vxlan);
+      hdr->len += PutEtherVlanHdr(BUF_TAIL, &loc->innerLocal, &loc->innerRemote, 0, EtherTypeNDN);
+      break;
+    }
+    case 'G': {
+      hdr->len += PutGtpHdr(BUF_TAIL, false, loc->teid, loc->qfi);
+      hdr->len += PutIpv4Hdr(BUF_TAIL, loc->innerLocalIP, loc->innerRemoteIP);
+      hdr->len += PutUdpHdr(BUF_TAIL, UDPPortNDN, UDPPortNDN);
+      break;
+    }
   }
-  hdr->vxlanSrcPort = true;
-  hdr->len += PutVxlanHdr(BUF_TAIL, loc->vxlan);
-  hdr->len += PutEtherVlanHdr(BUF_TAIL, &loc->innerLocal, &loc->innerRemote, 0, EtherTypeNDN);
 
 #undef BUF_TAIL
 }

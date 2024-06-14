@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
@@ -122,4 +123,32 @@ func pktmbufFromLayers(hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {
 	b, discard := packetFromLayers(hdrs...)
 	defer discard()
 	return makePacket(mbuftestenv.Headroom(0), b)
+}
+
+type GTPv1UTPDU struct {
+	TEID    uint32
+	PDUType uint8 // 0=downlink, 1=uplink
+	QFI     uint8
+}
+
+func (GTPv1UTPDU) LayerType() gopacket.LayerType {
+	return layers.LayerTypeGTPv1U
+}
+
+func (tpdu *GTPv1UTPDU) SerializeTo(b gopacket.SerializeBuffer, opts gopacket.SerializeOptions) error {
+	g := &layers.GTPv1U{
+		Version:       1,
+		ProtocolType:  1,
+		MessageType:   0xFF,
+		MessageLength: 8 + uint16(len(b.Bytes())),
+		TEID:          tpdu.TEID,
+		GTPExtensionHeaders: []layers.GTPExtensionHeader{
+			{Type: 0x85, Content: []byte{tpdu.PDUType << 4, tpdu.QFI & 0x3F}},
+		},
+	}
+
+	// workaround https://github.com/google/gopacket/issues/1175
+	wire, discard := packetFromLayers(g)
+	defer discard()
+	return gopacket.Payload(wire).SerializeTo(b, gopacket.SerializeOptions{})
 }

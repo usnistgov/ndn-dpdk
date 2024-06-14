@@ -98,6 +98,20 @@ func TestLocatorCoexist(t *testing.T) {
 		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA,
 		`{"scheme":"vxlan","vxlan":1`+innerB+ipA+etherA)
 
+	const innerIP = `,"innerLocalIP":"192.168.60.3","innerRemoteIP":"192.168.60.4"`
+	conflict( // same TEID and QFI
+		`{"scheme":"gtp","teid":268435464,"qfi":1`+innerIP+ipA+etherA,
+		`{"scheme":"gtp","teid":268435464,"qfi":1`+innerIP+ipA+etherA,
+	)
+	coexist( // different TEID
+		`{"scheme":"gtp","teid":268435464,"qfi":1`+innerIP+ipA+etherA,
+		`{"scheme":"gtp","teid":268435465,"qfi":1`+innerIP+ipA+etherA,
+	)
+	coexist( // different QFI
+		`{"scheme":"gtp","teid":268435464,"qfi":1`+innerIP+ipA+etherA,
+		`{"scheme":"gtp","teid":268435464,"qfi":2`+innerIP+ipA+etherA,
+	)
+
 	// mixed schemes
 	coexist( // "ether" with "udpe"
 		`{"scheme":"ether"`+etherA,
@@ -105,19 +119,22 @@ func TestLocatorCoexist(t *testing.T) {
 	coexist( // "ether" with "vxlan"
 		`{"scheme":"ether"`+etherA,
 		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA)
-	conflict( // "udp" with "vxlan", same localUDP
+	conflict( // "udpe" with "vxlan", same localUDP
 		`{"scheme":"udpe","localUDP":4789,"remoteUDP":4444`+ipA+etherA,
 		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA)
-	conflict( // "udp" with "vxlan", same remoteUDP
+	conflict( // "udpe" with "vxlan", same remoteUDP
 		`{"scheme":"udpe","localUDP":4444,"remoteUDP":4789`+ipA+etherA,
 		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA)
-	coexist( // "udp" with "vxlan", different ports
+	coexist( // "udpe" with "vxlan", different ports
 		`{"scheme":"udpe","localUDP":6363,"remoteUDP":6363`+ipA+etherA,
 		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA)
+	conflict( // "udpe" with "gtp", same localUDP and remoteUDP
+		`{"scheme":"udpe","localUDP":2152,"remoteUDP":2152`+ipA+etherA,
+		`{"scheme":"gtp","teid":268435464,"qfi":1`+innerIP+ipA+etherA)
 }
 
 func TestLocatorRxMatch(t *testing.T) {
-	assert, require := makeAR(t)
+	assert, _ := makeAR(t)
 
 	matchers := map[string]ethport.RxMatch{}
 	addMatcher := func(key string, locator string) {
@@ -183,6 +200,17 @@ func TestLocatorRxMatch(t *testing.T) {
 		"innerLocal": "02:00:00:00:00:03",
 		"innerRemote": "02:00:00:00:00:04"
 	}`)
+	addMatcher("gtp", `{
+		"scheme": "gtp",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02",
+		"localIP": "192.168.37.1",
+		"remoteIP": "192.168.37.2",
+		"teid": 268435464,
+		"qfi": 1,
+		"innerLocalIP": "192.168.60.3",
+		"innerRemoteIP": "192.168.60.4"
+	}`)
 
 	payload := make(gopacket.Payload, 200)
 	rand.Read([]byte(payload))
@@ -190,19 +218,13 @@ func TestLocatorRxMatch(t *testing.T) {
 		pkt := pktmbufFromLayers(append(slices.Clone(headers), payload)...)
 		defer pkt.Close()
 
-		pktLen := pkt.Len()
-		for key, matcher := range matchers {
+		for key, m := range matchers {
 			if key == matcherKey {
-				continue
+				assert.True(m.Match(pkt))
+				assert.Equal([]byte(payload), pkt.SegmentBytes()[0][m.HdrLen():])
+			} else {
+				assert.False(m.Match(pkt))
 			}
-			assert.False(matcher.Match(pkt))
-			require.Equal(pktLen, pkt.Len())
-		}
-
-		if matcherKey != "" {
-			m := matchers[matcherKey]
-			assert.True(m.Match(pkt))
-			assert.Equal([]byte(payload), pkt.SegmentBytes()[0][m.HdrLen():])
 		}
 	}
 
@@ -215,6 +237,8 @@ func TestLocatorRxMatch(t *testing.T) {
 	ip40 := net.ParseIP("192.168.37.0")
 	ip41 := net.ParseIP("192.168.37.1")
 	ip42 := net.ParseIP("192.168.37.2")
+	ip43 := net.ParseIP("192.168.60.3")
+	ip44 := net.ParseIP("192.168.60.4")
 	ip60 := net.ParseIP("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0000")
 	ip61 := net.ParseIP("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001")
 	ip62 := net.ParseIP("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002")
@@ -334,6 +358,47 @@ func TestLocatorRxMatch(t *testing.T) {
 		&layers.VXLAN{VNI: 1},
 		&layers.Ethernet{SrcMAC: mac4, DstMAC: mac3, EthernetType: layers.EthernetTypePPP},
 	)
+
+	onlyMatch("gtp",
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
+		&layers.UDP{SrcPort: 2152, DstPort: 2152},
+		&GTPv1UTPDU{TEID: 0x10000008, PDUType: 1, QFI: 1},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip44, DstIP: ip43},
+		&layers.UDP{SrcPort: 6363, DstPort: 6363},
+	)
+	onlyMatch("", // wrong TEID
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
+		&layers.UDP{SrcPort: 2152, DstPort: 2152},
+		&GTPv1UTPDU{TEID: 0x10000009, PDUType: 1, QFI: 1},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip44, DstIP: ip43},
+		&layers.UDP{SrcPort: 6363, DstPort: 6363},
+	)
+	onlyMatch("", // wrong QFI
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
+		&layers.UDP{SrcPort: 2152, DstPort: 2152},
+		&GTPv1UTPDU{TEID: 0x10000008, PDUType: 1, QFI: 2},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip44, DstIP: ip43},
+		&layers.UDP{SrcPort: 6363, DstPort: 6363},
+	)
+	onlyMatch("", // wrong PDU session container type
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
+		&layers.UDP{SrcPort: 2152, DstPort: 2152},
+		&GTPv1UTPDU{TEID: 0x10000008, PDUType: 0, QFI: 1},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip44, DstIP: ip43},
+		&layers.UDP{SrcPort: 6363, DstPort: 6363},
+	)
+	onlyMatch("", // missing PDU session container
+		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
+		&layers.UDP{SrcPort: 2152, DstPort: 2152},
+		&layers.GTPv1U{Version: 1, ProtocolType: 1, MessageType: 0xFF},
+		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip44, DstIP: ip43},
+		&layers.UDP{SrcPort: 6363, DstPort: 6363},
+	)
 }
 
 func TestLocatorTxHdr(t *testing.T) {
@@ -414,4 +479,26 @@ func TestLocatorTxHdr(t *testing.T) {
 	vxlanUDP := vxlanPkt.Layer(layers.LayerTypeUDP).(*layers.UDP)
 	assert.GreaterOrEqual(uint16(vxlanUDP.SrcPort), uint16(0xC000))
 	assert.EqualValues(4789, vxlanUDP.DstPort)
+
+	gtpPkt := checkTxHdr(`{
+		"scheme": "gtp",
+		"local": "02:00:00:00:00:01",
+		"remote": "02:00:00:00:00:02",
+		"localIP": "192.168.37.1",
+		"remoteIP": "192.168.37.2",
+		"teid": 268435464,
+		"qfi": 1,
+		"innerLocalIP": "192.168.60.3",
+		"innerRemoteIP": "192.168.60.4"
+	}`, layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeUDP, layers.LayerTypeGTPv1U, layers.LayerTypeIPv4, layers.LayerTypeUDP)
+	gtpOuterUDP := gtpPkt.Layer(layers.LayerTypeUDP).(*layers.UDP)
+	assert.EqualValues(2152, gtpOuterUDP.SrcPort)
+	assert.EqualValues(2152, gtpOuterUDP.DstPort)
+	gtpGTP := gtpPkt.Layer(layers.LayerTypeGTPv1U).(*layers.GTPv1U)
+	assert.EqualValues(0x10000008, gtpGTP.TEID)
+	if assert.Len(gtpGTP.GTPExtensionHeaders, 1) {
+		gtpPSC := gtpGTP.GTPExtensionHeaders[0]
+		assert.EqualValues(0x85, gtpPSC.Type)
+		assert.Equal([]byte{0x00, 0x01}, gtpPSC.Content)
+	}
 }
