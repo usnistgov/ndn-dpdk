@@ -34,6 +34,7 @@ require (
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/vishvananda/netlink v1.1.0
+	github.com/wmnsk/go-pfcp v0.0.24
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/youmark/pkcs8 v0.0.0-20240424034433-3c2c7870ae76
 	github.com/zyedidia/generic v1.2.1
