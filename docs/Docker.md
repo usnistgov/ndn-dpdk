@@ -7,7 +7,7 @@ This page describes how to run NDN-DPDK service in a Docker container.
 The simplest command to build a Docker image with the provided [Dockerfile](../Dockerfile) is:
 
 ```bash
-docker build --pull -t ndn-dpdk .
+docker build --pull -t localhost/ndn-dpdk .
 ```
 
 Some DPDK drivers may require external dependencies.
@@ -25,7 +25,7 @@ docker build --pull \
   --build-arg APT_PKGS="libibverbs-dev" \
   --build-arg DEPENDS_ARGS="--arch=skylake" \
   --build-arg MAKE_ENV="GOAMD64=v3 NDNDPDK_MK_RELEASE=1" \
-  -t ndn-dpdk .
+  -t localhost/ndn-dpdk .
 ```
 
 ## Prepare the Host Machine
@@ -37,7 +37,9 @@ The [installation guide](INSTALL.md) "usage" section describes how to perform th
 You can extract DPDK setup scripts and NDN-DPDK management schemas from the image:
 
 ```bash
-docker run --rm ndn-dpdk sh -c 'tar -c /usr/local/bin/dpdk-*.py /usr/local/share/ndn-dpdk' | sudo tar -x -C /
+docker run --rm localhost/ndn-dpdk sh -c '
+  tar -c /usr/local/bin/dpdk-*.py /usr/local/share/ndn-dpdk
+' | sudo tar -x -C /
 ```
 
 ## Start the NDN-DPDK Service Container
@@ -51,7 +53,7 @@ docker run -d --name ndndpdk-svc \
   --cap-add IPC_LOCK --cap-add NET_ADMIN --cap-add SYS_ADMIN --cap-add SYS_NICE \
   --mount type=bind,source=/dev/hugepages,target=/dev/hugepages \
   --mount type=volume,source=run-ndn,target=/run/ndn \
-  ndn-dpdk
+  localhost/ndn-dpdk
 
 # retrieve container IP address for NDN-DPDK GraphQL endpoint
 GQLSERVER=$(docker inspect -f 'http://{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}:3030' ndndpdk-svc)
@@ -94,7 +96,7 @@ It is not recommended to publish this port to the host machine, because the Grap
 To use the `ndndpdk-ctrl` command line tool, create an alias:
 
 ```bash
-alias ndndpdk-ctrl='docker run -i --rm ndn-dpdk ndndpdk-ctrl --gqlserver $GQLSERVER'
+alias ndndpdk-ctrl='docker run -i --rm localhost/ndn-dpdk ndndpdk-ctrl --gqlserver $GQLSERVER'
 ```
 
 ## Run Applications with Containerized NDN-DPDK Service
@@ -104,12 +106,12 @@ If the NDN-DPDK service container has been [activated as a forwarder](forwarder.
 ```bash
 docker run --rm \
   --mount type=volume,source=run-ndn,target=/run/ndn \
-  ndn-dpdk \
+  localhost/ndn-dpdk \
   ndndpdk-godemo --gqlserver $GQLSERVER pingserver --name /example/P
 
 docker run --rm \
   --mount type=volume,source=run-ndn,target=/run/ndn \
-  ndn-dpdk \
+  localhost/ndn-dpdk \
   ndndpdk-godemo --gqlserver $GQLSERVER pingclient --name /example/P
 ```
 

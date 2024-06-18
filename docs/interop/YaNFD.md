@@ -17,7 +17,7 @@ To build the YaNFD Docker image:
 
 ```bash
 cd docs/interop/yanfd
-docker build --pull -t yanfd .
+docker build --pull -t localhost/yanfd .
 ```
 
 The YaNFD package only contains a forwarder, and does not contain a management program.
@@ -119,11 +119,11 @@ docker volume create run-ndn
 docker run -d --rm --name yanfd \
   --network host --init \
   --mount type=volume,source=run-ndn,target=/run/ndn \
-  yanfd
+  localhost/yanfd
 
 # make 'nfdc' alias
 alias nfdc='docker run --rm --mount type=volume,source=run-ndn,target=/run/ndn \
-            -e NDN_CLIENT_TRANSPORT=unix:///run/ndn/yanfd.sock nfd nfdc'
+            -e NDN_CLIENT_TRANSPORT=unix:///run/ndn/yanfd.sock localhost/nfd nfdc'
 
 # create face
 A_FACEURI=$(echo $A_IP | awk -F/ '{ if ($1~":") { print "udp6://[" $1 "]:6363" } else { print "udp4://" $1 ":6363" } }')
@@ -137,7 +137,7 @@ nfdc route add prefix $A_NAME nexthop $B_FACEID
 docker run -it --rm --network none \
   --mount type=volume,source=run-ndn,target=/run/ndn \
   -e NDN_CLIENT_TRANSPORT=unix:///run/ndn/yanfd.sock \
-  nfd \
+  localhost/nfd \
   ndnpingserver --size 512 $B_NAME
 ```
 
@@ -155,6 +155,6 @@ On node B, start a consumer:
 docker run -it --rm --network none \
   --mount type=volume,source=run-ndn,target=/run/ndn \
   -e NDN_CLIENT_TRANSPORT=unix:///run/ndn/yanfd.sock \
-  nfd \
+  localhost/nfd \
   ndnping -i 10 $A_NAME
 ```

@@ -16,7 +16,7 @@ To build the NFD Docker image:
 
 ```bash
 cd docs/interop/nfd
-docker build --pull -t nfd .
+docker build --pull -t localhost/nfd .
 ```
 
 NDN-DPDK should be installed as a systemd service, not a Docker container.
@@ -95,7 +95,7 @@ docker rm -f nfd
 
 # start NFD
 docker volume create run-ndn
-docker run -d --rm --name nfd \
+docker run -d --rm --name localhost/nfd \
   --cap-add=NET_ADMIN --network none --init \
   --mount type=volume,source=run-ndn,target=/run/ndn \
   -e 'NFD_ENABLE_ETHER=1' \
@@ -120,7 +120,7 @@ nfdc route add prefix $A_NAME nexthop $B_FACEID
 # start the producer
 docker run -it --rm --network none \
   --mount type=volume,source=run-ndn,target=/run/ndn \
-  nfd \
+  localhost/nfd \
   ndnpingserver --size 512 $B_NAME
 ```
 
@@ -137,7 +137,7 @@ On node B, start a consumer:
 # run the consumer
 docker run -it --rm --network none \
   --mount type=volume,source=run-ndn,target=/run/ndn \
-  nfd \
+  localhost/nfd \
   ndnping -i 10 $A_NAME
 ```
 
@@ -201,12 +201,12 @@ docker run -d --rm --name nfd \
   --network none --init \
   --mount type=volume,source=run-ndn,target=/run/ndn \
   -e 'NFD_CS_CAP=1024' \
-  nfd
+  localhost/nfd
 
 # start the producer on NFD side
 docker run -it --rm \
   --mount type=volume,source=run-ndn,target=/run/ndn \
-  nfd \
+  localhost/nfd \
   ndnpingserver --size 512 $B_NAME
 ```
 
@@ -244,6 +244,6 @@ ndndpdk-godemo nfdreg --command /localhost/nfd --origin 0 --register $A_NAME
 # run the consumer on NFD side to retrieve from /app/A
 docker run -it --rm --network none \
   --mount type=volume,source=run-ndn,target=/run/ndn \
-  nfd \
+  localhost/nfd \
   ndnping -i 10 $A_NAME
 ```

@@ -84,15 +84,15 @@ jobs:
     steps:
       - uses: docker/build-push-action@v5
         with:
-          tags: ndn-dpdk
+          tags: localhost/ndn-dpdk
           build-args: |
             BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
             DEPENDS_ARGS='-Ddisable_drivers=common/cnxk,common/dpaax,net/bnxt'
             MAKE_ENV=NDNDPDK_MK_RELEASE=1
       - name: Show image size
-        run: docker image inspect -f '{{.Size}}' ndn-dpdk
+        run: docker image inspect -f '{{.Size}}' localhost/ndn-dpdk
       - name: List files in image
-        run: docker run --rm ndn-dpdk find /usr/local
+        run: docker run --rm localhost/ndn-dpdk find /usr/local
   library:
     runs-on: ubuntu-22.04
     steps:
