@@ -17,7 +17,7 @@ var (
 
 const schemeGtp = "gtp"
 
-// VxlanLocator describes a GTP-U face.
+// GtpLocator describes a GTP-U face.
 type GtpLocator struct {
 	IPLocator
 

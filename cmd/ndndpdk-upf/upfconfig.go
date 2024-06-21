@@ -41,19 +41,19 @@ func (cfg *UpfConfig) DefineFlags(flags []cli.Flag) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:     "upf-n3",
-			Usage:    "UPF N3/N9 IPv4 `address`",
+			Usage:    "UPF N3 IPv4 `address`",
 			Required: true,
 			Action:   cfg.saveIPv4(&cfg.upfIP),
 		},
 		&cli.GenericFlag{
 			Name:        "upf-mac",
-			Usage:       "UPF N3/N9 MAC `address`",
+			Usage:       "UPF N3 MAC `address`",
 			Required:    true,
 			Destination: &cfg.upfMAC,
 		},
 		&cli.IntFlag{
 			Name:        "upf-vlan",
-			Usage:       "UPF N3/N9 `VLAN ID`",
+			Usage:       "UPF N3 `VLAN ID`",
 			Destination: &cfg.upfVLAN,
 		},
 		&cli.StringSliceFlag{

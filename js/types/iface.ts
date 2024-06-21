@@ -12,7 +12,7 @@ export type FaceID = Uint;
  * Face locator.
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface#Locator>
  */
-export type FaceLocator = EtherLocator | UdpLocator | VxlanLocator | MemifLocator | SocketFaceLocator;
+export type FaceLocator = EtherLocator | UdpLocator | VxlanLocator | GtpLocator | MemifLocator | SocketFaceLocator;
 
 /**
  * Face configuration.
@@ -125,13 +125,43 @@ export interface VxlanLocator extends IpLocatorBase {
   scheme: "vxlan";
 
   /**
-   * @minimum 0
    * @maximum 16777215
    */
   vxlan: Uint;
 
   innerLocal: string;
   innerRemote: string;
+}
+
+/**
+ * GTP-U face locator.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#GtpLocator>
+ */
+export interface GtpLocator extends IpLocatorBase {
+  scheme: "gtp";
+
+  /**
+   * @maximum 4294967295
+   */
+  ulTEID: Uint;
+
+  /**
+   * @maximum 63
+   */
+  ulQFI: Uint;
+
+  /**
+   * @maximum 4294967295
+   */
+  dlTEID: Uint;
+
+  /**
+   * @maximum 63
+   */
+  dlQFI: Uint;
+
+  innerLocalIP: string;
+  innerRemoteIP: string;
 }
 
 export type MemifRole = "server" | "client";
