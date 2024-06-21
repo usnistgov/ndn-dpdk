@@ -270,7 +270,7 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc) {
       break;
     }
     case 'G': {
-      match->len += PutGtpHdr(BUF_TAIL, true, loc->ulTEID, loc->qfi);
+      match->len += PutGtpHdr(BUF_TAIL, true, loc->ulTEID, loc->ulQFI);
       match->len += PutIpv4Hdr(BUF_TAIL, loc->innerLocalIP, loc->innerRemoteIP);
       match->len += PutUdpHdr(BUF_TAIL, UDPPortNDN, UDPPortNDN);
       match->f = MatchGtp;
@@ -326,7 +326,7 @@ EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc) {
     }
     case 'G': {
       xl->teid = rte_cpu_to_be_32(loc->ulTEID);
-      xl->qfi = loc->qfi;
+      xl->qfi = loc->ulQFI;
       break;
     }
   }
@@ -548,7 +548,7 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
       break;
     }
     case 'G': {
-      hdr->len += PutGtpHdr(BUF_TAIL, false, loc->dlTEID, loc->qfi);
+      hdr->len += PutGtpHdr(BUF_TAIL, false, loc->dlTEID, loc->dlQFI);
       hdr->len += PutIpv4Hdr(BUF_TAIL, loc->innerLocalIP, loc->innerRemoteIP);
       hdr->len += PutUdpHdr(BUF_TAIL, UDPPortNDN, UDPPortNDN);
       break;

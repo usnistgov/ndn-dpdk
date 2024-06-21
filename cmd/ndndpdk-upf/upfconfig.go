@@ -106,14 +106,15 @@ func (cfg *UpfConfig) ProcessFlags(c *cli.Context) error {
 	return nil
 }
 
-func (cfg UpfConfig) MakeLocator(ulTEID, dlTEID uint32, qfi uint8, peer, ueIP netip.Addr) (loc map[string]any, e error) {
+func (cfg UpfConfig) MakeLocator(ulTEID uint32, ulQFI uint8, dlTEID uint32, dlQFI uint8, peer, ueIP netip.Addr) (loc map[string]any, e error) {
 	loc = map[string]any{
 		"scheme":        "gtp",
 		"local":         cfg.upfMAC,
 		"localIP":       cfg.upfIP,
 		"ulTEID":        ulTEID,
+		"ulQFI":         ulQFI,
 		"dlTEID":        dlTEID,
-		"qfi":           qfi,
+		"dlQFI":         dlQFI,
 		"innerLocalIP":  cfg.dnIP,
 		"innerRemoteIP": ueIP,
 	}

@@ -100,16 +100,16 @@ func TestLocatorCoexist(t *testing.T) {
 
 	const innerIP = `,"innerLocalIP":"192.168.60.3","innerRemoteIP":"192.168.60.4"`
 	conflict( // same ulTEID
-		`{"scheme":"gtp","ulTEID":268435464,"dlTEID":536870920,"qfi":1`+innerIP+ipA+etherA,
-		`{"scheme":"gtp","ulTEID":268435464,"dlTEID":536870921,"qfi":2`+innerIP+ipA+etherA,
+		`{"scheme":"gtp","ulTEID":268435464,"ulQFI":1,"dlTEID":536870920,"dlQFI":1`+innerIP+ipA+etherA,
+		`{"scheme":"gtp","ulTEID":268435464,"ulQFI":2,"dlTEID":536870921,"dlQFI":2`+innerIP+ipA+etherA,
 	)
 	conflict( // same dlTEID
-		`{"scheme":"gtp","ulTEID":268435464,"dlTEID":536870920,"qfi":1`+innerIP+ipA+etherA,
-		`{"scheme":"gtp","ulTEID":268435465,"dlTEID":536870920,"qfi":2`+innerIP+ipA+etherA,
+		`{"scheme":"gtp","ulTEID":268435464,"ulQFI":1,"dlTEID":536870920,"dlQFI":1`+innerIP+ipA+etherA,
+		`{"scheme":"gtp","ulTEID":268435465,"ulQFI":2,"dlTEID":536870920,"dlQFI":2`+innerIP+ipA+etherA,
 	)
 	coexist( // different ulTEID and dlTEID
-		`{"scheme":"gtp","ulTEID":268435464,"dlTEID":536870920,"qfi":1`+innerIP+ipA+etherA,
-		`{"scheme":"gtp","ulTEID":268435465,"dlTEID":536870921,"qfi":1`+innerIP+ipA+etherA,
+		`{"scheme":"gtp","ulTEID":268435464,"ulQFI":1,"dlTEID":536870920,"dlQFI":1`+innerIP+ipA+etherA,
+		`{"scheme":"gtp","ulTEID":268435465,"ulQFI":1,"dlTEID":536870921,"dlQFI":1`+innerIP+ipA+etherA,
 	)
 
 	// mixed schemes
@@ -130,7 +130,7 @@ func TestLocatorCoexist(t *testing.T) {
 		`{"scheme":"vxlan","vxlan":1`+innerA+ipA+etherA)
 	conflict( // "udpe" with "gtp", same localUDP and remoteUDP
 		`{"scheme":"udpe","localUDP":2152,"remoteUDP":2152`+ipA+etherA,
-		`{"scheme":"gtp","ulTEID":268435464,"dlTEID": 536870920,"qfi":1`+innerIP+ipA+etherA)
+		`{"scheme":"gtp","ulTEID":268435464,"ulQFI":1,"dlTEID": 536870920,"dlQFI":1`+innerIP+ipA+etherA)
 }
 
 func TestLocatorRxMatch(t *testing.T) {
@@ -207,8 +207,9 @@ func TestLocatorRxMatch(t *testing.T) {
 		"localIP": "192.168.37.1",
 		"remoteIP": "192.168.37.2",
 		"ulTEID": 268435464,
+		"ulQFI": 1,
 		"dlTEID": 536870920,
-		"qfi": 1,
+		"dlQFI": 11,
 		"innerLocalIP": "192.168.60.3",
 		"innerRemoteIP": "192.168.60.4"
 	}`)
@@ -388,7 +389,7 @@ func TestLocatorRxMatch(t *testing.T) {
 		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
 		&layers.UDP{SrcPort: 2152, DstPort: 2152},
-		&GTPv1UTPDU{TEID: 0x10000008, PDUType: 1, QFI: 2},
+		&GTPv1UTPDU{TEID: 0x10000008, PDUType: 1, QFI: 11},
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip44, DstIP: ip43},
 		&layers.UDP{SrcPort: 6363, DstPort: 6363},
 	)
@@ -496,8 +497,9 @@ func TestLocatorTxHdr(t *testing.T) {
 		"localIP": "192.168.37.1",
 		"remoteIP": "192.168.37.2",
 		"ulTEID": 268435464,
+		"ulQFI": 1,
 		"dlTEID": 536870920,
-		"qfi": 1,
+		"dlQFI": 11,
 		"innerLocalIP": "192.168.60.3",
 		"innerRemoteIP": "192.168.60.4"
 	}`, layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeUDP, layers.LayerTypeGTPv1U, layers.LayerTypeIPv4, layers.LayerTypeUDP)
@@ -509,6 +511,6 @@ func TestLocatorTxHdr(t *testing.T) {
 	if assert.Len(gtpGTP.GTPExtensionHeaders, 1) {
 		gtpPSC := gtpGTP.GTPExtensionHeaders[0]
 		assert.EqualValues(0x85, gtpPSC.Type)
-		assert.Equal([]byte{0x00, 0x01}, gtpPSC.Content)
+		assert.Equal([]byte{0x00, 0x0B}, gtpPSC.Content)
 	}
 }

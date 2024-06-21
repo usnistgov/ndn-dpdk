@@ -32,7 +32,8 @@ typedef struct EthLocator {
   uint32_t dlTEID;
   uint8_t innerLocalIP[16];
   uint8_t innerRemoteIP[16];
-  uint8_t qfi;
+  uint8_t ulQFI;
+  uint8_t dlQFI;
   bool isGtp;
 } EthLocator;
 

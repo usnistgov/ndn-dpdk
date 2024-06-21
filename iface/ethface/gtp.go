@@ -25,13 +25,17 @@ type GtpLocator struct {
 	// This must fit in 32 bits.
 	UlTEID int `json:"ulTEID"`
 
+	// UlQFI is the uplink/incoming QoS flow identifier.
+	// This must fit in 6 bits.
+	UlQFI int `json:"ulQFI"`
+
 	// DlTEID is the downlink/outgoing tunnel endpoint identifier.
 	// This must fit in 32 bits.
 	DlTEID int `json:"dlTEID"`
 
-	// QFI is the QoS flow identifier.
+	// DlQFI is the downlink/outgoing QoS flow identifier.
 	// This must fit in 6 bits.
-	QFI int `json:"qfi"`
+	DlQFI int `json:"dlQFI"`
 
 	// InnerLocalIP is the inner local IPv4 address.
 	InnerLocalIP netip.Addr `json:"innerLocalIP"`
@@ -55,9 +59,11 @@ func (loc GtpLocator) Validate() error {
 	switch {
 	case loc.UlTEID < 0, loc.UlTEID > math.MaxUint32:
 		return ErrTEID
+	case loc.UlQFI < 0, loc.UlQFI > 0b111111:
+		return ErrQFI
 	case loc.DlTEID < 0, loc.DlTEID > math.MaxUint32:
 		return ErrTEID
-	case loc.QFI < 0, loc.QFI > 0b111111:
+	case loc.DlQFI < 0, loc.DlQFI > 0b111111:
 		return ErrQFI
 	case !local.Is4(), local.IsMulticast(), !remote.Is4(), remote.IsMulticast():
 		return ErrUnicastIP
@@ -73,8 +79,9 @@ func (loc GtpLocator) EthLocatorC() (locC ethport.LocatorC) {
 	locC.RemoteUDP = ethport.UDPPortGTP
 	locC.IsGtp = true
 	locC.UlTEID = uint32(loc.UlTEID)
+	locC.UlQFI = uint8(loc.UlQFI)
 	locC.DlTEID = uint32(loc.DlTEID)
-	locC.Qfi = uint8(loc.QFI)
+	locC.DlQFI = uint8(loc.DlQFI)
 	locC.InnerLocalIP = loc.InnerLocalIP.As16()
 	locC.InnerRemoteIP = loc.InnerRemoteIP.As16()
 	return

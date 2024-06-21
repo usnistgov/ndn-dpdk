@@ -12,14 +12,26 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	sessHaveUlTEID = 1 << iota
+	sessHaveDlTEID
+	sessHaveUlQFI
+	sessHaveDlQFI
+	sessHaveDlQERID
+	sessHavePeer
+	sessHaveUeIP
+	sessHaveAll = 0b1111111
+)
+
 var pfcpSessTable = make(map[uint64]*pfcpSess)
 
 type pfcpSess struct {
 	cpSEID, upSEID uint64
 	ulTEID, dlTEID uint32
-	qfi            uint8
+	ulQFI, dlQFI   uint8
+	dlQERID        uint32
 	peer, ueIP     netip.Addr
-	have           uint8
+	have           uint32
 	FaceID         string
 }
 
@@ -27,7 +39,7 @@ func (sess pfcpSess) decorateLogEntry(logger *zap.Logger) *zap.Logger {
 	return logger.With(zap.Uint64("cp-seid", sess.cpSEID), zap.Uint64("up-seid", sess.upSEID))
 }
 
-func (sess *pfcpSess) HandleCreate(ctx context.Context, logEntry *zap.Logger, pdrs, fars []*ie.IE) {
+func (sess *pfcpSess) HandleCreate(ctx context.Context, logEntry *zap.Logger, pdrs, fars, qers []*ie.IE) {
 	logEntry = sess.decorateLogEntry(logEntry)
 
 	for i, pdr := range pdrs {
@@ -40,12 +52,17 @@ func (sess *pfcpSess) HandleCreate(ctx context.Context, logEntry *zap.Logger, pd
 			logEntry.Info("createFAR error", zap.Int("index", i), zap.Error(e))
 		}
 	}
-	if sess.have != 0b111 {
-		logEntry.Debug("waiting for more updates", zap.Uint8("have", sess.have))
+	for i, qer := range qers {
+		if e := sess.createQER(qer); e != nil {
+			logEntry.Info("createQER error", zap.Int("index", i), zap.Error(e))
+		}
+	}
+	if sess.have != sessHaveAll {
+		logEntry.Debug("waiting for more updates", zap.Uint32("have", sess.have))
 		return
 	}
 
-	loc, e := upfCfg.MakeLocator(sess.ulTEID, sess.dlTEID, sess.qfi, sess.peer, sess.ueIP)
+	loc, e := upfCfg.MakeLocator(sess.ulTEID, sess.ulQFI, sess.dlTEID, sess.dlQFI, sess.peer, sess.ueIP)
 	if e != nil {
 		logEntry.Warn("cannot construct locator", zap.Error(e))
 		return
@@ -97,8 +114,8 @@ func (sess *pfcpSess) createPDRAccess(pdr *ie.IE) error {
 		return fmt.Errorf("QFI: %w", e)
 	}
 
-	sess.ulTEID, sess.qfi = fTEID.TEID, qfi
-	sess.have |= 0b001
+	sess.ulTEID, sess.ulQFI = fTEID.TEID, qfi
+	sess.have |= sessHaveUlTEID | sessHaveUlQFI
 	return nil
 }
 
@@ -114,7 +131,14 @@ func (sess *pfcpSess) createPDRCore(pdr *ie.IE) error {
 	}
 
 	sess.ueIP = ip
-	sess.have |= 0b010
+	sess.have |= sessHaveUeIP
+
+	sess.dlQERID, e = pdr.QERID()
+	if e != nil {
+		return fmt.Errorf("QERID: %w", e)
+	}
+	sess.have |= sessHaveDlQERID
+
 	return nil
 }
 
@@ -149,7 +173,24 @@ func (sess *pfcpSess) createFARAccess(far *ie.IE) error {
 
 	sess.dlTEID = ohc.TEID
 	sess.peer, _ = netip.AddrFromSlice(ohc.IPv4Address)
-	sess.have |= 0b100
+	sess.have |= sessHaveDlTEID | sessHavePeer
+	return nil
+}
+
+func (sess *pfcpSess) createQER(qer *ie.IE) error {
+	qerID, e := qer.QERID()
+	if e != nil {
+		return fmt.Errorf("QERID: %w", e)
+	}
+	if sess.have&sessHaveDlQERID == 0 || qerID != sess.dlQERID {
+		return nil
+	}
+
+	sess.dlQFI, e = qer.QFI()
+	if e != nil {
+		return fmt.Errorf("QFI: %w", e)
+	}
+	sess.have |= sessHaveDlQFI
 	return nil
 }
 
@@ -182,7 +223,7 @@ func handleSessEstab(ctx context.Context, logEntry *zap.Logger, req *message.Ses
 	}
 	pfcpSessTable[sess.upSEID] = sess
 
-	sess.HandleCreate(ctx, logEntry, req.CreatePDR, req.CreateFAR)
+	sess.HandleCreate(ctx, logEntry, req.CreatePDR, req.CreateFAR, req.CreateQER)
 	return message.NewSessionEstablishmentResponse(
 		0, 0, sess.cpSEID, req.SequenceNumber, 0,
 		upfCfg.UpfNodeID,
@@ -200,7 +241,7 @@ func handleSessMod(ctx context.Context, logEntry *zap.Logger, req *message.Sessi
 		), nil
 	}
 
-	sess.HandleCreate(ctx, logEntry, req.CreatePDR, req.CreateFAR)
+	sess.HandleCreate(ctx, logEntry, req.CreatePDR, req.CreateFAR, req.CreateQER)
 	return message.NewSessionModificationResponse(
 		0, 0, sess.cpSEID, req.SequenceNumber, 0,
 		ie.NewCause(ie.CauseRequestAccepted),

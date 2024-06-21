@@ -60,7 +60,7 @@ build/bpf.done: build/build.ninja bpf/**/*.c csrc/strategyapi/* csrc/fib/enum.h 
 	touch $@
 
 .PHONY: cmds
-cmds: build/share/bash_autocomplete build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-jrproxy build/bin/ndndpdk-svc
+cmds: build/share/bash_autocomplete build/bin/ndndpdk-ctrl build/bin/ndndpdk-godemo build/bin/ndndpdk-hrlog2histogram build/bin/ndndpdk-jrproxy build/bin/ndndpdk-svc build/bin/ndndpdk-upf
 
 build/bin/%: cmd/%/* godeps
 	GOBIN=$$(realpath build/bin) mk/go.sh install ./cmd/$*
