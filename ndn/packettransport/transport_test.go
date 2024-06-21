@@ -5,7 +5,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/google/gopacket"
+	"github.com/gopacket/gopacket"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndntestenv"

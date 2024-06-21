@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
+	"github.com/gopacket/gopacket"
+	"github.com/gopacket/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
@@ -147,7 +147,7 @@ func (tpdu *GTPv1UTPDU) SerializeTo(b gopacket.SerializeBuffer, opts gopacket.Se
 		},
 	}
 
-	// workaround https://github.com/google/gopacket/issues/1175
+	// workaround https://github.com/gopacket/gopacket/issues/1175
 	wire, discard := packetFromLayers(g)
 	defer discard()
 	return gopacket.Payload(wire).SerializeTo(b, gopacket.SerializeOptions{})

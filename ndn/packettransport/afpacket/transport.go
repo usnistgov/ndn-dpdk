@@ -1,4 +1,4 @@
-//go:build linux && cgo
+//go:build linux
 
 // Package afpacket implements a transport that communicates over AF_PACKET sockets.
 // This only works on Linux.
@@ -10,7 +10,7 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/google/gopacket/afpacket"
+	"github.com/gopacket/gopacket/afpacket"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"

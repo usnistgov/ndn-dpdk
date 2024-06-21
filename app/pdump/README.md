@@ -14,7 +14,7 @@ Three pcapng block types may appear in the output file:
 * Interface Description Block (IDB)
 * Enhanced Packet Block (EPB)
 
-SHB and IDB are prepared in Go code using [GoPacket library](https://pkg.go.dev/github.com/google/gopacket/pcapgo), and then passed to C code via the ring buffer.
+SHB and IDB are prepared in Go code using [GoPacket library](https://pkg.go.dev/github.com/gopacket/gopacket/pcapgo), and then passed to C code via the ring buffer.
 EPB is crafted directly in C code.
 
 ## Capturing from Face

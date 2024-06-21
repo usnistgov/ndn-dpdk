@@ -16,7 +16,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/google/gopacket/pcapgo"
+	"github.com/gopacket/gopacket/pcapgo"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"

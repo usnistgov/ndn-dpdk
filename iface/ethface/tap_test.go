@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
+	"github.com/gopacket/gopacket"
+	"github.com/gopacket/gopacket/layers"
 	"github.com/songgao/water"
 	"github.com/usnistgov/ndn-dpdk/bpf"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"

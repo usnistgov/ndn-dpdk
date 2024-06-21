@@ -11,10 +11,10 @@ require (
 	github.com/dylandreimerink/gobpfld v0.6.0
 	github.com/functionalfoundry/graphqlws v0.0.0-20200611113535-7bc58903ce7b
 	github.com/gogf/greuse v1.1.0
-	github.com/google/gopacket v1.1.19
-	github.com/gorilla/schema v1.3.0
+	github.com/gopacket/gopacket v1.2.0
+	github.com/gorilla/schema v1.4.0
 	github.com/graphql-go/graphql v0.8.1
-	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20240503222823-736c933a666d
+	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20240618164540-8f65cb80ce42
 	github.com/jacobsa/fuse v0.0.0-20240607092844-7285af0d05b0
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
@@ -63,7 +63,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/segmentio/fasthash v1.0.3 // indirect
 	github.com/smartystreets/goconvey v1.8.1 // indirect
-	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
+	github.com/vishvananda/netns v0.0.0-20211101163701-50045581ed74 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect

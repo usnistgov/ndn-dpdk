@@ -3,7 +3,7 @@ package ndnlayer
 import (
 	"errors"
 
-	"github.com/google/gopacket"
+	"github.com/gopacket/gopacket"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 )

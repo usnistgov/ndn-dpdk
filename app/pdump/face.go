@@ -15,8 +15,8 @@ import (
 
 	"slices"
 
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcapgo"
+	"github.com/gopacket/gopacket/layers"
+	"github.com/gopacket/gopacket/pcapgo"
 	"github.com/usnistgov/ndn-dpdk/core/pcg32"
 	"github.com/usnistgov/ndn-dpdk/core/urcu"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"

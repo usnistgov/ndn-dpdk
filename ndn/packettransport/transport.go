@@ -9,8 +9,8 @@ import (
 
 	"slices"
 
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
+	"github.com/gopacket/gopacket"
+	"github.com/gopacket/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndnlayer"
