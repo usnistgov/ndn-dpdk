@@ -11,7 +11,7 @@
   "types": "js/mod.ts",
   "packageManager": "pnpm@9.4.0+sha512.f549b8a52c9d2b8536762f99c0722205efc5af913e77835dbccc3b0b0b2ca9e7dc8022b78062c17291c48e88749c70ce88eb5a74f1fa8c4bf5e18bb46c8bd83a",
   "dependencies": {
-    "graphql": "^16.8.2",
+    "graphql": "^16.9.0",
     "graphql-request": "^6.1.0",
     "isomorphic-ws": "^5.0.0",
     "it-pushable": "^3.2.3",
@@ -25,7 +25,7 @@
     "json-stable-stringify": "^1.1.1",
     "markdownlint-cli": "^0.41.0",
     "ts-json-schema-generator": "^2.3.0",
-    "typescript": "~5.4.5"
+    "typescript": "~5.5.2"
   },
   "engines": {
     "node": "20.x"
