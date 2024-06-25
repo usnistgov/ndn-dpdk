@@ -36,8 +36,8 @@ The following table gives a basic comparison:
 
 driver kind | speed | supported hardware | Ethernet | VLAN | UDP | VXLAN | GTP-U | main limitation
 -|-|-|-|-|-|-|-|-
-PCI | fastest | some | yes | yes | yes | yes | no | exclusive NIC control
-XDP | fast | all | yes | yes | port 6363 | no | yes | MTU≤3300
+PCI | fastest | some | yes | yes | yes | yes | yes | exclusive NIC control
+XDP | fast | all | yes | yes | yes | yes | yes | MTU≤3300
 AF\_PACKET | slow | all | yes | no | no | no | yes | slow
 
 The most suitable port creation command is hardware dependent, and some trial-and-error may be necessary.

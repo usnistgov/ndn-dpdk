@@ -90,16 +90,30 @@ typedef struct EthFlowPattern {
   struct rte_flow_item_eth ethMask;
   struct rte_flow_item_vlan vlanSpec;
   struct rte_flow_item_vlan vlanMask;
-  struct rte_flow_item_ipv4 ip4Spec;
-  struct rte_flow_item_ipv4 ip4Mask;
-  struct rte_flow_item_ipv6 ip6Spec;
-  struct rte_flow_item_ipv6 ip6Mask;
+  union {
+    struct {
+      struct rte_flow_item_ipv4 ip4Spec;
+      struct rte_flow_item_ipv4 ip4Mask;
+    };
+    struct {
+      struct rte_flow_item_ipv6 ip6Spec;
+      struct rte_flow_item_ipv6 ip6Mask;
+    };
+  };
   struct rte_flow_item_udp udpSpec;
   struct rte_flow_item_udp udpMask;
-  struct rte_flow_item_vxlan vxlanSpec;
-  struct rte_flow_item_vxlan vxlanMask;
-  struct rte_flow_item_eth innerEthSpec;
-  struct rte_flow_item_eth innerEthMask;
+  union {
+    struct {
+      struct rte_flow_item_vxlan vxlanSpec;
+      struct rte_flow_item_vxlan vxlanMask;
+      struct rte_flow_item_eth innerEthSpec;
+      struct rte_flow_item_eth innerEthMask;
+    };
+    struct {
+      struct rte_flow_item_gtp gtpSpec;
+      struct rte_flow_item_gtp gtpMask;
+    };
+  };
 } EthFlowPattern;
 
 /** @brief Prepare rte_flow pattern from locator. */

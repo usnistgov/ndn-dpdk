@@ -153,15 +153,20 @@ PutVxlanHdr(uint8_t* buffer, uint32_t vni) {
   return sizeof(*vxlan);
 }
 
+__attribute__((nonnull)) static void
+PutGtpHdrMinimal(struct rte_gtp_hdr* hdr, uint32_t teid) {
+  hdr->ver = 1;
+  hdr->pt = 1;
+  hdr->e = 1;
+  hdr->msg_type = 0xFF;
+  hdr->teid = rte_cpu_to_be_32(teid);
+}
+
 __attribute__((nonnull)) static uint8_t
 PutGtpHdr(uint8_t* buffer, bool ul, uint32_t teid, uint8_t qfi) {
   EthGtpHdr* gtp = (EthGtpHdr*)buffer;
   static_assert(sizeof(*gtp) == 16, "");
-  gtp->hdr.ver = 1;
-  gtp->hdr.pt = 1;
-  gtp->hdr.e = 1;
-  gtp->hdr.msg_type = 0xFF;
-  gtp->hdr.teid = rte_cpu_to_be_32(teid);
+  PutGtpHdrMinimal(&gtp->hdr, teid);
   gtp->ext.next_ext = 0x85;
   gtp->psc.ext_hdr_len = 1;
   gtp->psc.type = (int)ul;
@@ -397,29 +402,35 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc) {
     APPEND(IPV6, ip6);
   }
 
-  MASK(flow->udpMask.hdr.dst_port);
+  if (c.tunnel != 'V') { // VXLAN packet can have any UDP source port
+    MASK(flow->udpMask.hdr.dst_port);
+  }
   MASK(flow->udpMask.hdr.src_port);
   PutUdpHdr((uint8_t*)(&flow->udpSpec.hdr), loc->remoteUDP, loc->localUDP);
-
-  if (c.tunnel != 'V') {
-    APPEND(UDP, udp);
-    // TODO GTP-U
-    return;
-  }
-
-  flow->udpMask.hdr.src_port = 0; // VXLAN packet can have any UDP source port
   APPEND(UDP, udp);
 
-  flow->vxlanMask.hdr.vx_vni = ~rte_cpu_to_be_32(0xFF); // don't mask reserved byte
-  PutVxlanHdr((uint8_t*)(&flow->vxlanSpec.hdr), loc->vxlan);
-  APPEND(VXLAN, vxlan);
+  switch (c.tunnel) {
+    case 'V': {
+      flow->vxlanMask.hdr.vx_vni = ~rte_cpu_to_be_32(0xFF); // don't mask reserved byte
+      PutVxlanHdr((uint8_t*)(&flow->vxlanSpec.hdr), loc->vxlan);
+      APPEND(VXLAN, vxlan);
 
-  MASK(flow->innerEthMask.hdr.dst_addr);
-  MASK(flow->innerEthMask.hdr.src_addr);
-  MASK(flow->innerEthMask.hdr.ether_type);
-  PutEtherHdr((uint8_t*)(&flow->innerEthSpec.hdr), &loc->innerRemote, &loc->innerLocal, 0,
-              EtherTypeNDN);
-  APPEND(ETH, innerEth);
+      MASK(flow->innerEthMask.hdr.dst_addr);
+      MASK(flow->innerEthMask.hdr.src_addr);
+      MASK(flow->innerEthMask.hdr.ether_type);
+      PutEtherHdr((uint8_t*)(&flow->innerEthSpec.hdr), &loc->innerRemote, &loc->innerLocal, 0,
+                  EtherTypeNDN);
+      APPEND(ETH, innerEth);
+      break;
+    }
+    case 'G': {
+      MASK(flow->gtpMask.hdr.msg_type);
+      MASK(flow->gtpMask.hdr.teid);
+      PutGtpHdrMinimal(&flow->gtpSpec.hdr, loc->ulTEID);
+      APPEND(GTP, gtp);
+      break;
+    }
+  }
 
 #undef MASK
 #undef APPEND
