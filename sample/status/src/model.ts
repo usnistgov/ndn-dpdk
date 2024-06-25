@@ -35,6 +35,9 @@ export function describeFaceLocator(loc: FaceLocator): string {
     case "vxlan": {
       return `VXLAN ${loc.remoteIP} ${loc.vxlan}`;
     }
+    case "gtp": {
+      return `GTP ${loc.ulTEID.toString(16).padStart(8, "0")} ${loc.dlTEID.toString(16).padStart(8, "0")} ${loc.innerRemoteIP}`;
+    }
     case "unix":
     case "udp":
     case "tcp": {

@@ -1,8 +1,7 @@
 # ndn-dpdk/iface/ethface
 
 This package implements Ethernet-based faces using DPDK ethdev as transport.
-This includes Ethernet faces (with optional VLAN header), UDP faces, and VXLAN faces.
-Additional, GTP-U faces feature is in development.
+This includes Ethernet faces (with optional VLAN header), UDP faces, VXLAN faces, and GTP-U faces.
 See [face creation](../../docs/face.md) "creating Ethernet-based face" section for locator syntax.
 
 The underlying implementation is in [package ethport](../ethport).
@@ -20,15 +19,17 @@ Caveats and limitations:
 * It's possible to create both VLAN-tagged faces and faces without VLAN headers.
   However, this may not work properly on certain hardware, and thus is not recommended.
 
-## UDP and VXLAN Tunnel Face
+## UDP, VXLAN, GTP-U Tunnel Face
 
-UDP and VXLAN tunnels can coexist with Ethernet faces on the same port.
-Multiple UDP and VXLAN tunnels can coexist if any of the following is true:
+UDP, VXLAN, GTP-U tunnels can coexist with Ethernet faces on the same port.
+Multiple tunnels can coexist if any of the following is true:
 
 * One of *vlan*, *localIP*, and *remoteIP* is different.
 * Both are UDP tunnels, and one of *localUDP* and *remoteUDP* is different.
 * Between a UDP tunnel and a VXLAN tunnel, the UDP tunnel's *localUDP* is not 4789.
+* Between a UDP tunnel and a GTP-U tunnel, the UDP tunnel's *localUDP* is not 2152.
 * Both are VXLAN tunnels, and one of *vxlan*, *innerLocal*, and *innerRemote* is different.
+* Both are GTP-U tunnels, and both *ulTEID* and *dlTEID* are different.
 
 Caveats and limitations:
 
@@ -55,3 +56,17 @@ Caveats and limitations:
 
 * If a VXLAN face has multiple RX queues, NDNLPv2 reassembly works only if all fragments of a network layer packets are sent with the same UDP source port number.
   NDN-DPDK send path and the VXLAN driver in the Linux kernel both fulfill this requirement.
+
+## More on GTP-U Tunnel Face
+
+The GTP-U tunnel face is designed to work with IPv4 session type.
+The overall packet structure is as follows:
+
+1. Outer Ethernet header.
+2. Outer VLAN header (optional).
+3. Outer IPv4 or IPv6 header.
+4. Outer UDP header.
+5. GTPv1 header.
+6. Inner IPv4 header.
+7. Inner UDP header.
+8. NDNLPv2 packet.

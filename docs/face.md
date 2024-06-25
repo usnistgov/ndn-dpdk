@@ -19,7 +19,7 @@ The response contains the locator of each existing face.
 ## Ethernet-based Face
 
 An Ethernet-based face communicates with a remote node on an Ethernet adapter using a DPDK networking driver.
-It supports Ethernet (with optional VLAN header), UDP, and VXLAN protocols.
+It supports Ethernet (with optional VLAN header), UDP, VXLAN, GTP-U protocols.
 Its implementation is in [package ethface](../iface/ethface).
 
 There are two steps in creating an Ethernet-based face:
@@ -34,11 +34,11 @@ During port creation, sufficient hardware resources are reserved to accommodate 
 There are three kinds of drivers for Ethernet port creation.
 The following table gives a basic comparison:
 
-driver kind | speed | supported hardware | Ethernet | VLAN | UDP | VXLAN | main limitation
--|-|-|-|-|-|-|-
-PCI | fastest | some | yes | yes | yes | yes | exclusive NIC control
-XDP | fast | all | yes | yes | port 6363 | no | MTU≤3300
-AF\_PACKET | slow | all | yes | no | no | no | slow
+driver kind | speed | supported hardware | Ethernet | VLAN | UDP | VXLAN | GTP-U | main limitation
+-|-|-|-|-|-|-|-|-
+PCI | fastest | some | yes | yes | yes | yes | no | exclusive NIC control
+XDP | fast | all | yes | yes | port 6363 | no | yes | MTU≤3300
+AF\_PACKET | slow | all | yes | no | no | no | yes | slow
 
 The most suitable port creation command is hardware dependent, and some trial-and-error may be necessary.
 Due to limitations in DPDK drivers, a failed port creation command may cause DPDK to enter an inconsistent state.
@@ -194,7 +194,16 @@ Locator of a VXLAN tunnel face has the following fields:
   When the Ethernet port is using PCI driver and has RxFlow enabled, setting this to greater than 1 could alleviate the bottleneck in forwarder's input thread.
   However, it would take up multiple RX queues as specified in `--rx-flow` flag during port creation.
 
-See [package ethface](../iface/ethface) "UDP and VXLAN tunnel face" section for caveats, limitations, and what faces can coexist on the same port.
+Locator of a GTP-U tunnel face has the following fields:
+
+* *scheme* is set to "gtp".
+* All fields in "udpe" locator, except *localUDP* and *remoteUDP*, are inherited.
+* UDP source and destination port numbers are fixed to 2152.
+* *ulTEID* and *ulQFI* are Tunnel Endpoint Identifier and QoS Flow Identifier on the uplink direction, received by NDN-DPDK.
+* *dlTEID* and *dlQFI* are Tunnel Endpoint Identifier and QoS Flow Identifier on the downlink direction, transmitted from NDN-DPDK.
+* *innerLocalIP* and *innerRemoteIP* are unicast IP addresses for inner IPv4 header.
+
+See [package ethface](../iface/ethface) "UDP, VXLAN, GTP-U tunnel face" section for caveats, limitations, and what faces can coexist on the same port.
 
 ## Memif Face
 
