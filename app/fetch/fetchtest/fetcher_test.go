@@ -96,6 +96,8 @@ func TestFetcher(t *testing.T) {
 		}
 		ticker.Stop()
 	}
+	taskA.Stop()
+	taskB.Stop()
 
 	cntA, cntB := taskA.Counters(), taskB.Counters()
 	assert.EqualValues(defA.SegmentEnd-defA.SegmentBegin, cntA.NRxData)

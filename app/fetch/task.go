@@ -116,6 +116,11 @@ func (ts *taskSlot) Init(d TaskDef) error {
 	}
 	ts.tpl.prefixV[ts.tpl.prefixL] = an.TtSegmentNameComponent
 
+	logEntry := logger.With(
+		zap.Int("slot-index", int(ts.index)),
+		zap.Stringer("prefix", d.Prefix),
+	)
+
 	if d.Filename != "" {
 		if d.SegmentLen <= 0 || d.SegmentLen > math.MaxUint32 {
 			return errors.New("bad SegmentLen")
@@ -129,24 +134,27 @@ func (ts *taskSlot) Init(d TaskDef) error {
 			return fmt.Errorf("unix.Open(%s): %w", d.Filename, e)
 		}
 
+		logEntry = logEntry.With(
+			zap.String("filename", d.Filename),
+			zap.Int("fd", fd),
+			zap.Int("segment-len", d.SegmentLen),
+		)
+
 		offsetBegin := int64(d.SegmentBegin) * int64(d.SegmentLen)
 		offsetEnd := int64(d.SegmentEnd) * int64(d.SegmentLen)
 		if e := unix.Fallocate(fd, 0, offsetBegin, offsetEnd-offsetBegin); e != nil {
-			unix.Close(fd)
-			unix.Unlink(d.Filename)
-			return fmt.Errorf("unix.Fallocate(%s): %w", d.Filename, e)
+			logEntry.Warn("unix.Fallocate error, this may affect write performance",
+				zap.Int64("offset-begin", offsetBegin),
+				zap.Int64("offset-end", offsetEnd),
+				zap.Error(e),
+			)
 		}
 
 		ts.fd, ts.segmentLen = C.int(fd), C.uint32_t(d.SegmentLen)
 	}
 
-	logger.Info("task init",
-		zap.Int("slot-index", int(ts.index)),
-		zap.Stringer("prefix", d.Prefix),
+	logEntry.Info("task init",
 		zap.Uint64s("segment-range", []uint64{d.SegmentBegin, d.SegmentEnd}),
-		zap.String("filename", d.Filename),
-		zap.Int("fd", int(ts.fd)),
-		zap.Int("segment-len", d.SegmentLen),
 	)
 	return nil
 }
@@ -162,15 +170,22 @@ func (ts *taskSlot) Logic() *Logic {
 }
 
 func (ts *taskSlot) closeFd() {
-	if ts.fd < 0 {
+	fd := int(ts.fd)
+	if fd < 0 {
 		return
 	}
-	if e := unix.Close(int(ts.fd)); e != nil {
-		logger.Warn("unix.Close error",
-			zap.Int("fd", int(ts.fd)),
+
+	logEntry := logger.With(
+		zap.Int("slot-index", int(ts.index)),
+		zap.Int("fd", fd),
+	)
+	if e := unix.Close(fd); e != nil {
+		logEntry.Warn("unix.Close error",
 			zap.Error(e),
 		)
 	}
+
+	logEntry.Info("task output file closed")
 	ts.fd = -1
 }
 

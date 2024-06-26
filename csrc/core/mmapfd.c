@@ -30,7 +30,12 @@ MmapFd_Open(MmapFd* m, const char* filename, size_t size) {
   }
   if (fallocate(m->fd, 0, 0, size) != 0) {
     MmapFd_Error(fallocate);
-    goto FAIL;
+    if (ftruncate(m->fd, size) == 0) {
+      N_LOGW("ftruncate succeeded in place of fallocate, this may affect write performance");
+    } else {
+      MmapFd_Error(ftruncate);
+      goto FAIL;
+    }
   }
 
   m->map = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, m->fd, 0);
