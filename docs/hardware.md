@@ -49,7 +49,7 @@ The next sections provide information on specific NIC models.
 
 DPDK supports NVIDIA adapters in Ethernet mode, but not in Infiniband mode.
 If you have VPI adapters, use `mlxconfig` tool to verify and change port mode.
-See [MLX5 poll mode driver](https://doc.dpdk.org/guides/nics/mlx5.html) for more information.
+See [MLX5 common driver](https://doc.dpdk.org/guides/platform/mlx5.html) for more information.
 
 #### Setup with bifurcated driver
 
@@ -108,6 +108,11 @@ ethtool --show-channels enp4s0f0
 # create Ethernet port
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
 ```
+
+GTP-U tunnel face with RxFlow is supported on ConnectX-6 and above.
+Moreover, *GTP flow matching* feature shall be enabled in the firmware.
+See [MLX5 common driver](https://doc.dpdk.org/guides/platform/mlx5.html) regarding `FLEX_PARSER_PROFILE_ENABLE=3` parameter.
+Otherwise, GTP-U face creation on RxFlow would fail with "GTP support is not enabled" log message.
 
 ### Intel Ethernet Adapters
 

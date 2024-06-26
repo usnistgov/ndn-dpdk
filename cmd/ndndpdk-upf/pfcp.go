@@ -54,7 +54,7 @@ func pfcpDispatch(ctx context.Context, logEntry *zap.Logger, msg message.Message
 	case *message.HeartbeatRequest:
 		return handleHeartbeat(req)
 	case *message.AssociationSetupRequest:
-		return handleAssoc(req)
+		return handleAssoc(req, logEntry)
 	case *message.SessionEstablishmentRequest:
 		return handleSessEstab(ctx, logEntry, req)
 	case *message.SessionModificationRequest:
@@ -72,7 +72,8 @@ func handleHeartbeat(req *message.HeartbeatRequest) (rsp message.Message, e erro
 	), nil
 }
 
-func handleAssoc(req *message.AssociationSetupRequest) (rsp message.Message, e error) {
+func handleAssoc(req *message.AssociationSetupRequest, logEntry *zap.Logger) (rsp message.Message, e error) {
+	logEntry.Info("association setup with SMF")
 	return message.NewAssociationSetupResponse(
 		req.SequenceNumber,
 		upfCfg.UpfNodeID,
