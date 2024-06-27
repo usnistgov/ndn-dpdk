@@ -79,6 +79,7 @@ type Port struct {
 	logger       *zap.Logger
 	dev          ethdev.EthDev
 	devInfo      ethdev.DevInfo
+	ddpRollback  func() error
 	faces        map[iface.ID]*Face
 	rxBouncePool *pktmbuf.Pool
 	rxImpl       rxImpl
@@ -123,6 +124,11 @@ func (port *Port) closeWithPortsMutex() error {
 		port.rxImpl = nil
 	}
 
+	if port.ddpRollback != nil {
+		errs = append(errs, port.ddpRollback())
+		port.ddpRollback = nil
+	}
+
 	if port.dev != nil {
 		errs = append(errs, port.dev.Close())
 		delete(ports, port.dev)
@@ -142,11 +148,17 @@ func (port *Port) closeWithPortsMutex() error {
 	return nil
 }
 
-func (port *Port) startDev(nRxQueues int, promisc bool) error {
+func (port *Port) startDev(nRxQueues int, promisc bool) (e error) {
 	socket := port.dev.NumaSocket()
 	rxPool := port.rxBouncePool
 	if rxPool == nil {
 		rxPool = ndni.PacketMempool.Get(socket)
+	}
+
+	if port.cfg.RxFlowQueues > 0 && port.devInfo.Driver() == ethdev.DriverI40e {
+		if dp, e := ethdev.OpenDdpProfile("gtp"); e == nil {
+			port.ddpRollback, _ = dp.Upload(port.dev)
+		}
 	}
 
 	cfg := ethdev.Config{

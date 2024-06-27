@@ -11,9 +11,8 @@ import (
 type Config struct {
 	RxQueues []RxQueueConfig
 	TxQueues []TxQueueConfig
-	MTU      int            // if non-zero, change MTU
-	Promisc  bool           // promiscuous mode
-	Conf     unsafe.Pointer // pointer to rte_eth_conf, nil means default
+	MTU      int  // if non-zero, change MTU
+	Promisc  bool // promiscuous mode
 }
 
 // AddRxQueues adds RxQueueConfig for several queues

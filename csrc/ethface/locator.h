@@ -118,7 +118,7 @@ typedef struct EthFlowPattern {
 
 /** @brief Prepare rte_flow pattern from locator. */
 __attribute__((nonnull)) void
-EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc);
+EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc, bool prefersFlowItemGTP);
 
 typedef struct EthTxHdr EthTxHdr;
 

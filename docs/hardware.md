@@ -28,15 +28,16 @@ NDN-DPDK aims to work with most Ethernet adapters supported by [DPDK Network Int
 
 The developers have tested NDN-DPDK with the following Ethernet adapters:
 
-model | speed | DPDK driver | RxFlow
--|-|-|-
-NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes
-Intel X710 | 10 Gbps | i40e | UDP only
-Intel X710 VF | 10 Gbps | iavf | untested
-Intel XXV710 | 25 Gbps | i40e | untested
-Intel X520 | 10 Gbps | ixgbe | UDP only
-Intel I350 | 1 Gbps | igb | no
-Broadcom/QLogic 57810 | 10 Gbps | bnx2x | untested
+model | speed | DPDK driver | RxFlow Ethernet | RxFlow UDP | RxFlow VXLAN | RxFlow GTP-U
+-|-|-|-|-|-|-
+NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes | yes | yes | no
+NVIDIA ConnectX-6 | 200 Gbps | mlx5 | yes | yes | yes | yes
+Intel X710 | 10 Gbps | i40e | no | yes | no | yes
+Intel X710 VF | 10 Gbps | iavf | untested | untested | untested | untested
+Intel XXV710 | 25 Gbps | i40e | untested | untested | untested | untested
+Intel X520 | 10 Gbps | ixgbe | no | yes | no | untested
+Intel I350 | 1 Gbps | igb | no | no | no | untested
+Broadcom/QLogic 57810 | 10 Gbps | bnx2x | untested | untested | untested | untested
 
 Some Ethernet adapters have more than one physical ports on the same PCI card.
 NDN-DPDK is only tested to work on the first port (lowest PCI address) of those dual-port or quad-port adapters.
@@ -217,7 +218,6 @@ To use Intel VF:
 #### RxFlow Feature
 
 Intel adapters have limited compatibility with NDN-DPDK RxFlow feature.
-As tested with i40e and ixgbe drivers, RxFlow can be used with UDP faces, but not Ethernet or VXLAN faces.
 You should test RxFlow with your specific hardware and face locators, and decide whether to use this feature.
 Example command:
 
@@ -233,6 +233,14 @@ ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
 # or, create Ethernet port, disable RxFlow
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500
 ```
+
+GTP-U tunnel face with RxFlow is supported with [I40E poll mode driver](https://doc.dpdk.org/guides/nics/i40e.html) on Intel Ethernet 700 series.
+It relies on [Dynamic Device Personalization (DDP)](https://www.intel.com/content/www/us/en/developer/articles/technical/dynamic-device-personalization-for-intel-ethernet-700-series.html) feature.
+You must manually download the *GTPv1 DDP profile* and place it at `/lib/firmware/intel/i40e/ddp/gtp.pkg`.
+If the profile is found, you would see "upload DDP package success" log message during Ethernet port creation.
+Without the profile, GTP-U face creation on RxFlow would fail with "GTP is not supported by default" log message.
+During NDN-DPDK service shutdown, a profile rollback will be attempted.
+In case of an abnormal shutdown, you may need to power-cycle the server to cleanup the profile.
 
 ### Broadcom/QLogic Ethernet Adapters
 

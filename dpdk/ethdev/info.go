@@ -21,6 +21,8 @@ const (
 	DriverXDP      = "net_af_xdp"
 	DriverMemif    = "net_memif"
 	DriverRing     = "net_ring"
+	DriverMlx5     = "net_mlx5"
+	DriverI40e     = "net_i40e"
 )
 
 const (
@@ -99,6 +101,17 @@ func (info DevInfo) HasTxMultiSegOffload() bool {
 // HasTxChecksumOffload determines whether device can compute IPv4 and UDP checksum upon transmission.
 func (info DevInfo) HasTxChecksumOffload() bool {
 	return info.Tx_offload_capa&txOffloadChecksum == txOffloadChecksum
+}
+
+// PrefersFlowItemGTP indicates the device prefers RTE_FLOW_ITEM_TYPE_GTP to RTE_FLOW_ITEM_TYPE_GTPU.
+//
+// https://doc.dpdk.org/guides/nics/overview.html rte_flow items availability in networking drivers
+func (info DevInfo) PrefersFlowItemGTP() bool {
+	switch info.Driver() {
+	case DriverMlx5:
+		return true
+	}
+	return false
 }
 
 // MarshalJSON implements json.Marshaler interface.

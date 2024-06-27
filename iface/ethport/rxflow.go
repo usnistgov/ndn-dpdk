@@ -27,9 +27,10 @@ func readFlowErr(e C.struct_rte_flow_error) error {
 }
 
 type rxFlow struct {
-	isolated        bool
-	availQueues     []uint16
-	hasDestroyError bool
+	isolated           bool
+	prefersFlowItemGTP bool
+	availQueues        []uint16
+	hasDestroyError    bool
 }
 
 func (rxFlow) String() string {
@@ -65,6 +66,7 @@ func (impl *rxFlow) Init(port *Port) error {
 	if e := impl.setIsolate(port, true); e != nil {
 		port.logger.Info("flow isolate mode unavailable", zap.Error(e))
 	}
+	impl.prefersFlowItemGTP = port.devInfo.PrefersFlowItemGTP()
 
 	maxRxQueues := int(port.devInfo.Max_rx_queues)
 	if port.cfg.RxFlowQueues > maxRxQueues {
@@ -114,7 +116,8 @@ func (impl *rxFlow) setupFlow(face *Face, queues []uint16) error {
 	queuesC := (*C.uint16_t)(unsafe.Pointer(unsafe.SliceData(queues)))
 	locC := face.loc.EthLocatorC()
 	var flowErr C.struct_rte_flow_error
-	face.flow = C.EthFace_SetupFlow(face.priv, queuesC, C.int(len(queues)), locC.ptr(), C.bool(impl.isolated), &flowErr)
+	face.flow = C.EthFace_SetupFlow(face.priv, queuesC, C.int(len(queues)),
+		locC.ptr(), C.bool(impl.isolated), C.bool(impl.prefersFlowItemGTP), &flowErr)
 	if face.flow == nil {
 		return readFlowErr(flowErr)
 	}

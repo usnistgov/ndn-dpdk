@@ -143,14 +143,11 @@ func (dev ethDev) Start(cfg Config) error {
 		return fmt.Errorf("%s %w", step, e)
 	}
 
-	conf := (*C.struct_rte_eth_conf)(cfg.Conf)
-	if conf == nil {
-		conf = &C.struct_rte_eth_conf{}
-		conf.rxmode.mtu = C.uint32_t(dev.MTU())
-		conf.txmode.offloads = C.uint64_t(info.Tx_offload_capa & (txOffloadMultiSegs | txOffloadChecksum))
-	}
+	conf := C.struct_rte_eth_conf{}
+	conf.rxmode.mtu = C.uint32_t(dev.MTU())
+	conf.txmode.offloads = C.uint64_t(info.Tx_offload_capa & (txOffloadMultiSegs | txOffloadChecksum))
 
-	if res := C.rte_eth_dev_configure(dev.cID(), C.uint16_t(len(cfg.RxQueues)), C.uint16_t(len(cfg.TxQueues)), conf); res < 0 {
+	if res := C.rte_eth_dev_configure(dev.cID(), C.uint16_t(len(cfg.RxQueues)), C.uint16_t(len(cfg.TxQueues)), &conf); res < 0 {
 		return bail("rte_eth_dev_configure", res)
 	}
 

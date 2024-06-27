@@ -349,7 +349,7 @@ EthFlowPattern_Set(EthFlowPattern* flow, size_t i, enum rte_flow_item_type typ, 
 }
 
 void
-EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc) {
+EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc, bool prefersFlowItemGTP) {
   EthLocatorClass c = EthLocator_Classify(loc);
 
   *flow = (const EthFlowPattern){0};
@@ -424,10 +424,13 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc) {
       break;
     }
     case 'G': {
-      MASK(flow->gtpMask.hdr.msg_type);
       MASK(flow->gtpMask.hdr.teid);
       PutGtpHdrMinimal(&flow->gtpSpec.hdr, loc->ulTEID);
-      APPEND(GTP, gtp);
+      if (prefersFlowItemGTP) {
+        APPEND(GTP, gtp);
+      } else {
+        APPEND(GTPU, gtp);
+      }
       break;
     }
   }
