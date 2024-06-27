@@ -8,6 +8,8 @@ Included are a network forwarder, a traffic generator, and a file server.
 This software is developed at the [Smart Connected Systems Division](https://www.nist.gov/ctl/smart-connected-systems-division) of the [National Institute of Standards and Technology](https://www.nist.gov/).
 It is in beta stage and will continue to be updated.
 
+Acknowledgement: NDN-DPDK development and testing make use of public testbeds, including [FABRIC](https://whatisfabric.net), [Cloudlab](https://www.cloudlab.us), [Emulab](https://www.emulab.net), [Virtual Wall](https://doc.ilabt.imec.be/ilabt/virtualwall/index.html), [Grid'5000](https://www.grid5000.fr).
+
 ## Documentation
 
 * [Installation guide](docs/INSTALL.md)
@@ -41,7 +43,7 @@ Packet encoding and decoding
 
 Transports
 
-* Ethernet-based transports via DPDK: Ethernet, VLAN, UDP, VXLAN
+* Ethernet-based transports via DPDK: Ethernet, VLAN, UDP, VXLAN, GTP-U
 * Socket-based transports via kernel: UDP, TCP
 * Local application transports: memif, Unix sockets
 
