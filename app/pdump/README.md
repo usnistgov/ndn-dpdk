@@ -44,8 +44,7 @@ SLL is chosen instead of Ethernet because:
 
 **EthPortSource** type defines a packet dump source attached to an [Ethernet port](../../iface/ethport), at a specific grab opportunity.
 Currently, the only supported grab opportunity is *RxUnmatched*: it captures incoming packets on an Ethernet port that does not match any face.
-It is referenced by **EthRxTable** table type in an RCU protected pointer.
-Hence, this feature is only supported on Ethernet ports that use RxTable receive path.
+This is supported on RxTable receive path, as well as RxFlow receive path when not in flow isolation mode.
 
 In the output file, each Ethernet port appears as a network interface.
 Packets are written as Ethernet link type, with the original Ethernet headers.

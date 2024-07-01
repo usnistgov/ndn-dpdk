@@ -11,7 +11,6 @@ typedef struct EthRxTable {
   RxGroup base;
   struct cds_hlist_head head;
   struct rte_mempool* copyTo;
-  PdumpSourceRef pdumpUnmatched;
   uint16_t port;
   uint16_t queue;
 } EthRxTable;

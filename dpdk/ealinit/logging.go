@@ -7,7 +7,6 @@ import "C"
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"math"
 	"regexp"
 	"strconv"
@@ -192,7 +191,7 @@ func processLogLine(line []byte) {
 	if len(m[reLogLineError]) > 0 {
 		e := string(m[reLogLineError][len(logErrorPrefix) : len(m[reLogLineError])-len(logErrorSuffix)])
 		if e == "-" {
-			fields = append(fields, zap.Error(errors.New(msg)))
+			fields = append(fields, zap.String("error", msg))
 		} else if em := reErrno.FindStringSubmatch(e); em != nil {
 			errno, _ := strconv.ParseUint(em[reErrnoErrno], 10, 64)
 			err := unix.Errno(errno)
@@ -202,7 +201,7 @@ func processLogLine(line []byte) {
 				zap.Error(err),
 			)
 		} else {
-			fields = append(fields, zap.Error(errors.New(e)))
+			fields = append(fields, zap.String("error", e))
 		}
 	}
 

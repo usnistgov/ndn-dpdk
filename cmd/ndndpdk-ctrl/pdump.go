@@ -115,8 +115,8 @@ func init() {
 		}
 	}
 	closeAll := func(c *cli.Context) {
-		for _, faceSource := range sources {
-			runDeleteCommand(c, faceSource)
+		for _, source := range sources {
+			runDeleteCommand(c, source)
 		}
 		if writer != "" {
 			runDeleteCommand(c, writer)

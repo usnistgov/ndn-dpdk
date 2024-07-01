@@ -75,10 +75,7 @@
 #endif
 
 #ifdef NDNDPDK_POISON
-#define POISON_2_(x, size)                                                                         \
-  do {                                                                                             \
-    memset((x), 0x99, size);                                                                       \
-  } while (false)
+#define POISON_2_(x, size) memset(x, 0x99, size)
 #else
 #define POISON_2_(x, size)                                                                         \
   do {                                                                                             \

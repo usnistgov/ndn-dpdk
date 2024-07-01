@@ -14,7 +14,11 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg) {
 
     bool dropped = (ctx.dropBits[i >> 6] & (1 << (i & 0x3F))) != 0;
     if (unlikely(dropped)) {
-      drops[nDrops++] = pkt;
+      if (likely(pkt != NULL)) {
+        drops[nDrops++] = pkt;
+      } else {
+        // pkt was passed to pdump or freed as bounceBufs in EthRxTable_RxBurst
+      }
       continue;
     }
 

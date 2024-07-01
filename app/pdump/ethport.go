@@ -2,7 +2,6 @@ package pdump
 
 /*
 #include "../../csrc/pdump/source.h"
-#include "../../csrc/ethface/rxtable.h"
 */
 import "C"
 import (
@@ -36,8 +35,6 @@ type EthPortConfig struct {
 	Writer *Writer
 	Port   *ethport.Port
 	Grab   EthGrab
-
-	rxt *C.EthRxTable
 }
 
 func (cfg *EthPortConfig) validate() error {
@@ -49,8 +46,6 @@ func (cfg *EthPortConfig) validate() error {
 
 	if cfg.Port == nil {
 		errs = append(errs, errors.New("port not found"))
-	} else if cfg.rxt = (*C.EthRxTable)(ethport.RxTablePtrFromPort(cfg.Port)); cfg.rxt == nil {
-		errs = append(errs, errors.New("port is not using RxTable"))
 	}
 
 	if cfg.Grab != EthGrabRxUnmatched {
@@ -68,7 +63,7 @@ type EthPortSource struct {
 }
 
 func (s *EthPortSource) setRef(expected, newPtr *C.PdumpSource) {
-	setSourceRef(&s.rxt.pdumpUnmatched, expected, newPtr)
+	setSourceRef(&C.gPdumpEthPortSources[s.Port.EthDev().ID()], expected, newPtr)
 }
 
 // Close detaches the dump source.
@@ -92,7 +87,7 @@ func (s *EthPortSource) closeImpl() error {
 	return nil
 }
 
-// NewEthPortSource creates a EthPortSource.
+// NewEthPortSource creates an EthPortSource.
 func NewEthPortSource(cfg EthPortConfig) (s *EthPortSource, e error) {
 	if e := cfg.validate(); e != nil {
 		return nil, e
@@ -138,6 +133,7 @@ func NewEthPortSource(cfg EthPortConfig) (s *EthPortSource, e error) {
 }
 
 func init() {
+	// C PdumpWriter.intf field is indexed by both EthDevID and FaceID, so they must not overlap
 	if ethdev.MaxEthDevs > iface.MinID {
 		panic("FaceID and EthDevID must not overlap")
 	}

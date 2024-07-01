@@ -54,3 +54,5 @@ PdumpFaceSource_Filter(PdumpSource* s0, struct rte_mbuf* pkt) {
   return prob > 0 &&                      // skip pcg32 computation when there's no name match
          prob >= pcg32_random_r(&s->rng); // '>=' because UINT32_MAX means always
 }
+
+PdumpSourceRef gPdumpEthPortSources[RTE_MAX_ETHPORTS];

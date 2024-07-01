@@ -35,4 +35,4 @@ This command only exposes a subset of API functionality to perform certain commo
 It is not intended to expose every feature or every output field that is possible with the API.
 
 If you want additional functionality or more output fields, you should prepare and send GraphQL queries directly.
-There are many GraphQL tools such as [graphqurl](https://www.npmjs.com/package/graphqurl) and [Altair GraphQL Client](https://altair.sirmuel.design/) that may be helpful.
+There are many GraphQL tools such as [graphqurl](https://www.npmjs.com/package/graphqurl) and [Altair GraphQL Client](https://altairgraphql.dev) that may be helpful.

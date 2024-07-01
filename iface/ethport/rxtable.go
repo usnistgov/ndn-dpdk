@@ -98,12 +98,3 @@ func newRxgTable(port *Port) (rxt *rxgTable) {
 	iface.ActivateRxGroup(rxt)
 	return rxt
 }
-
-// RxTablePtrFromPort extracts *C.RxTable pointer from Port.
-func RxTablePtrFromPort(port *Port) unsafe.Pointer {
-	impl, ok := port.rxImpl.(*rxTable)
-	if !ok {
-		return nil
-	}
-	return unsafe.Pointer(impl.rxt)
-}

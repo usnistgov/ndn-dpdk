@@ -234,9 +234,8 @@ func init() {
 		GetID: func(s *EthPortSource) string {
 			return strconv.Itoa(s.Port.EthDev().ID())
 		},
-		Retrieve: func(id string) *EthPortSource {
-			ethDev := ethdev.GqlEthDevType.Retrieve(id)
-			port := ethport.Find(ethDev)
+		RetrieveInt: func(id int) *EthPortSource {
+			port := ethport.Find(ethdev.FromID(id))
 			if port == nil {
 				return nil
 			}

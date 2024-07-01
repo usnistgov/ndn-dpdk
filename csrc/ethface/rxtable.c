@@ -19,20 +19,21 @@ EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m) {
 void
 EthRxTable_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
   EthRxTable* rxt = container_of(rxg, EthRxTable, base);
-  PdumpSource* pdumpUnmatched = PdumpSourceRef_Get(&rxt->pdumpUnmatched);
   ctx->nRx = rte_eth_rx_burst(rxt->port, rxt->queue, ctx->pkts, RTE_DIM(ctx->pkts));
   uint64_t now = rte_get_tsc_cycles();
 
-  struct rte_mbuf* unmatch[MaxBurstSize];
+  PdumpEthPortUnmatchedCtx unmatch;
+  // RCU lock is inherited from RxLoop_Run
+  PdumpEthPortUnmatchedCtx_Init(&unmatch, rxt->port);
+
   struct rte_mbuf* bounceBufs[MaxBurstSize];
-  uint16_t nUnmatch = 0, nBounceBufs = 0;
+  uint16_t nBounceBufs = 0;
   for (uint16_t i = 0; i < ctx->nRx; ++i) {
     struct rte_mbuf* m = ctx->pkts[i];
     Mbuf_SetTimestamp(m, now);
     if (unlikely(!EthRxTable_Accept(rxt, m))) {
       RxGroupBurstCtx_Drop(ctx, i);
-      if (pdumpUnmatched != NULL) {
-        unmatch[nUnmatch++] = m;
+      if (PdumpEthPortUnmatchedCtx_Append(&unmatch, m)) {
         ctx->pkts[i] = NULL;
       } else if (rxt->copyTo != NULL) {
         // free bounce bufs locally instead of via RxLoop, because rte_pktmbuf_free_bulk is most
@@ -55,9 +56,7 @@ EthRxTable_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
     bounceBufs[nBounceBufs++] = m;
   }
 
-  if (unlikely(pdumpUnmatched != NULL && nUnmatch > 0)) {
-    PdumpSource_Process(pdumpUnmatched, unmatch, nUnmatch);
-  }
+  PdumpEthPortUnmatchedCtx_Process(&unmatch);
   if (unlikely(nBounceBufs > 0)) {
     rte_pktmbuf_free_bulk(bounceBufs, nBounceBufs);
   }

@@ -72,7 +72,67 @@ typedef struct PdumpFaceSource {
   uint8_t nameV[PdumpMaxNames * NameMaxLength];
 } PdumpFaceSource;
 
+/**
+ * @brief Perform name filtering to deterine whether to capture a packet.
+ * @param pkt packet positioned at NDNLPv2 header.
+ * @returns whether to capture the packet.
+ */
 __attribute__((nonnull)) bool
 PdumpFaceSource_Filter(PdumpSource* s, struct rte_mbuf* pkt);
+
+extern PdumpSourceRef gPdumpEthPortSources[RTE_MAX_ETHPORTS];
+
+/** @brief Packet dump for unmatched frames on an Ethernet port, contextual information. */
+typedef struct PdumpEthPortUnmatchedCtx {
+  PdumpSource* source;
+  uint16_t count;
+  struct rte_mbuf* pkts[MaxBurstSize];
+} PdumpEthPortUnmatchedCtx;
+
+/** @brief Initialize PdumpEthPortUnmatchedCtx to be disabled. */
+static __rte_always_inline void
+PdumpEthPortUnmatchedCtx_Disable(PdumpEthPortUnmatchedCtx* ctx) {
+  ctx->source = NULL;
+  ctx->count = 0;
+  POISON(ctx->pkts);
+}
+
+/**
+ * @brief Initialize PdumpEthPortUnmatchedCtx for an ethdev.
+ * @pre Calling thread holds rcu_read_lock.
+ */
+static __rte_always_inline void
+PdumpEthPortUnmatchedCtx_Init(PdumpEthPortUnmatchedCtx* ctx, uint16_t port) {
+  PdumpSourceRef* ref = &gPdumpEthPortSources[port];
+  ctx->source = PdumpSourceRef_Get(ref);
+  ctx->count = 0;
+  POISON(ctx->pkts);
+}
+
+/**
+ * @brief Append an Ethernet frame to be captured.
+ * @param pkt Ethernet frame.
+ * @retval true packet is accepted and owned by pdump.
+ * @retval false packet is rejected and should be freed by caller.
+ */
+static __rte_always_inline bool
+PdumpEthPortUnmatchedCtx_Append(PdumpEthPortUnmatchedCtx* ctx, struct rte_mbuf* pkt) {
+  if (ctx->source == NULL) {
+    return false;
+  }
+  ctx->pkts[ctx->count++] = pkt;
+  return true;
+}
+
+/** @brief Submit accumulated packets to the pdump writer. */
+static __rte_always_inline void
+PdumpEthPortUnmatchedCtx_Process(PdumpEthPortUnmatchedCtx* ctx) {
+  if (ctx->source == NULL || ctx->count == 0) {
+    return;
+  }
+  PdumpSource_Process(ctx->source, ctx->pkts, ctx->count);
+  NULLize(ctx->source);
+  POISON(ctx->pkts);
+}
 
 #endif // NDNDPDK_PDUMP_SOURCE_H

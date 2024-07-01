@@ -16,6 +16,7 @@ Go shared code:
 * cptr: handle C `void*` pointers.
 * dlopen: load dynamic libraries.
 * events: simple event emitter.
+* gqlclient: GraphQL client.
 * gqlserver: GraphQL server.
 * hwinfo: hardware information gathering.
 * jsonhelper: JSON encoding and decoding.

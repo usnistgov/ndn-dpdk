@@ -12,25 +12,40 @@ enum {
 };
 
 __attribute__((nonnull)) static __rte_always_inline void
-EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool skipCheck) {
+EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated) {
   EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
   ctx->nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, rxf->burstSize);
   uint64_t now = rte_get_tsc_cycles();
 
+  PdumpEthPortUnmatchedCtx unmatch;
+  if (isolated) {
+    PdumpEthPortUnmatchedCtx_Disable(&unmatch);
+  } else {
+    // RCU lock is inherited from RxLoop_Run
+    PdumpEthPortUnmatchedCtx_Init(&unmatch, rxf->port);
+  }
+
   for (uint16_t i = 0; i < ctx->nRx; ++i) {
     struct rte_mbuf* m = ctx->pkts[i];
-    if (skipCheck || likely(EthRxMatch_Match(rxf->rxMatch, m))) {
-      Mbuf_SetTimestamp(m, now);
+    Mbuf_SetTimestamp(m, now);
+    if (isolated || likely(EthRxMatch_Match(rxf->rxMatch, m))) {
       m->port = rxf->faceID;
       rte_pktmbuf_adj(m, rxf->hdrLen);
     } else {
       RxGroupBurstCtx_Drop(ctx, i);
+      if (PdumpEthPortUnmatchedCtx_Append(&unmatch, m)) {
+        ctx->pkts[i] = NULL;
+      }
     }
+  }
+
+  if (!isolated) {
+    PdumpEthPortUnmatchedCtx_Process(&unmatch);
   }
 }
 
 __attribute__((nonnull)) static void
-EthRxFlow_RxBurst_Unchecked(RxGroup* rxg, RxGroupBurstCtx* ctx) {
+EthRxFlow_RxBurst_Isolated(RxGroup* rxg, RxGroupBurstCtx* ctx) {
   EthRxFlow_RxBurst(rxg, ctx, true);
 }
 
@@ -83,7 +98,7 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
     *rxf = (const EthRxFlow){
       .base =
         {
-          .rxBurst = isolated ? EthRxFlow_RxBurst_Unchecked : EthRxFlow_RxBurst_Checked,
+          .rxBurst = isolated ? EthRxFlow_RxBurst_Isolated : EthRxFlow_RxBurst_Checked,
           .rxThread = i,
         },
       .faceID = priv->faceID,
@@ -100,7 +115,7 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
 __attribute__((nonnull)) void
 EthFace_SetupRxMemif(EthFacePriv* priv, const EthLocator* loc) {
   priv->rxf[0] = (const EthRxFlow){
-    .base = {.rxBurst = EthRxFlow_RxBurst_Unchecked, .rxThread = 0},
+    .base = {.rxBurst = EthRxFlow_RxBurst_Isolated, .rxThread = 0},
     .faceID = priv->faceID,
     .port = priv->port,
     .queue = 0,
