@@ -37,11 +37,11 @@ It is a simplified version of DPDK empty poll API, intended for informational pu
 **pktmbuf.Template** is a template of mempool configuration.
 It can be used to create per-NUMA mempools for packet buffers.
 
+**ethdev** has functions to create virtual Ethernet devices based on rte\_net\_memif, rte\_net\_af\_xdp, rte\_net\_af\_packet, and rte\_net\_tap drivers.
+
 **ethringdev.Pair** builds a pair of virtual Ethernet devices based on rte\_net\_ring driver.
 **ethringdev.VNet** further builds a virtual network of bridged Ethernet devices.
 They can be used in unit tests to simulate links.
-
-**ethvdev** has functions to create virtual Ethernet devices based on rte\_net\_memif, rte\_net\_af\_xdp, and rte\_net\_af\_packet drivers.
 
 ## Main Thread
 

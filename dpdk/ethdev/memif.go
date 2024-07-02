@@ -25,16 +25,14 @@ func NewMemif(loc memiftransport.Locator) (EthDev, error) {
 	isFirst := !memifCoexist.Has(loc.SocketName)
 	memifCheckSocket(loc.Role, loc.SocketName, isFirst)
 
-	name := "net_memif" + eal.AllocObjectID("ethvdev.Memif")
+	name := "net_memif" + eal.AllocObjectID("ethdev.Memif")
 	dev, e := NewVDev(name, args, eal.NumaSocket{})
 	if e != nil {
-		return nil, fmt.Errorf("ethvdev.New %w", e)
+		return nil, fmt.Errorf("ethdev.NewVDev(%s) %w", name, e)
 	}
 
 	memifCoexist.Add(loc)
-	OnClose(dev, func() {
-		memifCoexist.Remove(loc)
-	})
+	OnClose(dev, func() { memifCoexist.Remove(loc) })
 	return dev, nil
 }
 
