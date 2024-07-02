@@ -254,20 +254,20 @@ func TestXDP(t *testing.T) {
 	xdpProgram, e := bpf.XDP.Find("redir")
 	require.NoError(e)
 
-	testPortTAP(t, func(tunName string) ethnetif.Config {
+	testPortTAP(t, func(ifname string) ethnetif.Config {
 		return ethnetif.Config{
 			Driver:     ethnetif.DriverXDP,
-			Netif:      tunName,
+			Netif:      ifname,
 			XDPProgram: xdpProgram,
 		}
 	})
 }
 
 func TestAfPacket(t *testing.T) {
-	testPortTAP(t, func(tunName string) ethnetif.Config {
+	testPortTAP(t, func(ifname string) ethnetif.Config {
 		return ethnetif.Config{
 			Driver: ethnetif.DriverAfPacket,
-			Netif:  tunName,
+			Netif:  ifname,
 		}
 	})
 }

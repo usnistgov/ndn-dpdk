@@ -82,7 +82,7 @@ jobs:
   docker:
     runs-on: ubuntu-22.04
     steps:
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         with:
           tags: localhost/ndn-dpdk
           build-args: |

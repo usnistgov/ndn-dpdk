@@ -2,10 +2,10 @@
 
 This package implements NDN layer 2 and layer 3 packet representations for internal use in NDN-DPDK codebase.
 
-Layer 2 implementation follows [**NDN Link Protocol v2 (NDNLPv2)** specification](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2), [revision 59](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2/59).
+Layer 2 implementation follows [**NDN Link Protocol v2 (NDNLPv2)** specification](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2), [revision 59](https://redmine.named-data.net/projects/nfd/wiki/NDNLPv2/63).
 It supports indexed fragmentation, PIT token, network nack, and congestion mark features.
 
-Layer 3 implementation follows [**NDN Packet Format** specification](https://docs.named-data.net/NDN-packet-spec/0.3/), [version 0.3](https://github.com/named-data/NDN-packet-spec/tree/ac25eabf035dd87dc6a27076b004cc8009c01d8a).
+Layer 3 implementation follows [**NDN Packet Format** specification](https://docs.named-data.net/NDN-packet-spec/0.3/), [version 0.3](https://github.com/named-data/NDN-packet-spec/tree/023bac3047ac5a97677db7168e6dbf1108aec325).
 The decoder supports TLV encoding evolvability in most situations.
 
 ## Low-Level TLV Functions
@@ -27,10 +27,10 @@ Two C types can represent a name:
 * **LName** includes a pointer to the buffer of name components, and TLV-LENGTH of the Name element.
 * **PName** additionally contains offsets of parsed name components.
 
-All name components must are in a consecutive memory buffer.
+All name components must be in continuous memory.
 If this condition is not met, calling code must linearize the Name element's TLV-VALUE with `TlvDecoder_Linearize` function.
 Having a linearized buffer, one can trivially construct an `LName`, or invoke `PName_Parse` function to construct a `PName`.
-Neither types own the name components buffer.
+Neither type owns the name components buffer.
 
 `PName` contains offsets of name components.
 Internally, it only has space for the initial `PNameCachedComponents` name components.

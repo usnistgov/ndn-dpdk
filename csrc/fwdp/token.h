@@ -7,7 +7,7 @@
 
 enum {
   FwTokenLength = 7,
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#if RTE_BYTE_ORDER == RTE_LITTLE_ENDIAN
   FwTokenOffsetPccToken = 0,
   FwTokenOffsetFwdID = 6,
 #else

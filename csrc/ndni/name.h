@@ -51,12 +51,6 @@ LName_Component(LName name, uint16_t* restrict pos, uint16_t* restrict type,
          LName_ParseVarNum_(name, pos, length, 0) && *pos + *length <= name.length;
 }
 
-/** @brief Determine whether @p a equals @p b . */
-static inline bool
-LName_Equal(LName a, LName b) {
-  return a.length == b.length && memcmp(a.value, b.value, a.length) == 0;
-}
-
 /**
  * @brief Determine whether @p a is a prefix of @p b .
  * @retval 0 @p a equals @p b .
@@ -74,20 +68,6 @@ LName_IsPrefix(LName a, LName b) {
 static __rte_always_inline LName
 LName_SliceByte_(LName name, uint16_t start, uint16_t end) {
   return (LName){.length = end - start, .value = RTE_PTR_ADD(name.value, start)};
-}
-
-/**
- * @brief Get a sub name of @c [start:end) byte range.
- * @param start first byte offset (inclusive).
- * @param end last byte offset (exclusive).
- */
-static __rte_always_inline LName
-LName_SliceByte(LName name, uint16_t start, uint16_t end) {
-  end = RTE_MIN(end, name.length);
-  if (unlikely(start >= end)) {
-    return (LName){0};
-  }
-  return LName_SliceByte_(name, start, end);
 }
 
 static __rte_always_inline LName
