@@ -5,6 +5,7 @@
 
 #include "../iface/rxloop.h"
 #include "locator.h"
+#include <urcu/rculist.h>
 
 /** @brief rte_flow hardware assisted RX dispatching. */
 typedef struct EthRxFlow {
@@ -24,7 +25,7 @@ typedef struct EthFacePriv {
   FaceID faceID;
   uint16_t port;
 
-  struct cds_hlist_node rxtNode;
+  struct cds_list_head rxtNode;
   EthRxMatch rxMatch;
 } EthFacePriv;
 

@@ -1,12 +1,21 @@
 #include "rxtable.h"
 #include "face.h"
 
+void
+EthRxTable_Init(EthRxTable* rxt, uint16_t port) {
+  rxt->base.rxBurst = EthRxTable_RxBurst;
+  rxt->base.rxThread = 0;
+  rxt->port = port;
+  rxt->queue = 0;
+  CDS_INIT_LIST_HEAD(&rxt->head);
+}
+
 __attribute__((nonnull)) static inline bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m) {
   // RCU lock is inherited from RxLoop_Run
-  EthFacePriv* priv;
-  struct cds_hlist_node* pos;
-  cds_hlist_for_each_entry_rcu (priv, pos, &rxt->head, rxtNode) {
+  struct cds_list_head* pos;
+  cds_list_for_each_rcu(pos, &rxt->head) {
+    EthFacePriv* priv = container_of(pos, EthFacePriv, rxtNode);
     if (EthRxMatch_Match(&priv->rxMatch, m)) {
       m->port = priv->faceID;
       rte_pktmbuf_adj(m, priv->rxMatch.len);

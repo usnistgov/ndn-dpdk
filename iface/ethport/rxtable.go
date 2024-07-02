@@ -37,12 +37,16 @@ func (impl *rxTable) Init(port *Port) error {
 }
 
 func (impl *rxTable) Start(face *Face) error {
-	C.cds_hlist_add_head_rcu(&face.priv.rxtNode, &impl.rxt.head)
+	if face.loc.Scheme() == FallbackScheme {
+		C.cds_list_add_tail_rcu(&face.priv.rxtNode, &impl.rxt.head)
+	} else {
+		C.cds_list_add_rcu(&face.priv.rxtNode, &impl.rxt.head)
+	}
 	return nil
 }
 
 func (impl *rxTable) Stop(face *Face) error {
-	C.cds_hlist_del_rcu(&face.priv.rxtNode)
+	C.cds_list_del_rcu(&face.priv.rxtNode)
 	urcu.Barrier()
 	return nil
 }
@@ -86,10 +90,7 @@ func (rxt *rxgTable) Close() error {
 func newRxgTable(port *Port) (rxt *rxgTable) {
 	socket := port.dev.NumaSocket()
 	rxt = eal.Zmalloc[rxgTable]("EthRxTable", C.sizeof_EthRxTable, socket)
-	rxt.port = C.uint16_t(port.dev.ID())
-	rxt.queue = 0
-	rxt.base.rxBurst = C.RxGroup_RxBurstFunc(C.EthRxTable_RxBurst)
-	rxt.base.rxThread = 0
+	C.EthRxTable_Init((*C.EthRxTable)(rxt), C.uint16_t(port.dev.ID()))
 	if port.rxBouncePool != nil {
 		rxPool := ndni.PacketMempool.Get(socket)
 		rxt.copyTo = (*C.struct_rte_mempool)(rxPool.Ptr())

@@ -12,6 +12,9 @@ EthLocatorClass
 EthLocator_Classify(const EthLocator* loc) {
   EthLocatorClass c = {0};
   if (rte_is_zero_ether_addr(&loc->local)) {
+    if (rte_is_broadcast_ether_addr(&loc->remote)) {
+      c.fallback = true;
+    }
     return c;
   }
   c.multicast = rte_is_multicast_ether_addr(&loc->remote);
@@ -31,8 +34,14 @@ bool
 EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b) {
   EthLocatorClass ac = EthLocator_Classify(a);
   EthLocatorClass bc = EthLocator_Classify(b);
-  if (ac.etherType == 0 || bc.etherType == 0) {
+  if ((ac.etherType == 0 && !ac.fallback) || (bc.etherType == 0 && !bc.fallback)) {
+    // only one memif face allowed
     return false;
+  }
+  if (ac.fallback || bc.fallback) {
+    // only one fallback face allowed
+    // fallback and non-fallback can coexist
+    return ac.fallback != bc.fallback;
   }
   if (ac.multicast != bc.multicast || ac.udp != bc.udp || ac.v4 != bc.v4) {
     // Ethernet unicast and multicast can coexist
