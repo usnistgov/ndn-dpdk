@@ -19,7 +19,7 @@ func NewTap(ifname string, local net.HardwareAddr) (EthDev, error) {
 		"mac":   local.String(),
 	}
 
-	name := "net_tap" + eal.AllocObjectID("ethdev.Tap")
+	name := DriverTAP + eal.AllocObjectID("ethdev.Tap")
 	dev, e := NewVDev(name, args, eal.NumaSocket{})
 	if e != nil {
 		return nil, fmt.Errorf("ethdev.NewVDev(%s) %w", name, e)

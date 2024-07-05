@@ -37,7 +37,7 @@ func (impl *rxTable) Init(port *Port) error {
 }
 
 func (impl *rxTable) Start(face *Face) error {
-	if face.loc.Scheme() == FallbackScheme {
+	if face.loc.Scheme() == SchemeFallback {
 		C.cds_list_add_tail_rcu(&face.priv.rxtNode, &impl.rxt.head)
 	} else {
 		C.cds_list_add_rcu(&face.priv.rxtNode, &impl.rxt.head)

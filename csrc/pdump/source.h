@@ -75,7 +75,7 @@ typedef struct PdumpFaceSource {
 /**
  * @brief Perform name filtering to deterine whether to capture a packet.
  * @param pkt packet positioned at NDNLPv2 header.
- * @returns whether to capture the packet.
+ * @return whether to capture the packet.
  */
 __attribute__((nonnull)) bool
 PdumpFaceSource_Filter(PdumpSource* s, struct rte_mbuf* pkt);

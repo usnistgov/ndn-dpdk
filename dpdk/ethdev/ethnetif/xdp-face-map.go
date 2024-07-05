@@ -14,7 +14,7 @@ import (
 var xdpDevs = map[int]*xdpDev{}
 
 type xdpDev struct {
-	n       netIntf
+	n       *NetIntf
 	faceMap *gobpfld.HashMap
 }
 

@@ -41,3 +41,5 @@ FaceRx_Input(Face* face, int rxThread, struct rte_mbuf* pkt) {
   ++rxt->nFrames[pktType];
   return npkt;
 }
+
+STATIC_ASSERT_FUNC_TYPE(Face_RxInputFunc, FaceRx_Input);

@@ -6,6 +6,7 @@ package ethport
 import "C"
 import (
 	"errors"
+	"math"
 	"net"
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
@@ -106,24 +107,26 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 		Config:     face.loc.EthFaceConfig().Config.WithMaxMTU(face.port.cfg.MTU - NewTxHdr(face.loc, false).IPLen()),
 		Socket:     face.port.dev.NumaSocket(),
 		SizeofPriv: C.sizeof_EthFacePriv,
-		Init: func(f iface.Face) (iface.InitResult, error) {
+		Init: func(f iface.Face) (initResult iface.InitResult, e error) {
 			face.port.mutex.Lock()
 			defer face.port.mutex.Unlock()
 
 			for _, other := range face.port.faces {
 				if e := CheckLocatorCoexist(face.loc, other.loc); e != nil {
-					return iface.InitResult{}, e
+					return initResult, e
 				}
 			}
 
 			face.Face = f
+			initResult.Face = face
 			id, faceC := face.ID(), (*C.Face)(face.Ptr())
 			face.logger = face.logger.With(id.ZapField("id"))
 
 			face.priv = (*C.EthFacePriv)(C.Face_GetPriv(faceC))
 			*face.priv = C.EthFacePriv{
-				port:   C.uint16_t(face.port.dev.ID()),
-				faceID: C.FaceID(id),
+				faceID:  C.FaceID(id),
+				port:    C.uint16_t(face.port.dev.ID()),
+				tapPort: math.MaxUint16,
 			}
 
 			cfg := face.loc.EthFaceConfig()
@@ -132,15 +135,23 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			useTxChecksumOffload := !cfg.DisableTxChecksumOffload && face.port.devInfo.HasTxChecksumOffload()
 			NewTxHdr(face.loc, useTxChecksumOffload).copyToC(&face.priv.txHdr)
 
-			return iface.InitResult{
-				Face:        face,
-				TxLinearize: !useTxMultiSegOffload,
-				TxBurst:     C.EthFace_TxBurst,
-			}, nil
+			if face.loc.Scheme() == SchemeFallback {
+				fallbackInit(face, &initResult)
+			}
+
+			initResult.TxLinearize = !useTxMultiSegOffload
+			initResult.TxBurst = C.EthFace_TxBurst
+			return initResult, nil
 		},
 		Start: func() error {
 			face.port.mutex.Lock()
 			defer face.port.mutex.Unlock()
+
+			if face.loc.Scheme() == SchemeFallback {
+				if e := fallbackStart(face); e != nil {
+					return e
+				}
+			}
 
 			id := face.ID()
 			if e := face.port.rxImpl.Start(face); e != nil {
@@ -150,7 +161,9 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			ethnetif.XDPInsertFaceMapEntry(face.port.dev, face.loc.EthLocatorC().toXDP(), 0)
 
 			face.port.activateTx(face)
-			face.logger.Info("face started")
+			face.logger.Info("face started",
+				face.port.txl.LCore().ZapField("txl-lc"),
+			)
 			face.port.faces[id] = face
 			return nil
 		},
@@ -171,9 +184,15 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 				face.logger.Info("face stopped")
 			}
 			face.port.deactivateTx(face)
+
+			if face.loc.Scheme() == SchemeFallback {
+				fallbackStop(face)
+			}
 			return nil
 		},
 		Close: func() error {
+			face.priv = nil // freed by iface.Face.Close()
+
 			if face.port.cfg.AutoClose {
 				face.port.mutex.Lock()
 				nFaces := len(face.port.faces)

@@ -25,7 +25,30 @@ import (
 	"go4.org/must"
 )
 
-func createTAP(t testing.TB) *water.Interface {
+type TapFixture struct {
+	t    testing.TB
+	Intf *water.Interface
+	Port *ethport.Port
+}
+
+func (tap *TapFixture) AddFace(loc ethport.Locator) iface.Face {
+	_, require := makeAR(tap.t)
+	face, e := loc.CreateFace()
+	require.NoError(e)
+	tap.t.Cleanup(func() { must.Close(face) })
+	return face
+}
+
+func (tap *TapFixture) WriteToFromLayers(hdrs ...gopacket.SerializableLayer) {
+	assert, _ := makeAR(tap.t)
+	_, e := writeToFromLayers(tap.Intf, hdrs...)
+	assert.NoError(e)
+}
+
+func newTapFixture(
+	t testing.TB,
+	makeNetifConfig func(ifname string) ethnetif.Config,
+) *TapFixture {
 	_, require := makeAR(t)
 
 	cfg := water.Config{DeviceType: water.TAP}
@@ -38,54 +61,59 @@ func createTAP(t testing.TB) *water.Interface {
 	e = netlink.LinkSetHardwareAddr(link, macaddr.MakeRandomUnicast())
 	require.NoError(e)
 
-	return intf
-}
-
-func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Config) {
-	assert, require := makeAR(t)
-	tap := createTAP(t)
-
 	port, e := ethport.New(ethport.Config{
-		Config: makeNetifConfig(tap.Name()),
+		Config: makeNetifConfig(intf.Name()),
 	})
 	require.NoError(e)
 	t.Cleanup(func() { must.Close(port) })
-	localMAC := port.EthDev().HardwareAddr()
-	addFace := func(loc ethport.Locator) iface.Face {
-		face, e := loc.CreateFace()
-		require.NoError(e)
-		t.Cleanup(func() { must.Close(face) })
-		return face
+
+	return &TapFixture{
+		t:    t,
+		Intf: intf,
+		Port: port,
 	}
+}
+
+func makeRxFrame(prefix string, i int) gopacket.SerializableLayer {
+	interest := ndn.MakeInterest(fmt.Sprintf("/RX/%s/%d", prefix, i))
+	return &ndnlayer.NDN{Packet: interest.ToPacket()}
+}
+
+func makeTxBurst(prefix string, i int) []*ndni.Packet {
+	return []*ndni.Packet{makeInterest(fmt.Sprintf("/TX/%s/%d", prefix, i))}
+}
+
+func testPortTap(t testing.TB, tap *TapFixture) {
+	assert, _ := makeAR(t)
 
 	var locEther ethface.EtherLocator
-	locEther.Local.HardwareAddr = localMAC
+	locEther.Local.HardwareAddr = tap.Port.EthDev().HardwareAddr()
 	locEther.Remote.Set("02:00:00:00:00:02")
 	locEther.VLAN = 1987
-	faceEther := addFace(locEther)
+	faceEther := tap.AddFace(locEther)
 
 	var locUDP4 ethface.UDPLocator
 	locUDP4.EtherLocator = locEther
 	locUDP4.LocalIP, locUDP4.LocalUDP = netip.MustParseAddr("192.168.2.1"), 6363
 	locUDP4.RemoteIP, locUDP4.RemoteUDP = netip.MustParseAddr("192.168.2.2"), 6363
-	faceUDP4 := addFace(locUDP4)
+	faceUDP4 := tap.AddFace(locUDP4)
 
 	locUDP4p1 := locUDP4
 	locUDP4p1.LocalUDP, locUDP4p1.RemoteUDP = 16363, 26363
-	faceUDP4p1 := addFace(locUDP4p1)
+	faceUDP4p1 := tap.AddFace(locUDP4p1)
 
 	locUDP6 := locUDP4
 	locUDP6.VLAN = 0
 	locUDP6.LocalIP = netip.MustParseAddr("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0001")
 	locUDP6.RemoteIP = netip.MustParseAddr("fde0:fd0a:3557:a8c7:db87:639f:9bd2:0002")
-	faceUDP6 := addFace(locUDP6)
+	faceUDP6 := tap.AddFace(locUDP6)
 
 	var locVX ethface.VxlanLocator
 	locVX.IPLocator = locUDP6.IPLocator
 	locVX.VXLAN = 0x887700
 	locVX.InnerLocal.Set("02:00:00:00:01:01")
 	locVX.InnerRemote.Set("02:00:00:00:01:02")
-	faceVX := addFace(locVX)
+	faceVX := tap.AddFace(locVX)
 
 	var locGTP8 ethface.GtpLocator
 	locGTP8.IPLocator = locUDP4.IPLocator
@@ -94,17 +122,17 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 	locGTP8.UlQFI, locGTP8.DlQFI = 2, 12
 	locGTP8.InnerLocalIP = netip.MustParseAddr("192.168.60.3")
 	locGTP8.InnerRemoteIP = netip.MustParseAddr("192.168.60.4")
-	faceGTP8 := addFace(locGTP8)
+	faceGTP8 := tap.AddFace(locGTP8)
 
 	locGTP9 := locGTP8
 	locGTP9.UlTEID, locGTP9.DlTEID = 0x10000009, 0x20000009
-	faceGTP9 := addFace(locGTP9)
+	faceGTP9 := tap.AddFace(locGTP9)
 
 	var txEther, txUDP4, txUDP4p1, txUDP6, txVX, txGTP8, txGTP9, txOther atomic.Int32
 	go func() {
-		buf := make([]byte, port.EthDev().MTU())
+		buf := make([]byte, tap.Port.EthDev().MTU())
 		for {
-			n, e := tap.Read(buf)
+			n, e := tap.Intf.Read(buf)
 			if e != nil {
 				break
 			}
@@ -145,55 +173,43 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 		}
 	}()
 
-	makeRxFrame := func(prefix string, i int) gopacket.SerializableLayer {
-		interest := ndn.MakeInterest(fmt.Sprintf("/RX/%s/%d", prefix, i))
-		return &ndnlayer.NDN{Packet: interest.ToPacket()}
-	}
-	makeTxBurst := func(prefix string, i int) []*ndni.Packet {
-		return []*ndni.Packet{makeInterest(fmt.Sprintf("/TX/%s/%d", prefix, i))}
-	}
-
 	for i := 0; i < 500; i++ {
 		time.Sleep(10 * time.Millisecond)
 
-		_, e = writeToFromLayers(tap,
+		tap.WriteToFromLayers(
 			&layers.Ethernet{SrcMAC: locEther.Remote.HardwareAddr, DstMAC: locEther.Local.HardwareAddr, EthernetType: layers.EthernetTypeDot1Q},
 			&layers.Dot1Q{VLANIdentifier: uint16(locEther.VLAN), Type: an.EtherTypeNDN},
 			makeRxFrame("Ether", i),
 		)
-		assert.NoError(e)
 		iface.TxBurst(faceEther.ID(), makeTxBurst("Ether", i))
 
-		_, e = writeToFromLayers(tap,
+		tap.WriteToFromLayers(
 			&layers.Ethernet{SrcMAC: locUDP4.Remote.HardwareAddr, DstMAC: locUDP4.Local.HardwareAddr, EthernetType: layers.EthernetTypeDot1Q},
 			&layers.Dot1Q{VLANIdentifier: uint16(locUDP4.VLAN), Type: layers.EthernetTypeIPv4},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locUDP4.RemoteIP.AsSlice()), DstIP: net.IP(locUDP4.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP4.RemoteUDP), DstPort: layers.UDPPort(locUDP4.LocalUDP)},
 			makeRxFrame("UDP4", i),
 		)
-		assert.NoError(e)
 		iface.TxBurst(faceUDP4.ID(), makeTxBurst("UDP4", i))
 
-		_, e = writeToFromLayers(tap,
+		tap.WriteToFromLayers(
 			&layers.Ethernet{SrcMAC: locUDP4p1.Remote.HardwareAddr, DstMAC: locUDP4p1.Local.HardwareAddr, EthernetType: layers.EthernetTypeDot1Q},
 			&layers.Dot1Q{Priority: 1, VLANIdentifier: uint16(locUDP4p1.VLAN), Type: layers.EthernetTypeIPv4},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locUDP4p1.RemoteIP.AsSlice()), DstIP: net.IP(locUDP4p1.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP4p1.RemoteUDP), DstPort: layers.UDPPort(locUDP4p1.LocalUDP)},
 			makeRxFrame("UDP4p1", i),
 		)
-		assert.NoError(e)
 		iface.TxBurst(faceUDP4p1.ID(), makeTxBurst("UDP4p1", i))
 
-		_, e = writeToFromLayers(tap,
+		tap.WriteToFromLayers(
 			&layers.Ethernet{SrcMAC: locUDP6.Remote.HardwareAddr, DstMAC: locUDP6.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv6},
 			&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: net.IP(locUDP6.RemoteIP.AsSlice()), DstIP: net.IP(locUDP6.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(locUDP6.RemoteUDP), DstPort: layers.UDPPort(locUDP6.LocalUDP)},
 			makeRxFrame("UDP6", i),
 		)
-		assert.NoError(e)
 		iface.TxBurst(faceUDP6.ID(), makeTxBurst("UDP6", i))
 
-		_, e = writeToFromLayers(tap,
+		tap.WriteToFromLayers(
 			&layers.Ethernet{SrcMAC: locVX.Remote.HardwareAddr, DstMAC: locVX.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv6},
 			&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: net.IP(locVX.RemoteIP.AsSlice()), DstIP: net.IP(locVX.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: layers.UDPPort(65535 - i), DstPort: 4789},
@@ -201,10 +217,9 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 			&layers.Ethernet{SrcMAC: locVX.InnerRemote.HardwareAddr, DstMAC: locVX.InnerLocal.HardwareAddr, EthernetType: an.EtherTypeNDN},
 			makeRxFrame("VX", i),
 		)
-		assert.NoError(e)
 		iface.TxBurst(faceVX.ID(), makeTxBurst("VX", i))
 
-		_, e = writeToFromLayers(tap,
+		tap.WriteToFromLayers(
 			&layers.Ethernet{SrcMAC: locGTP8.Remote.HardwareAddr, DstMAC: locGTP8.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv4},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locGTP8.RemoteIP.AsSlice()), DstIP: net.IP(locGTP8.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: 2152, DstPort: 2152},
@@ -213,10 +228,9 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 			&layers.UDP{SrcPort: 6363, DstPort: 6363},
 			makeRxFrame("GTP8", i),
 		)
-		assert.NoError(e)
 		iface.TxBurst(faceGTP8.ID(), makeTxBurst("GTP8", i))
 
-		_, e = writeToFromLayers(tap,
+		tap.WriteToFromLayers(
 			&layers.Ethernet{SrcMAC: locGTP9.Remote.HardwareAddr, DstMAC: locGTP9.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv4},
 			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locGTP9.RemoteIP.AsSlice()), DstIP: net.IP(locGTP9.LocalIP.AsSlice())},
 			&layers.UDP{SrcPort: 2152, DstPort: 2152},
@@ -225,7 +239,6 @@ func testPortTAP(t testing.TB, makeNetifConfig func(ifname string) ethnetif.Conf
 			&layers.UDP{SrcPort: 6363, DstPort: 6363},
 			makeRxFrame("GTP9", i),
 		)
-		assert.NoError(e)
 		iface.TxBurst(faceGTP9.ID(), makeTxBurst("GTP9", i))
 	}
 
@@ -254,20 +267,111 @@ func TestXDP(t *testing.T) {
 	xdpProgram, e := bpf.XDP.Find("redir")
 	require.NoError(e)
 
-	testPortTAP(t, func(ifname string) ethnetif.Config {
+	tap := newTapFixture(t, func(ifname string) ethnetif.Config {
 		return ethnetif.Config{
 			Driver:     ethnetif.DriverXDP,
 			Netif:      ifname,
 			XDPProgram: xdpProgram,
 		}
 	})
+	testPortTap(t, tap)
 }
 
 func TestAfPacket(t *testing.T) {
-	testPortTAP(t, func(ifname string) ethnetif.Config {
+	tap := newTapFixture(t, func(ifname string) ethnetif.Config {
 		return ethnetif.Config{
 			Driver: ethnetif.DriverAfPacket,
 			Netif:  ifname,
 		}
 	})
+	testPortTap(t, tap)
+}
+
+func TestFallback(t *testing.T) {
+	assert, require := makeAR(t)
+	tap := newTapFixture(t, func(ifname string) ethnetif.Config {
+		return ethnetif.Config{
+			Driver: ethnetif.DriverAfPacket,
+			Netif:  ifname,
+		}
+	})
+
+	var locUDP4 ethface.UDPLocator
+	locUDP4.Local.HardwareAddr = tap.Port.EthDev().HardwareAddr()
+	locUDP4.Remote.Set("02:00:00:00:00:02")
+	locUDP4.LocalIP, locUDP4.LocalUDP = netip.MustParseAddr("192.168.2.1"), 6363
+	locUDP4.RemoteIP, locUDP4.RemoteUDP = netip.MustParseAddr("192.168.2.2"), 6363
+	faceUDP4 := tap.AddFace(locUDP4)
+
+	arpUDP4 := &layers.ARP{
+		AddrType:          layers.LinkTypeEthernet,
+		Protocol:          layers.EthernetTypeIPv4,
+		Operation:         layers.ARPRequest,
+		SourceHwAddress:   locUDP4.Remote.HardwareAddr,
+		SourceProtAddress: locUDP4.RemoteIP.AsSlice(),
+		DstHwAddress:      make([]byte, len(locUDP4.Local.HardwareAddr)),
+		DstProtAddress:    locUDP4.LocalIP.AsSlice(),
+	}
+
+	var locFallback ethface.FallbackLocator
+	locFallback.EthDev = tap.Port.EthDev()
+	faceFallback := tap.AddFace(locFallback)
+
+	intf, e := ethnetif.NetIntfByName(ethport.MakeFallbackTapName(tap.Port.EthDev()))
+	require.NoError(e)
+	require.NoError(intf.EnsureLinkUp(false))
+	addr, e := netlink.ParseAddr(locUDP4.LocalIP.String() + "/24")
+	require.NoError(e)
+	require.NoError(netlink.AddrAdd(intf.Link, addr))
+
+	var txUDP4, txOther atomic.Int32
+	go func() {
+		buf := make([]byte, tap.Port.EthDev().MTU())
+		for {
+			n, e := tap.Intf.Read(buf)
+			if e != nil {
+				break
+			}
+
+			classify := &txOther
+			parsed := gopacket.NewPacket(buf[:n], layers.LayerTypeEthernet, gopacket.NoCopy)
+			for _, l := range parsed.Layers() {
+				switch l.(type) {
+				case *layers.UDP:
+					classify = &txUDP4
+				}
+			}
+			classify.Add(1)
+		}
+	}()
+
+	for i := 0; i < 500; i++ {
+		time.Sleep(10 * time.Millisecond)
+
+		if i%5 == 0 {
+			tap.WriteToFromLayers(
+				&layers.Ethernet{SrcMAC: locUDP4.Remote.HardwareAddr, DstMAC: net.HardwareAddr{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, EthernetType: layers.EthernetTypeARP},
+				arpUDP4,
+			)
+		}
+
+		tap.WriteToFromLayers(
+			&layers.Ethernet{SrcMAC: locUDP4.Remote.HardwareAddr, DstMAC: locUDP4.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv4},
+			&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: net.IP(locUDP4.RemoteIP.AsSlice()), DstIP: net.IP(locUDP4.LocalIP.AsSlice())},
+			&layers.UDP{SrcPort: layers.UDPPort(locUDP4.RemoteUDP), DstPort: layers.UDPPort(locUDP4.LocalUDP)},
+			makeRxFrame("UDP4", i),
+		)
+		iface.TxBurst(faceUDP4.ID(), makeTxBurst("UDP4", i))
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	assert.EqualValues(500, faceUDP4.Counters().RxInterests)
+	cntFallback := faceFallback.Counters()
+	assert.GreaterOrEqual(int(cntFallback.RxFrames), 50)
+	assert.GreaterOrEqual(int(cntFallback.TxFrames), 60)
+	assert.LessOrEqual(int(cntFallback.TxFrames), 140)
+
+	assert.EqualValues(500, txUDP4.Load())
+	assert.Less(int(txOther.Load())-int(cntFallback.TxFrames), 50)
 }

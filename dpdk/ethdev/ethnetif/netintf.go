@@ -17,16 +17,17 @@ import (
 )
 
 // etht is an ethtool instance.
-// This is assigned when netIntfByName() is invoked for the first time.
+// This is assigned when NetIntfByName() is invoked for the first time.
 var etht *ethtool.Ethtool
 
-type netIntf struct {
+// NetIntf controls a network interface via netlink and ethtool.
+type NetIntf struct {
 	*netlink.LinkAttrs
 	Link   netlink.Link
 	logger *zap.Logger
 }
 
-func (n *netIntf) save(link netlink.Link) {
+func (n *NetIntf) save(link netlink.Link) {
 	n.Link = link
 	n.LinkAttrs = link.Attrs()
 	n.logger = logger.With(
@@ -36,7 +37,7 @@ func (n *netIntf) save(link netlink.Link) {
 }
 
 // Refresh refreshes netlink information stores in this struct.
-func (n *netIntf) Refresh() {
+func (n *NetIntf) Refresh() {
 	link, e := netlink.LinkByIndex(n.Index)
 	if e != nil {
 		n.logger.Warn("refresh error", zap.Error(e))
@@ -46,13 +47,13 @@ func (n *netIntf) Refresh() {
 }
 
 // VDevName constructs virtual device name for a particular driver.
-func (n netIntf) VDevName(drv string) string {
+func (n NetIntf) VDevName(drv string) string {
 	return fmt.Sprintf("%s_%d", drv, n.Index)
 }
 
 // EnsureLinkUp brings up the link.
 // If skipBringUp is true but the interface is down, returns an error.
-func (n *netIntf) EnsureLinkUp(skipBringUp bool) error {
+func (n *NetIntf) EnsureLinkUp(skipBringUp bool) error {
 	if n.Flags&net.FlagUp != 0 {
 		return nil
 	}
@@ -69,7 +70,7 @@ func (n *netIntf) EnsureLinkUp(skipBringUp bool) error {
 }
 
 // PCIAddr determines the PCI address of a physical network interface.
-func (n netIntf) PCIAddr() (a pciaddr.PCIAddress, e error) {
+func (n NetIntf) PCIAddr() (a pciaddr.PCIAddress, e error) {
 	busInfo, e := etht.BusInfo(n.Name)
 	if e != nil {
 		return pciaddr.PCIAddress{}, e
@@ -79,7 +80,7 @@ func (n netIntf) PCIAddr() (a pciaddr.PCIAddress, e error) {
 }
 
 // NumaSocket determines the NUMA socket of a physical network interface.
-func (n netIntf) NumaSocket() (socket eal.NumaSocket) {
+func (n NetIntf) NumaSocket() (socket eal.NumaSocket) {
 	body, e := os.ReadFile(filepath.Join("/dev/class/net", n.Name, "device/numa_node"))
 	if e != nil {
 		return eal.NumaSocket{}
@@ -93,7 +94,7 @@ func (n netIntf) NumaSocket() (socket eal.NumaSocket) {
 }
 
 // FindDev locates an existing EthDev for the network interface.
-func (n netIntf) FindDev() (dev ethdev.EthDev) {
+func (n NetIntf) FindDev() (dev ethdev.EthDev) {
 	if pciAddr, e := n.PCIAddr(); e == nil {
 		if dev = ethdev.FromPCI(pciAddr); dev != nil {
 			return dev
@@ -109,7 +110,7 @@ func (n netIntf) FindDev() (dev ethdev.EthDev) {
 
 // SetOneChannel modifies the Ethernet device to have only one RX channel.
 // This helps ensure all traffic goes into the XDP program.
-func (n *netIntf) SetOneChannel() {
+func (n *NetIntf) SetOneChannel() {
 	channels, e := etht.GetChannels(n.Name)
 	if e != nil {
 		n.logger.Error("ethtool.GetChannels error", zap.Error(e))
@@ -144,7 +145,7 @@ func (n *netIntf) SetOneChannel() {
 
 // DisableVLANOffload modifies the Ethernet device to disable VLAN offload.
 // This helps ensure all traffic goes into the XDP program.
-func (n *netIntf) DisableVLANOffload() {
+func (n *NetIntf) DisableVLANOffload() {
 	logEntry := n.logger
 
 	features, e := etht.Features(n.Name)
@@ -178,7 +179,7 @@ func (n *netIntf) DisableVLANOffload() {
 
 // UnloadXDP unloads any existing XDP program on a network interface.
 // This allows libxdp to load a new XDP program.
-func (n *netIntf) UnloadXDP() {
+func (n *NetIntf) UnloadXDP() {
 	if n.Xdp == nil || !n.Xdp.Attached {
 		n.logger.Debug("netlink has no attached XDP program")
 		return
@@ -194,20 +195,21 @@ func (n *netIntf) UnloadXDP() {
 	n.Refresh()
 }
 
-// netIntfByName creates netIntf by network interface name.
+// NetIntfByName creates netIntf by network interface name.
 // If the network interface does not exist, returns an error.
-func netIntfByName(ifname string) (n netIntf, e error) {
+func NetIntfByName(ifname string) (n *NetIntf, e error) {
 	if etht == nil {
 		if etht, e = ethtool.NewEthtool(); e != nil {
-			return netIntf{}, fmt.Errorf("ethtool.NewEthtool: %w", e)
+			return nil, fmt.Errorf("ethtool.NewEthtool: %w", e)
 		}
 	}
 
 	link, e := netlink.LinkByName(ifname)
 	if e != nil {
-		return netIntf{}, fmt.Errorf("netlink.LinkByName(%s): %w", ifname, e)
+		return nil, fmt.Errorf("netlink.LinkByName(%s): %w", ifname, e)
 	}
 
+	n = &NetIntf{}
 	n.save(link)
 	return n, nil
 }

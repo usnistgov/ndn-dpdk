@@ -7,15 +7,15 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg) {
   memset(&ctx, 0, offsetof(RxGroupBurstCtx, zeroizeEnd_));
   rxg->rxBurst(rxg, &ctx);
 
-  struct rte_mbuf* drops[MaxBurstSize];
-  uint16_t nDrops = 0;
+  struct rte_mbuf* frees[MaxBurstSize];
+  uint16_t nFrees = 0;
   for (uint16_t i = 0; i < ctx.nRx; ++i) {
     struct rte_mbuf* pkt = ctx.pkts[i];
 
     bool dropped = (ctx.dropBits[i >> 6] & (1 << (i & 0x3F))) != 0;
     if (unlikely(dropped)) {
       if (likely(pkt != NULL)) {
-        drops[nDrops++] = pkt;
+        frees[nFrees++] = pkt;
       } else {
         // pkt was passed to pdump or freed as bounceBufs in EthRxTable_RxBurst
       }
@@ -24,13 +24,13 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg) {
 
     Face* face = Face_Get(pkt->port);
     if (unlikely(face->impl == NULL)) {
-      drops[nDrops++] = pkt;
+      frees[nFrees++] = pkt;
       continue;
     }
 
     PdumpSourceRef_Process(&face->impl->rxPdump, &pkt, 1);
 
-    Packet* npkt = FaceRx_Input(face, rxg->rxThread, pkt);
+    Packet* npkt = face->impl->rxInput(face, rxg->rxThread, pkt);
     NULLize(pkt);
     if (npkt == NULL) {
       continue;
@@ -40,12 +40,12 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg) {
       likely(face->impl->rxDemuxes == NULL) ? &rxl->demuxes : face->impl->rxDemuxes;
     bool accepted = InputDemux_Dispatch(InputDemux_Of(demuxes, Packet_GetType(npkt)), npkt);
     if (unlikely(!accepted)) {
-      drops[nDrops++] = Packet_ToMbuf(npkt);
+      frees[nFrees++] = Packet_ToMbuf(npkt);
     }
   }
 
-  if (unlikely(nDrops > 0)) {
-    rte_pktmbuf_free_bulk(drops, nDrops);
+  if (unlikely(nFrees > 0)) {
+    rte_pktmbuf_free_bulk(frees, nFrees);
   }
   return ctx.nRx;
 }

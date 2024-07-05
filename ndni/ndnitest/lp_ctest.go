@@ -110,7 +110,6 @@ func ctestPacketClone(t *testing.T) {
 	data := ndn.MakeData("/D", bytes.Repeat([]byte{0xC0}, 1200))
 	wire, _ := tlv.EncodeFrom(data)
 	p := makePacket(wire)
-	// XXX 4
 	defer p.Close()
 
 	single := toPacket(unsafe.Pointer(p.N.Clone(mp, ndni.PacketTxAlign{

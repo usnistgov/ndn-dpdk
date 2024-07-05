@@ -50,7 +50,7 @@ func CreateEthDev(cfg Config) (ethdev.EthDev, error) {
 	cfg.applyDefaults()
 
 	if cfg.Netif != "" {
-		if n, e := netIntfByName(cfg.Netif); e == nil {
+		if n, e := NetIntfByName(cfg.Netif); e == nil {
 			if dev := n.FindDev(); dev != nil {
 				return dev, nil
 			}
@@ -72,7 +72,7 @@ func createPCI(cfg Config) (ethdev.EthDev, error) {
 	var addr pciaddr.PCIAddress
 	switch {
 	case cfg.Netif != "":
-		n, e := netIntfByName(cfg.Netif)
+		n, e := NetIntfByName(cfg.Netif)
 		if e != nil {
 			return nil, e
 		}
@@ -93,7 +93,7 @@ func createPCI(cfg Config) (ethdev.EthDev, error) {
 }
 
 func createXDP(cfg Config) (ethdev.EthDev, error) {
-	n, e := netIntfByName(cfg.Netif)
+	n, e := NetIntfByName(cfg.Netif)
 	if e != nil {
 		return nil, e
 	}
@@ -133,7 +133,7 @@ func createXDP(cfg Config) (ethdev.EthDev, error) {
 }
 
 func createAfPacket(cfg Config) (ethdev.EthDev, error) {
-	n, e := netIntfByName(cfg.Netif)
+	n, e := NetIntfByName(cfg.Netif)
 	if e != nil {
 		return nil, e
 	}

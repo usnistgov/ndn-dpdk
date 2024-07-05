@@ -1,8 +1,11 @@
 #include "txloop.h"
+#include "../core/logger.h"
 #include "../hrlog/entry.h"
 #include "face-impl.h"
 
-__attribute__((nonnull)) static void
+N_LOG_INIT(TxLoop);
+
+void
 TxLoop_TxFrames(Face* face, int txThread, struct rte_mbuf** frames, uint16_t count) {
   NDNDPDK_ASSERT(count > 0);
   PdumpSourceRef_Process(&face->impl->txPdump, frames, count);
@@ -15,6 +18,8 @@ TxLoop_TxFrames(Face* face, int txThread, struct rte_mbuf** frames, uint16_t cou
 
   uint16_t nQueued = face->impl->txBurst(face, frames, count);
   uint16_t nRejects = count - nQueued;
+  N_LOGV("TxFrames face=%" PRI_FaceID " txt=%d queued=%" PRIu16 " rejects=%" PRIu16, face->id,
+         txThread, nQueued, nRejects);
   if (unlikely(nRejects > 0)) {
     txt->nDroppedFrames += nRejects;
     uint32_t nDroppedOctets = 0;
@@ -26,7 +31,7 @@ TxLoop_TxFrames(Face* face, int txThread, struct rte_mbuf** frames, uint16_t cou
   }
 }
 
-__attribute__((nonnull)) static uint16_t
+uint16_t
 TxLoop_Transfer(Face* face, int txThread) {
   FaceTxThread* txt = &face->impl->tx[txThread];
   Packet* npkts[MaxBurstSize];
@@ -80,6 +85,8 @@ TxLoop_Transfer(Face* face, int txThread) {
   return count;
 }
 
+STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, TxLoop_Transfer);
+
 int
 TxLoop_Run(TxLoop* txl) {
   rcu_register_thread();
@@ -91,7 +98,7 @@ TxLoop_Run(TxLoop* txl) {
     struct cds_hlist_node* pos;
     cds_hlist_for_each_entry_rcu (face, pos, &txl->head, txlNode) {
       static_assert(MaxFaceTxThreads == 1, "");
-      nProcessed += TxLoop_Transfer(face, 0);
+      nProcessed += face->impl->txLoop(face, 0);
     }
     rcu_read_unlock();
   }

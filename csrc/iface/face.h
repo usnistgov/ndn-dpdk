@@ -32,7 +32,22 @@ typedef struct FaceTxThread {
 } __rte_cache_aligned FaceTxThread;
 
 /**
- * @brief Transmit a burst of L2 frames.
+ * @brief Process a received L2 frame (in RX thread).
+ * @return L3 packet to be dispatched, or NULL if no NDN packet is ready.
+ *
+ * Default implementation for NDN traffic is @c FaceRx_Input .
+ */
+typedef Packet* (*Face_RxInputFunc)(Face* face, int rxThread, struct rte_mbuf* pkt);
+
+/**
+ * @brief Transfer a burst of L3 packets from outputQueue to @c Face_TxBurstFunc .
+ *
+ * Default implementation for NDN traffic is @c TxLoop_Transfer .
+ */
+typedef uint16_t (*Face_TxLoopFunc)(Face* face, int txThread);
+
+/**
+ * @brief Transmit a burst of L2 frames (in FWD thread).
  * @param pkts L2 frames.
  * @return successfully queued frames.
  * @post FaceImpl owns queued frames, but does not own remaining frames.
@@ -49,14 +64,17 @@ typedef struct FaceImpl {
   FaceRxThread rx[MaxFaceRxThreads];
   FaceTxThread tx[MaxFaceTxThreads];
 
+  RTE_MARKER rxMarker __rte_cache_aligned;
+  Face_RxInputFunc rxInput;
   InputDemuxes* rxDemuxes; ///< per-face demuxes, overrides RxLoop demuxes
   PdumpSourceRef rxPdump;
+  ParseFor rxParseFor;
 
+  RTE_MARKER txMarker __rte_cache_aligned;
   PacketMempools txMempools; ///< mempools for fragmentation
+  Face_TxLoopFunc txLoop;
   Face_TxBurstFunc txBurst;
   PdumpSourceRef txPdump;
-
-  ParseFor rxParseFor;
 
   uint8_t priv[] __rte_cache_aligned;
 } FaceImpl;

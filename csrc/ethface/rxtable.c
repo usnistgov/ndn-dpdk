@@ -57,9 +57,8 @@ EthRxTable_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
       continue;
     }
 
-    struct rte_mbuf* copy = rte_pktmbuf_copy(m, rxt->copyTo, 0, UINT32_MAX);
-    ctx->pkts[i] = copy;
-    if (unlikely(copy == NULL)) {
+    ctx->pkts[i] = rte_pktmbuf_copy(m, rxt->copyTo, 0, UINT32_MAX);
+    if (unlikely(ctx->pkts[i] == NULL)) {
       RxGroupBurstCtx_Drop(ctx, i);
     }
     bounceBufs[nBounceBufs++] = m;

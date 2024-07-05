@@ -12,7 +12,7 @@ export type FaceID = Uint;
  * Face locator.
  * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface#Locator>
  */
-export type FaceLocator = EtherLocator | UdpLocator | VxlanLocator | GtpLocator | MemifLocator | SocketFaceLocator;
+export type FaceLocator = FallbackLocator | EtherLocator | UdpLocator | VxlanLocator | GtpLocator | MemifLocator | SocketFaceLocator;
 
 /**
  * Face configuration.
@@ -86,6 +86,14 @@ interface EtherLocatorBase extends FaceConfig {
    * @maximum 4094
    */
   vlan?: Uint;
+}
+
+/**
+ * Fallback face locator.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#FallbackLocator>
+ */
+export interface FallbackLocator extends Omit<EtherLocatorBase, "remote" | "vlan"> {
+  scheme: "fallback";
 }
 
 /**

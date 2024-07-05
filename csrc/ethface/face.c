@@ -1,8 +1,5 @@
 #include "face.h"
-#include "../core/logger.h"
 #include "../iface/face.h"
-
-N_LOG_INIT(EthFace);
 
 enum {
   EthMaxBurstSize = RTE_DIM(((RxGroupBurstCtx*)NULL)->pkts),
@@ -32,6 +29,7 @@ EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated) {
       m->port = rxf->faceID;
       rte_pktmbuf_adj(m, rxf->hdrLen);
     } else {
+      // TODO pass to fallback face
       RxGroupBurstCtx_Drop(ctx, i);
       if (PdumpEthPortUnmatchedCtx_Append(&unmatch, m)) {
         ctx->pkts[i] = NULL;
@@ -112,7 +110,7 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
   return flow;
 }
 
-__attribute__((nonnull)) void
+void
 EthFace_SetupRxMemif(EthFacePriv* priv, const EthLocator* loc) {
   priv->rxf[0] = (const EthRxFlow){
     .base = {.rxBurst = EthRxFlow_RxBurst_Isolated, .rxThread = 0},

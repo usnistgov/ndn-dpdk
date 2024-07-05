@@ -18,11 +18,8 @@ const UDPPortVXLAN = C.RTE_VXLAN_DEFAULT_PORT
 // UDPPortGTP is the standard UDP port for GTP-U.
 const UDPPortGTP = C.RTE_GTPU_UDP_PORT
 
-// FallbackScheme indicates a fallback face.
-const FallbackScheme = "fallback"
-
-// FallbackRemoteSentinel in LocatorC.Remote.Bytes indicates a fallback face.
-var FallbackRemoteSentinel = [6]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+// SchemeFallback indicates a fallback face.
+const SchemeFallback = "fallback"
 
 func (loc *LocatorC) ptr() *C.EthLocator {
 	return (*C.EthLocator)(unsafe.Pointer(loc))

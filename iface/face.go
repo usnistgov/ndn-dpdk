@@ -2,7 +2,8 @@
 package iface
 
 /*
-#include "../csrc/iface/face.h"
+#include "../csrc/iface/face-impl.h"
+#include "../csrc/iface/txloop.h"
 */
 import "C"
 import (
@@ -136,6 +137,7 @@ type NewParams struct {
 	Stop func() error
 
 	// Close callback is invoked after the face has been removed.
+	// FacePriv has been freed at this time.
 	// This is optional.
 	// This is always invoked on the main thread.
 	Close func() error
@@ -150,6 +152,14 @@ type InitResult struct {
 	// Face is a Face interface implementation that would be returned via Get(id).
 	// It must embed the base Face passed to NewParams.Init().
 	Face Face
+
+	// RxInput is a C function of C.Face_RxInputFunc type.
+	// Default is C.FaceRx_Input .
+	RxInput unsafe.Pointer
+
+	// TxLoop is a C function of C.Face_TxLoopFunc type.
+	// Default is C.TxLoop_Transfer .
+	TxLoop unsafe.Pointer
 
 	// TxLinearize indicates whether TX mbufs must be direct mbufs in contiguous memory.
 	// See C.PacketTxAlign.linearize field.
@@ -201,12 +211,22 @@ func newFace(p NewParams) (Face, error) {
 		return f.clear(), e
 	}
 	if initResult.Face.ID() != f.id {
-		panic("initResult.Face should embed base Face")
+		logEntry.Panic("initResult.Face must embed base Face")
 	}
 	logEntry = logEntry.With(zap.Reflect("locator", LocatorWrapper{f.Locator()}))
 
+	if initResult.RxInput == nil {
+		c.impl.rxInput = C.Face_RxInputFunc(C.FaceRx_Input)
+	} else {
+		c.impl.rxInput = C.Face_RxInputFunc(initResult.RxInput)
+	}
 	c.impl.rxParseFor = C.ParseFor(RxParseFor)
 
+	if initResult.TxLoop == nil {
+		c.impl.txLoop = defaultTxLoopFunc
+	} else {
+		c.impl.txLoop = C.Face_TxLoopFunc(initResult.TxLoop)
+	}
 	c.txAlign = C.PacketTxAlign{
 		linearize:           C.bool(initResult.TxLinearize),
 		fragmentPayloadSize: C.uint16_t(p.MTU - ndni.LpHeaderHeadroom),

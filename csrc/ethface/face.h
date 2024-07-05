@@ -24,6 +24,7 @@ typedef struct EthFacePriv {
   EthTxHdr txHdr;
   FaceID faceID;
   uint16_t port;
+  uint16_t tapPort;
 
   struct cds_list_head rxtNode;
   EthRxMatch rxMatch;

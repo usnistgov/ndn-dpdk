@@ -18,11 +18,12 @@ import (
 // Driver names.
 const (
 	DriverAfPacket = "net_af_packet"
-	DriverXDP      = "net_af_xdp"
-	DriverMemif    = "net_memif"
-	DriverRing     = "net_ring"
-	DriverMlx5     = "net_mlx5"
 	DriverI40e     = "net_i40e"
+	DriverMemif    = "net_memif"
+	DriverMlx5     = "net_mlx5"
+	DriverRing     = "net_ring"
+	DriverTAP      = "net_tap"
+	DriverXDP      = "net_af_xdp"
 )
 
 const (
