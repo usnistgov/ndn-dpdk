@@ -52,4 +52,4 @@ EthFallback_TxLoop(Face* face, int txThread) {
   return count;
 }
 
-STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, TxLoop_Transfer);
+STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, EthFallback_TxLoop);

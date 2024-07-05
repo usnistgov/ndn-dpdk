@@ -31,8 +31,8 @@ TxLoop_TxFrames(Face* face, int txThread, struct rte_mbuf** frames, uint16_t cou
   }
 }
 
-uint16_t
-TxLoop_Transfer(Face* face, int txThread) {
+__attribute__((nonnull)) static __rte_always_inline uint16_t
+TxLoop_Transfer(Face* face, int txThread, FaceTx_OutputFunc txOne, FaceTx_OutputFunc txFrag) {
   FaceTxThread* txt = &face->impl->tx[txThread];
   Packet* npkts[MaxBurstSize];
   uint16_t count = rte_ring_dequeue_burst(face->outputQueue, (void**)npkts, MaxBurstSize, NULL);
@@ -50,16 +50,16 @@ TxLoop_Transfer(Face* face, int txThread) {
     NDNDPDK_ASSERT(framePktType != PktFragment);
     ++txt->nFrames[framePktType];
 
+    struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
     if (hrlRing != NULL) {
-      struct rte_mbuf* m = Packet_ToMbuf(npkt);
-      TscDuration latency = now - Mbuf_GetTimestamp(m);
+      TscDuration latency = now - Mbuf_GetTimestamp(pkt);
       switch (framePktType) {
         case PktInterest:
           hrl[nHrls++] = HrlogEntry_New(HRLOG_OI, latency);
           break;
         case PktData:
           hrl[nHrls++] =
-            HrlogEntry_New(m->port == RTE_MBUF_PORT_INVALID ? HRLOG_OC : HRLOG_OD, latency);
+            HrlogEntry_New(pkt->port == RTE_MBUF_PORT_INVALID ? HRLOG_OC : HRLOG_OD, latency);
           break;
         case PktNack:
           break;
@@ -68,7 +68,9 @@ TxLoop_Transfer(Face* face, int txThread) {
       }
     }
 
-    nFrames += FaceTx_Output(face, txThread, npkt, &frames[nFrames]);
+    FaceTx_CheckDirectFragmentMbuf_(pkt);
+    bool isOneFragment = pkt->pkt_len <= face->txAlign.fragmentPayloadSize;
+    nFrames += (isOneFragment ? txOne : txFrag)(face, txThread, npkt, &frames[nFrames]);
     if (unlikely(nFrames >= MaxBurstSize)) {
       TxLoop_TxFrames(face, txThread, frames, nFrames);
       nFrames = 0;
@@ -85,7 +87,19 @@ TxLoop_Transfer(Face* face, int txThread) {
   return count;
 }
 
-STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, TxLoop_Transfer);
+uint16_t
+TxLoop_Transfer_Linear(Face* face, int txThread) {
+  return TxLoop_Transfer(face, txThread, FaceTx_LinearOne, FaceTx_LinearFrag);
+}
+
+STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, TxLoop_Transfer_Linear);
+
+uint16_t
+TxLoop_Transfer_Chained(Face* face, int txThread) {
+  return TxLoop_Transfer(face, txThread, FaceTx_ChainedOne, FaceTx_ChainedFrag);
+}
+
+STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, TxLoop_Transfer_Chained);
 
 int
 TxLoop_Run(TxLoop* txl) {

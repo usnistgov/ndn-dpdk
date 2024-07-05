@@ -158,7 +158,7 @@ type InitResult struct {
 	RxInput unsafe.Pointer
 
 	// TxLoop is a C function of C.Face_TxLoopFunc type.
-	// Default is C.TxLoop_Transfer .
+	// Default is C.TxLoop_Transfer_Linear or C.TxLoop_Transfer_Chained .
 	TxLoop unsafe.Pointer
 
 	// TxLinearize indicates whether TX mbufs must be direct mbufs in contiguous memory.
@@ -223,7 +223,7 @@ func newFace(p NewParams) (Face, error) {
 	c.impl.rxParseFor = C.ParseFor(RxParseFor)
 
 	if initResult.TxLoop == nil {
-		c.impl.txLoop = defaultTxLoopFunc
+		c.impl.txLoop = defaultTxLoopFunc[initResult.TxLinearize]
 	} else {
 		c.impl.txLoop = C.Face_TxLoopFunc(initResult.TxLoop)
 	}

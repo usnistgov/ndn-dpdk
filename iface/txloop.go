@@ -21,7 +21,10 @@ import (
 // RoleTx is the thread role for TxLoop.
 const RoleTx = "TX"
 
-var defaultTxLoopFunc = C.Face_TxLoopFunc(C.TxLoop_Transfer)
+var defaultTxLoopFunc = map[bool]C.Face_TxLoopFunc{
+	true:  C.Face_TxLoopFunc(C.TxLoop_Transfer_Linear),
+	false: C.Face_TxLoopFunc(C.TxLoop_Transfer_Chained),
+}
 
 // TxLoop is the output thread that processes outgoing packets on a set of TxGroups.
 // Functions are non-thread-safe.

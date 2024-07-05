@@ -32,7 +32,7 @@ typedef struct FaceTxThread {
 } __rte_cache_aligned FaceTxThread;
 
 /**
- * @brief Process a received L2 frame (in RX thread).
+ * @brief Process a received L2 frame.
  * @return L3 packet to be dispatched, or NULL if no NDN packet is ready.
  *
  * Default implementation for NDN traffic is @c FaceRx_Input .
@@ -42,12 +42,13 @@ typedef Packet* (*Face_RxInputFunc)(Face* face, int rxThread, struct rte_mbuf* p
 /**
  * @brief Transfer a burst of L3 packets from outputQueue to @c Face_TxBurstFunc .
  *
- * Default implementation for NDN traffic is @c TxLoop_Transfer .
+ * Default implementations are @c TxLoop_Transfer_Linear and @c TxLoop_Transfer_Chained .
+ * This function should perform fragmentation and hrlog submission as necessary.
  */
 typedef uint16_t (*Face_TxLoopFunc)(Face* face, int txThread);
 
 /**
- * @brief Transmit a burst of L2 frames (in FWD thread).
+ * @brief Transmit a burst of L2 frames.
  * @param pkts L2 frames.
  * @return successfully queued frames.
  * @post FaceImpl owns queued frames, but does not own remaining frames.

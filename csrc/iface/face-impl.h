@@ -22,27 +22,29 @@ FaceTx_CheckDirectFragmentMbuf_(struct rte_mbuf* pkt) {
   NDNDPDK_ASSERT(rte_pktmbuf_headroom(pkt) >= RTE_PKTMBUF_HEADROOM + LpHeaderHeadroom);
 }
 
-typedef uint16_t (*FaceTx_OutputFunc)(Face* face, int txThread, Packet* npkt,
-                                      struct rte_mbuf* frames[LpMaxFragments]);
-
-extern FaceTx_OutputFunc FaceTx_OutputJmp[];
-
-#define FaceTx_OutputFuncIndex(linear, oneFrag) (((int)(linear) << 1) | ((int)(oneFrag) << 0))
-
 /**
  * @brief Process an outgoing L3 packet.
  * @param npkt outgoing L3 packet; face takes ownership.
  * @param[out] frames L2 frames to be transmitted; face releases ownership.
  * @return number of L2 frames to be transmitted.
  */
-__attribute__((nonnull)) static inline uint16_t
-FaceTx_Output(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]) {
-  struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
-  FaceTx_CheckDirectFragmentMbuf_(pkt);
+typedef uint16_t (*FaceTx_OutputFunc)(Face* face, int txThread, Packet* npkt,
+                                      struct rte_mbuf* frames[LpMaxFragments]);
 
-  bool isOneFragment = pkt->pkt_len <= face->txAlign.fragmentPayloadSize;
-  return FaceTx_OutputJmp[FaceTx_OutputFuncIndex(face->txAlign.linearize, isOneFragment)](
-    face, txThread, npkt, frames);
-}
+/** @brief @c FaceTx_OutputFunc for @c PacketTxAlign.linearize==true with single-segment packet. */
+__attribute__((nonnull)) uint16_t
+FaceTx_LinearOne(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]);
+
+/** @brief @c FaceTx_OutputFunc for @c PacketTxAlign.linearize==false with single-segment packet. */
+__attribute__((nonnull)) uint16_t
+FaceTx_ChainedOne(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]);
+
+/** @brief @c FaceTx_OutputFunc for @c PacketTxAlign.linearize==true with multi-segment packet. */
+__attribute__((nonnull)) uint16_t
+FaceTx_LinearFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]);
+
+/** @brief @c FaceTx_OutputFunc for @c PacketTxAlign.linearize==false with multi-segment packet. */
+__attribute__((nonnull)) uint16_t
+FaceTx_ChainedFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]);
 
 #endif // NDNDPDK_IFACE_FACE_IMPL_H

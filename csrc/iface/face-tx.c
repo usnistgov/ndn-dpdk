@@ -18,17 +18,17 @@ FaceTx_One(const char* logVerb, Packet* npkt, struct rte_mbuf* frames[LpMaxFragm
   return 1;
 }
 
-__attribute__((nonnull)) static uint16_t
+uint16_t
 FaceTx_LinearOne(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]) {
   return FaceTx_One("linear-one", npkt, frames);
 }
 
-__attribute__((nonnull)) static uint16_t
+uint16_t
 FaceTx_ChainedOne(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]) {
   return FaceTx_One("chained-one", npkt, frames);
 }
 
-__attribute__((nonnull)) static uint16_t
+uint16_t
 FaceTx_LinearFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frames[LpMaxFragments]) {
   FaceTxThread* txt = &face->impl->tx[txThread];
   struct rte_mbuf* pkt = Packet_ToMbuf(npkt);
@@ -65,7 +65,7 @@ FaceTx_LinearFrag(Face* face, int txThread, Packet* npkt, struct rte_mbuf* frame
   return l2.fragCount;
 }
 
-__attribute__((nonnull)) static uint16_t
+uint16_t
 FaceTx_ChainedFrag(Face* face, int txThread, Packet* npkt,
                    struct rte_mbuf* frames[LpMaxFragments]) {
   FaceTxThread* txt = &face->impl->tx[txThread];
@@ -122,9 +122,7 @@ FaceTx_ChainedFrag(Face* face, int txThread, Packet* npkt,
   return l2.fragCount;
 }
 
-FaceTx_OutputFunc FaceTx_OutputJmp[] = {
-  [FaceTx_OutputFuncIndex(true, true)] = FaceTx_LinearOne,
-  [FaceTx_OutputFuncIndex(true, false)] = FaceTx_LinearFrag,
-  [FaceTx_OutputFuncIndex(false, true)] = FaceTx_ChainedOne,
-  [FaceTx_OutputFuncIndex(false, false)] = FaceTx_ChainedFrag,
-};
+STATIC_ASSERT_FUNC_TYPE(FaceTx_OutputFunc, FaceTx_LinearOne);
+STATIC_ASSERT_FUNC_TYPE(FaceTx_OutputFunc, FaceTx_LinearFrag);
+STATIC_ASSERT_FUNC_TYPE(FaceTx_OutputFunc, FaceTx_ChainedOne);
+STATIC_ASSERT_FUNC_TYPE(FaceTx_OutputFunc, FaceTx_ChainedFrag);

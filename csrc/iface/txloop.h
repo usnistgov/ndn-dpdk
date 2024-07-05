@@ -22,11 +22,18 @@ TxLoop_TxFrames(Face* face, int txThread, struct rte_mbuf** frames, uint16_t cou
 /**
  * @brief Move a burst of L3 packets from @c face->outputQueue to @c face->impl->txBurst .
  *
- * This function is the default implementation of @c Face_TxLoopFunc .
- * This function performs fragmentation and hrlog submission as necessary.
+ * This is the default implementation of @c Face_TxLoopFunc for @c PacketTxAlign.linearize==true .
  */
 __attribute__((nonnull)) uint16_t
-TxLoop_Transfer(Face* face, int txThread);
+TxLoop_Transfer_Linear(Face* face, int txThread);
+
+/**
+ * @brief Move a burst of L3 packets from @c face->outputQueue to @c face->impl->txBurst .
+ *
+ * This is the default implementation of @c Face_TxLoopFunc for @c PacketTxAlign.linearize==false .
+ */
+__attribute__((nonnull)) uint16_t
+TxLoop_Transfer_Chained(Face* face, int txThread);
 
 __attribute__((nonnull)) int
 TxLoop_Run(TxLoop* txl);
