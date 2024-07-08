@@ -13,7 +13,7 @@ EthLocator_Classify(const EthLocator* loc) {
   EthLocatorClass c = {0};
   if (rte_is_zero_ether_addr(&loc->local)) {
     if (rte_is_broadcast_ether_addr(&loc->remote)) {
-      c.fallback = true;
+      c.passthru = true;
     }
     return c;
   }
@@ -34,14 +34,14 @@ bool
 EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b) {
   EthLocatorClass ac = EthLocator_Classify(a);
   EthLocatorClass bc = EthLocator_Classify(b);
-  if ((ac.etherType == 0 && !ac.fallback) || (bc.etherType == 0 && !bc.fallback)) {
+  if ((ac.etherType == 0 && !ac.passthru) || (bc.etherType == 0 && !bc.passthru)) {
     // only one memif face allowed
     return false;
   }
-  if (ac.fallback || bc.fallback) {
-    // only one fallback face allowed
-    // fallback and non-fallback can coexist
-    return ac.fallback != bc.fallback;
+  if (ac.passthru || bc.passthru) {
+    // only one passthru face allowed
+    // passthru and non-passthru can coexist
+    return ac.passthru != bc.passthru;
   }
   if (ac.multicast != bc.multicast || ac.udp != bc.udp || ac.v4 != bc.v4) {
     // Ethernet unicast and multicast can coexist

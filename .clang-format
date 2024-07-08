@@ -9,6 +9,7 @@ Cpp11BracedListStyle: true
 ForEachMacros:
   - cds_hlist_for_each_entry_rcu
   - cds_lfht_for_each
+  - cds_list_for_each_rcu
   - cds_list_for_each_safe
   - HASH_ITER
   - PitDn_Each

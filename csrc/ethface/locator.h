@@ -43,7 +43,7 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b);
 
 typedef struct EthLocatorClass {
   uint16_t etherType; ///< outer EtherType, 0 for memif
-  bool fallback;      ///< is fallback face
+  bool passthru;      ///< is passthru face
   bool multicast;     ///< is outer Ethernet multicast?
   bool v4;            ///< is IPv4?
   bool udp;           ///< is UDP?

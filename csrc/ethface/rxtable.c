@@ -14,7 +14,7 @@ __attribute__((nonnull)) static inline bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m) {
   // RCU lock is inherited from RxLoop_Run
   struct cds_list_head* pos;
-  cds_list_for_each_rcu(pos, &rxt->head) {
+  cds_list_for_each_rcu (pos, &rxt->head) {
     EthFacePriv* priv = container_of(pos, EthFacePriv, rxtNode);
     if (EthRxMatch_Match(&priv->rxMatch, m)) {
       m->port = priv->faceID;

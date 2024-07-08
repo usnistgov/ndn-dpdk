@@ -46,7 +46,7 @@ Caveats and limitations:
     Even if DPDK is controlling the Ethernet adapter, the kernel can still receive broadcast frames such as ARP queries and respond to them.
     In this case, it is unnecessary to configure MAC-IP binding on the IP router.
 
-  * You can also create a fallback face and assign the IP address on the associated TAP network interface.
+  * You can also create a pass-through face and assign the IP address on the associated TAP network interface.
 
 * NDN-DPDK does not lookup IP routing tables or send ARP queries.
   To allow outgoing packets to reach the IP router, the *remote* field of the locator should be the MAC address of the IP router.
@@ -73,21 +73,20 @@ The overall packet structure is as follows:
 7. Inner UDP header.
 8. NDNLPv2 packet.
 
-## Fallback Face
+## Pass-through Face
 
-The "fallback" face allows receiving and sending non-NDN traffic, on a DPDK ethdev exclusively occupied by NDN-DPDK.
-To create a fallback face, using the locator:
+The pass-through face allows receiving and sending non-NDN traffic, on a DPDK ethdev exclusively occupied by NDN-DPDK.
+To create a pass-through face, using the locator:
 
 ```jsonc
 {
-  "scheme": "fallback",
+  "scheme": "passthru",
   "local": "02:00:00:00:00:00" // ethdev local MAC address
 }
 ```
 
-Each port can have at most one "fallback" face.
-The fallback face is associated with a TAP netif, with the same local MAC address as the ethdev.
-
+Each port can have at most one pass-through face.
+The pass-through face is associated with a TAP netif that has the same local MAC address as the ethdev.
 Packets sent to the TAP netif are transmitted out of the ethdev.
 Packets received by the ethdev that do not match an NDN face are received by the TAP netif.
 

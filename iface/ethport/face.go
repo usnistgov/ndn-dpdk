@@ -135,8 +135,8 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			useTxChecksumOffload := !cfg.DisableTxChecksumOffload && face.port.devInfo.HasTxChecksumOffload()
 			NewTxHdr(face.loc, useTxChecksumOffload).copyToC(&face.priv.txHdr)
 
-			if face.loc.Scheme() == SchemeFallback {
-				fallbackInit(face, &initResult)
+			if face.loc.Scheme() == SchemePassthru {
+				passthruInit(face, &initResult)
 			}
 
 			initResult.TxLinearize = !useTxMultiSegOffload
@@ -147,8 +147,8 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			face.port.mutex.Lock()
 			defer face.port.mutex.Unlock()
 
-			if face.loc.Scheme() == SchemeFallback {
-				if e := fallbackStart(face); e != nil {
+			if face.loc.Scheme() == SchemePassthru {
+				if e := passthruStart(face); e != nil {
 					return e
 				}
 			}
@@ -185,8 +185,8 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			}
 			face.port.deactivateTx(face)
 
-			if face.loc.Scheme() == SchemeFallback {
-				fallbackStop(face)
+			if face.loc.Scheme() == SchemePassthru {
+				passthruStop(face)
 			}
 			return nil
 		},

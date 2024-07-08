@@ -17,7 +17,7 @@
     "it-pushable": "^3.2.3",
     "throat": "^6.0.2",
     "tslib": "^2.6.3",
-    "ws": "^8.17.1"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/ws": "^8.5.10",

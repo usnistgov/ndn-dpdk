@@ -287,7 +287,7 @@ func TestAfPacket(t *testing.T) {
 	testPortTap(t, tap)
 }
 
-func TestFallback(t *testing.T) {
+func TestPassthru(t *testing.T) {
 	assert, require := makeAR(t)
 	tap := newTapFixture(t, func(ifname string) ethnetif.Config {
 		return ethnetif.Config{
@@ -313,11 +313,11 @@ func TestFallback(t *testing.T) {
 		DstProtAddress:    locUDP4.LocalIP.AsSlice(),
 	}
 
-	var locFallback ethface.FallbackLocator
-	locFallback.EthDev = tap.Port.EthDev()
-	faceFallback := tap.AddFace(locFallback)
+	var locPassthru ethface.PassthruLocator
+	locPassthru.EthDev = tap.Port.EthDev()
+	facePassthru := tap.AddFace(locPassthru)
 
-	intf, e := ethnetif.NetIntfByName(ethport.MakeFallbackTapName(tap.Port.EthDev()))
+	intf, e := ethnetif.NetIntfByName(ethport.MakePassthruTapName(tap.Port.EthDev()))
 	require.NoError(e)
 	require.NoError(intf.EnsureLinkUp(false))
 	addr, e := netlink.ParseAddr(locUDP4.LocalIP.String() + "/24")
@@ -367,11 +367,11 @@ func TestFallback(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	assert.EqualValues(500, faceUDP4.Counters().RxInterests)
-	cntFallback := faceFallback.Counters()
-	assert.GreaterOrEqual(int(cntFallback.RxFrames), 50)
-	assert.GreaterOrEqual(int(cntFallback.TxFrames), 60)
-	assert.LessOrEqual(int(cntFallback.TxFrames), 140)
+	cntPassthru := facePassthru.Counters()
+	assert.GreaterOrEqual(int(cntPassthru.RxFrames), 50)
+	assert.GreaterOrEqual(int(cntPassthru.TxFrames), 60)
+	assert.LessOrEqual(int(cntPassthru.TxFrames), 140)
 
 	assert.EqualValues(500, txUDP4.Load())
-	assert.Less(int(txOther.Load())-int(cntFallback.TxFrames), 50)
+	assert.Less(int(txOther.Load())-int(cntPassthru.TxFrames), 50)
 }

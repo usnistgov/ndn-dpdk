@@ -1,7 +1,7 @@
 package ethport
 
 /*
-#include "../../csrc/ethface/fallback.h"
+#include "../../csrc/ethface/passthru.h"
 */
 import "C"
 import (
@@ -15,40 +15,40 @@ import (
 	"go.uber.org/zap"
 )
 
-func MakeFallbackTapName(dev ethdev.EthDev) string {
+func MakePassthruTapName(dev ethdev.EthDev) string {
 	return fmt.Sprintf("ndndpdk-f-%d", dev.ID())
 }
 
-var fallbackPorts = map[iface.ID]*fallbackPort{}
+var passthruPorts = map[iface.ID]*passthruPort{}
 
-type fallbackPort struct {
+type passthruPort struct {
 	face   *Face
 	tapDev ethdev.EthDev
 }
 
 var (
-	_ iface.RxGroup           = (*fallbackPort)(nil)
-	_ iface.RxGroupSingleFace = (*fallbackPort)(nil)
+	_ iface.RxGroup           = (*passthruPort)(nil)
+	_ iface.RxGroupSingleFace = (*passthruPort)(nil)
 )
 
-func (fport *fallbackPort) NumaSocket() eal.NumaSocket {
+func (fport *passthruPort) NumaSocket() eal.NumaSocket {
 	return fport.tapDev.NumaSocket()
 }
 
-func (fport *fallbackPort) RxGroup() (ptr unsafe.Pointer, desc string) {
+func (fport *passthruPort) RxGroup() (ptr unsafe.Pointer, desc string) {
 	return unsafe.Pointer(&fport.face.priv.rxf[0].base),
-		fmt.Sprintf("EthRxFallback(face=%d,port=%d)", fport.face.ID(), fport.face.port.EthDev().ID())
+		fmt.Sprintf("EthRxPassthru(face=%d,port=%d)", fport.face.ID(), fport.face.port.EthDev().ID())
 }
 
-func (fport *fallbackPort) Faces() []iface.Face {
+func (fport *passthruPort) Faces() []iface.Face {
 	return []iface.Face{fport.face}
 }
 
-func (fallbackPort) RxGroupIsSingleFace() {}
+func (passthruPort) RxGroupIsSingleFace() {}
 
-func (fport *fallbackPort) startTap() (e error) {
+func (fport *passthruPort) startTap() (e error) {
 	dev := fport.face.port.dev
-	if fport.tapDev, e = ethdev.NewTap(MakeFallbackTapName(dev), dev.HardwareAddr()); e != nil {
+	if fport.tapDev, e = ethdev.NewTap(MakePassthruTapName(dev), dev.HardwareAddr()); e != nil {
 		return e
 	}
 
@@ -63,7 +63,7 @@ func (fport *fallbackPort) startTap() (e error) {
 	priv := fport.face.priv
 	priv.tapPort = C.uint16_t(fport.tapDev.ID())
 	rxfC := &priv.rxf[0]
-	rxfC.base.rxBurst = C.RxGroup_RxBurstFunc(C.EthFallback_TapPortRxBurst)
+	rxfC.base.rxBurst = C.RxGroup_RxBurstFunc(C.EthPassthru_TapPortRxBurst)
 	rxfC.port, rxfC.queue, rxfC.faceID = fport.face.priv.tapPort, 0, priv.faceID
 
 	rxl := iface.ActivateRxGroup(fport)
@@ -75,7 +75,7 @@ func (fport *fallbackPort) startTap() (e error) {
 	return nil
 }
 
-func (fport *fallbackPort) stopTap() {
+func (fport *passthruPort) stopTap() {
 	tapDevField := fport.tapDev.ZapField("tap-port")
 	iface.DeactivateRxGroup(fport)
 	fport.face.logger.Info("deactivate TAP device",
@@ -90,23 +90,23 @@ func (fport *fallbackPort) stopTap() {
 	}
 }
 
-func fallbackInit(face *Face, initResult *iface.InitResult) {
+func passthruInit(face *Face, initResult *iface.InitResult) {
 	_ = face
-	initResult.RxInput = C.EthFallback_FaceRxInput
-	initResult.TxLoop = C.EthFallback_TxLoop
+	initResult.RxInput = C.EthPassthru_FaceRxInput
+	initResult.TxLoop = C.EthPassthru_TxLoop
 }
 
-func fallbackStart(face *Face) error {
-	fport := &fallbackPort{face: face}
+func passthruStart(face *Face) error {
+	fport := &passthruPort{face: face}
 	if e := fport.startTap(); e != nil {
 		return e
 	}
-	fallbackPorts[face.ID()] = fport
+	passthruPorts[face.ID()] = fport
 	return nil
 }
 
-func fallbackStop(face *Face) {
-	fport := fallbackPorts[face.ID()]
+func passthruStop(face *Face) {
+	fport := passthruPorts[face.ID()]
 	fport.stopTap()
-	delete(fallbackPorts, face.ID())
+	delete(passthruPorts, face.ID())
 }

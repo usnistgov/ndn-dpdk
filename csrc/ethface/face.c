@@ -29,7 +29,7 @@ EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated) {
       m->port = rxf->faceID;
       rte_pktmbuf_adj(m, rxf->hdrLen);
     } else {
-      // TODO pass to fallback face
+      // TODO pass to passthru face
       RxGroupBurstCtx_Drop(ctx, i);
       if (PdumpEthPortUnmatchedCtx_Append(&unmatch, m)) {
         ctx->pkts[i] = NULL;

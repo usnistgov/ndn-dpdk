@@ -1,9 +1,9 @@
-#include "fallback.h"
+#include "passthru.h"
 #include "../iface/txloop.h"
 #include "face.h"
 
 Packet*
-EthFallback_FaceRxInput(Face* face, int rxThread, struct rte_mbuf* pkt) {
+EthPassthru_FaceRxInput(Face* face, int rxThread, struct rte_mbuf* pkt) {
   NDNDPDK_ASSERT(pkt->port == face->id);
   FaceRxThread* rxt = &face->impl->rx[rxThread];
   EthFacePriv* priv = Face_GetPriv(face);
@@ -19,10 +19,10 @@ EthFallback_FaceRxInput(Face* face, int rxThread, struct rte_mbuf* pkt) {
   return NULL;
 }
 
-STATIC_ASSERT_FUNC_TYPE(Face_RxInputFunc, EthFallback_FaceRxInput);
+STATIC_ASSERT_FUNC_TYPE(Face_RxInputFunc, EthPassthru_FaceRxInput);
 
 void
-EthFallback_TapPortRxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
+EthPassthru_TapPortRxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
   EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
   uint16_t nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, RTE_DIM(ctx->pkts));
   if (nRx == 0) {
@@ -38,10 +38,10 @@ EthFallback_TapPortRxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
   Face_TxBurst(rxf->faceID, (Packet**)ctx->pkts, nRx);
 }
 
-STATIC_ASSERT_FUNC_TYPE(RxGroup_RxBurstFunc, EthFallback_TapPortRxBurst);
+STATIC_ASSERT_FUNC_TYPE(RxGroup_RxBurstFunc, EthPassthru_TapPortRxBurst);
 
 uint16_t
-EthFallback_TxLoop(Face* face, int txThread) {
+EthPassthru_TxLoop(Face* face, int txThread) {
   FaceTxThread* txt = &face->impl->tx[txThread];
   struct rte_mbuf* frames[MaxBurstSize];
   uint16_t count = rte_ring_dequeue_burst(face->outputQueue, (void**)frames, MaxBurstSize, NULL);
@@ -52,4 +52,4 @@ EthFallback_TxLoop(Face* face, int txThread) {
   return count;
 }
 
-STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, EthFallback_TxLoop);
+STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, EthPassthru_TxLoop);

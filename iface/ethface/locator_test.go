@@ -25,9 +25,9 @@ func TestLocatorCoexist(t *testing.T) {
 		assert.Error(ethport.CheckLocatorCoexist(parseLocator(a), parseLocator(b)))
 	}
 
-	// "fallback" scheme
-	const fallback = `{"scheme":"fallback","local":"02:00:00:00:00:00"}`
-	conflict(fallback, fallback)
+	// "passthru" scheme
+	const passthru = `{"scheme":"passthru","local":"02:00:00:00:00:00"}`
+	conflict(passthru, passthru)
 
 	// "ether" scheme
 	const etherA = `,"local":"02:00:00:00:00:00","remote":"02:00:00:00:01:00"}`
@@ -117,8 +117,8 @@ func TestLocatorCoexist(t *testing.T) {
 	)
 
 	// mixed schemes
-	coexist( // "fallback" with "ether"
-		fallback,
+	coexist( // "passthru" with "ether"
+		passthru,
 		`{"scheme":"ether"`+etherA,
 	)
 	coexist( // "ether" with "udpe"
