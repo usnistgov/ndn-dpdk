@@ -7,7 +7,7 @@ EthPassthru_FaceRxInput(Face* face, int rxThread, struct rte_mbuf* pkt) {
   NDNDPDK_ASSERT(pkt->port == face->id);
   FaceRxThread* rxt = &face->impl->rx[rxThread];
   EthFacePriv* priv = Face_GetPriv(face);
-  rxt->nFrames[0] += pkt->pkt_len; // nOctets counter
+  rxt->nFrames[FaceRxThread_cntNOctets] += pkt->pkt_len;
   ++rxt->nFrames[1];
   uint16_t nSent = 0;
   if (likely(priv->tapPort != UINT16_MAX)) {

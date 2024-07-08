@@ -86,13 +86,13 @@ To create a pass-through face, using the locator:
 ```
 
 Each port can have at most one pass-through face.
-The pass-through face is associated with a TAP netif that has the same local MAC address as the ethdev.
+The pass-through face is associated with a TAP netif, which has the same local MAC address and MTU as the ethdev.
 Packets sent to the TAP netif are transmitted out of the ethdev.
 Packets received by the ethdev that do not match an NDN face are received by the TAP netif.
 
 Caveats and limitations:
 
 * Currently, this only works with RxTable.
-* TAP netif name and MTU are unadjustable.
+* TAP netif name is unadjustable.
 * In packet counters, all packets are considered "Interests".
 * This is incompatible with [packet dumper](../../app/pdump).

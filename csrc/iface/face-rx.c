@@ -8,7 +8,7 @@ Packet*
 FaceRx_Input(Face* face, int rxThread, struct rte_mbuf* pkt) {
   NDNDPDK_ASSERT(pkt->port == face->id);
   FaceRxThread* rxt = &face->impl->rx[rxThread];
-  rxt->nFrames[0] += pkt->pkt_len; // nOctets counter
+  rxt->nFrames[FaceRxThread_cntNOctets] += pkt->pkt_len;
 
   Packet* npkt = Packet_FromMbuf(pkt);
   if (unlikely(!Packet_Parse(npkt, face->impl->rxParseFor))) {

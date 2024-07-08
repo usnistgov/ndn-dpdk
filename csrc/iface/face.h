@@ -10,9 +10,14 @@
 #include "../pdump/source.h"
 #include <urcu/rcuhlist.h>
 
+enum {
+  /// FaceRxThread.nFrames[cntNOctets] is nOctets counter
+  FaceRxThread_cntNOctets = PktFragment,
+};
+
 /** @brief Face RX per-thread information. */
 typedef struct FaceRxThread {
-  uint64_t nFrames[PktMax]; ///< accepted L3 packets; nFrames[0] is nOctets
+  uint64_t nFrames[PktMax]; ///< nOctets or accepted L3 packets
   uint64_t nDecodeErr;      ///< decode errors
   Reassembler reass;
 } __rte_cache_aligned FaceRxThread;

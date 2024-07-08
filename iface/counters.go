@@ -30,7 +30,7 @@ func (cnt RxCounters) String() string {
 }
 
 func (cnt *RxCounters) readFrom(c *C.FaceRxThread) {
-	cnt.RxOctets = uint64(c.nFrames[0])
+	cnt.RxOctets = uint64(c.nFrames[C.FaceRxThread_cntNOctets])
 	cnt.RxInterests = uint64(c.nFrames[ndni.PktInterest])
 	cnt.RxData = uint64(c.nFrames[ndni.PktData])
 	cnt.RxNacks = uint64(c.nFrames[ndni.PktNack])

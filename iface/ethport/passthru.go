@@ -15,12 +15,17 @@ import (
 	"go.uber.org/zap"
 )
 
+// SchemePassthru indicates a pass-through face.
+const SchemePassthru = "passthru"
+
+// MakePassthruTapName constructs TAP netif name for a passthru face on ethdev.
 func MakePassthruTapName(dev ethdev.EthDev) string {
-	return fmt.Sprintf("ndndpdk-f-%d", dev.ID())
+	return fmt.Sprintf("ndndpdkPT%d", dev.ID())
 }
 
 var passthruPorts = map[iface.ID]*passthruPort{}
 
+// passthruPort holds a passthru face and the associated TAP netif.
 type passthruPort struct {
 	face   *Face
 	tapDev ethdev.EthDev
@@ -53,6 +58,7 @@ func (fport *passthruPort) startTap() (e error) {
 	}
 
 	var cfg ethdev.Config
+	cfg.MTU = dev.MTU()
 	cfg.AddRxQueues(1, ethdev.RxQueueConfig{RxPool: ndni.PacketMempool.Get(fport.face.NumaSocket())})
 	cfg.AddTxQueues(1, ethdev.TxQueueConfig{})
 	if e := fport.tapDev.Start(cfg); e != nil {

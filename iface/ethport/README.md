@@ -20,7 +20,8 @@ The hardware performs header matching; there is minimal checking on software sid
 **RxTable** is a software receive path.
 It continuously polls ethdev RX queue 0 for incoming frames.
 For each incoming frame, the software performs header matching (implemented in `EthRxMatch` struct), and then labels each matched frame with the face ID.
-If no match is found for an incoming frame, it is dropped.
+Matchings are attempted iteratively for each face that are arranged in an RCU-protected linked list; if the port has a pass-through face, it is arranged last and would always match.
+If no match is found for an incoming frame, the Ethernet frame is sent to [packet dumper](../../app/pdump) if enabled, otherwise it is dropped.
 
 **RxMemif** is a memif-specific receive path, where each port has only one face.
 It continuously polls ethdev RX queue 0 for incoming frames, and then labels each frame with the only face ID.
