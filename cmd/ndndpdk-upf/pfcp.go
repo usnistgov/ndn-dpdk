@@ -56,11 +56,11 @@ func pfcpDispatch(ctx context.Context, logEntry *zap.Logger, msg message.Message
 	case *message.AssociationSetupRequest:
 		return handleAssoc(req, logEntry)
 	case *message.SessionEstablishmentRequest:
-		return handleSessEstab(ctx, logEntry, req)
+		return handleSessEstab(ctx, req)
 	case *message.SessionModificationRequest:
-		return handleSessMod(ctx, logEntry, req)
+		return handleSessMod(ctx, req)
 	case *message.SessionDeletionRequest:
-		return handleSessDel(ctx, logEntry, req)
+		return handleSessDel(ctx, req)
 	}
 	return nil, errors.New("unhandled message type")
 }
@@ -80,17 +80,4 @@ func handleAssoc(req *message.AssociationSetupRequest, logEntry *zap.Logger) (rs
 		ie.NewCause(ie.CauseRequestAccepted),
 		upfCfg.RecoveryTimestamp,
 	), nil
-}
-
-type findIE uint16
-
-func (typ findIE) Within(ies []*ie.IE, e error) *ie.IE {
-	for _, item := range ies {
-		if item.Type == uint16(typ) {
-			return item
-		}
-	}
-
-	var zero ie.IE
-	return &zero
 }

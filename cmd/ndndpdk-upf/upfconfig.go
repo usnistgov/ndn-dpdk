@@ -8,18 +8,24 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
+	"github.com/usnistgov/ndn-dpdk/app/upf"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/wmnsk/go-pfcp/ie"
 )
 
+type UpfLocatorFields struct {
+	Scheme       string       `json:"scheme"`
+	Local        macaddr.Flag `json:"local"`
+	VLAN         int          `json:"vlan,omitempty"`
+	LocalIP      netip.Addr   `json:"localIP"`
+	InnerLocalIP netip.Addr   `json:"innerLocalIP"`
+}
+
 type UpfConfig struct {
-	SmfN4   netip.Addr
-	UpfN4   netip.Addr
-	upfIP   netip.Addr
-	upfMAC  macaddr.Flag
-	upfVLAN int
-	mapN3   map[netip.Addr]macaddr.Flag
-	dnIP    netip.Addr
+	SmfN4 netip.Addr
+	UpfN4 netip.Addr
+	loc   UpfLocatorFields
+	mapN3 map[netip.Addr]macaddr.Flag
 
 	RecoveryTimestamp *ie.IE
 	UpfNodeID         *ie.IE
@@ -43,18 +49,18 @@ func (cfg *UpfConfig) DefineFlags(flags []cli.Flag) []cli.Flag {
 			Name:     "upf-n3",
 			Usage:    "UPF N3 IPv4 `address`",
 			Required: true,
-			Action:   cfg.saveIPv4(&cfg.upfIP),
+			Action:   cfg.saveIPv4(&cfg.loc.LocalIP),
 		},
 		&cli.GenericFlag{
 			Name:        "upf-mac",
 			Usage:       "UPF N3 MAC `address`",
 			Required:    true,
-			Destination: &cfg.upfMAC,
+			Destination: &cfg.loc.Local,
 		},
 		&cli.IntFlag{
 			Name:        "upf-vlan",
 			Usage:       "UPF N3 `VLAN ID`",
-			Destination: &cfg.upfVLAN,
+			Destination: &cfg.loc.VLAN,
 		},
 		&cli.StringSliceFlag{
 			Name:     "n3",
@@ -65,7 +71,7 @@ func (cfg *UpfConfig) DefineFlags(flags []cli.Flag) []cli.Flag {
 			Name:     "dn",
 			Usage:    "Data Network NDN forwarder IPv4 `address`",
 			Required: true,
-			Action:   cfg.saveIPv4(&cfg.dnIP),
+			Action:   cfg.saveIPv4(&cfg.loc.InnerLocalIP),
 		},
 	)
 }
@@ -80,7 +86,8 @@ func (UpfConfig) saveIPv4(d *netip.Addr) func(c *cli.Context, v string) error {
 }
 
 func (cfg *UpfConfig) ProcessFlags(c *cli.Context) error {
-	if !macaddr.IsUnicast(cfg.upfMAC.HardwareAddr) {
+	cfg.loc.Scheme = "gtp"
+	if !macaddr.IsUnicast(cfg.loc.Local.HardwareAddr) {
 		return errors.New("upf-mac is not unicast MAC address")
 	}
 
@@ -106,25 +113,20 @@ func (cfg *UpfConfig) ProcessFlags(c *cli.Context) error {
 	return nil
 }
 
-func (cfg UpfConfig) MakeLocator(ulTEID uint32, ulQFI uint8, dlTEID uint32, dlQFI uint8, peer, ueIP netip.Addr) (loc map[string]any, e error) {
-	loc = map[string]any{
-		"scheme":        "gtp",
-		"local":         cfg.upfMAC,
-		"localIP":       cfg.upfIP,
-		"ulTEID":        ulTEID,
-		"ulQFI":         ulQFI,
-		"dlTEID":        dlTEID,
-		"dlQFI":         dlQFI,
-		"innerLocalIP":  cfg.dnIP,
-		"innerRemoteIP": ueIP,
+func (cfg UpfConfig) MakeLocator(sloc upf.SessionLocatorFields) (any, error) {
+	loc := struct {
+		upf.SessionLocatorFields
+		UpfLocatorFields
+		Remote macaddr.Flag `json:"remote"`
+	}{
+		SessionLocatorFields: sloc,
+		UpfLocatorFields:     cfg.loc,
 	}
-	if cfg.upfVLAN > 0 {
-		loc["vlan"] = cfg.upfVLAN
-	}
-	if remote, ok := cfg.mapN3[peer]; ok {
-		loc["remote"], loc["remoteIP"] = remote, peer
+
+	if remote, ok := cfg.mapN3[loc.RemoteIP]; ok {
+		loc.Remote = remote
 	} else {
-		return nil, fmt.Errorf("unknown MAC address for peer %s", peer)
+		return nil, fmt.Errorf("unknown MAC address for peer %s", loc.RemoteIP)
 	}
 	return loc, nil
 }

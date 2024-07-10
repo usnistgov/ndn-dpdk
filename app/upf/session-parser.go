@@ -20,54 +20,54 @@ type SessionLocatorFields struct {
 }
 
 const (
-	sessHaveUlTEID = 1 << iota
-	sessHaveDlTEID
-	sessHaveUlQFI
-	sessHaveDlQFI
-	sessHaveUlQERID
-	sessHaveDlQERID
-	sessHaveRemoteIP
-	sessHaveInnerRemoteIP
-	sessHaveAll = 0b11111111
+	spHaveUlTEID = 1 << iota
+	spHaveDlTEID
+	spHaveUlQFI
+	spHaveDlQFI
+	spHaveUlQERID
+	spHaveDlQERID
+	spHaveRemoteIP
+	spHaveInnerRemoteIP
+	spHaveAll = 0b11111111
 )
 
-// Session represents a PFCP session.
-type Session struct {
+// SessionParser parses PFCP messages to construct GTP-U face locator.
+type SessionParser struct {
 	loc              SessionLocatorFields
 	ulQERID, dlQERID uint32
 	have             uint32
 }
 
 // EstablishmentRequest handles a SessionEstablishmentRequest message.
-func (sess *Session) EstablishmentRequest(req *message.SessionEstablishmentRequest) error {
-	return sess.emRequest(req.CreatePDR, req.CreateFAR, nil, req.CreateQER)
+func (sp *SessionParser) EstablishmentRequest(req *message.SessionEstablishmentRequest) error {
+	return sp.emRequest(req.CreatePDR, req.CreateFAR, nil, req.CreateQER)
 }
 
 // ModificationRequest handles a SessionModificationRequest message.
-func (sess *Session) ModificationRequest(req *message.SessionModificationRequest) error {
-	return sess.emRequest(req.CreatePDR, req.CreateFAR, req.UpdateFAR, req.CreateQER)
+func (sp *SessionParser) ModificationRequest(req *message.SessionModificationRequest) error {
+	return sp.emRequest(req.CreatePDR, req.CreateFAR, req.UpdateFAR, req.CreateQER)
 }
 
 // emRequest handles a SessionEstablishmentRequest or SessionModificationRequest message.
-func (sess *Session) emRequest(createPDR, createFAR, updateFAR, createQER []*ie.IE) error {
+func (sp *SessionParser) emRequest(createPDR, createFAR, updateFAR, createQER []*ie.IE) error {
 	var errs []error
 	for i, pdr := range createPDR {
-		if e := sess.createPDR(pdr); e != nil {
+		if e := sp.createPDR(pdr); e != nil {
 			errs = append(errs, fmt.Errorf("CreatePDR[%d]: %w", i, e))
 		}
 	}
 	for i, far := range createFAR {
-		if e := sess.createFAR(far); e != nil {
+		if e := sp.createFAR(far); e != nil {
 			errs = append(errs, fmt.Errorf("CreateFAR[%d]: %w", i, e))
 		}
 	}
 	for i, far := range updateFAR {
-		if e := sess.updateFAR(far); e != nil {
+		if e := sp.updateFAR(far); e != nil {
 			errs = append(errs, fmt.Errorf("UpdateFAR[%d]: %w", i, e))
 		}
 	}
 	for i, qer := range createQER {
-		if e := sess.createQER(qer); e != nil {
+		if e := sp.createQER(qer); e != nil {
 			errs = append(errs, fmt.Errorf("CreateQER[%d]: %w", i, e))
 		}
 	}
@@ -75,7 +75,7 @@ func (sess *Session) emRequest(createPDR, createFAR, updateFAR, createQER []*ie.
 }
 
 // createPDR handles a CreatePDR IE.
-func (sess *Session) createPDR(pdr *ie.IE) error {
+func (sp *SessionParser) createPDR(pdr *ie.IE) error {
 	si, e := pdr.SourceInterface()
 	if e != nil {
 		return fmt.Errorf("SourceInterface: %w", e)
@@ -83,35 +83,35 @@ func (sess *Session) createPDR(pdr *ie.IE) error {
 
 	switch si {
 	case ie.SrcInterfaceAccess:
-		return sess.createPDRAccess(pdr)
+		return sp.createPDRAccess(pdr)
 	case ie.SrcInterfaceCore:
-		return sess.createPDRCore(pdr)
+		return sp.createPDRCore(pdr)
 	}
 	return fmt.Errorf("SourceInterface %d unknown", si)
 }
 
 // createPDRAccess handles a CreatePDR IE with SourceInterface=access.
-func (sess *Session) createPDRAccess(pdr *ie.IE) error {
+func (sp *SessionParser) createPDRAccess(pdr *ie.IE) error {
 	pdi := findIE(ie.PDI).Within(pdr.CreatePDR())
 	fTEID, e := pdi.FTEID()
 	if e != nil {
 		return fmt.Errorf("FTEID: %w", e)
 	}
 
-	sess.loc.UlTEID = fTEID.TEID
-	sess.have |= sessHaveUlTEID
+	sp.loc.UlTEID = fTEID.TEID
+	sp.have |= spHaveUlTEID
 
-	sess.ulQERID, e = pdr.QERID()
+	sp.ulQERID, e = pdr.QERID()
 	if e != nil {
 		return fmt.Errorf("QERID: %w", e)
 	}
-	sess.have |= sessHaveUlQERID
+	sp.have |= spHaveUlQERID
 
 	return nil
 }
 
 // createPDRCore handles a CreatePDR IE with SourceInterface=core.
-func (sess *Session) createPDRCore(pdr *ie.IE) error {
+func (sp *SessionParser) createPDRCore(pdr *ie.IE) error {
 	ueIP, e := pdr.UEIPAddress()
 	if e != nil {
 		return fmt.Errorf("UEIPAddress: %w", e)
@@ -122,38 +122,38 @@ func (sess *Session) createPDRCore(pdr *ie.IE) error {
 		return fmt.Errorf("UEIPAddress is not IPv4")
 	}
 
-	sess.loc.InnerRemoteIP = ip
-	sess.have |= sessHaveInnerRemoteIP
+	sp.loc.InnerRemoteIP = ip
+	sp.have |= spHaveInnerRemoteIP
 
-	sess.dlQERID, e = pdr.QERID()
+	sp.dlQERID, e = pdr.QERID()
 	if e != nil {
 		return fmt.Errorf("QERID: %w", e)
 	}
-	sess.have |= sessHaveDlQERID
+	sp.have |= spHaveDlQERID
 
 	return nil
 }
 
 // createFAR handles a CreateFAR IE.
-func (sess *Session) createFAR(far *ie.IE) error {
+func (sp *SessionParser) createFAR(far *ie.IE) error {
 	fps, e := far.ForwardingParameters()
 	if e != nil {
 		return fmt.Errorf("ForwardingParameters: %w", e)
 	}
-	return sess.cuFAR(fps)
+	return sp.cuFAR(fps)
 }
 
 // updateFAR handles an UpdateFAR IE.
-func (sess *Session) updateFAR(far *ie.IE) error {
+func (sp *SessionParser) updateFAR(far *ie.IE) error {
 	fps, e := far.UpdateForwardingParameters()
 	if e != nil {
 		return fmt.Errorf("UpdateForwardingParameters: %w", e)
 	}
-	return sess.cuFAR(fps)
+	return sp.cuFAR(fps)
 }
 
 // cuFAR handles a CreateFAR or UpdateFAR IE.
-func (sess *Session) cuFAR(fps []*ie.IE) error {
+func (sp *SessionParser) cuFAR(fps []*ie.IE) error {
 	if len(fps) == 0 {
 		return errors.New("ForwardingParameters or UpdateForwardingParameters empty")
 	}
@@ -165,7 +165,7 @@ func (sess *Session) cuFAR(fps []*ie.IE) error {
 
 	switch di {
 	case ie.DstInterfaceAccess:
-		return sess.cuFARAccess(fps)
+		return sp.cuFARAccess(fps)
 	case ie.DstInterfaceCore:
 		return nil
 	}
@@ -173,7 +173,7 @@ func (sess *Session) cuFAR(fps []*ie.IE) error {
 }
 
 // cuFARAccess handles a CreateFAR or UpdateFAR IE with DestinationInterface=access.
-func (sess *Session) cuFARAccess(fps []*ie.IE) error {
+func (sp *SessionParser) cuFARAccess(fps []*ie.IE) error {
 	ohcFound := findIE(ie.OuterHeaderCreation).Within(fps, nil)
 	if ohcFound.Type == 0 {
 		return nil
@@ -184,14 +184,14 @@ func (sess *Session) cuFARAccess(fps []*ie.IE) error {
 		return fmt.Errorf("OuterHeaderCreation: %w", e)
 	}
 
-	sess.loc.DlTEID = ohc.TEID
-	sess.loc.RemoteIP, _ = netip.AddrFromSlice(ohc.IPv4Address)
-	sess.have |= sessHaveDlTEID | sessHaveRemoteIP
+	sp.loc.DlTEID = ohc.TEID
+	sp.loc.RemoteIP, _ = netip.AddrFromSlice(ohc.IPv4Address)
+	sp.have |= spHaveDlTEID | spHaveRemoteIP
 	return nil
 }
 
 // createQER handles a CreateQER IE.
-func (sess *Session) createQER(qer *ie.IE) error {
+func (sp *SessionParser) createQER(qer *ie.IE) error {
 	qerID, e := qer.QERID()
 	if e != nil {
 		return fmt.Errorf("QERID: %w", e)
@@ -203,15 +203,15 @@ func (sess *Session) createQER(qer *ie.IE) error {
 		SetQFI     *uint8
 		SetHave    uint32
 	}{
-		{sessHaveUlQERID, sess.ulQERID, &sess.loc.UlQFI, sessHaveUlQFI},
-		{sessHaveDlQERID, sess.dlQERID, &sess.loc.DlQFI, sessHaveDlQFI},
+		{spHaveUlQERID, sp.ulQERID, &sp.loc.UlQFI, spHaveUlQFI},
+		{spHaveDlQERID, sp.dlQERID, &sp.loc.DlQFI, spHaveDlQFI},
 	} {
-		if sess.have&c.MustHave != 0 && qerID == c.MatchQERID {
+		if sp.have&c.MustHave != 0 && qerID == c.MatchQERID {
 			*c.SetQFI, e = qer.QFI()
 			if e != nil {
 				return fmt.Errorf("QFI: %w", e)
 			}
-			sess.have |= c.SetHave
+			sp.have |= c.SetHave
 		}
 	}
 	return nil
@@ -219,6 +219,6 @@ func (sess *Session) createQER(qer *ie.IE) error {
 
 // LocatorFields returns GTP-U locator fields extracted from PFCP session.
 // ok indicates whether the locator is valid.
-func (sess Session) LocatorFields() (loc SessionLocatorFields, ok bool) {
-	return sess.loc, sess.have == sessHaveAll
+func (sp SessionParser) LocatorFields() (loc SessionLocatorFields, ok bool) {
+	return sp.loc, sp.have == spHaveAll
 }
