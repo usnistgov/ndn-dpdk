@@ -24,31 +24,32 @@ const (
 	sessHaveDlTEID
 	sessHaveUlQFI
 	sessHaveDlQFI
+	sessHaveUlQERID
 	sessHaveDlQERID
 	sessHaveRemoteIP
 	sessHaveInnerRemoteIP
-	sessHaveAll = 0b1111111
+	sessHaveAll = 0b11111111
 )
 
 // Session represents a PFCP session.
 type Session struct {
-	loc     SessionLocatorFields
-	dlQERID uint32
-	have    uint32
+	loc              SessionLocatorFields
+	ulQERID, dlQERID uint32
+	have             uint32
 }
 
 // EstablishmentRequest handles a SessionEstablishmentRequest message.
 func (sess *Session) EstablishmentRequest(req *message.SessionEstablishmentRequest) error {
-	return sess.emRequest(req.CreatePDR, req.CreateFAR, req.CreateQER)
+	return sess.emRequest(req.CreatePDR, req.CreateFAR, nil, req.CreateQER)
 }
 
 // ModificationRequest handles a SessionModificationRequest message.
 func (sess *Session) ModificationRequest(req *message.SessionModificationRequest) error {
-	return sess.emRequest(req.CreatePDR, req.CreateFAR, req.CreateQER)
+	return sess.emRequest(req.CreatePDR, req.CreateFAR, req.UpdateFAR, req.CreateQER)
 }
 
 // emRequest handles a SessionEstablishmentRequest or SessionModificationRequest message.
-func (sess *Session) emRequest(createPDR, createFAR, createQER []*ie.IE) error {
+func (sess *Session) emRequest(createPDR, createFAR, updateFAR, createQER []*ie.IE) error {
 	var errs []error
 	for i, pdr := range createPDR {
 		if e := sess.createPDR(pdr); e != nil {
@@ -58,6 +59,11 @@ func (sess *Session) emRequest(createPDR, createFAR, createQER []*ie.IE) error {
 	for i, far := range createFAR {
 		if e := sess.createFAR(far); e != nil {
 			errs = append(errs, fmt.Errorf("CreateFAR[%d]: %w", i, e))
+		}
+	}
+	for i, far := range updateFAR {
+		if e := sess.updateFAR(far); e != nil {
+			errs = append(errs, fmt.Errorf("UpdateFAR[%d]: %w", i, e))
 		}
 	}
 	for i, qer := range createQER {
@@ -91,13 +97,16 @@ func (sess *Session) createPDRAccess(pdr *ie.IE) error {
 	if e != nil {
 		return fmt.Errorf("FTEID: %w", e)
 	}
-	qfi, e := findIE(ie.QFI).Within(pdi.PDI()).QFI()
-	if e != nil {
-		return fmt.Errorf("QFI: %w", e)
-	}
 
-	sess.loc.UlTEID, sess.loc.UlQFI = fTEID.TEID, qfi
-	sess.have |= sessHaveUlTEID | sessHaveUlQFI
+	sess.loc.UlTEID = fTEID.TEID
+	sess.have |= sessHaveUlTEID
+
+	sess.ulQERID, e = pdr.QERID()
+	if e != nil {
+		return fmt.Errorf("QERID: %w", e)
+	}
+	sess.have |= sessHaveUlQERID
+
 	return nil
 }
 
@@ -131,27 +140,46 @@ func (sess *Session) createFAR(far *ie.IE) error {
 	if e != nil {
 		return fmt.Errorf("ForwardingParameters: %w", e)
 	}
+	return sess.cuFAR(fps)
+}
+
+// updateFAR handles an UpdateFAR IE.
+func (sess *Session) updateFAR(far *ie.IE) error {
+	fps, e := far.UpdateForwardingParameters()
+	if e != nil {
+		return fmt.Errorf("UpdateForwardingParameters: %w", e)
+	}
+	return sess.cuFAR(fps)
+}
+
+// cuFAR handles a CreateFAR or UpdateFAR IE.
+func (sess *Session) cuFAR(fps []*ie.IE) error {
 	if len(fps) == 0 {
-		return errors.New("ForwardingParameters empty")
+		return errors.New("ForwardingParameters or UpdateForwardingParameters empty")
 	}
 
-	di, e := findIE(ie.DestinationInterface).Within(far.ForwardingParameters()).DestinationInterface()
+	di, e := findIE(ie.DestinationInterface).Within(fps, nil).DestinationInterface()
 	if e != nil {
 		return fmt.Errorf("DestinationInterface: %w", e)
 	}
 
 	switch di {
 	case ie.DstInterfaceAccess:
-		return sess.createFARAccess(far)
+		return sess.cuFARAccess(fps)
 	case ie.DstInterfaceCore:
 		return nil
 	}
 	return fmt.Errorf("DestinationInterface %d unknown", di)
 }
 
-// createFARAccess handles a CreateFAR IE with DestinationInterface=access.
-func (sess *Session) createFARAccess(far *ie.IE) error {
-	ohc, e := findIE(ie.OuterHeaderCreation).Within(far.ForwardingParameters()).OuterHeaderCreation()
+// cuFARAccess handles a CreateFAR or UpdateFAR IE with DestinationInterface=access.
+func (sess *Session) cuFARAccess(fps []*ie.IE) error {
+	ohcFound := findIE(ie.OuterHeaderCreation).Within(fps, nil)
+	if ohcFound.Type == 0 {
+		return nil
+	}
+
+	ohc, e := ohcFound.OuterHeaderCreation()
 	if e != nil {
 		return fmt.Errorf("OuterHeaderCreation: %w", e)
 	}
@@ -168,15 +196,24 @@ func (sess *Session) createQER(qer *ie.IE) error {
 	if e != nil {
 		return fmt.Errorf("QERID: %w", e)
 	}
-	if sess.have&sessHaveDlQERID == 0 || qerID != sess.dlQERID {
-		return nil
-	}
 
-	sess.loc.DlQFI, e = qer.QFI()
-	if e != nil {
-		return fmt.Errorf("QFI: %w", e)
+	for _, c := range []struct {
+		MustHave   uint32
+		MatchQERID uint32
+		SetQFI     *uint8
+		SetHave    uint32
+	}{
+		{sessHaveUlQERID, sess.ulQERID, &sess.loc.UlQFI, sessHaveUlQFI},
+		{sessHaveDlQERID, sess.dlQERID, &sess.loc.DlQFI, sessHaveDlQFI},
+	} {
+		if sess.have&c.MustHave != 0 && qerID == c.MatchQERID {
+			*c.SetQFI, e = qer.QFI()
+			if e != nil {
+				return fmt.Errorf("QFI: %w", e)
+			}
+			sess.have |= c.SetHave
+		}
 	}
-	sess.have |= sessHaveDlQFI
 	return nil
 }
 
