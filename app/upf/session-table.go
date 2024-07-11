@@ -16,16 +16,11 @@ type Session struct {
 	FaceID         string
 }
 
-// FaceCreator knows how to create and destroy GTP-U face.
-type FaceCreator interface {
-	CreateFace(ctx context.Context, loc SessionLocatorFields) (id string, e error)
-	DestroyFace(ctx context.Context, id string) error
-}
-
 // SessionTable stores PFCP sessions and instructs face creation.
 type SessionTable struct {
-	table map[uint64]*Session
-	fc    FaceCreator
+	table       map[uint64]*Session
+	createFace  func(ctx context.Context, loc SessionLocatorFields) (id string, e error)
+	destroyFace func(ctx context.Context, id string) error
 }
 
 // EstablishmentRequest handles a SessionEstablishmentRequest message.
@@ -67,7 +62,7 @@ func (st *SessionTable) createFaceWhenReady(ctx context.Context, sess *Session) 
 		return nil
 	}
 
-	id, e := st.fc.CreateFace(ctx, loc)
+	id, e := st.createFace(ctx, loc)
 	if e != nil {
 		return e
 	}
@@ -85,13 +80,17 @@ func (st *SessionTable) DeletionRequest(ctx context.Context, req *message.Sessio
 	if sess.FaceID == "" {
 		return sess, nil
 	}
-	return sess, st.fc.DestroyFace(ctx, sess.FaceID)
+	return sess, st.destroyFace(ctx, sess.FaceID)
 }
 
 // NewSessionTable constructs SessionTable.
-func NewSessionTable(fc FaceCreator) *SessionTable {
+func NewSessionTable(
+	createFace func(ctx context.Context, sloc SessionLocatorFields) (id string, e error),
+	destroyFace func(ctx context.Context, id string) error,
+) *SessionTable {
 	return &SessionTable{
-		table: map[uint64]*Session{},
-		fc:    fc,
+		table:       map[uint64]*Session{},
+		createFace:  createFace,
+		destroyFace: destroyFace,
 	}
 }

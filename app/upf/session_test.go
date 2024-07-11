@@ -95,7 +95,7 @@ func TestSessionTable(t *testing.T) {
 		ctx:   ctx,
 		Table: map[string]upf.SessionLocatorFields{},
 	}
-	st := upf.NewSessionTable(fc)
+	st := upf.NewSessionTable(fc.CreateFace, fc.DestroyFace)
 
 	establishment := func(wireHex string) *upf.Session {
 		sess, e := st.EstablishmentRequest(ctx, parsePFCP(wireHex).(*message.SessionEstablishmentRequest))

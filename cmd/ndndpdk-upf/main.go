@@ -2,11 +2,10 @@
 package main
 
 import (
-	"net"
-	"net/netip"
 	"os"
 
 	"github.com/urfave/cli/v2"
+	"github.com/usnistgov/ndn-dpdk/app/upf"
 	"github.com/usnistgov/ndn-dpdk/core/gqlclient"
 	"github.com/usnistgov/ndn-dpdk/core/logging"
 	"github.com/usnistgov/ndn-dpdk/core/version"
@@ -16,18 +15,18 @@ import (
 var (
 	logger = logging.New("main")
 
-	gqlCfg gqlclient.Config
-	upfCfg UpfConfig
+	gqlCfg    gqlclient.Config
+	upfParams upf.UpfParams
 
-	client   *gqlclient.Client
-	pfcpConn *net.UDPConn
+	client *gqlclient.Client
+	theUPF *upf.UPF
 )
 
 var app = &cli.App{
 	Version:              version.V.String(),
 	Usage:                "Use NDN-DPDK as a UPF.",
 	EnableBashCompletion: true,
-	Flags: upfCfg.DefineFlags([]cli.Flag{
+	Flags: upfParams.DefineFlags([]cli.Flag{
 		&cli.StringFlag{
 			Name:        "gqlserver",
 			Usage:       "GraphQL `endpoint` of NDN-DPDK service",
@@ -39,15 +38,12 @@ var app = &cli.App{
 		if client, e = gqlclient.New(gqlCfg); e != nil {
 			return e
 		}
-		if e = upfCfg.ProcessFlags(c); e != nil {
+		if e = upfParams.ProcessFlags(c); e != nil {
 			return e
 		}
 
-		pfcpAddr := net.UDPAddrFromAddrPort(netip.AddrPortFrom(upfCfg.UpfN4, 8805))
-		if pfcpConn, e = net.ListenUDP("udp", pfcpAddr); e != nil {
-			return e
-		}
-		return pfcpLoop(c.Context)
+		theUPF = upf.NewUPF(upfParams, createFace, destroyFace)
+		return theUPF.Listen(c.Context)
 	},
 }
 
