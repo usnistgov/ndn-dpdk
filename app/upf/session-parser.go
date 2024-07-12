@@ -28,7 +28,7 @@ const (
 	spHaveDlQERID
 	spHaveRemoteIP
 	spHaveInnerRemoteIP
-	spHaveAll = 0b11111111
+	spHaveNeeded = spHaveUlTEID | spHaveDlTEID | spHaveUlQFI | spHaveDlQFI | spHaveRemoteIP | spHaveInnerRemoteIP
 )
 
 // SessionParser parses PFCP messages to construct GTP-U face locator.
@@ -97,15 +97,27 @@ func (sp *SessionParser) createPDRAccess(pdr *ie.IE) error {
 	if e != nil {
 		return fmt.Errorf("FTEID: %w", e)
 	}
-
+	if fTEID.HasCh() {
+		return fmt.Errorf("FTEID CH flag is not supported")
+	}
 	sp.loc.UlTEID = fTEID.TEID
 	sp.have |= spHaveUlTEID
 
 	sp.ulQERID, e = pdr.QERID()
-	if e != nil {
+	if e == nil {
+		sp.have |= spHaveUlQERID
+	} else if errors.Is(e, ie.ErrIENotFound) {
+		// OAI-CN5G-SMF v2.0.1 does not send CreateQER, but QFI is available in the PDI.
+		// UlQFI and DlQFI are assumed to be the same.
+		sp.loc.UlQFI, e = findIE(ie.QFI).Within(pdi.PDI()).QFI()
+		if e != nil {
+			return fmt.Errorf("QFI: %w", e)
+		}
+		sp.loc.DlQFI = sp.loc.UlQFI
+		sp.have |= spHaveUlQFI | spHaveDlQFI
+	} else {
 		return fmt.Errorf("QERID: %w", e)
 	}
-	sp.have |= spHaveUlQERID
 
 	return nil
 }
@@ -126,10 +138,11 @@ func (sp *SessionParser) createPDRCore(pdr *ie.IE) error {
 	sp.have |= spHaveInnerRemoteIP
 
 	sp.dlQERID, e = pdr.QERID()
-	if e != nil {
+	if e == nil {
+		sp.have |= spHaveDlQERID
+	} else if !errors.Is(e, ie.ErrIENotFound) {
 		return fmt.Errorf("QERID: %w", e)
 	}
-	sp.have |= spHaveDlQERID
 
 	return nil
 }
@@ -220,5 +233,5 @@ func (sp *SessionParser) createQER(qer *ie.IE) error {
 // LocatorFields returns GTP-U locator fields extracted from PFCP session.
 // ok indicates whether the locator is valid.
 func (sp SessionParser) LocatorFields() (loc SessionLocatorFields, ok bool) {
-	return sp.loc, sp.have == spHaveAll
+	return sp.loc, sp.have&spHaveNeeded == spHaveNeeded
 }

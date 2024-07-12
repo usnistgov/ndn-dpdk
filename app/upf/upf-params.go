@@ -33,36 +33,36 @@ type UpfParams struct {
 }
 
 // DefineFlags appends CLI flags.
-func (cfg *UpfParams) DefineFlags(flags []cli.Flag) []cli.Flag {
+func (p *UpfParams) DefineFlags(flags []cli.Flag) []cli.Flag {
 	return append(flags,
 		&cli.StringFlag{
 			Name:     "smf-n4",
 			Usage:    "SMF N4 IPv4 `address`",
 			Required: true,
-			Action:   cfg.saveIPv4(&cfg.SmfN4),
+			Action:   p.saveIPv4(&p.SmfN4),
 		},
 		&cli.StringFlag{
 			Name:     "upf-n4",
 			Usage:    "UPF N4 IPv4 `address`",
 			Required: true,
-			Action:   cfg.saveIPv4(&cfg.UpfN4),
+			Action:   p.saveIPv4(&p.UpfN4),
 		},
 		&cli.StringFlag{
 			Name:     "upf-n3",
 			Usage:    "UPF N3 IPv4 `address`",
 			Required: true,
-			Action:   cfg.saveIPv4(&cfg.Locator.LocalIP),
+			Action:   p.saveIPv4(&p.Locator.LocalIP),
 		},
 		&cli.GenericFlag{
 			Name:        "upf-mac",
 			Usage:       "UPF N3 MAC `address`",
 			Required:    true,
-			Destination: &cfg.Locator.Local,
+			Destination: &p.Locator.Local,
 		},
 		&cli.IntFlag{
 			Name:        "upf-vlan",
 			Usage:       "UPF N3 `VLAN ID`",
-			Destination: &cfg.Locator.VLAN,
+			Destination: &p.Locator.VLAN,
 		},
 		&cli.StringSliceFlag{
 			Name:     "n3",
@@ -73,7 +73,7 @@ func (cfg *UpfParams) DefineFlags(flags []cli.Flag) []cli.Flag {
 			Name:     "dn",
 			Usage:    "Data Network NDN forwarder IPv4 `address`",
 			Required: true,
-			Action:   cfg.saveIPv4(&cfg.Locator.InnerLocalIP),
+			Action:   p.saveIPv4(&p.Locator.InnerLocalIP),
 		},
 	)
 }
@@ -88,13 +88,13 @@ func (UpfParams) saveIPv4(d *netip.Addr) func(c *cli.Context, v string) error {
 }
 
 // ProcessFlags validates and stores CLI flags.
-func (cfg *UpfParams) ProcessFlags(c *cli.Context) error {
-	cfg.Locator.Scheme = "gtp"
-	if !macaddr.IsUnicast(cfg.Locator.Local.HardwareAddr) {
+func (p *UpfParams) ProcessFlags(c *cli.Context) error {
+	p.Locator.Scheme = "gtp"
+	if !macaddr.IsUnicast(p.Locator.Local.HardwareAddr) {
 		return errors.New("upf-mac is not unicast MAC address")
 	}
 
-	cfg.MapN3 = map[netip.Addr]macaddr.Flag{}
+	p.MapN3 = map[netip.Addr]macaddr.Flag{}
 	for i, line := range c.StringSlice("n3") {
 		tokens := strings.Split(line, "=")
 		if len(tokens) != 2 {
@@ -108,17 +108,17 @@ func (cfg *UpfParams) ProcessFlags(c *cli.Context) error {
 		if e := n3mac.Set(tokens[1]); e != nil || !macaddr.IsUnicast(n3mac.HardwareAddr) {
 			return fmt.Errorf("'%s' is not a unicast MAC address", tokens[1])
 		}
-		cfg.MapN3[n3ip] = n3mac
+		p.MapN3[n3ip] = n3mac
 	}
 
-	cfg.RecoveryTimestamp = ie.NewRecoveryTimeStamp(time.Now())
-	cfg.UpfNodeID = ie.NewNodeID(cfg.UpfN4.String(), "", "")
+	p.RecoveryTimestamp = ie.NewRecoveryTimeStamp(time.Now())
+	p.UpfNodeID = ie.NewNodeID(p.UpfN4.String(), "", "")
 	return nil
 }
 
 // MakeLocator constructs GTP-U face locator.
-func (cfg UpfParams) MakeLocator(sloc SessionLocatorFields) (loc any, e error) {
-	remote, ok := cfg.MapN3[sloc.RemoteIP]
+func (p UpfParams) MakeLocator(sloc SessionLocatorFields) (loc any, e error) {
+	remote, ok := p.MapN3[sloc.RemoteIP]
 	if !ok {
 		return nil, fmt.Errorf("unknown MAC address for peer %s", sloc.RemoteIP)
 	}
@@ -129,7 +129,7 @@ func (cfg UpfParams) MakeLocator(sloc SessionLocatorFields) (loc any, e error) {
 		Remote macaddr.Flag `json:"remote"`
 	}{
 		SessionLocatorFields: sloc,
-		UpfLocatorFields:     cfg.Locator,
+		UpfLocatorFields:     p.Locator,
 		Remote:               remote,
 	}, nil
 }
