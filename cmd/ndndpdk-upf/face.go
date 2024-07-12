@@ -31,6 +31,6 @@ func destroyFace(ctx context.Context, id string) error {
 	if e != nil {
 		return e
 	}
-	logger.Info("face deleted", zap.Bool("deleted", deleted), zap.String("face-id", id))
+	logger.Info("face destroyed", zap.Bool("deleted", deleted), zap.String("face-id", id))
 	return nil
 }

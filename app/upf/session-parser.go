@@ -39,66 +39,84 @@ type SessionParser struct {
 }
 
 // EstablishmentRequest handles a SessionEstablishmentRequest message.
-func (sp *SessionParser) EstablishmentRequest(req *message.SessionEstablishmentRequest) error {
-	return sp.emRequest(req.CreatePDR, req.CreateFAR, nil, req.CreateQER)
+func (sp *SessionParser) EstablishmentRequest(req *message.SessionEstablishmentRequest, rspIEs []*ie.IE) ([]*ie.IE, error) {
+	return sp.emRequest(req.CreatePDR, req.CreateFAR, nil, req.CreateQER, rspIEs)
 }
 
 // ModificationRequest handles a SessionModificationRequest message.
-func (sp *SessionParser) ModificationRequest(req *message.SessionModificationRequest) error {
-	return sp.emRequest(req.CreatePDR, req.CreateFAR, req.UpdateFAR, req.CreateQER)
+func (sp *SessionParser) ModificationRequest(req *message.SessionModificationRequest, rspIEs []*ie.IE) ([]*ie.IE, error) {
+	return sp.emRequest(req.CreatePDR, req.CreateFAR, req.UpdateFAR, req.CreateQER, rspIEs)
 }
 
 // emRequest handles a SessionEstablishmentRequest or SessionModificationRequest message.
-func (sp *SessionParser) emRequest(createPDR, createFAR, updateFAR, createQER []*ie.IE) error {
+func (sp *SessionParser) emRequest(createPDR, createFAR, updateFAR, createQER []*ie.IE, rspIEs []*ie.IE) (rspIEsRet []*ie.IE, e error) {
 	var errs []error
 	for i, pdr := range createPDR {
-		if e := sp.createPDR(pdr); e != nil {
+		if rspIEs, e = sp.createPDR(pdr, rspIEs); e != nil {
 			errs = append(errs, fmt.Errorf("CreatePDR[%d]: %w", i, e))
 		}
 	}
 	for i, far := range createFAR {
-		if e := sp.createFAR(far); e != nil {
+		if e = sp.createFAR(far); e != nil {
 			errs = append(errs, fmt.Errorf("CreateFAR[%d]: %w", i, e))
 		}
 	}
 	for i, far := range updateFAR {
-		if e := sp.updateFAR(far); e != nil {
+		if e = sp.updateFAR(far); e != nil {
 			errs = append(errs, fmt.Errorf("UpdateFAR[%d]: %w", i, e))
 		}
 	}
 	for i, qer := range createQER {
-		if e := sp.createQER(qer); e != nil {
+		if e = sp.createQER(qer); e != nil {
 			errs = append(errs, fmt.Errorf("CreateQER[%d]: %w", i, e))
 		}
 	}
-	return errors.Join(errs...)
+	return rspIEs, errors.Join(errs...)
 }
 
 // createPDR handles a CreatePDR IE.
-func (sp *SessionParser) createPDR(pdr *ie.IE) error {
+func (sp *SessionParser) createPDR(pdr *ie.IE, rspIEs []*ie.IE) ([]*ie.IE, error) {
 	si, e := pdr.SourceInterface()
 	if e != nil {
-		return fmt.Errorf("SourceInterface: %w", e)
+		return rspIEs, fmt.Errorf("SourceInterface: %w", e)
+	}
+
+	pdrID, e := pdr.PDRID()
+	if e != nil {
+		return rspIEs, fmt.Errorf("PDRID: %w", e)
+	}
+	createdIEs := []*ie.IE{
+		ie.NewPDRID(pdrID),
 	}
 
 	switch si {
 	case ie.SrcInterfaceAccess:
-		return sp.createPDRAccess(pdr)
+		fTEID, e := sp.createPDRAccess(pdr)
+		if e != nil {
+			return rspIEs, e
+		}
+		createdIEs = append(createdIEs,
+			ie.NewFTEID(fTEID.Flags, fTEID.TEID, fTEID.IPv4Address, fTEID.IPv6Address, fTEID.ChooseID),
+		)
 	case ie.SrcInterfaceCore:
-		return sp.createPDRCore(pdr)
+		return rspIEs, sp.createPDRCore(pdr)
+	default:
+		return rspIEs, fmt.Errorf("SourceInterface %d unknown", si)
 	}
-	return fmt.Errorf("SourceInterface %d unknown", si)
+
+	rspIEs = append(rspIEs, ie.NewCreatedPDR(createdIEs...))
+	return rspIEs, nil
 }
 
 // createPDRAccess handles a CreatePDR IE with SourceInterface=access.
-func (sp *SessionParser) createPDRAccess(pdr *ie.IE) error {
+func (sp *SessionParser) createPDRAccess(pdr *ie.IE) (*ie.FTEIDFields, error) {
 	pdi := findIE(ie.PDI).Within(pdr.CreatePDR())
 	fTEID, e := pdi.FTEID()
 	if e != nil {
-		return fmt.Errorf("FTEID: %w", e)
+		return nil, fmt.Errorf("FTEID: %w", e)
 	}
 	if fTEID.HasCh() {
-		return fmt.Errorf("FTEID CH flag is not supported")
+		return nil, fmt.Errorf("FTEID CH flag is not supported")
 	}
 	sp.loc.UlTEID = fTEID.TEID
 	sp.have |= spHaveUlTEID
@@ -111,15 +129,15 @@ func (sp *SessionParser) createPDRAccess(pdr *ie.IE) error {
 		// UlQFI and DlQFI are assumed to be the same.
 		sp.loc.UlQFI, e = findIE(ie.QFI).Within(pdi.PDI()).QFI()
 		if e != nil {
-			return fmt.Errorf("QFI: %w", e)
+			return nil, fmt.Errorf("QFI: %w", e)
 		}
 		sp.loc.DlQFI = sp.loc.UlQFI
 		sp.have |= spHaveUlQFI | spHaveDlQFI
 	} else {
-		return fmt.Errorf("QERID: %w", e)
+		return nil, fmt.Errorf("QERID: %w", e)
 	}
 
-	return nil
+	return fTEID, nil
 }
 
 // createPDRCore handles a CreatePDR IE with SourceInterface=core.

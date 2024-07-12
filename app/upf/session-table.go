@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 	"os"
 
+	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
@@ -24,10 +25,10 @@ type SessionTable struct {
 }
 
 // EstablishmentRequest handles a SessionEstablishmentRequest message.
-func (st *SessionTable) EstablishmentRequest(ctx context.Context, req *message.SessionEstablishmentRequest) (sess *Session, e error) {
+func (st *SessionTable) EstablishmentRequest(ctx context.Context, req *message.SessionEstablishmentRequest, rspIEs []*ie.IE) (sess *Session, rspIEsRet []*ie.IE, e error) {
 	cpfSEID, e := req.CPFSEID.FSEID()
 	if e != nil {
-		return nil, fmt.Errorf("CP F-SEID: %w", e)
+		return nil, rspIEs, fmt.Errorf("CP F-SEID: %w", e)
 	}
 
 	sess = &Session{
@@ -38,22 +39,22 @@ func (st *SessionTable) EstablishmentRequest(ctx context.Context, req *message.S
 	}
 	st.table[sess.UpSEID] = sess
 
-	if e := sess.Parser.EstablishmentRequest(req); e != nil {
-		return sess, e
+	if rspIEs, e = sess.Parser.EstablishmentRequest(req, rspIEs); e != nil {
+		return sess, rspIEs, e
 	}
-	return sess, st.createFaceWhenReady(ctx, sess)
+	return sess, rspIEs, st.createFaceWhenReady(ctx, sess)
 }
 
 // ModificationRequest handles a SessionModificationRequest message.
-func (st *SessionTable) ModificationRequest(ctx context.Context, req *message.SessionModificationRequest) (sess *Session, e error) {
+func (st *SessionTable) ModificationRequest(ctx context.Context, req *message.SessionModificationRequest, rspIEs []*ie.IE) (sess *Session, rspIEsRet []*ie.IE, e error) {
 	if sess = st.table[req.SEID()]; sess == nil {
-		return nil, os.ErrNotExist
+		return nil, rspIEs, os.ErrNotExist
 	}
 
-	if e := sess.Parser.ModificationRequest(req); e != nil {
-		return sess, e
+	if rspIEs, e = sess.Parser.ModificationRequest(req, rspIEs); e != nil {
+		return sess, rspIEs, e
 	}
-	return sess, st.createFaceWhenReady(ctx, sess)
+	return sess, rspIEs, st.createFaceWhenReady(ctx, sess)
 }
 
 func (st *SessionTable) createFaceWhenReady(ctx context.Context, sess *Session) error {

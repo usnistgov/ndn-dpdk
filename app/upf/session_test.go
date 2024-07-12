@@ -31,12 +31,19 @@ const (
 	pfcpOaiNoNrfMod = "213400840000000000000001bfd1d50000010039003800020002001d0004000000000002001f00140001010016000d04636f7265036f6169036f7267005d0005060a8d0002006c00040000000200030037006c000400000002002c00010200040026002a0001000016000f06616363657373036f6169036f72670054000a010000000002ac19c30e"
 )
 
+func parseSession(t *testing.T, est, mod string) (sess upf.SessionParser) {
+	_, require := makeAR(t)
+	_, e := sess.EstablishmentRequest(parsePFCP(est).(*message.SessionEstablishmentRequest), nil)
+	require.NoError(e)
+	_, e = sess.ModificationRequest(parsePFCP(mod).(*message.SessionModificationRequest), nil)
+	require.NoError(e)
+	return
+}
+
 func TestSessionParserPhoenix(t *testing.T) {
 	assert, require := makeAR(t)
 
-	var sess upf.SessionParser
-	assert.NoError(sess.EstablishmentRequest(parsePFCP(pfcpPhoenixEst0).(*message.SessionEstablishmentRequest)))
-	assert.NoError(sess.ModificationRequest(parsePFCP(pfcpPhoenixMod0).(*message.SessionModificationRequest)))
+	sess := parseSession(t, pfcpPhoenixEst0, pfcpPhoenixMod0)
 
 	loc, ok := sess.LocatorFields()
 	require.True(ok)
@@ -51,9 +58,7 @@ func TestSessionParserPhoenix(t *testing.T) {
 func TestSessionParserFree5gc(t *testing.T) {
 	assert, require := makeAR(t)
 
-	var sess upf.SessionParser
-	assert.NoError(sess.EstablishmentRequest(parsePFCP(pfcpFree5gcEst).(*message.SessionEstablishmentRequest)))
-	assert.NoError(sess.ModificationRequest(parsePFCP(pfcpFree5gcMod).(*message.SessionModificationRequest)))
+	sess := parseSession(t, pfcpFree5gcEst, pfcpFree5gcMod)
 
 	loc, ok := sess.LocatorFields()
 	require.True(ok)
@@ -68,9 +73,7 @@ func TestSessionParserFree5gc(t *testing.T) {
 func TestSessionParserOaiNoNrf(t *testing.T) {
 	assert, require := makeAR(t)
 
-	var sess upf.SessionParser
-	assert.NoError(sess.EstablishmentRequest(parsePFCP(pfcpOaiNoNrfEst).(*message.SessionEstablishmentRequest)))
-	assert.NoError(sess.ModificationRequest(parsePFCP(pfcpOaiNoNrfMod).(*message.SessionModificationRequest)))
+	sess := parseSession(t, pfcpOaiNoNrfEst, pfcpOaiNoNrfMod)
 
 	loc, ok := sess.LocatorFields()
 	require.True(ok)
@@ -118,7 +121,7 @@ func TestSessionTable(t *testing.T) {
 	st := upf.NewSessionTable(fc.CreateFace, fc.DestroyFace)
 
 	establishment := func(wireHex string) *upf.Session {
-		sess, e := st.EstablishmentRequest(ctx, parsePFCP(wireHex).(*message.SessionEstablishmentRequest))
+		sess, _, e := st.EstablishmentRequest(ctx, parsePFCP(wireHex).(*message.SessionEstablishmentRequest), nil)
 		require.NoError(e)
 		require.NotNil(sess)
 		return sess
@@ -126,7 +129,7 @@ func TestSessionTable(t *testing.T) {
 	modification := func(sess *upf.Session, wireHex string, expectNotExist bool) {
 		msg := parsePFCP(wireHex).(*message.SessionModificationRequest)
 		msg.Header.SEID = sess.UpSEID
-		sessFound, e := st.ModificationRequest(ctx, msg)
+		sessFound, _, e := st.ModificationRequest(ctx, msg, nil)
 		if expectNotExist {
 			assert.True(os.IsNotExist(e))
 			assert.Nil(sessFound)

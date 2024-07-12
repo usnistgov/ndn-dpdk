@@ -112,28 +112,33 @@ func (upf *UPF) AssociationSetupRequest(ctx context.Context, req *message.Associ
 
 // SessionEstablishmentRequest handles a SessionEstablishmentRequest message.
 func (upf *UPF) SessionEstablishmentRequest(ctx context.Context, req *message.SessionEstablishmentRequest) (rsp *message.SessionEstablishmentResponse, e error) {
-	sess, e := upf.st.EstablishmentRequest(ctx, req)
+	rspIEs := []*ie.IE{
+		upf.params.UpfNodeID,
+		ie.NewCause(ie.CauseRequestAccepted),
+		nil,
+	}
+
+	sess, rspIEs, e := upf.st.EstablishmentRequest(ctx, req, rspIEs)
 	if sess == nil || e != nil {
 		return nil, e
 	}
-	return message.NewSessionEstablishmentResponse(
-		0, 0, sess.CpSEID, req.SequenceNumber, 0,
-		upf.params.UpfNodeID,
-		ie.NewCause(ie.CauseRequestAccepted),
-		ie.NewFSEID(sess.UpSEID, upf.params.UpfN4.AsSlice(), nil),
-	), nil
+
+	rspIEs[2] = ie.NewFSEID(sess.UpSEID, upf.params.UpfN4.AsSlice(), nil)
+	return message.NewSessionEstablishmentResponse(0, 0, sess.CpSEID, req.SequenceNumber, 0, rspIEs...), nil
 }
 
 // SessionModificationRequest handles a SessionModificationRequest message.
 func (upf *UPF) SessionModificationRequest(ctx context.Context, req *message.SessionModificationRequest) (rsp *message.SessionModificationResponse, e error) {
-	sess, e := upf.st.ModificationRequest(ctx, req)
+	rspIEs := []*ie.IE{
+		ie.NewCause(ie.CauseRequestAccepted),
+	}
+
+	sess, rspIEs, e := upf.st.ModificationRequest(ctx, req, rspIEs)
 	if sess == nil {
 		return nil, e
 	}
-	return message.NewSessionModificationResponse(
-		0, 0, sess.CpSEID, req.SequenceNumber, 0,
-		ie.NewCause(ie.CauseRequestAccepted),
-	), e
+
+	return message.NewSessionModificationResponse(0, 0, sess.CpSEID, req.SequenceNumber, 0, rspIEs...), e
 }
 
 // SessionDeletionRequest handles a SessionDeletionRequest message.
