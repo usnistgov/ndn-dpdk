@@ -49,7 +49,7 @@ You may setup hugepages using the `dpdk-hugepages.py` script.
 See [DPDK system requirements](https://doc.dpdk.org/guides/linux_gsg/sys_reqs.html#use-of-hugepages-in-the-linux-environment) for more information.
 
 Depending on your hardware, you may need to change PCI driver bindings using the `dpdk-devbind.py` script.
-See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/) and [hardware known to work](hardware.md) for more information.
+See [DPDK Network Interface Controller Drivers](https://doc.dpdk.org/guides/nics/) and [Ethernet adapters known to work](nics.md) for more information.
 
 You can run `sudo ndndpdk-ctrl systemd start` to start the NDN-DPDK service, use `ndndpdk-ctrl` command to activate it as a forwarder or some other role, and then control the service.
 See [forwarder activation and usage](forwarder.md), [traffic generator activation and usage](trafficgen.md), [file server activation and usage](fileserver.md) for basic usage in each role.

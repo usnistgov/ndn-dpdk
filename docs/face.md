@@ -77,7 +77,7 @@ ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500
 ```
 
-See [hardware known to work](hardware.md) page for instructions and examples on select NIC models.
+See [Ethernet adapters known to work](nics.md) page for instructions and examples on select NIC models.
 
 Creating an Ethernet port with PCI driver causes DPDK to assume exclusive control over the PCI device.
 After that, it is not possible to run other traffic (such as IP) over the same Ethernet adapter.
