@@ -11,7 +11,7 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Linux kernel 5.14 or newer
 * Required APT packages: `clang-15 g++-12 git jq libc6-dev-i386 libelf-dev libpcap-dev libssl-dev liburcu-dev make meson ninja-build pkg-config`
 * Optional APT packages: `clang-format-15 doxygen lcov yamllint`
-* Go 1.22
+* Go 1.23
 * Node.js 20.x
 * [ubpf](https://github.com/iovisor/ubpf) a3e69808
 * [libbpf](https://github.com/libbpf/libbpf) 1.4.3 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.4.2 (optional)
