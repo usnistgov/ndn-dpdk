@@ -358,11 +358,13 @@ EthFlowPattern_Set(EthFlowPattern* flow, size_t i, enum rte_flow_item_type typ, 
 }
 
 void
-EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc, bool prefersFlowItemGTP) {
+EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocator* loc,
+                       bool prefersFlowItemGTP) {
   EthLocatorClass c = EthLocator_Classify(loc);
 
   *flow = (const EthFlowPattern){0};
   flow->pattern[0].type = RTE_FLOW_ITEM_TYPE_END;
+  *priority = 0;
   size_t i = 0;
 #define MASK(field) memset(&(field), 0xFF, sizeof(field))
 #define APPEND(typ, field)                                                                         \
@@ -373,6 +375,11 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc, bool prefers
     NDNDPDK_ASSERT(i < RTE_DIM(flow->pattern));                                                    \
     flow->pattern[i].type = RTE_FLOW_ITEM_TYPE_END;                                                \
   } while (false)
+
+  if (c.passthru) {
+    *priority = 1;
+    return;
+  }
 
   MASK(flow->ethMask.hdr.dst_addr);
   MASK(flow->ethMask.hdr.ether_type);

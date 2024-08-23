@@ -117,9 +117,17 @@ typedef struct EthFlowPattern {
   };
 } EthFlowPattern;
 
-/** @brief Prepare rte_flow pattern from locator. */
+/**
+ * @brief Prepare rte_flow pattern from locator.
+ * @param[out] flow Flow pattern.
+ * @param[out] priority Flow priority.
+ * @param loc Locator.
+ * @param prefersFlowItemGTP For GTP-U flow item, whether to use RTE_FLOW_ITEM_TYPE_GTP instead
+ *                           of RTE_FLOW_ITEM_TYPE_GTPU. Correct value depends on the NIC driver.
+ */
 __attribute__((nonnull)) void
-EthFlowPattern_Prepare(EthFlowPattern* flow, const EthLocator* loc, bool prefersFlowItemGTP);
+EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocator* loc,
+                       bool prefersFlowItemGTP);
 
 typedef struct EthTxHdr EthTxHdr;
 

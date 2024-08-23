@@ -61,7 +61,7 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
   struct rte_flow_attr attr = {.ingress = true};
 
   EthFlowPattern pattern;
-  EthFlowPattern_Prepare(&pattern, loc, prefersFlowItemGTP);
+  EthFlowPattern_Prepare(&pattern, &attr.priority, loc, prefersFlowItemGTP);
 
   struct rte_flow_action_queue queue = {.index = queues[0]};
   struct rte_flow_action_rss rss = {
