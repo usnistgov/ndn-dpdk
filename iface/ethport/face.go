@@ -104,7 +104,7 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 	}
 	port, loc = nil, nil
 	return iface.New(iface.NewParams{
-		Config:     face.loc.EthFaceConfig().Config.WithMaxMTU(face.port.cfg.MTU - NewTxHdr(face.loc, false).IPLen()),
+		Config:     face.loc.EthFaceConfig().WithMaxMTU(face.port.cfg.MTU - NewTxHdr(face.loc, false).IPLen()),
 		Socket:     face.port.dev.NumaSocket(),
 		SizeofPriv: C.sizeof_EthFacePriv,
 		Init: func(f iface.Face) (initResult iface.InitResult, e error) {

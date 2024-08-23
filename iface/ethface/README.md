@@ -81,6 +81,7 @@ To create a pass-through face, using the locator:
 ```jsonc
 {
   "scheme": "passthru",
+  "port": "b9RENroce85E",      // ethdev GraphQL ID, or
   "local": "02:00:00:00:00:00" // ethdev local MAC address
 }
 ```
@@ -93,6 +94,6 @@ Packets received by the ethdev that do not match an NDN face are received by the
 Caveats and limitations:
 
 * Currently, this only works with RxTable.
-* TAP netif name is unadjustable.
+* TAP netif name is unchangeable.
 * In packet counters, all packets are considered "Interests".
 * This is incompatible with [packet dumper](../../app/pdump).

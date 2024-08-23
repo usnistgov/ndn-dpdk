@@ -65,7 +65,7 @@ export type EthPortConfig = EthNetifConfig & {
   rxFlowQueues?: number;
 };
 
-interface EtherLocatorBase extends FaceConfig {
+interface EthFaceConfig extends FaceConfig {
   port?: string;
 
   /**
@@ -77,7 +77,18 @@ interface EtherLocatorBase extends FaceConfig {
 
   disableTxMultiSegOffload?: boolean;
   disableTxChecksumOffload?: boolean;
+}
 
+/**
+ * Pass-through face locator.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#PassthruLocator>
+ */
+export interface PassthruLocator extends EthFaceConfig {
+  scheme: "passthru";
+  local?: string;
+}
+
+interface EtherLocatorBase extends EthFaceConfig {
   local: string;
   remote: string;
 
@@ -86,14 +97,6 @@ interface EtherLocatorBase extends FaceConfig {
    * @maximum 4094
    */
   vlan?: Uint;
-}
-
-/**
- * Pass-through face locator.
- * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethface#PassthruLocator>
- */
-export interface PassthruLocator extends Omit<EtherLocatorBase, "remote" | "vlan"> {
-  scheme: "passthru";
 }
 
 /**

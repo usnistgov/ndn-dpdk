@@ -88,29 +88,29 @@ export type PktmbufPoolTemplateUpdates<K extends string = string> = Partial<Reco
 export type EthNetifConfig = EthNetifConfig.PCI | EthNetifConfig.BifurcatedPCI | EthNetifConfig.XDP | EthNetifConfig.AfPacket;
 
 export namespace EthNetifConfig {
-  interface Base {
+  export interface PCI {
+    driver: "PCI";
+    pciAddr: string;
     devargs?: Record<string, string>;
   }
 
-  export interface PCI extends Base {
-    driver: "PCI";
-    pciAddr: string;
-  }
-
-  export interface BifurcatedPCI extends Base {
+  export interface BifurcatedPCI {
     driver: "PCI";
     netif: string;
+    devargs?: Record<string, string>;
   }
 
-  export interface XDP extends Base {
+  export interface XDP {
     driver: "XDP";
     netif: string;
+    devargs?: Record<string, string>;
     skipEthtool?: boolean;
   }
 
-  export interface AfPacket extends Base {
+  export interface AfPacket {
     driver: "AF_PACKET";
     netif: string;
+    devargs?: Record<string, string>;
   }
 }
 

@@ -17,6 +17,7 @@
     "it-pushable": "^3.2.3",
     "throat": "^6.0.2",
     "tslib": "^2.6.3",
+    "type-fest": "^4.25.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

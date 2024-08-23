@@ -29,7 +29,7 @@ func (loc PassthruLocator) Validate() error {
 		return packettransport.ErrUnicastMacAddr
 	}
 	if loc.Local.Empty() && loc.Port == "" && loc.EthDev == nil {
-		return errors.New("either local or port must be specifed")
+		return errors.New("either local or port must be specified")
 	}
 	return nil
 }
@@ -47,6 +47,9 @@ func (loc PassthruLocator) CreateFace() (face iface.Face, e error) {
 		return nil, e
 	}
 
+	if loc.Local.Empty() {
+		loc.Local.HardwareAddr = port.EthDev().HardwareAddr()
+	}
 	loc.FaceConfig.HideFaceConfigFromJSON()
 	return ethport.NewFace(port, loc)
 }
