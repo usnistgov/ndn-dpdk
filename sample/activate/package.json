@@ -5,12 +5,12 @@
     "start": "tsx",
     "typecheck": "tsc"
   },
-  "packageManager": "pnpm@9.4.0+sha512.f549b8a52c9d2b8536762f99c0722205efc5af913e77835dbccc3b0b0b2ca9e7dc8022b78062c17291c48e88749c70ce88eb5a74f1fa8c4bf5e18bb46c8bd83a",
+  "packageManager": "pnpm@9.11.0+sha512.0a203ffaed5a3f63242cd064c8fb5892366c103e328079318f78062f24ea8c9d50bc6a47aa3567cabefd824d170e78fa2745ed1f16b132e16436146b7688f19b",
   "dependencies": {
     "stdout-stream": "^2.0.0",
-    "tslib": "^2.6.3",
-    "tsx": "^4.15.7",
-    "typescript": "~5.5.2"
+    "tslib": "^2.7.0",
+    "tsx": "^4.19.1",
+    "typescript": "~5.5.4"
   },
   "devDependencies": {
     "@types/stdout-stream": "^1.4.2",
