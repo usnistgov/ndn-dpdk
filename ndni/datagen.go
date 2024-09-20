@@ -77,7 +77,7 @@ func (gen *DataGen) Init(m *pktmbuf.Packet, args ...any) {
 	}
 
 	C.rte_pktmbuf_adj(gen.tpl, C.uint16_t(uintptr(gen.contentIov[0].iov_base)-uintptr(bufBegin)))
-	C.rte_pktmbuf_trim(gen.tpl, C.uint16_t(C.size_t(gen.tpl.pkt_len)-gen.contentIov[0].iov_len))
+	C.rte_pktmbuf_trim(gen.tpl, C.uint16_t(C.size_t(pktmbuf.PacketFromPtr(unsafe.Pointer(gen.tpl)).Len())-gen.contentIov[0].iov_len))
 }
 
 // Close discards this DataGen.

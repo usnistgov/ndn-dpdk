@@ -118,9 +118,9 @@ func ctestPacketClone(t *testing.T) {
 	})))
 	require.NotNil(single)
 	defer single.Close()
-	assert.EqualValues(len(wire), single.mbuf.pkt_len)
-	assert.EqualValues(1, single.mbuf.nb_segs)
-	assert.EqualValues(len(wire), single.mbuf.data_len)
+	assert.EqualValues(len(wire), *single.mbufA.PktLen())
+	assert.EqualValues(1, *single.mbufA.NbSegs())
+	assert.EqualValues(len(wire), *single.mbufA.DataLen())
 
 	linearFrag := toPacket(unsafe.Pointer(p.N.Clone(mp, ndni.PacketTxAlign{
 		Linearize:           true,
@@ -128,16 +128,16 @@ func ctestPacketClone(t *testing.T) {
 	})))
 	require.NotNil(linearFrag)
 	defer linearFrag.Close()
-	assert.EqualValues(len(wire), linearFrag.mbuf.pkt_len)
-	assert.EqualValues(3, linearFrag.mbuf.nb_segs)
-	assert.EqualValues(500, linearFrag.mbuf.data_len)
+	assert.EqualValues(len(wire), *linearFrag.mbufA.PktLen())
+	assert.EqualValues(3, *linearFrag.mbufA.NbSegs())
+	assert.EqualValues(500, *linearFrag.mbufA.DataLen())
 
 	chained := toPacket(unsafe.Pointer(p.N.Clone(mp, ndni.PacketTxAlign{
 		Linearize: false,
 	})))
 	require.NotNil(chained)
 	defer chained.Close()
-	assert.EqualValues(len(wire), chained.mbuf.pkt_len)
-	assert.EqualValues(2, chained.mbuf.nb_segs)
-	assert.EqualValues(0, chained.mbuf.data_len)
+	assert.EqualValues(len(wire), *chained.mbufA.PktLen())
+	assert.EqualValues(2, *chained.mbufA.NbSegs())
+	assert.EqualValues(0, *chained.mbufA.DataLen())
 }

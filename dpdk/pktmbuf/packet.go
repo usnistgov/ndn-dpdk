@@ -3,7 +3,15 @@ package pktmbuf
 
 /*
 #include "../../csrc/dpdk/mbuf.h"
-enum { c_offsetof_Mbuf_PacketType = offsetof(struct rte_mbuf, packet_type) };
+enum {
+	c_offsetof_Mbuf_DataOff = offsetof(struct rte_mbuf, data_off),
+	c_offsetof_Mbuf_NbSegs = offsetof(struct rte_mbuf, nb_segs),
+	c_offsetof_Mbuf_Port = offsetof(struct rte_mbuf, port),
+	c_offsetof_Mbuf_PacketType = offsetof(struct rte_mbuf, packet_type),
+	c_offsetof_Mbuf_PktLen = offsetof(struct rte_mbuf, pkt_len),
+	c_offsetof_Mbuf_DataLen = offsetof(struct rte_mbuf, data_len),
+	c_offsetof_Mbuf_BufLen = offsetof(struct rte_mbuf, buf_len),
+};
 */
 import "C"
 import (
@@ -25,6 +33,10 @@ const DefaultHeadroom = C.RTE_PKTMBUF_HEADROOM
 // Packet represents a packet in mbuf.
 type Packet C.struct_rte_mbuf
 
+func (pkt *Packet) mbuf() *MbufAccessor {
+	return MbufAccessorFromPtr(pkt)
+}
+
 // Ptr returns *C.struct_rte_mbuf pointer.
 func (pkt *Packet) Ptr() unsafe.Pointer {
 	return unsafe.Pointer(pkt)
@@ -42,17 +54,17 @@ func (pkt *Packet) Close() error {
 
 // Len returns packet length in octets.
 func (pkt *Packet) Len() int {
-	return int(pkt.pkt_len)
+	return int(*pkt.mbuf().PktLen())
 }
 
 // Port returns ingress network interface.
 func (pkt *Packet) Port() uint16 {
-	return uint16(pkt.port)
+	return uint16(*pkt.mbuf().Port())
 }
 
 // SetPort sets ingress network interface.
 func (pkt *Packet) SetPort(port uint16) {
-	pkt.port = C.uint16_t(port)
+	*pkt.mbuf().Port() = uint16(port)
 }
 
 // Timestamp returns receive timestamp.
@@ -65,27 +77,23 @@ func (pkt *Packet) SetTimestamp(t eal.TscTime) {
 	C.Mbuf_SetTimestamp(pkt.ptr(), C.TscTime(t))
 }
 
-func (pkt *Packet) ptrType32() *uint32 {
-	return (*uint32)(unsafe.Add(pkt.Ptr(), C.c_offsetof_Mbuf_PacketType))
-}
-
 // Type32 returns 32-bit packet type.
 func (pkt *Packet) Type32() uint32 {
-	return *pkt.ptrType32()
+	return *pkt.mbuf().PacketType()
 }
 
 // SetType32 sets 32-bit packet type.
 func (pkt *Packet) SetType32(packetType uint32) {
-	*pkt.ptrType32() = packetType
+	*pkt.mbuf().PacketType() = packetType
 }
 
 // SegmentBytes returns the data in each segment.
 // Each []byte aliases the mbuf.
 func (pkt *Packet) SegmentBytes() (list [][]byte) {
-	list = make([][]byte, 0, pkt.nb_segs)
-	for m := pkt.ptr(); m != nil; m = m.next {
-		buf := unsafe.Slice((*byte)(m.buf_addr), m.buf_len)
-		list = append(list, buf[m.data_off:m.data_off+m.data_len])
+	list = make([][]byte, 0, *pkt.mbuf().NbSegs())
+	for m := (*MbufAccessor)(pkt.ptr()); m != nil; m = (*MbufAccessor)(m.next) {
+		buf := unsafe.Slice((*byte)(m.buf_addr), *m.BufLen())
+		list = append(list, buf[*m.DataOff():*m.DataOff()+*m.DataLen()])
 	}
 	return list
 }
@@ -97,7 +105,7 @@ func (pkt *Packet) Bytes() []byte {
 
 // Headroom returns headroom of the first segment.
 func (pkt *Packet) Headroom() int {
-	return int(pkt.data_off)
+	return int(*pkt.mbuf().DataOff())
 }
 
 // SetHeadroom changes headroom of the first segment.
@@ -106,17 +114,17 @@ func (pkt *Packet) SetHeadroom(headroom int) error {
 	if pkt.Len() > 0 {
 		return errors.New("cannot change headroom of non-empty packet")
 	}
-	if C.uint16_t(headroom) > pkt.buf_len {
+	if uint16(headroom) > *pkt.mbuf().BufLen() {
 		return errors.New("headroom cannot exceed buffer length")
 	}
-	pkt.data_off = C.uint16_t(headroom)
+	*pkt.mbuf().DataOff() = uint16(headroom)
 	return nil
 }
 
 // Tailroom returns tailroom of the last segment.
 func (pkt *Packet) Tailroom() int {
-	if pkt.nb_segs == 1 {
-		return int(pkt.buf_len - pkt.data_off - pkt.data_len)
+	if *pkt.mbuf().NbSegs() == 1 {
+		return int(*pkt.mbuf().BufLen() - *pkt.mbuf().DataOff() - *pkt.mbuf().DataLen())
 	}
 	return int(C.rte_pktmbuf_tailroom(C.rte_pktmbuf_lastseg(pkt.ptr())))
 }
@@ -131,8 +139,8 @@ func (pkt *Packet) ReadFrom(r io.Reader) (n int64, e error) {
 	room := bufs[0][:cap(bufs[0])]
 	ni, e := r.Read(room)
 	if ni > 0 {
-		pkt.pkt_len = C.uint32_t(ni)
-		pkt.data_len = C.uint16_t(ni)
+		*pkt.mbuf().PktLen() = uint32(ni)
+		*pkt.mbuf().DataLen() = uint16(ni)
 	}
 	return int64(ni), e
 }
@@ -180,4 +188,40 @@ func (pkt *Packet) Chain(tail *Packet) error {
 // PacketFromPtr converts *C.struct_rte_mbuf pointer to Packet.
 func PacketFromPtr(ptr unsafe.Pointer) *Packet {
 	return (*Packet)(ptr)
+}
+
+// MbufAccessor allows accessing mbuf union fields as pointers.
+type MbufAccessor C.struct_rte_mbuf
+
+func (m *MbufAccessor) DataOff() *uint16 {
+	return (*uint16)(unsafe.Add(unsafe.Pointer(m), C.c_offsetof_Mbuf_DataOff))
+}
+
+func (m *MbufAccessor) NbSegs() *uint16 {
+	return (*uint16)(unsafe.Add(unsafe.Pointer(m), C.c_offsetof_Mbuf_NbSegs))
+}
+
+func (m *MbufAccessor) Port() *uint16 {
+	return (*uint16)(unsafe.Add(unsafe.Pointer(m), C.c_offsetof_Mbuf_Port))
+}
+
+func (m *MbufAccessor) PacketType() *uint32 {
+	return (*uint32)(unsafe.Add(unsafe.Pointer(m), C.c_offsetof_Mbuf_PacketType))
+}
+
+func (m *MbufAccessor) PktLen() *uint32 {
+	return (*uint32)(unsafe.Add(unsafe.Pointer(m), C.c_offsetof_Mbuf_PktLen))
+}
+
+func (m *MbufAccessor) DataLen() *uint16 {
+	return (*uint16)(unsafe.Add(unsafe.Pointer(m), C.c_offsetof_Mbuf_DataLen))
+}
+
+func (m *MbufAccessor) BufLen() *uint16 {
+	return (*uint16)(unsafe.Add(unsafe.Pointer(m), C.c_offsetof_Mbuf_BufLen))
+}
+
+// MbufAccessorFromPtr converts *C.struct_rte_mbuf pointer to Packet.
+func MbufAccessorFromPtr[T any](ptr *T) *MbufAccessor {
+	return (*MbufAccessor)(unsafe.Pointer(ptr))
 }

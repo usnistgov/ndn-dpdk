@@ -75,7 +75,7 @@ func ctestTlvDecoderClone(t *testing.T) {
 				continue
 			}
 			for seg := clone; seg != nil; seg = seg.next {
-				assert.NotZero(seg.data_len, "%d-%d", offset, count)
+				assert.NotZero(*pktmbuf.MbufAccessorFromPtr(seg).DataLen(), "%d-%d", offset, count)
 			}
 			clonePkt := pktmbuf.PacketFromPtr(unsafe.Pointer(clone))
 			assert.Equal(count, clonePkt.Len(), "%d-%d", offset, count)
@@ -100,7 +100,7 @@ func ctestTlvDecoderLinearize(t *testing.T) {
 	// contiguous
 	r := C.TlvDecoder_Linearize(&d, 2)
 	assert.Equal(bytesFromHex("B1B2"), C.GoBytes(unsafe.Pointer(r), 2))
-	assert.EqualValues(3, d.p.nb_segs)
+	assert.EqualValues(3, *pktmbuf.MbufAccessorFromPtr(d.p).NbSegs())
 	assert.EqualValues(13, d.length)
 	assert.EqualValues(3, d.offset)
 
@@ -108,8 +108,8 @@ func ctestTlvDecoderLinearize(t *testing.T) {
 	r = C.TlvDecoder_Linearize(&d, 6)
 	assert.Equal(bytesFromHex("B3B4B5B6B7C0"), C.GoBytes(unsafe.Pointer(r), 6))
 	C.rte_mbuf_sanity_check(p.mbuf, 1)
-	assert.NotZero(d.p.data_off)
-	assert.EqualValues(2, d.p.nb_segs)
+	assert.NotZero(*pktmbuf.MbufAccessorFromPtr(d.p).DataOff())
+	assert.EqualValues(2, *pktmbuf.MbufAccessorFromPtr(d.p).NbSegs())
 	assert.EqualValues(7, d.length)
 	assert.EqualValues(0, d.offset)
 
@@ -122,8 +122,8 @@ func ctestTlvDecoderLinearize(t *testing.T) {
 	r = C.TlvDecoder_Linearize(&d, 7)
 	assert.Equal(bytesFromHex("B1B2B3C0C1C2C3"), C.GoBytes(unsafe.Pointer(r), 7))
 	C.rte_mbuf_sanity_check(p.mbuf, 1)
-	assert.EqualValues(1, d.p.nb_segs)
-	assert.Zero(d.p.data_off)
+	assert.EqualValues(1, *pktmbuf.MbufAccessorFromPtr(d.p).NbSegs())
+	assert.Zero(*pktmbuf.MbufAccessorFromPtr(d.p).DataOff())
 	assert.Nil(d.m)
 	assert.EqualValues(0, d.length)
 	assert.EqualValues(0, d.offset)
@@ -137,10 +137,10 @@ func ctestTlvDecoderLinearize(t *testing.T) {
 	r = C.TlvDecoder_Linearize(&d, C.uint16_t(directDataroom-1))
 	assert.Equal(append(bytes.Repeat([]byte{0xA0}, directDataroom-2), 0xA1), C.GoBytes(unsafe.Pointer(r), C.int(directDataroom-1)))
 	C.rte_mbuf_sanity_check(p.mbuf, 1)
-	assert.EqualValues(3, d.p.nb_segs)
-	assert.EqualValues(2, d.p.data_len)
-	assert.EqualValues(directDataroom-1, d.p.next.data_len)
-	assert.EqualValues(directDataroom-1, d.p.next.next.data_len)
+	assert.EqualValues(3, *pktmbuf.MbufAccessorFromPtr(d.p).NbSegs())
+	assert.EqualValues(2, *pktmbuf.MbufAccessorFromPtr(d.p).DataLen())
+	assert.EqualValues(directDataroom-1, *pktmbuf.MbufAccessorFromPtr(d.p.next).DataLen())
+	assert.EqualValues(directDataroom-1, *pktmbuf.MbufAccessorFromPtr(d.p.next.next).DataLen())
 	assert.EqualValues(directDataroom-1, d.length)
 	assert.EqualValues(0, d.offset)
 }

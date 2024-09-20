@@ -25,9 +25,10 @@ var (
 
 type packet struct {
 	*pktmbuf.Packet
-	N    *ndni.Packet
-	mbuf *C.struct_rte_mbuf
-	npkt *C.Packet
+	N     *ndni.Packet
+	mbuf  *C.struct_rte_mbuf
+	mbufA *pktmbuf.MbufAccessor
+	npkt  *C.Packet
 }
 
 func makePacket(args ...any) (p *packet) {
@@ -44,6 +45,7 @@ func toPacket(ptr unsafe.Pointer) (p *packet) {
 		N:    ndni.PacketFromPtr(ptr),
 		mbuf: (*C.struct_rte_mbuf)(ptr),
 	}
+	p.mbufA = pktmbuf.MbufAccessorFromPtr(p.mbuf)
 	p.Packet = p.N.Mbuf()
 	p.npkt = C.Packet_FromMbuf(p.mbuf)
 	return p

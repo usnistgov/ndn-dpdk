@@ -28,6 +28,7 @@ import (
 	"testing"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 )
@@ -131,10 +132,10 @@ func checkInterestModify(t *testing.T, fragmentPayloadSize C.uint16_t, nSegs int
 	modify := toPacket(unsafe.Pointer(C.Interest_ModifyGuiders(p.npkt, guiders, mpC, align)))
 	defer modify.Close()
 	assert.EqualValues(ndni.PktSInterest, C.Packet_GetType(modify.npkt))
-	assert.EqualValues(nSegs, modify.mbuf.nb_segs)
+	assert.EqualValues(nSegs, *pktmbuf.MbufAccessorFromPtr(modify.mbuf).NbSegs())
 	if fragmentPayloadSize > 0 {
 		for frag := modify.mbuf; frag != nil; frag = frag.next {
-			assert.LessOrEqual(int(frag.data_len), int(fragmentPayloadSize))
+			assert.LessOrEqual(int(*pktmbuf.MbufAccessorFromPtr(frag).DataLen()), int(fragmentPayloadSize))
 		}
 	}
 
