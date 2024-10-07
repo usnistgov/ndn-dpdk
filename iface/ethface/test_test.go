@@ -125,30 +125,17 @@ func pktmbufFromLayers(hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {
 	return makePacket(mbuftestenv.Headroom(0), b)
 }
 
-type GTPv1UTPDU struct {
-	TEID    uint32
-	PDUType uint8 // 0=downlink, 1=uplink
-	QFI     uint8
-}
-
-func (GTPv1UTPDU) LayerType() gopacket.LayerType {
-	return layers.LayerTypeGTPv1U
-}
-
-func (tpdu *GTPv1UTPDU) SerializeTo(b gopacket.SerializeBuffer, opts gopacket.SerializeOptions) error {
-	g := &layers.GTPv1U{
-		Version:       1,
-		ProtocolType:  1,
-		MessageType:   0xFF,
-		MessageLength: 8 + uint16(len(b.Bytes())),
-		TEID:          tpdu.TEID,
+// makeGTPv1U constructs a GTPv1U layer.
+//
+//	pduType: 0=downlink, 1=uplink
+func makeGTPv1U(teid uint32, pduType uint8, qfi uint8) *layers.GTPv1U {
+	return &layers.GTPv1U{
+		Version:      1,
+		ProtocolType: 1,
+		MessageType:  0xFF,
+		TEID:         teid,
 		GTPExtensionHeaders: []layers.GTPExtensionHeader{
-			{Type: 0x85, Content: []byte{tpdu.PDUType << 4, tpdu.QFI & 0x3F}},
+			{Type: 0x85, Content: []byte{pduType << 4, qfi & 0x3F}},
 		},
 	}
-
-	// workaround https://github.com/gopacket/gopacket/issues/1175
-	wire, discard := packetFromLayers(g)
-	defer discard()
-	return gopacket.Payload(wire).SerializeTo(b, gopacket.SerializeOptions{})
 }

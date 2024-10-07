@@ -13,7 +13,7 @@ require (
 	github.com/dylandreimerink/gobpfld v0.6.0
 	github.com/functionalfoundry/graphqlws v0.0.0-20200611113535-7bc58903ce7b
 	github.com/gogf/greuse v1.1.0
-	github.com/gopacket/gopacket v1.3.0
+	github.com/gopacket/gopacket v1.3.1-0.20241004220047-bd3b6d6928cf
 	github.com/gorilla/schema v1.4.1
 	github.com/graphql-go/graphql v0.8.1
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20240805235558-330cf6901bf7
@@ -43,8 +43,8 @@ require (
 	go.fd.io/govpp/extras v0.1.0
 	go.uber.org/zap v1.27.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
-	golang.org/x/sys v0.25.0
+	golang.org/x/exp v0.0.0-20241004190924-225e2abe05e6
+	golang.org/x/sys v0.26.0
 )
 
 require (
@@ -71,8 +71,8 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.27.0 // indirect
+	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
-	golang.org/x/term v0.24.0 // indirect
+	golang.org/x/term v0.25.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

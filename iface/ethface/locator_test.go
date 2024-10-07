@@ -373,7 +373,7 @@ func TestLocatorRxMatch(t *testing.T) {
 		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
 		&layers.UDP{SrcPort: 2152, DstPort: 2152},
-		&GTPv1UTPDU{TEID: 0x10000008, PDUType: 1, QFI: 1},
+		makeGTPv1U(0x10000008, 1, 1),
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip44, DstIP: ip43},
 		&layers.UDP{SrcPort: 6363, DstPort: 6363},
 	)
@@ -381,7 +381,7 @@ func TestLocatorRxMatch(t *testing.T) {
 		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
 		&layers.UDP{SrcPort: 2152, DstPort: 2152},
-		&GTPv1UTPDU{TEID: 0x10000009, PDUType: 1, QFI: 1},
+		makeGTPv1U(0x10000009, 1, 1),
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip44, DstIP: ip43},
 		&layers.UDP{SrcPort: 6363, DstPort: 6363},
 	)
@@ -389,7 +389,7 @@ func TestLocatorRxMatch(t *testing.T) {
 		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
 		&layers.UDP{SrcPort: 2152, DstPort: 2152},
-		&GTPv1UTPDU{TEID: 0x20000008, PDUType: 1, QFI: 1},
+		makeGTPv1U(0x20000008, 1, 1),
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip44, DstIP: ip43},
 		&layers.UDP{SrcPort: 6363, DstPort: 6363},
 	)
@@ -397,7 +397,7 @@ func TestLocatorRxMatch(t *testing.T) {
 		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
 		&layers.UDP{SrcPort: 2152, DstPort: 2152},
-		&GTPv1UTPDU{TEID: 0x10000008, PDUType: 1, QFI: 11},
+		makeGTPv1U(0x10000008, 1, 11),
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip44, DstIP: ip43},
 		&layers.UDP{SrcPort: 6363, DstPort: 6363},
 	)
@@ -405,7 +405,7 @@ func TestLocatorRxMatch(t *testing.T) {
 		&layers.Ethernet{SrcMAC: mac2, DstMAC: mac1, EthernetType: layers.EthernetTypeIPv4},
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip42, DstIP: ip41},
 		&layers.UDP{SrcPort: 2152, DstPort: 2152},
-		&GTPv1UTPDU{TEID: 0x10000008, PDUType: 0, QFI: 1},
+		makeGTPv1U(0x10000008, 0, 1),
 		&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: ip44, DstIP: ip43},
 		&layers.UDP{SrcPort: 6363, DstPort: 6363},
 	)
