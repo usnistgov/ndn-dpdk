@@ -43,7 +43,7 @@ require (
 	go.fd.io/govpp/extras v0.1.0
 	go.uber.org/zap v1.27.0
 	go4.org v0.0.0-20230225012048-214862532bf5
-	golang.org/x/exp v0.0.0-20241004190924-225e2abe05e6
+	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 	golang.org/x/sys v0.26.0
 )
 
@@ -72,7 +72,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.28.0 // indirect
-	golang.org/x/net v0.29.0 // indirect
+	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/term v0.25.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

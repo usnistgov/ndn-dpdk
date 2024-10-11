@@ -23,9 +23,8 @@ var (
 )
 
 var app = &cli.App{
-	Version:              version.V.String(),
-	Usage:                "Use NDN-DPDK as a UPF.",
-	EnableBashCompletion: true,
+	Version: version.V.String(),
+	Usage:   "Use NDN-DPDK as a UPF.",
 	Flags: upfParams.DefineFlags([]cli.Flag{
 		&cli.StringFlag{
 			Name:        "gqlserver",
