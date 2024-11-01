@@ -47,7 +47,7 @@ func (impl *rxTable) Start(face *Face) error {
 
 func (impl *rxTable) Stop(face *Face) error {
 	C.cds_list_del_rcu(&face.priv.rxtNode)
-	urcu.Barrier()
+	urcu.Synchronize()
 	return nil
 }
 

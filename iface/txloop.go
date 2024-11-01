@@ -130,7 +130,7 @@ func (txl *txLoop) Remove(face Face) {
 	logEntry.Debug("removing face from TxLoop")
 	faceC := (*C.Face)(face.Ptr())
 	C.cds_hlist_del_rcu(&faceC.txlNode)
-	urcu.Barrier()
+	urcu.Synchronize()
 }
 
 var (

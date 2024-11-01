@@ -175,7 +175,7 @@ func (rxl *rxLoop) Remove(rxg RxGroup) {
 
 	logEntry.Debug("removing RxGroup from RxLoop")
 	C.cds_hlist_del_rcu(&rxgC.rxlNode)
-	urcu.Barrier()
+	urcu.Synchronize()
 }
 
 var (

@@ -39,7 +39,7 @@ func (fib *Fib) Close() (e error) {
 }
 
 func (fib *Fib) doClose() {
-	urcu.Barrier() // allow call_rcu to complete; otherwise they could invoke rte_mempool_put on free'd objects
+	urcu.Barrier() // allow FibEntry_DeferredFree call_rcu to complete; otherwise they could invoke rte_mempool_put on free'd objects
 	for _, replica := range fib.replicas {
 		if replica != nil {
 			must.Close(replica)

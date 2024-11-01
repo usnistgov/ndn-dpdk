@@ -71,7 +71,7 @@ func (w *worker) RemoveTask(rs *urcu.ReadSide, ts *taskSlot) {
 
 	w.nTasks--
 	C.cds_hlist_del_rcu(&ts.fthNode)
-	urcu.Barrier()
+	urcu.Synchronize()
 }
 
 // ClearTasks clears task list.

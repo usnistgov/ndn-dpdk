@@ -36,7 +36,7 @@ func (t *Table) Ptr() unsafe.Pointer {
 
 // Close frees C memory.
 func (t *Table) Close() error {
-	urcu.Barrier()
+	urcu.Barrier() // allow FibEntry_DeferredFree call_rcu to complete
 	C.Fib_Clear(t.c)
 	C.cds_lfht_destroy(t.c.lfht, nil)
 	t.mp.Close()
