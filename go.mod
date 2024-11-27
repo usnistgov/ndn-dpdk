@@ -2,7 +2,7 @@ module github.com/usnistgov/ndn-dpdk
 
 go 1.23.0
 
-toolchain go1.23.2
+toolchain go1.23.3
 
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
@@ -27,11 +27,11 @@ require (
 	github.com/pascaldekloe/name v1.0.1
 	github.com/powerman/rpc-codec v1.2.2
 	github.com/rickb777/plural v1.4.2
-	github.com/safchain/ethtool v0.4.1
+	github.com/safchain/ethtool v0.5.9
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/suzuki-shunsuke/go-dataeq v1.0.1
 	github.com/tul/emission v0.0.0-20180606124623-7d2aae804ca2
 	github.com/urfave/cli/v2 v2.27.5
@@ -44,7 +44,7 @@ require (
 	go.uber.org/zap v1.27.0
 	go4.org v0.0.0-20230225012048-214862532bf5
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
-	golang.org/x/sys v0.26.0
+	golang.org/x/sys v0.27.0
 )
 
 require (
@@ -59,7 +59,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.35.1 // indirect
+	github.com/onsi/gomega v1.36.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect

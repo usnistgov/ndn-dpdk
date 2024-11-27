@@ -75,7 +75,7 @@ npm: build/share/ndn-dpdk/ndn-dpdk.npm.tgz
 build/share/ndn-dpdk/ndn-dpdk.npm.tgz:
 	$$(corepack pnpm bin)/tsc
 	mkdir -p $(@D)
-	mv $$(corepack pnpm pack -s .) $@
+	mv $$(corepack pnpm pack --json . | jq -r .filename) $@
 
 .PHONY: install
 install:
