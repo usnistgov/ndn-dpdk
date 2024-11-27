@@ -42,7 +42,7 @@ func (kl KeyLocator) Field() tlv.Field {
 func (kl *KeyLocator) UnmarshalBinary(wire []byte) error {
 	*kl = KeyLocator{}
 	d := tlv.DecodingBuffer(wire)
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		switch de.Type {
 		case an.TtName:
 			if e := de.UnmarshalValue(&kl.Name); e != nil {
@@ -102,7 +102,7 @@ func (si *SigInfo) FindExtension(typ uint32) *tlv.Element {
 func (si *SigInfo) UnmarshalBinary(wire []byte) (e error) {
 	*si = SigInfo{}
 	d := tlv.DecodingBuffer(wire)
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		switch de.Type {
 		case an.TtSigType:
 			if si.Type = uint32(de.UnmarshalNNI(math.MaxUint32, &e, ErrSigType)); e != nil {

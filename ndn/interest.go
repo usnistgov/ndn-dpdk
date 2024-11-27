@@ -217,7 +217,7 @@ func (interest *Interest) UnmarshalBinary(wire []byte) (e error) {
 	*interest = Interest{}
 	d := tlv.DecodingBuffer(wire)
 	var paramsPortion []byte
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		switch de.Type {
 		case an.TtName:
 			if e = de.UnmarshalValue(&interest.Name); e != nil {
@@ -332,7 +332,7 @@ func (fh ForwardingHint) Field() tlv.Field {
 // UnmarshalBinary decodes from TLV-VALUE.
 func (fh *ForwardingHint) UnmarshalBinary(wire []byte) error {
 	d := tlv.DecodingBuffer(wire)
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		switch de.Type {
 		case an.TtName:
 			var del Name

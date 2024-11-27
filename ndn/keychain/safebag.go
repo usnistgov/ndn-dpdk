@@ -41,7 +41,7 @@ func ImportSafeBag(wire, passphrase []byte) (pvt PrivateKey, cert *Certificate, 
 
 	var pvtKey any
 	d := tlv.DecodingBuffer(safeBagTLV.Value)
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		switch de.Type {
 		case an.TtData:
 			var data ndn.Data

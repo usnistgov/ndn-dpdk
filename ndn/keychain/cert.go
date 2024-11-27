@@ -202,7 +202,7 @@ func (vp ValidityPeriod) Field() tlv.Field {
 func (vp *ValidityPeriod) UnmarshalBinary(wire []byte) (e error) {
 	*vp = ValidityPeriod{}
 	d := tlv.DecodingBuffer(wire)
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		switch de.Type {
 		case an.TtNotBefore:
 			vp.NotBefore = parseValidityPeriodTime(de.Value)

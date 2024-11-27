@@ -81,7 +81,7 @@ func (m *Metadata) Decode(value []byte, extensions MetadataDecoderMap) error {
 	*m = Metadata{}
 	d := tlv.DecodingBuffer(value)
 	hasName := false
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		var f MetadataFieldDecoder
 		if de.Type == an.TtName && !hasName {
 			f = m.decodeName

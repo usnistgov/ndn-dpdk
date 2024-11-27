@@ -43,7 +43,7 @@ func (tpl *InterestTemplate) Init(args ...any) {
 	*tpl = InterestTemplate{}
 
 	d := tlv.DecodingBuffer(wire)
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		switch de.Type {
 		case an.TtName:
 			tpl.prefixL = C.uint16_t(copy(cptr.AsByteSlice(tpl.prefixV[:]), de.Value))

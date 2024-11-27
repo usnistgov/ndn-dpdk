@@ -129,7 +129,7 @@ func (pkt *Packet) UnmarshalTLV(typ uint32, value []byte) (e error) {
 func (pkt *Packet) decodeValue(value []byte) (e error) {
 	fragment := LpFragment{FragCount: 1}
 	d := tlv.DecodingBuffer(value)
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		switch de.Type {
 		case an.TtLpSeqNum:
 			if de.Length() != 8 {

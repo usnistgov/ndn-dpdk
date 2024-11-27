@@ -2,6 +2,8 @@ package tlv
 
 import (
 	"encoding"
+	"iter"
+	"slices"
 )
 
 // Unmarshaler is the interface implemented by an object that can decode an TLV element representation of itself.
@@ -58,17 +60,26 @@ func (d *DecodingBuffer) Element() (de DecodingElement, e error) {
 	return de, nil
 }
 
-// Elements recognizes TLV elements from the buffer.
-// Bytes that cannot be recognized as TLV elements are left in the decoder.
-func (d *DecodingBuffer) Elements() (list []DecodingElement) {
-	for {
-		de, e := d.Element()
-		if e != nil {
-			break
+// IterElements returns an iterator that recognizes TLV elements from the buffer.
+//
+// Iteration stops when no more TLV elements can be recognized.
+// Remaining bytes are left in the decoder.
+func (d *DecodingBuffer) IterElements() iter.Seq[DecodingElement] {
+	return func(yield func(DecodingElement) bool) {
+		for {
+			de, e := d.Element()
+			if e != nil || !yield(de) {
+				return
+			}
 		}
-		list = append(list, de)
 	}
-	return list
+}
+
+// Elements recognizes TLV elements from the buffer.
+//
+// Remaining bytes that cannot be recognized as TLV elements are left in the decoder.
+func (d *DecodingBuffer) Elements() []DecodingElement {
+	return slices.Collect(d.IterElements())
 }
 
 // DecodingElement represents an TLV element during decoding.

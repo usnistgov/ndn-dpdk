@@ -59,7 +59,7 @@ func (gen *DataGen) Init(m *pktmbuf.Packet, args ...any) {
 	}
 
 	d := tlv.DecodingBuffer(wire)
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		switch de.Type {
 		case an.TtName:
 			gen.suffix = C.LName{

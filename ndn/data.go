@@ -231,7 +231,7 @@ func (data Data) Field() tlv.Field {
 func (data *Data) UnmarshalBinary(value []byte) (e error) {
 	*data = Data{}
 	d := tlv.DecodingBuffer(value)
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		switch de.Type {
 		case an.TtName:
 			if e = de.UnmarshalValue(&data.Name); e != nil {
@@ -263,7 +263,7 @@ func (data *Data) UnmarshalBinary(value []byte) (e error) {
 
 func (data *Data) decodeMetaInfo(value []byte) (e error) {
 	d := tlv.DecodingBuffer(value)
-	for _, de := range d.Elements() {
+	for de := range d.IterElements() {
 		switch de.Type {
 		case an.TtContentType:
 			if data.ContentType = ContentType(de.UnmarshalNNI(math.MaxUint64, &e, tlv.ErrRange)); e != nil {
