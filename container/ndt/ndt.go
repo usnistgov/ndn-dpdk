@@ -90,7 +90,7 @@ func (ndt *Ndt) Get(index uint64) (entry Entry) {
 func (ndt *Ndt) List() (list []Entry) {
 	list = make([]Entry, ndt.cfg.Capacity)
 	ndtr := ndt.firstReplica()
-	for i := uint64(0); i < uint64(ndt.cfg.Capacity); i++ {
+	for i := range uint64(ndt.cfg.Capacity) {
 		list[i] = ndtr.Read(i)
 	}
 
@@ -112,7 +112,7 @@ func (ndt *Ndt) Update(index uint64, value uint8) {
 // Randomize updates all elements to random values < max.
 // This should only be used during initialization.
 func (ndt *Ndt) Randomize(max uint8) {
-	for i := 0; i < ndt.cfg.Capacity; i++ {
+	for i := range ndt.cfg.Capacity {
 		ndt.Update(uint64(i), uint8(rand.Intn(int(max))))
 	}
 }

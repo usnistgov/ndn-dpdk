@@ -104,7 +104,7 @@ func TestPatterns(t *testing.T) {
 	p.Launch()
 
 	func() {
-		for i := 0; i < 100; i++ {
+		for i := range 100 {
 			face.Tx <- ndn.MakeInterest(fmt.Sprintf("/A/%d", i))
 			face.Tx <- ndn.MakeInterest(fmt.Sprintf("/B/%d", i))
 			face.Tx <- func(i int) ndn.Interest {

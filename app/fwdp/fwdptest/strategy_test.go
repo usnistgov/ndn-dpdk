@@ -279,7 +279,7 @@ func TestWeighted(t *testing.T) {
 	fixture.SetFibEntryParams("/P", "weighted", map[string]any{"weights": []float64{w1, w2, w3}},
 		face1.ID, face2.ID, face3.ID)
 
-	for i := 0; i < 200; i++ {
+	for i := range 200 {
 		face1.Tx <- ndn.MakeInterest(fmt.Sprintf("/P/1/%d", i))
 		face2.Tx <- ndn.MakeInterest(fmt.Sprintf("/P/2/%d", i))
 		face4.Tx <- ndn.MakeInterest(fmt.Sprintf("/P/4/%d", i))

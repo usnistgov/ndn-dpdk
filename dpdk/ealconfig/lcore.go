@@ -86,7 +86,7 @@ func (cfg LCoreConfig) args(hwInfo hwinfo.Provider) (args []string, e error) {
 		nextLCoreID := 0
 		for _, socket := range demandSockets {
 			var slcores commaSeparated
-			for i := 0; i < cfg.LCoresPerNuma[socket]; i++ {
+			for range cfg.LCoresPerNuma[socket] {
 				slcores.AppendInt(nextLCoreID)
 				nextLCoreID++
 			}

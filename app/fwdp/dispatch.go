@@ -48,7 +48,7 @@ func ReadDispatchCounters(th DispatchThread, nFwds int) (cnt DispatchCounters) {
 		if demux == nil {
 			continue
 		}
-		for i := 0; i < nFwds; i++ {
+		for i := range nFwds {
 			dest := demux.DestCounters(i)
 			*t.Queued = append(*t.Queued, dest.NQueued)
 			*t.Dropped = append(*t.Dropped, dest.NDropped)

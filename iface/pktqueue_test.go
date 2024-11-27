@@ -145,7 +145,7 @@ func TestPktQueueCoDel(t *testing.T) {
 		}
 	}
 
-	for i := 0; i < 500; i++ {
+	for range 500 {
 		enq(18)
 		deq(20)
 		time.Sleep(time.Millisecond)
@@ -154,14 +154,14 @@ func TestPktQueueCoDel(t *testing.T) {
 	assert.Equal(nDrop, 0)
 
 	nEnq, nDeq, nDrop = 0, 0, 0
-	for i := 0; i < 500; i++ {
+	for range 500 {
 		enq(20)
 		deq(18)
 		time.Sleep(time.Millisecond)
 	}
 	assert.Greater(nDrop, 0)
 
-	for i := 0; i < 500; i++ {
+	for range 500 {
 		enq(15)
 		deq(20)
 		time.Sleep(time.Millisecond)
@@ -169,7 +169,7 @@ func TestPktQueueCoDel(t *testing.T) {
 	deq(20)
 
 	nDrop = 0
-	for i := 0; i < 500; i++ {
+	for range 500 {
 		enq(18)
 		deq(20)
 		time.Sleep(time.Millisecond)

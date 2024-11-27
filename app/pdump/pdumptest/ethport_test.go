@@ -90,7 +90,7 @@ func TestEthPortUnmatched(t *testing.T) {
 	require.NoError(e)
 
 	const nBursts, nBurstSize = 512, 16
-	for i := 0; i < nBursts; i++ {
+	for i := range nBursts {
 		for k, face := range []iface.Face{faceB0, faceB1, faceB2} {
 			pkts := make([]*ndni.Packet, nBurstSize)
 			for j := range pkts {

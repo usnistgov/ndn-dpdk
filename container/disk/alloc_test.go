@@ -31,7 +31,7 @@ func TestAlloc(t *testing.T) {
 		return slot
 	}
 
-	for i := 0; i < 500; i++ {
+	for i := range 500 {
 		expectAlloc(i)
 	}
 	assert.Equal(500, slots.Size())

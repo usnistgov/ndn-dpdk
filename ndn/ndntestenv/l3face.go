@@ -118,7 +118,7 @@ func (c *L3FaceTester) CheckL3Face(t testing.TB, faceA, faceB l3.Face) {
 
 	go func() {
 		txA := faceA.Tx()
-		for i := 0; i < c.Count; i++ {
+		for i := range c.Count {
 			interest := ndn.MakeInterest(fmt.Sprintf("/A/%d", i))
 			var packet ndn.Packet
 			packet.Interest = &interest

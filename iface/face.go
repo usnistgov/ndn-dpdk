@@ -241,7 +241,7 @@ func newFace(p NewParams) (Face, error) {
 	}
 	c.outputQueue = (*C.struct_rte_ring)(outputQueue.Ptr())
 
-	for i := 0; i < MaxFaceRxThreads; i++ {
+	for i := range MaxFaceRxThreads {
 		reassID := C.CString(eal.AllocObjectID("iface.Reassembler"))
 		defer C.free(unsafe.Pointer(reassID))
 		if ok := C.Reassembler_Init(&c.impl.rx[i].reass, reassID,
@@ -318,7 +318,7 @@ func (f *face) clear() Face {
 	id, c := f.id, f.ptr()
 	c.state = StateRemoved
 	if c.impl != nil {
-		for i := 0; i < MaxFaceRxThreads; i++ {
+		for i := range MaxFaceRxThreads {
 			C.Reassembler_Close(&c.impl.rx[i].reass)
 		}
 		if c.impl.rxDemuxes != nil {

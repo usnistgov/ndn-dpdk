@@ -87,7 +87,7 @@ func makeRW4(device bdev.Device) (rwt0, rwt1, rwt2, rwt3 bdevRWTest) {
 		blockSet, totalBlocks := mapset.New[int64](), 0
 		for _, rwt := range []*bdevRWTest{&rwt0, &rwt1, &rwt2, &rwt3} {
 			rwt.blockOffset = rand.Int63n(nBlocks - int64(rwt.nBlocks) + 1)
-			for i := 0; i < rwt.nBlocks; i++ {
+			for i := range rwt.nBlocks {
 				blockSet.Put(rwt.blockOffset + int64(i))
 				totalBlocks++
 			}

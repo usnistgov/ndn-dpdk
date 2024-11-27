@@ -88,7 +88,7 @@ func New(face iface.Face, cfg Config) (p *Producer, e error) {
 	p = &Producer{
 		cfg: cfg,
 	}
-	for i := 0; i < cfg.NThreads; i++ {
+	for range cfg.NThreads {
 		w, e := newWorker(faceID, socket, cfg.RxQueue)
 		if e != nil {
 			must.Close(p)

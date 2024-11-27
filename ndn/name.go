@@ -109,8 +109,7 @@ func (name Name) IsPrefixOf(other Name) bool {
 }
 
 func (name Name) compareCommonPrefix(other Name) int {
-	commonPrefixLen := min(len(name), len(other))
-	for i := 0; i < commonPrefixLen; i++ {
+	for i := range min(len(name), len(other)) {
 		if d := name[i].Compare(other[i]); d != 0 {
 			return d
 		}

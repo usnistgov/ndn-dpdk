@@ -58,14 +58,14 @@ func RunRttEstimatorTest(t testing.TB, rtte RttEstimator) {
 	assert.InDelta(306*time.Millisecond, rtte.RTTVAR(), durationDelta)
 	assert.InDelta(3415*time.Millisecond, rtte.RTO(), durationDelta)
 
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		rtte.Backoff()
 	}
 	assert.InDelta(482*time.Millisecond, rtte.SRTT(), durationDelta)
 	assert.InDelta(306*time.Millisecond, rtte.RTTVAR(), durationDelta)
 	assert.InDelta(60*time.Second, rtte.RTO(), durationDelta)
 
-	for i := 0; i < 80; i++ {
+	for range 80 {
 		now = now.Add(800 * time.Millisecond)
 		rtte.Push(now, 10*time.Millisecond, false)
 	}

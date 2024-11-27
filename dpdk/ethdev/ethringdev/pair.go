@@ -87,7 +87,7 @@ func NewPair(cfg PairConfig) (pair *Pair, e error) {
 		}
 	}()
 
-	for i, count := 0, cfg.NQueues*2; i < count; i++ {
+	for range cfg.NQueues * 2 {
 		ring, e := ringbuffer.New(cfg.RingCapacity, cfg.Socket,
 			ringbuffer.ProducerSingle, ringbuffer.ConsumerSingle)
 		if e != nil {

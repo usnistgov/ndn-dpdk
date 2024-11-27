@@ -135,7 +135,7 @@ func NewVNet(cfg VNetConfig) (vnet *VNet, e error) {
 	)
 
 	ports, bridgePorts := []int{}, []int{}
-	for i := 0; i < cfg.NNodes; i++ {
+	for range cfg.NNodes {
 		pair, e := NewPair(cfg.PairConfig)
 		if e != nil {
 			must.Close(vnet)

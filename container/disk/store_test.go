@@ -141,9 +141,9 @@ func TestStoreQueue(t *testing.T) {
 
 	sp1a := f.PutData(1, "/A/1", make([]byte, 1777))
 	var wg sync.WaitGroup
-	for k := 0; k < 2; k++ {
+	for k := range 2 {
 		wg.Add(8)
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			go func(k, i int) {
 				defer wg.Done()
 				data := f.GetData(1, sp1a, "/A/1")

@@ -71,7 +71,7 @@ func (entry *Entry) Read() (de fibdef.Entry) {
 
 // AccCounters adds to counters.
 func (entry *Entry) AccCounters(cnt *fibdef.EntryCounters, t *Table) {
-	for i := 0; i < t.nDyns; i++ {
+	for i := range t.nDyns {
 		dyn := entry.Real().ptrDyn(i)
 		cnt.NRxInterests += uint64(dyn.nRxInterests)
 		cnt.NRxData += uint64(dyn.nRxData)

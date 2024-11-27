@@ -98,7 +98,7 @@ func ctestPName(t *testing.T) {
 		assert.EqualValues(-1, u.firstNonGeneric)
 		assert.EqualValues(false, u.hasDigestComp)
 
-		for i := 0; i <= 26; i++ {
+		for i := range 27 {
 			nameEqual(assert, nameAZ[:i*2], fromLName(C.PName_GetPrefix(p, C.int16_t(i))))
 			nameEqual(assert, nameAZ[i*2:], fromLName(C.PName_Slice(p, C.int16_t(i), math.MaxInt16)))
 		}

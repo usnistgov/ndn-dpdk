@@ -183,7 +183,7 @@ func (r request) do(ctx context.Context, ptr any) error {
 	}
 
 	if val := reflect.ValueOf(value); val.Kind() == reflect.Slice {
-		for i, n := 0, val.Len(); i < n; i++ {
+		for i := range val.Len() {
 			j, _ := json.Marshal(val.Index(i).Interface())
 			fmt.Println(string(j))
 		}

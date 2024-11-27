@@ -106,7 +106,7 @@ func TestProducerConcurrent(t *testing.T) {
 
 	var cWait sync.WaitGroup
 	var cData, cExpire atomic.Int32
-	for i := 0; i < 250; i++ {
+	for i := range 250 {
 		cWait.Add(1)
 		go func(i int) {
 			defer cWait.Done()

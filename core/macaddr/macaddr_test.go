@@ -39,7 +39,7 @@ func TestMacAddr(t *testing.T) {
 func TestMakeRandom(t *testing.T) {
 	assert, _ := makeAR(t)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		a := macaddr.MakeRandomUnicast()
 		assert.True(macaddr.IsUnicast(a))
 	}

@@ -45,7 +45,7 @@ func (fixture *InputDemuxFixture) Dispatch(pkt *ndni.Packet) (accepted bool) {
 }
 
 func (fixture *InputDemuxFixture) DispatchInterests(prefix string, n int, suffix string) (pkts []*ndni.Packet, nRejected int) {
-	for i := 0; i < n; i++ {
+	for i := range n {
 		name := fmt.Sprintf("%s/%d%s", prefix, i, suffix)
 		pkt := ndnitestenv.MakeInterest(name)
 		pkts = append(pkts, pkt)
@@ -162,7 +162,7 @@ func TestInputDemuxNdt(t *testing.T) {
 	prefix := "/..."
 	for {
 		indexSet := mapset.New[uint64]()
-		for i := uint8(0); i < 10; i++ {
+		for i := range uint8(10) {
 			name := prefix
 			if i < 9 {
 				name = fmt.Sprintf("%s/%d", prefix, i)
@@ -198,7 +198,7 @@ func TestInputDemuxToken(t *testing.T) {
 	fixture.SetDests(11)
 	fixture.D.InitToken(1)
 
-	for i := byte(0); i < 200; i++ {
+	for i := range byte(200) {
 		accepted := fixture.Dispatch(ndnitestenv.MakeInterest(fmt.Sprintf("/I/%d", i),
 			ndnitestenv.SetPitToken([]byte{i / 100, i % 100, 0xA1})))
 		if i%100 < 11 {
@@ -213,7 +213,7 @@ func TestInputDemuxToken(t *testing.T) {
 
 	assert.Equal([]int{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, fixture.Counts())
 	assert.Equal(179, int(fixture.D.Counters().NDrops))
-	for i := 0; i < 11; i++ {
+	for i := range 11 {
 		cnt := fixture.D.DestCounters(i)
 		assert.Equal(2, int(cnt.NQueued))
 		assert.Equal(0, int(cnt.NDropped))

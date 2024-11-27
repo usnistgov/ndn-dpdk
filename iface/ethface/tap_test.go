@@ -173,7 +173,7 @@ func testPortTap(t testing.TB, tap *TapFixture) {
 		}
 	}()
 
-	for i := 0; i < 500; i++ {
+	for i := range 500 {
 		time.Sleep(10 * time.Millisecond)
 
 		tap.WriteToFromLayers(
@@ -345,7 +345,7 @@ func TestPassthru(t *testing.T) {
 		}
 	}()
 
-	for i := 0; i < 500; i++ {
+	for i := range 500 {
 		time.Sleep(10 * time.Millisecond)
 
 		if i%5 == 0 {

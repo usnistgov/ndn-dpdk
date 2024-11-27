@@ -74,7 +74,7 @@ func (cnt Counters) String() string {
 
 // Counters retrieves counters.
 func (c *Consumer) Counters() (cnt Counters) {
-	for i := 0; i < int(c.rxC.nPatterns); i++ {
+	for i := range int(c.rxC.nPatterns) {
 		crP := c.rxC.pattern[i]
 		ctP := c.txC.pattern[i]
 		rtt := c.rttStat(i).Read().Scale(eal.TscNanos)
@@ -103,8 +103,7 @@ func (c *Consumer) rttStat(index int) *runningstat.IntStat {
 // ClearCounters clears counters.
 // Both RX and TX threads should be stopped before calling this, otherwise race conditions may occur.
 func (c *Consumer) ClearCounters() {
-	nPatterns := int(c.rxC.nPatterns)
-	for i := 0; i < nPatterns; i++ {
+	for i := range int(c.rxC.nPatterns) {
 		c.clearCounter(i)
 	}
 	c.txC.nAllocError = 0

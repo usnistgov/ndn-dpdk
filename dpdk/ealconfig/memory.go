@@ -49,7 +49,7 @@ func (cfg MemoryConfig) args(hwInfo hwinfo.Provider) (args []string, e error) {
 
 	if len(cfg.MemPerNuma) > 0 {
 		var socketMem, socketLimit commaSeparated
-		for socket, maxSocket := 0, hwInfo.Cores().MaxNumaSocket(); socket <= maxSocket; socket++ {
+		for socket := range hwInfo.Cores().MaxNumaSocket() + 1 {
 			limit, hasLimit := cfg.MemPerNuma[socket]
 			switch {
 			case !hasLimit:

@@ -49,7 +49,7 @@ func (entry *Entry) FibSeqNum() uint32 {
 func (entry *Entry) DnRecords() (list []DnRecord) {
 	c := entry.ptr()
 	list = make([]DnRecord, 0, C.PitMaxDns)
-	for i := 0; i < C.PitMaxDns; i++ {
+	for i := range C.PitMaxDns {
 		dnC := &c.dns[i]
 		if dnC.face == 0 {
 			return list
@@ -57,7 +57,7 @@ func (entry *Entry) DnRecords() (list []DnRecord) {
 		list = append(list, DnRecord{dnC, entry})
 	}
 	for extC := c.ext; extC != nil; extC = extC.next {
-		for i := 0; i < C.PitMaxExtDns; i++ {
+		for i := range C.PitMaxExtDns {
 			dnC := &extC.dns[i]
 			if dnC.face == 0 {
 				return list
@@ -78,7 +78,7 @@ func (entry *Entry) InsertDnRecord(interest *ndni.Packet) *DnRecord {
 func (entry *Entry) UpRecords() (list []UpRecord) {
 	c := entry.ptr()
 	list = make([]UpRecord, 0, C.PitMaxUps)
-	for i := 0; i < C.PitMaxUps; i++ {
+	for i := range C.PitMaxUps {
 		upC := &c.ups[i]
 		if upC.face == 0 {
 			return list
@@ -86,7 +86,7 @@ func (entry *Entry) UpRecords() (list []UpRecord) {
 		list = append(list, UpRecord{upC, entry})
 	}
 	for extC := c.ext; extC != nil; extC = extC.next {
-		for i := 0; i < C.PitMaxExtUps; i++ {
+		for i := range C.PitMaxExtUps {
 			upC := &extC.ups[i]
 			if upC.face == 0 {
 				return list

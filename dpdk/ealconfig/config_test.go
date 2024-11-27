@@ -12,7 +12,7 @@ import (
 type testHwInfo struct{}
 
 func (testHwInfo) Cores() (cores hwinfo.Cores) {
-	for coreID := 0; coreID < 32; coreID++ {
+	for coreID := range 32 {
 		core := hwinfo.CoreInfo{
 			ID:          coreID,
 			NumaSocket:  coreID % 8,

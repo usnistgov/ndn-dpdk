@@ -235,7 +235,7 @@ func (dev ethDev) Close() error {
 
 func (port ethDev) RxQueues() (list []RxQueue) {
 	id, info := uint16(port.ID()), port.DevInfo()
-	for queue := uint16(0); queue < info.Nb_rx_queues; queue++ {
+	for queue := range info.Nb_rx_queues {
 		list = append(list, RxQueue{id, queue})
 	}
 	return list
@@ -243,7 +243,7 @@ func (port ethDev) RxQueues() (list []RxQueue) {
 
 func (port ethDev) TxQueues() (list []TxQueue) {
 	id, info := uint16(port.ID()), port.DevInfo()
-	for queue := uint16(0); queue < info.Nb_tx_queues; queue++ {
+	for queue := range info.Nb_tx_queues {
 		list = append(list, TxQueue{id, queue})
 	}
 	return list

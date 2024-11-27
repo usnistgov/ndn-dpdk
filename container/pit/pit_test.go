@@ -161,7 +161,7 @@ func TestToken(t *testing.T) {
 	fixture := NewFixture(t, len(records))
 	pit := fixture.Pit
 
-	for i := 0; i < len(records)+nAllocErr; i++ {
+	for i := range len(records) + nAllocErr {
 		data := makeData(fmt.Sprintf("/I/%d", i))
 		nData := data.ToNPacket().Data
 		name := nData.Name.String()

@@ -64,7 +64,7 @@ func TestFaceRxTx(t *testing.T) {
 	require.NoError(e)
 
 	const nBursts, nBurstSize = 512, 16
-	for i := 0; i < nBursts; i++ {
+	for i := range nBursts {
 		pkts := make([]*ndni.Packet, nBurstSize)
 		for j := range pkts {
 			pkts[j] = makeInterest(fmt.Sprintf("/%d/%d/%d", i%4, i, j))

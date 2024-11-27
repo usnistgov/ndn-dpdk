@@ -196,7 +196,7 @@ func TestInterestSuppress(t *testing.T) {
 	go func() {
 		ticker := time.NewTicker(1 * time.Millisecond)
 		defer ticker.Stop()
-		for i := 0; i < 400; i++ {
+		for i := range 400 {
 			<-ticker.C
 			interest := ndn.MakeInterest("/A/1")
 			if i%2 == 0 {
@@ -345,7 +345,7 @@ func testCsHitDisk(t testing.TB, loc bdev.Locator) {
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	fixture.SetFibEntry("/B", "multicast", face2.ID)
 
-	for i := 0; i < 400; i++ {
+	for i := range 400 {
 		face1.Tx <- ndn.MakeInterest(fmt.Sprintf("/B/%d", i))
 		interest2 := <-face2.Rx
 		if !assert.NotNil(interest2.Interest) {
@@ -366,7 +366,7 @@ func testCsHitDisk(t testing.TB, loc bdev.Locator) {
 	}))
 
 	collect1, collect2 := intface.Collect(face1), intface.Collect(face2)
-	for i := 0; i < 200; i++ {
+	for i := range 200 {
 		face1.Tx <- ndn.MakeInterest(fmt.Sprintf("/B/%d", i))
 		if i%25 == 24 {
 			fixture.StepDelay()

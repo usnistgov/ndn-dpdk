@@ -114,7 +114,7 @@ func (fixture *Fixture) sendProc() {
 	mp := ndnitestenv.MakeMempools()
 	txAlign := fixture.txFace.TxAlign()
 
-	for i := 0; i < fixture.TxIterations; i++ {
+	for range fixture.TxIterations {
 		pkts := make([]*ndni.Packet, 3)
 		pkts[0] = ndnitestenv.MakeInterest("/A")
 		pkts[1] = ndnitestenv.MakeData("/A", content)

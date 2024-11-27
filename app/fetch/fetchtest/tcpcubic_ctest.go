@@ -28,7 +28,7 @@ func ctestTcpCubic(t *testing.T) {
 	assert.Equal(2, cwnd())
 
 	// slow start
-	for i := 0; i < 98; i++ {
+	for range 98 {
 		increase()
 		advance(5 * time.Millisecond)
 	}
@@ -42,7 +42,7 @@ func ctestTcpCubic(t *testing.T) {
 	// increase window
 	firstCwnd := cwnd()
 	lastCwnd := firstCwnd
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		increase()
 		thisCwnd := cwnd()
 		assert.GreaterOrEqual(thisCwnd, lastCwnd)

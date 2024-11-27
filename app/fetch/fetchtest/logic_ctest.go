@@ -67,7 +67,7 @@ func ctestLogic(t *testing.T) {
 	}
 
 	txCountFreq := make([]int, 10)
-	for i := uint64(0); i <= finalSeg; i++ {
+	for i := range uint64(finalSeg + 1) {
 		txCount := txCounts[i]
 		assert.Greater(txCount, 0, "%d", i)
 		if txCount >= len(txCountFreq) {

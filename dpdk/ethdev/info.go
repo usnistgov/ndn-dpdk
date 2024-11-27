@@ -39,7 +39,7 @@ func infoJSON(info, infoC any) ([]byte, error) {
 
 	if info != nil {
 		typ, val := reflect.TypeOf(info), []reflect.Value{reflect.ValueOf(info)}
-		for i, n := 0, typ.NumMethod(); i < n; i++ {
+		for i := range typ.NumMethod() {
 			method := typ.Method(i)
 			if method.IsExported() && method.Name != "String" &&
 				method.Type.NumIn() == 1 && method.Type.NumOut() == 1 {

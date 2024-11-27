@@ -94,7 +94,7 @@ func (cnt *Counters) sumRx() {
 		if thV.IsZero() {
 			zeroIndex = min(zeroIndex, i)
 		} else {
-			for field, nFields := 0, sumV.NumField(); field < nFields; field++ {
+			for field := range sumV.NumField() {
 				sumF, thF := sumV.Field(field), thV.Field(field)
 				sumF.SetUint(sumF.Uint() + thF.Uint())
 			}

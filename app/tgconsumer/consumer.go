@@ -86,7 +86,7 @@ func (c *Consumer) initPatterns() (e error) {
 	for i, pattern := range c.cfg.Patterns {
 		c.assignPattern(i, pattern, dataGenVec.Take)
 
-		for j := 0; j < pattern.Weight; j++ {
+		for range pattern.Weight {
 			c.txC.weight[w] = C.uint8_t(i)
 			w++
 		}

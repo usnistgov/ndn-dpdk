@@ -65,7 +65,7 @@ func subValue(currV, prevV, diffV reflect.Value) {
 		diffV.Set(reflect.MakeSlice(currV.Type(), length, length))
 		fallthrough
 	case reflect.Array:
-		for i, length := 0, diffV.Len(); i < length; i++ {
+		for i := range diffV.Len() {
 			subValue(currV.Index(i), prevV.Index(i), diffV.Index(i))
 		}
 	case reflect.Pointer:

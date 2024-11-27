@@ -105,7 +105,7 @@ func (pattern Pattern) assign(c *C.TgpPattern, takeDataGenMbuf func() *pktmbuf.P
 	for k, reply := range pattern.Replies {
 		reply.assign(&c.reply[k], takeDataGenMbuf)
 
-		for j := 0; j < reply.Weight; j++ {
+		for range reply.Weight {
 			c.weight[w] = C.TgpReplyID(k)
 			w++
 		}

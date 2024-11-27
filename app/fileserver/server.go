@@ -98,7 +98,7 @@ func New(face iface.Face, cfg Config) (p *Server, e error) {
 	}
 	copy(cfg.Mounts, p.mounts)
 
-	for i := 0; i < cfg.NThreads; i++ {
+	for range cfg.NThreads {
 		w, e := newWorker(faceID, socket, cfg)
 		if e != nil {
 			must.Close(p)

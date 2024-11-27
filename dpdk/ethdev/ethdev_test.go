@@ -59,14 +59,14 @@ func TestEthDev(t *testing.T) {
 
 	txRetryFreq := map[int]int{}
 	eal.Workers[1].RemoteLaunch(cptr.Func0.Void(func() {
-		for i := 0; i < txLoops; i++ {
+		for i := range txLoops {
 			vec := directMp.MustAlloc(txBurstSize)
-			for j := 0; j < txBurstSize; j++ {
+			for j := range txBurstSize {
 				vec[j].Append([]byte{byte(j)})
 			}
 
 			nSent := 0
-			for nRetries := 0; nRetries < maxTxRetry; nRetries++ {
+			for nRetries := range maxTxRetry {
 				res := txq.TxBurst(vec[nSent:])
 				nSent = nSent + int(res)
 				if nSent == txBurstSize {

@@ -65,7 +65,7 @@ func ctestTlvDecoderClone(t *testing.T) {
 	require.Equal(pktlen, p.Len())
 	payload := bytesFromHex("A0A1A2A3B0B1B2C0C1D0")
 
-	for offset := 0; offset <= pktlen; offset++ {
+	for offset := range pktlen + 1 {
 		for count := 1; count < pktlen-offset; count++ {
 			d := C.TlvDecoder_Init(p.mbuf)
 			C.TlvDecoder_Skip(&d, C.uint32_t(offset))

@@ -61,7 +61,7 @@ func (p *procinfoProvider) Cores() (cores Cores) {
 }
 
 func (procinfoProvider) findNumaSocket(processor procinfo.Processor) (int, bool) {
-	for i := 0; i < maxNumaNode; i++ {
+	for i := range maxNumaNode {
 		path := fmt.Sprintf("%s/node%d/cpu%d", pathSystemNode, i, processor.Id)
 		if unix.Access(path, unix.F_OK) == nil {
 			return i, true
