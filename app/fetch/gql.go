@@ -31,7 +31,7 @@ func init() {
 		Name:        "FetcherConfigInput",
 		Description: "Fetcher config.",
 		Fields: gqlserver.BindInputFields[Config](gqlserver.FieldTypes{
-			reflect.TypeOf(iface.PktQueueConfig{}): iface.GqlPktQueueInput,
+			reflect.TypeFor[iface.PktQueueConfig](): iface.GqlPktQueueInput,
 		}),
 	})
 

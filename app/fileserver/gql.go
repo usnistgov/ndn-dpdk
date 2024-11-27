@@ -27,15 +27,15 @@ func init() {
 		Name:        "FileServerMountInput",
 		Description: "File server mount definition.",
 		Fields: gqlserver.BindInputFields[Mount](gqlserver.FieldTypes{
-			reflect.TypeOf(ndn.Name{}): gqlserver.NonNullString,
+			reflect.TypeFor[ndn.Name](): gqlserver.NonNullString,
 		}),
 	})
 	GqlConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "FileServerConfigInput",
 		Description: "File server config.",
 		Fields: gqlserver.BindInputFields[Config](gqlserver.FieldTypes{
-			reflect.TypeOf(iface.PktQueueConfig{}): iface.GqlPktQueueInput,
-			reflect.TypeOf(Mount{}):                GqlMountInput,
+			reflect.TypeFor[iface.PktQueueConfig](): iface.GqlPktQueueInput,
+			reflect.TypeFor[Mount]():                GqlMountInput,
 		}),
 	})
 	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{

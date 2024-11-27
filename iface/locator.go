@@ -32,8 +32,7 @@ var locatorTypes = map[string]reflect.Type{}
 
 // RegisterLocatorScheme registers Locator schemes.
 func RegisterLocatorScheme[T Locator](schemes ...string) {
-	var loc T
-	typ := reflect.TypeOf(loc)
+	typ := reflect.TypeFor[T]()
 	if typ.Kind() != reflect.Struct {
 		logger.Panic("Locator must be a struct", zap.Stringer("type", typ))
 	}

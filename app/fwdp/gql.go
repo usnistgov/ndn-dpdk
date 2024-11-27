@@ -233,7 +233,7 @@ func init() {
 	GqlFwdCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "FwFwdCounters",
 		Fields: gqlserver.BindFields[FwdCounters](gqlserver.FieldTypes{
-			reflect.TypeOf(runningstat.Snapshot{}): runningstat.GqlSnapshotType,
+			reflect.TypeFor[runningstat.Snapshot](): runningstat.GqlSnapshotType,
 		}),
 	})
 	fwdCountersConfigTemplate := gqlserver.CountersConfig{

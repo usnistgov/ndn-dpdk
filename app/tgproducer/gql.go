@@ -29,23 +29,23 @@ func init() {
 		Name:        "TgpReplyInput",
 		Description: "Traffic generator producer reply definition.",
 		Fields: gqlserver.BindInputFields[Reply](gqlserver.FieldTypes{
-			reflect.TypeOf(ndn.Name{}): gqlserver.NonNullString,
+			reflect.TypeFor[ndn.Name](): gqlserver.NonNullString,
 		}),
 	})
 	GqlPatternInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "TgpPatternInput",
 		Description: "Traffic generator producer pattern definition.",
 		Fields: gqlserver.BindInputFields[Pattern](gqlserver.FieldTypes{
-			reflect.TypeOf(ndn.Name{}): gqlserver.NonNullString,
-			reflect.TypeOf(Reply{}):    GqlReplyInput,
+			reflect.TypeFor[ndn.Name](): gqlserver.NonNullString,
+			reflect.TypeFor[Reply]():    GqlReplyInput,
 		}),
 	})
 	GqlConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "TgpConfigInput",
 		Description: "Traffic generator producer config.",
 		Fields: gqlserver.BindInputFields[Config](gqlserver.FieldTypes{
-			reflect.TypeOf(iface.PktQueueConfig{}): iface.GqlPktQueueInput,
-			reflect.TypeOf(Pattern{}):              GqlPatternInput,
+			reflect.TypeFor[iface.PktQueueConfig](): iface.GqlPktQueueInput,
+			reflect.TypeFor[Pattern]():              GqlPatternInput,
 		}),
 	})
 
@@ -56,7 +56,7 @@ func init() {
 	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "TgpCounters",
 		Fields: gqlserver.BindFields[Counters](gqlserver.FieldTypes{
-			reflect.TypeOf(PatternCounters{}): GqlPatternCountersType,
+			reflect.TypeFor[PatternCounters](): GqlPatternCountersType,
 		}),
 	})
 

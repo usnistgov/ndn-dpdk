@@ -34,7 +34,7 @@ func init() {
 		Name:        "FacePktQueueInput",
 		Description: "Packet queue configuration.",
 		Fields: gqlserver.BindInputFields[PktQueueConfig](gqlserver.FieldTypes{
-			reflect.TypeOf(nnduration.Nanoseconds(0)): nnduration.GqlNanoseconds,
+			reflect.TypeFor[nnduration.Nanoseconds](): nnduration.GqlNanoseconds,
 		}),
 	})
 
@@ -137,8 +137,8 @@ func init() {
 	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "FaceCounters",
 		Fields: gqlserver.BindFields[Counters](gqlserver.FieldTypes{
-			reflect.TypeOf(RxCounters{}): GqlRxCountersType,
-			reflect.TypeOf(TxCounters{}): GqlTxCountersType,
+			reflect.TypeFor[RxCounters](): GqlRxCountersType,
+			reflect.TypeFor[TxCounters](): GqlTxCountersType,
 		}),
 	})
 	gqlserver.AddCounters(&gqlserver.CountersConfig{

@@ -57,7 +57,7 @@ func TestBindFields(t *testing.T) {
 	assert.Panics(func() { gqlserver.BindFields[bindTestC](nil) })
 
 	fC := gqlserver.BindFields[bindTestC](gqlserver.FieldTypes{
-		reflect.TypeOf(bindTestB{}): gqlTypeB,
+		reflect.TypeFor[bindTestB](): gqlTypeB,
 	})
 	assert.Len(fC, len(bindTypesC))
 	for fieldName, fieldType := range bindTypesC {
@@ -104,7 +104,7 @@ func TestBindInputFields(t *testing.T) {
 	assert.Panics(func() { gqlserver.BindInputFields[bindTestC](nil) })
 
 	iC := gqlserver.BindInputFields[bindTestC](gqlserver.FieldTypes{
-		reflect.TypeOf(bindTestB{}): gqlTypeB,
+		reflect.TypeFor[bindTestB](): gqlTypeB,
 	})
 	assert.Len(iC, len(bindTypesC))
 	for fieldName, fieldType := range bindTypesC {

@@ -101,11 +101,11 @@ func init() {
 		Name:        "startTrafficGen",
 		Description: "Create and start a traffic generator.",
 		Args: gqlserver.BindArguments[Config](gqlserver.FieldTypes{
-			reflect.TypeOf(iface.LocatorWrapper{}): gqlserver.JSON,
-			reflect.TypeOf(tgproducer.Config{}):    tgproducer.GqlConfigInput,
-			reflect.TypeOf(fileserver.Config{}):    fileserver.GqlConfigInput,
-			reflect.TypeOf(tgconsumer.Config{}):    tgconsumer.GqlConfigInput,
-			reflect.TypeOf(fetch.Config{}):         fetch.GqlConfigInput,
+			reflect.TypeFor[iface.LocatorWrapper](): gqlserver.JSON,
+			reflect.TypeFor[tgproducer.Config]():    tgproducer.GqlConfigInput,
+			reflect.TypeFor[fileserver.Config]():    fileserver.GqlConfigInput,
+			reflect.TypeFor[tgconsumer.Config]():    tgconsumer.GqlConfigInput,
+			reflect.TypeFor[fetch.Config]():         fetch.GqlConfigInput,
 		}),
 		Type: graphql.NewNonNull(GqlTrafficGenType.Object),
 		Resolve: func(p graphql.ResolveParams) (any, error) {
@@ -134,9 +134,9 @@ func init() {
 		Name:        "TgCounters",
 		Description: "Traffic generator counters.",
 		Fields: gqlserver.BindFields[Counters](gqlserver.FieldTypes{
-			reflect.TypeOf(tgproducer.Counters{}): tgproducer.GqlCountersType,
-			reflect.TypeOf(fileserver.Counters{}): fileserver.GqlCountersType,
-			reflect.TypeOf(tgconsumer.Counters{}): tgconsumer.GqlCountersType,
+			reflect.TypeFor[tgproducer.Counters](): tgproducer.GqlCountersType,
+			reflect.TypeFor[fileserver.Counters](): fileserver.GqlCountersType,
+			reflect.TypeFor[tgconsumer.Counters](): tgconsumer.GqlCountersType,
 		}),
 	})
 

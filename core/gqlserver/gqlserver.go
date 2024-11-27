@@ -92,7 +92,7 @@ func init() {
 	versionType := graphql.NewObject(graphql.ObjectConfig{
 		Name: "Version",
 		Fields: BindFields[version.Version](FieldTypes{
-			reflect.TypeOf(time.Time{}): graphql.DateTime,
+			reflect.TypeFor[time.Time](): graphql.DateTime,
 		}),
 	})
 	AddQuery(&graphql.Field{

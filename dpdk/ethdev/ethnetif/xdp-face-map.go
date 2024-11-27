@@ -140,7 +140,7 @@ func XDPDeleteFaceMapEntry(dev ethdev.EthDev, key []byte) {
 
 // xdpHashMakeKey returns *[size]byte pointer as needed by gobpfld.AbstractMap.toKeyPtr().
 func xdpHashMakeKey(size uint32, key []byte) (arrayPtr any) {
-	ptr := reflect.New(reflect.ArrayOf(int(size), reflect.TypeOf(byte(0))))
+	ptr := reflect.New(reflect.ArrayOf(int(size), reflect.TypeFor[byte]()))
 	copy(ptr.Elem().Slice(0, int(size)).Interface().([]byte), key)
 	return ptr.Interface()
 }

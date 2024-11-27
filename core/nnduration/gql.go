@@ -12,8 +12,8 @@ import (
 
 // GraphQL types.
 var (
-	GqlMilliseconds = makeGqlType(reflect.TypeOf(Milliseconds(0)))
-	GqlNanoseconds  = makeGqlType(reflect.TypeOf(Nanoseconds(0)))
+	GqlMilliseconds = makeGqlType(reflect.TypeFor[Milliseconds]())
+	GqlNanoseconds  = makeGqlType(reflect.TypeFor[Nanoseconds]())
 )
 
 type durationer interface {

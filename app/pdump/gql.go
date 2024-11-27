@@ -43,14 +43,14 @@ func init() {
 		Name:        "PdumpNameFilterEntryInput",
 		Description: "Packet dump name filter entry.",
 		Fields: gqlserver.BindInputFields[NameFilterEntry](gqlserver.FieldTypes{
-			reflect.TypeOf(ndn.Name{}): ndni.GqlNameType,
+			reflect.TypeFor[ndn.Name](): ndni.GqlNameType,
 		}),
 	})
 	GqlNameFilterEntryType = graphql.NewObject(graphql.ObjectConfig{
 		Name:        "PdumpNameFilterEntry",
 		Description: "Packet dump name filter entry.",
 		Fields: gqlserver.BindFields[NameFilterEntry](gqlserver.FieldTypes{
-			reflect.TypeOf(ndn.Name{}): ndni.GqlNameType,
+			reflect.TypeFor[ndn.Name](): ndni.GqlNameType,
 		}),
 	})
 

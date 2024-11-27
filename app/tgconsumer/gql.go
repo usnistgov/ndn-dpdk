@@ -31,32 +31,32 @@ func init() {
 		Name:        "TgcPatternInput",
 		Description: "Traffic generator consumer pattern definition.",
 		Fields: gqlserver.BindInputFields[Pattern](gqlserver.FieldTypes{
-			reflect.TypeOf(ndn.Name{}):                 gqlserver.NonNullString,
-			reflect.TypeOf(nnduration.Milliseconds(0)): nnduration.GqlMilliseconds,
-			reflect.TypeOf(ndni.DataGenConfig{}):       ndni.GqlDataGenInput,
+			reflect.TypeFor[ndn.Name]():                gqlserver.NonNullString,
+			reflect.TypeFor[nnduration.Milliseconds](): nnduration.GqlMilliseconds,
+			reflect.TypeFor[ndni.DataGenConfig]():      ndni.GqlDataGenInput,
 		}),
 	})
 	GqlConfigInput = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name:        "TgcConfigInput",
 		Description: "Traffic generator consumer config.",
 		Fields: gqlserver.BindInputFields[Config](gqlserver.FieldTypes{
-			reflect.TypeOf(iface.PktQueueConfig{}):    iface.GqlPktQueueInput,
-			reflect.TypeOf(nnduration.Nanoseconds(0)): nnduration.GqlNanoseconds,
-			reflect.TypeOf(Pattern{}):                 GqlPatternInput,
+			reflect.TypeFor[iface.PktQueueConfig]():   iface.GqlPktQueueInput,
+			reflect.TypeFor[nnduration.Nanoseconds](): nnduration.GqlNanoseconds,
+			reflect.TypeFor[Pattern]():                GqlPatternInput,
 		}),
 	})
 
 	GqlPatternCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "TgcPatternCounters",
 		Fields: gqlserver.BindFields[PatternCounters](gqlserver.FieldTypes{
-			reflect.TypeOf(runningstat.Snapshot{}): runningstat.GqlSnapshotType,
+			reflect.TypeFor[runningstat.Snapshot](): runningstat.GqlSnapshotType,
 		}),
 	})
 	GqlCountersType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "TgcCounters",
 		Fields: gqlserver.BindFields[Counters](gqlserver.FieldTypes{
-			reflect.TypeOf(runningstat.Snapshot{}): runningstat.GqlSnapshotType,
-			reflect.TypeOf(PatternCounters{}):      GqlPatternCountersType,
+			reflect.TypeFor[runningstat.Snapshot](): runningstat.GqlSnapshotType,
+			reflect.TypeFor[PatternCounters]():      GqlPatternCountersType,
 		}),
 	})
 

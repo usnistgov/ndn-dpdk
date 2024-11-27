@@ -18,8 +18,8 @@ func init() {
 	GqlDriverKindEnum = gqlserver.NewStringEnum("NetifDriverKind", "", DriverPCI, DriverXDP, DriverAfPacket)
 
 	GqlConfigFieldTypes = gqlserver.FieldTypes{
-		reflect.TypeOf(DriverPCI):            GqlDriverKindEnum,
-		reflect.TypeOf(pciaddr.PCIAddress{}): graphql.String,
-		reflect.TypeOf(map[string]any{}):     gqlserver.JSON,
+		reflect.TypeFor[DriverKind]():         GqlDriverKindEnum,
+		reflect.TypeFor[pciaddr.PCIAddress](): graphql.String,
+		reflect.TypeFor[map[string]any]():     gqlserver.JSON,
 	}
 }
