@@ -18,12 +18,12 @@ By default, the image is non-portable due to the use of `-march=native` compiler
 The [installation guide](INSTALL.md) "compile-time settings" section explains how to change these settings.
 You can use `DEPENDS_ENV` and `DEPENDS_ARGS` build arguments to pass environment variables and command line arguments to the dependency installation script, and use `MAKE_ENV` build argument to pass environment variables to the Makefile.
 
-Example command to enable mlx5 driver, target Skylake CPU, and select release mode:
+Example command to enable mlx5 driver, target x86-64 v3 CPU, and select release mode:
 
 ```bash
 docker build --pull \
   --build-arg APT_PKGS="libibverbs-dev" \
-  --build-arg DEPENDS_ARGS="--arch=skylake" \
+  --build-arg DEPENDS_ARGS="--arch=x86-64-v3" \
   --build-arg MAKE_ENV="GOAMD64=v3 NDNDPDK_MK_RELEASE=1" \
   -t localhost/ndn-dpdk .
 ```
@@ -42,6 +42,15 @@ docker run --rm localhost/ndn-dpdk sh -c '
 ' | sudo tar -x -C /
 ```
 
+NDN-DPDK requires a relaxed [seccomp security profile for Docker](https://docs.docker.com/engine/security/seccomp/) to permit io\_uring syscalls.
+It can be generated with:
+
+```bash
+curl -fsLS https://github.com/moby/moby/raw/master/profiles/seccomp/default.json | jq '
+  .syscalls[0].names += ["io_uring_setup", "io_uring_enter", "io_uring_register"]
+' | sudo tee /usr/local/share/ndn-dpdk/seccomp.json >/dev/null
+```
+
 ## Start the NDN-DPDK Service Container
 
 Example command to start the NDN-DPDK service container:
@@ -51,6 +60,7 @@ docker volume create run-ndn
 docker run -d --name ndndpdk-svc \
   --restart on-failure \
   --cap-add IPC_LOCK --cap-add NET_ADMIN --cap-add SYS_ADMIN --cap-add SYS_NICE \
+  --security-opt seccomp=/usr/local/share/ndn-dpdk/seccomp.json \
   --mount type=bind,source=/dev/hugepages,target=/dev/hugepages \
   --mount type=volume,source=run-ndn,target=/run/ndn \
   localhost/ndn-dpdk
@@ -66,6 +76,8 @@ You can view logs from the NDN-DPDK service container with `docker logs -f ndndp
 `--restart on-failure` automatically restarts the service upon failure or `ndndpdk-ctrl shutdown --restart`.
 
 `--cap-add` adds capabilities required by DPDK.
+
+`--security-opt seccomp` overrides the seccomp profile to permit syscalls required by NDN-DPDK.
 
 `--mount target=/dev/hugepages` mounts hugepages into the container.
 
