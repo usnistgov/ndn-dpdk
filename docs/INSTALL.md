@@ -14,8 +14,8 @@ You can also [build a Docker container](Docker.md), which would work on other op
 * Go 1.23
 * Node.js 22.x
 * [ubpf](https://github.com/iovisor/ubpf) a3e69808
-* [libbpf](https://github.com/libbpf/libbpf) 1.4.6 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.4.3 (optional)
-* [liburing](https://github.com/axboe/liburing) 2.7
+* [libbpf](https://github.com/libbpf/libbpf) 1.5.0 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.4.3 (optional)
+* [liburing](https://github.com/axboe/liburing) 2.8
 * [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 24.07
 * [Storage Performance Development Kit (SPDK)](https://spdk.io/) 24.09
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc), [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck), [shfmt](https://github.com/mvdan/sh) commands (optional)
