@@ -141,7 +141,7 @@ func (fetcher *Fetcher) Reset() {
 		w.ClearTasks()
 	}
 	for _, ts := range fetcher.taskSlots {
-		ts.closeFd()
+		ts.closeFd(nil)
 		ts.worker = -1
 	}
 	maps.DeleteFunc(taskContextByID, func(id int, task *TaskContext) bool { return task.fetcher == fetcher })

@@ -131,6 +131,7 @@ func init() {
 func init() {
 	var fetcher, name, filename string
 	var segmentBegin, segmentEnd uint64
+	var fileSize int64
 	var segmentLen int
 	defineCommand(&cli.Command{
 		Category: "trafficgen",
@@ -167,6 +168,11 @@ func init() {
 				DefaultText: "not saving to file",
 				Destination: &filename,
 			},
+			&cli.Int64Flag{
+				Name:        "file-size",
+				Usage:       "file size `octets`",
+				Destination: &fileSize,
+			},
 			&cli.IntFlag{
 				Name:        "segment-len",
 				Usage:       "segment length `octets`",
@@ -185,6 +191,7 @@ func init() {
 			}
 			if filename != "" {
 				task["filename"] = filename
+				task["fileSize"] = fileSize
 				task["segmentLen"] = segmentLen
 			}
 			return clientDoPrint(c.Context, `
@@ -198,6 +205,7 @@ func init() {
 							segmentBegin
 							segmentEnd
 							filename
+							fileSize
 							segmentLen
 						}
 						worker {

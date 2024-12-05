@@ -47,7 +47,7 @@ func (task *TaskContext) Counters() Counters {
 func (task *TaskContext) Stop() {
 	eal.CallMain(func() {
 		task.w.RemoveTask(eal.MainReadSide, task.ts)
-		task.ts.closeFd()
+		task.ts.closeFd(task.d.FileSize)
 		close(task.stopping)
 		taskContextLock.Lock()
 		defer taskContextLock.Unlock()
@@ -77,6 +77,11 @@ type TaskDef struct {
 	// Filename is the output file name.
 	// If omitted, payload is not written to a file.
 	Filename string `json:"filename,omitempty"`
+
+	// FileSize is total payload length.
+	// This is only relevant when writing to a file.
+	// If set, the file will be truncated to this size after fetching is completed.
+	FileSize *int64 `json:"fileSize"`
 
 	// SegmentLen is the payload length in each segment.
 	// This is only needed when writing to a file.
@@ -169,7 +174,7 @@ func (ts *taskSlot) Logic() *Logic {
 	return (*Logic)(&ts.logic)
 }
 
-func (ts *taskSlot) closeFd() {
+func (ts *taskSlot) closeFd(fileSize *int64) {
 	fd := int(ts.fd)
 	if fd < 0 {
 		return
@@ -178,7 +183,17 @@ func (ts *taskSlot) closeFd() {
 	logEntry := logger.With(
 		zap.Int("slot-index", int(ts.index)),
 		zap.Int("fd", fd),
+		zap.Int64p("file-size", fileSize),
 	)
+
+	if fileSize != nil {
+		if e := unix.Ftruncate(fd, *fileSize); e != nil {
+			logEntry.Warn("unix.Ftruncate error",
+				zap.Error(e),
+			)
+		}
+	}
+
 	if e := unix.Close(fd); e != nil {
 		logEntry.Warn("unix.Close error",
 			zap.Error(e),

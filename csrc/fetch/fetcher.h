@@ -27,7 +27,7 @@ typedef struct FetchTask {
   InterestTemplate tpl;
 } FetchTask;
 
-/** @brief Fetch thread that runs several fetch procedures. */
+/** @brief Fetch thread that can simultaneously process several fetch tasks. */
 typedef struct FetchThread {
   Uring ur;
   ThreadCtrl ctrl;

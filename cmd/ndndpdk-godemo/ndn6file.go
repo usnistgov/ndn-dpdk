@@ -108,6 +108,7 @@ func init() {
 				fmt.Println(shellquote.Join(
 					"--name", m.Name.String(),
 					"--segment-end", strconv.FormatUint(m.SegmentEnd(), 10),
+					"--file-size", strconv.FormatInt(m.Size, 10),
 					"--segment-len", strconv.Itoa(m.SegmentSize),
 				))
 				return nil

@@ -29,6 +29,7 @@ export interface FetchTaskDef extends InterestTemplate {
   segmentEnd?: Uint;
 
   filename?: string;
+  fileSize?: Uint;
   segmentLen?: Uint;
 }
 

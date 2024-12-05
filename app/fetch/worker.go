@@ -15,6 +15,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/zap"
 )
 
 type worker struct {
@@ -56,6 +57,11 @@ func (w *worker) AddTask(rs *urcu.ReadSide, ts *taskSlot) {
 
 	w.nTasks++
 	C.cds_hlist_add_head_rcu(&ts.fthNode, &w.c.tasksHead)
+
+	logger.Info("task added to worker",
+		zap.Int("slot-index", int(ts.index)),
+		w.LCore().ZapField("worker-lc"),
+	)
 }
 
 // RemoveTask removes a task.
@@ -72,6 +78,11 @@ func (w *worker) RemoveTask(rs *urcu.ReadSide, ts *taskSlot) {
 	w.nTasks--
 	C.cds_hlist_del_rcu(&ts.fthNode)
 	urcu.Synchronize()
+
+	logger.Info("task removed from worker",
+		zap.Int("slot-index", int(ts.index)),
+		w.LCore().ZapField("worker-lc"),
+	)
 }
 
 // ClearTasks clears task list.
