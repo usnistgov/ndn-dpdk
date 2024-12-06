@@ -25,13 +25,8 @@ func (entry EntryBody) HasNextHop(id iface.ID) bool {
 
 // EntryBodyEquals determines whether two EntryBody records have the same values.
 func EntryBodyEquals(lhs, rhs EntryBody) bool {
-	if lhs.Strategy != rhs.Strategy || len(lhs.Nexthops) != len(rhs.Nexthops) {
+	if lhs.Strategy != rhs.Strategy || !slices.Equal(lhs.Nexthops, rhs.Nexthops) {
 		return false
-	}
-	for i, n := range lhs.Nexthops {
-		if n != rhs.Nexthops[i] {
-			return false
-		}
 	}
 	if eq, e := dataeq.JSON.Equal(lhs.Params, rhs.Params); e != nil || !eq {
 		return false

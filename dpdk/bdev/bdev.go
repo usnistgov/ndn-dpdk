@@ -201,6 +201,7 @@ func Open(device Device, mode Mode) (bd *Bdev, e error) {
 
 //export go_bdevEvent
 func go_bdevEvent(typ C.enum_spdk_bdev_event_type, bdev *C.struct_spdk_bdev, ctx C.uintptr_t) {
+	_ = ctx
 	logger.Info("event",
 		zap.Int("event-type", int(typ)),
 		zap.String("name", (*Info)(bdev).Name()),

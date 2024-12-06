@@ -81,7 +81,7 @@ type TaskDef struct {
 	// FileSize is total payload length.
 	// This is only relevant when writing to a file.
 	// If set, the file will be truncated to this size after fetching is completed.
-	FileSize *int64 `json:"fileSize"`
+	FileSize *int64 `json:"fileSize,omitempty"`
 
 	// SegmentLen is the payload length in each segment.
 	// This is only needed when writing to a file.

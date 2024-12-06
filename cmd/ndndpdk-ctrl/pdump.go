@@ -11,6 +11,7 @@ import (
 
 func init() {
 	var filename, name string
+	var maxSize int
 	var faces, ports flagz.Flagz
 	var wantRX, wantTX, wantRxUnmatched bool
 	var sampleProb float64
@@ -24,8 +25,8 @@ func init() {
 	createWriter := func(c *cli.Context) error {
 		var result withID
 		if e := clientDoPrint(c.Context, `
-			mutation createPdumpWriter($filename: String!) {
-				createPdumpWriter(filename: $filename) {
+			mutation createPdumpWriter($filename: String!, $maxSize: Int!) {
+				createPdumpWriter(filename: $filename, maxSize: $maxSize) {
 					filename
 					id
 					worker {
@@ -37,6 +38,7 @@ func init() {
 			}
 		`, map[string]any{
 			"filename": filename,
+			"maxSize":  maxSize,
 		}, "createPdumpWriter", &result); e != nil {
 			return e
 		}
@@ -129,6 +131,11 @@ func init() {
 			Usage:       "destination `filename`",
 			Destination: &filename,
 			Required:    true,
+		},
+		&cli.IntFlag{
+			Name:        "max-size",
+			Usage:       "maximum file `size`",
+			Destination: &maxSize,
 		},
 		&cli.DurationFlag{
 			Name:        "duration",

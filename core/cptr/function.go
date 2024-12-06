@@ -23,6 +23,7 @@ import "C"
 import (
 	"reflect"
 	"runtime/cgo"
+	"slices"
 	"unsafe"
 )
 
@@ -50,13 +51,8 @@ func (ft FunctionType) C(f unsafe.Pointer, arg any) Function {
 // Assert panics if fn is not created from ft.
 func (ft FunctionType) Assert(fn Function) {
 	actual := fn.functionType()
-	if len(ft) != len(actual) {
+	if !slices.Equal(ft, actual) {
 		panic("FunctionType mismatch")
-	}
-	for i, t := range ft {
-		if t != actual[i] {
-			panic("FunctionType mismatch")
-		}
 	}
 }
 
