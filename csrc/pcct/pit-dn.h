@@ -13,8 +13,9 @@ typedef struct PitDn {
   uint32_t nonce; ///< downstream's nonce
   FaceID face;
   uint8_t congMark;
-  bool canBePrefix; ///< Interest has CanBePrefix?
-  LpPitToken token; ///< downstream's token
+  uint8_t txHopLimit; ///< downstream's HopLimit minus one
+  bool canBePrefix;   ///< Interest has CanBePrefix?
+  LpPitToken token;   ///< downstream's token
 } __rte_cache_aligned PitDn;
 static_assert(sizeof(PitDn) <= RTE_CACHE_LINE_SIZE, "");
 

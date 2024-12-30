@@ -268,6 +268,31 @@ func TestHopLimit(t *testing.T) {
 	assert.Equal(1, collect4.Count())
 }
 
+func TestHopLimitLooped(t *testing.T) {
+	assert, require := makeAR(t)
+	fixture := NewFixture(t)
+
+	face1, face2 := intface.MustNew(), intface.MustNew()
+	collect1 := intface.Collect(face1)
+	fixture.SetFibEntry("/A", "multicast", face1.ID)
+
+	face2.Tx <- ndn.MakeInterest("/A/1", ndn.HopLimit(16))
+
+	for hopLimit := 15; hopLimit > 0; hopLimit-- {
+		fixture.StepDelay()
+		sent := collect1.Clear()
+		require.Len(sent, 1)
+		interest := sent[0].Interest
+		require.NotNil(interest)
+		assert.EqualValues(hopLimit, interest.HopLimit)
+
+		face2.Tx <- ndn.MakeInterest(interest.Name, interest.HopLimit)
+	}
+
+	fixture.StepDelay()
+	assert.Equal(0, collect1.Count())
+}
+
 func TestCsHitMemory(t *testing.T) {
 	assert, _ := makeAR(t)
 	fixture := NewFixture(t)

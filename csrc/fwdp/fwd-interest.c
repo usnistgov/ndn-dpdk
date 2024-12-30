@@ -204,16 +204,13 @@ SgForwardInterest(SgCtx* ctx0, FaceID nh) {
     return SGFWDI_SUPPRESSED;
   }
 
-  InterestGuiders guiders = {
-    .nonce = ctx->dnNonce,
-    .lifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now),
-    .hopLimit = PitEntry_GetTxInterestHopLimit(ctx->pitEntry),
-  };
+  InterestGuiders guiders = {.nonce = ctx->dnNonce};
   bool hasNonce = PitUp_ChooseNonce(up, ctx->pitEntry, now, &guiders.nonce);
   if (unlikely(!hasNonce)) {
     N_LOGD("^ no-interest-to=%" PRI_FaceID " drop=nonces-rejected", nh);
     return SGFWDI_NONONCE;
   }
+  PitEntry_GetTxInterestIlHl(ctx->pitEntry, now, &guiders.lifetime, &guiders.hopLimit);
   if (unlikely(guiders.hopLimit == 0)) {
     N_LOGD("^ no-interest-to=%" PRI_FaceID " drop=hoplimit-zero", nh);
     return SGFWDI_HOPZERO;

@@ -31,7 +31,6 @@ struct PitEntry {
   struct {
     uint32_t fibSeqNum;                         ///< FIB entry sequence number
     uint8_t nCanBePrefix;                       ///< how many DNs want CanBePrefix?
-    uint8_t txHopLimit;                         ///< HopLimit for outgoing Interests
     uint16_t fibPrefixL : PitFibPrefixLenBits_; ///< TLV-LENGTH of FIB prefix
     bool mustBeFresh : 1;                       ///< entry for MustBeFresh 0 or 1?
     bool hasSgTimer : 1;                        ///< whether timeout is set by strategy or expiry
@@ -75,7 +74,6 @@ PitEntry_Init(PitEntry* entry, Packet* npkt, const FibEntry* fibEntry) {
   entry->expiry = 0;
 
   entry->nCanBePrefix = (uint8_t)interest->canBePrefix;
-  entry->txHopLimit = 0;
   entry->mustBeFresh = interest->mustBeFresh;
 
   entry->dns[0].face = 0;
@@ -184,19 +182,8 @@ PitEntry_FindUp(PitEntry* entry, FaceID face);
 __attribute__((nonnull)) PitUp*
 PitEntry_ReserveUp(PitEntry* entry, FaceID face);
 
-/**
- * @brief Calculate InterestLifetime for TX Interest.
- * @return InterestLifetime in millis.
- */
-__attribute__((nonnull)) static inline uint32_t
-PitEntry_GetTxInterestLifetime(PitEntry* entry, TscTime now) {
-  return TscDuration_ToMillis(entry->expiry - now);
-}
-
-/** @brief Calculate HopLimit for TX Interest. */
-__attribute__((nonnull)) static inline uint8_t
-PitEntry_GetTxInterestHopLimit(PitEntry* entry) {
-  return entry->txHopLimit;
-}
+/** @brief Calculate InterestLifetime and HopLimit for TX Interest. */
+__attribute__((nonnull)) void
+PitEntry_GetTxInterestIlHl(PitEntry* entry, TscTime now, uint32_t* lifetime, uint8_t* hopLimit);
 
 #endif // NDNDPDK_PCCT_PIT_ENTRY_H

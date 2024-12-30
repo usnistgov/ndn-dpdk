@@ -185,12 +185,10 @@ PitEntry_InsertDn(PitEntry* entry, Pit* pit, Packet* npkt) {
   dn->congMark = lpl3->congMark;
   dn->canBePrefix = interest->canBePrefix;
   dn->nonce = interest->nonce;
+  NDNDPDK_ASSERT(interest->hopLimit > 0); // decoder rejects HopLimit=0
+  dn->txHopLimit = interest->hopLimit - 1;
   uint32_t lifetime = RTE_MIN(interest->lifetime, PIT_MAX_LIFETIME);
   dn->expiry = Mbuf_GetTimestamp(pkt) + TscDuration_FromMillis(lifetime);
-
-  // update txHopLimit
-  NDNDPDK_ASSERT(interest->hopLimit > 0); // decoder rejects HopLimit=0
-  entry->txHopLimit = RTE_MAX(entry->txHopLimit, interest->hopLimit - 1);
 
   // record CanBePrefix and prefer CBP=1 for representative Interest
   if (entry->npkt == npkt) {
@@ -259,4 +257,20 @@ PitEntry_ReserveUp(PitEntry* entry, FaceID face) {
 NEW:
   PitUp_Reset(up, face);
   return up;
+}
+
+void
+PitEntry_GetTxInterestIlHl(PitEntry* entry, TscTime now, uint32_t* lifetime, uint8_t* hopLimit) {
+  *lifetime = TscDuration_ToMillis(entry->expiry - now);
+
+  *hopLimit = 0;
+  PitDn_Each (it, entry, false) {
+    PitDn* dn = it.dn;
+    if (dn->face == 0) {
+      break;
+    }
+    if (dn->expiry >= now) {
+      *hopLimit = RTE_MAX(*hopLimit, dn->txHopLimit);
+    }
+  }
 }

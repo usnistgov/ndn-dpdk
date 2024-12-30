@@ -46,7 +46,7 @@ class App extends Component<{}, State> {
 
   override async componentDidMount() {
     this.handleHashChange();
-    window.addEventListener("hashchange", this.handleHashChange);
+    globalThis.addEventListener("hashchange", this.handleHashChange);
 
     const workers = await client.request<ReadonlyArray<Worker<WorkerRole | "">>>(gql`
       {
@@ -69,7 +69,7 @@ class App extends Component<{}, State> {
   }
 
   override componentWillUnmount() {
-    window.removeEventListener("hashchange", this.handleHashChange);
+    globalThis.removeEventListener("hashchange", this.handleHashChange);
   }
 
   override render() {

@@ -59,15 +59,12 @@ FwFwd_RxNackDuplicate(FwFwd* fwd, FwFwdCtx* ctx) {
   PitUp* up = ctx->pitUp;
   PitUp_AddRejectedNonce(up, up->nonce);
 
-  InterestGuiders guiders = {
-    .nonce = up->nonce,
-    .lifetime = PitEntry_GetTxInterestLifetime(ctx->pitEntry, now),
-    .hopLimit = PitEntry_GetTxInterestHopLimit(ctx->pitEntry),
-  };
+  InterestGuiders guiders = {.nonce = up->nonce};
   bool hasAltNonce = PitUp_ChooseNonce(up, ctx->pitEntry, now, &guiders.nonce);
   if (!hasAltNonce) {
     return false;
   }
+  PitEntry_GetTxInterestIlHl(ctx->pitEntry, now, &guiders.lifetime, &guiders.hopLimit);
 
   Packet* outNpkt =
     Interest_ModifyGuiders(ctx->pitEntry->npkt, guiders, &fwd->mp, Face_PacketTxAlign(up->face));
