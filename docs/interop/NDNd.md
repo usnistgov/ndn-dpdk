@@ -1,27 +1,26 @@
-# NDN-DPDK Interoperability with YaNFD
+# NDN-DPDK Interoperability with NDNd
 
-NDN-DPDK is interoperable with recent version of [YaNFD](https://github.com/named-data/YaNFD), Yet another NDN
-Forwarder.
-This page gives a few samples on how to establish communication between NDN-DPDK and YaNFD.
+NDN-DPDK is interoperable with recent version of [NDNd](https://github.com/named-data/ndnd), a Golang implementation of the NDN stack.
+This page gives a few samples on how to establish communication between NDN-DPDK and NDNd forwarder (formerly YaNFD).
 
-## Prepare YaNFD Docker Image
+## Prepare NDNd Docker Image
 
-When you follow through this guide, it is recommended to install YaNFD as a Docker image.
-This provides a clean environment for running YaNFD, and avoids interference from other software you may have.
-Once you have finished this guide, you can use the same procedures on other YaNFD installations.
+When you follow through this guide, it is recommended to install NDNd as a Docker image.
+This provides a clean environment for running NDNd forwarder, and avoids interference from other software you may have.
+Once you have finished this guide, you can use the same procedures on other NDNd installations.
 
-Dockerfile and related scripts are provided in [docs/interop/yanfd](yanfd) directory.
-It compiles latest version of YaNFD, and generates configurations suitable for this guide.
+Dockerfile and related scripts are provided in [docs/interop/ndnd](ndnd) directory.
+It compiles a recent version of NDNd, and generates configurations suitable for this guide.
 
-To build the YaNFD Docker image:
+To build the NDNd Docker image:
 
 ```bash
-cd docs/interop/yanfd
-docker build --pull -t localhost/yanfd .
+cd docs/interop/ndnd
+docker build --pull -t localhost/ndnd .
 ```
 
-The YaNFD package only contains a forwarder, and does not contain a management program.
-The YaNFD forwarder implements a subnet of NFD management protocol, and therefore can be used with NFD's management programs.
+The NDNd package has a forwarder but lacks a forwarder management program.
+Its forwarder implements a subnet of NFD management protocol, and therefore can be used with NFD's management programs.
 Thus, you also need to build the NFD container, as described on [NFD page](NFD.md).
 
 NDN-DPDK should be installed as a systemd service, not a Docker container.
@@ -33,17 +32,17 @@ NDN-DPDK should be installed as a systemd service, not a Docker container.
 |producer|                                                  |consumer|
 | /net/A |---\    |---------|    UDP     |---------|    /---| /net/A |
 |--------|    \---|NDN-DPDK |  unicast   |         |---/    |--------|
-                  |forwarder|------------|  YaNFD  |
+                  |forwarder|------------| NDNd fw |
 |--------|    /---|  (A)    |            |   (B)   |---\    |--------|
 |consumer|---/    |---------|            |---------|    \---|producer|
 | /net/B |                                                  | /net/B |
 |--------|                                                  |--------|
 ```
 
-In this scenario, NDN-DPDK forwarder and YaNFD on two separate machines communicate via UDP unicast:
+In this scenario, NDN-DPDK forwarder and NDNd forwarder on two separate machines communicate via UDP unicast:
 
 * Node A runs NDN-DPDK forwarder, a producer for `/net/A` prefix, and a consumer for `/net/B` prefix.
-* Node B runs YaNFD, a producer for `/net/B` prefix, and a consumer for `/net/A` prefix.
+* Node B runs NDNd forwarder, a producer for `/net/B` prefix, and a consumer for `/net/A` prefix.
 * FIB entries are created on each forwarder so that the applications can communicate.
 * This scenario assumes the two machines are directly connected, without intermediate IP routers.
 
@@ -102,7 +101,7 @@ sudo mkdir -p /run/ndn
 ndndpdk-godemo pingserver --name $A_NAME --payload 512
 ```
 
-On node B, start YaNFD and producer:
+On node B, start NDNd forwarder and producer:
 
 ```bash
 # bring up the Ethernet adapter and configure ARP/NDP entry
@@ -111,19 +110,18 @@ sudo ip addr replace $B_IP dev $B_IFNAME
 A_IPADDR=$(echo $A_IP | awk -F/ '{ print $1 }')
 sudo ip neigh replace $A_IPADDR lladdr $A_HWADDR nud noarp dev $B_IFNAME
 
-# stop YaNFD if it's already running
+# stop NDNd forwarder if it's already running
 docker rm -f yanfd
 
-# start YaNFD
+# start NDNd forwarder
 docker volume create run-ndn
-docker run -d --rm --name yanfd \
+docker run -d --name yanfd \
   --network host --init \
-  --mount type=volume,source=run-ndn,target=/run/ndn \
-  localhost/yanfd
+  --mount type=volume,source=run-ndn,target=/run/nfd \
+  localhost/ndnd
 
 # make 'nfdc' alias
-alias nfdc='docker run --rm --mount type=volume,source=run-ndn,target=/run/ndn \
-            -e NDN_CLIENT_TRANSPORT=unix:///run/ndn/yanfd.sock localhost/nfd nfdc'
+alias nfdc='docker run --rm --mount type=volume,source=run-ndn,target=/run/ndn localhost/nfd nfdc'
 
 # create face
 A_FACEURI=$(echo $A_IP | awk -F/ '{ if ($1~":") { print "udp6://[" $1 "]:6363" } else { print "udp4://" $1 ":6363" } }')
@@ -136,7 +134,6 @@ nfdc route add prefix $A_NAME nexthop $B_FACEID
 # start the producer
 docker run -it --rm --network none \
   --mount type=volume,source=run-ndn,target=/run/ndn \
-  -e NDN_CLIENT_TRANSPORT=unix:///run/ndn/yanfd.sock \
   localhost/nfd \
   ndnpingserver --size 512 $B_NAME
 ```
@@ -153,8 +150,7 @@ On node B, start a consumer:
 ```bash
 # run the consumer
 docker run -it --rm --network none \
-  --mount type=volume,source=run-ndn,target=/run/ndn \
-  -e NDN_CLIENT_TRANSPORT=unix:///run/ndn/yanfd.sock \
-  localhost/nfd \
-  ndnping -i 10 $A_NAME
+  --mount type=volume,source=run-ndn,target=/var/run/nfd \
+  localhost/ndnd \
+  ping -i 10 $A_NAME
 ```

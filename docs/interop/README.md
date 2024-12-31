@@ -17,11 +17,11 @@ Common issues include:
 This page summarizes current knowledge of interoperability between NDN-DPDK and other NDN implementations.
 If NDN-DPDK is interoperable with another NDN implementation, sample steps to achieve basic communication will be included.
 
-## NDN Forwarding Daemon (NFD) and YaNFD
+## NDN Forwarding Daemon (NFD) and NDNd
 
-[NFD](https://github.com/named-data/NFD) and [YaNFD](https://github.com/named-data/YaNFD) are interoperable with NDN-DPDK.
+[NFD](https://github.com/named-data/NFD) and [NDNd](https://github.com/named-data/ndnd) are interoperable with NDN-DPDK.
 They support PIT tokens and can communicate with NDN-DPDK over a network or via a Unix socket.
-See [NDN-DPDK interoperability with NFD](NFD.md) and [NDN-DPDK interoperability with YaNFD](YaNFD.md) for a few sample scenarios on how to establish communication.
+See [NDN-DPDK interoperability with NFD](NFD.md) and [NDN-DPDK interoperability with NDNd](NDNd.md) for a few sample scenarios on how to establish communication.
 
 ## ndn-cxx
 

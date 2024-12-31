@@ -58,7 +58,7 @@ Application layer services
 Management integration:
 
 * Connecting to NDN-DPDK: yes (in [package gqlmgmt](mgmt/gqlmgmt))
-* Connecting to NFD and YaNFD: yes (in [package nfdmgmt](mgmt/nfdmgmt))
+* Connecting to NFD and NDNd: yes (in [package nfdmgmt](mgmt/nfdmgmt))
 * [NDN-FCH 2021](https://github.com/11th-ndn-hackathon/ndn-fch): client (in [package fch](fch))
 
 ## Getting Started
