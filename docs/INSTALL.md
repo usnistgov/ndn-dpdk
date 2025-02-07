@@ -1,6 +1,6 @@
 # NDN-DPDK Installation Guide
 
-NDN-DPDK supports Ubuntu 22.04 and Debian 12 operating systems.
+NDN-DPDK supports Ubuntu 22.04, Ubuntu 24.04, and Debian 12 operating systems.
 It only works on x64\_64 (amd64) architecture.
 
 This page describes how to install and start NDN-DPDK on a supported operating system, which could be a physical server or a virtual machine with KVM acceleration.

@@ -241,6 +241,9 @@ APT_PKGS=(
 DISTRO=$(lsb_release -sc)
 case $DISTRO in
   jammy) ;;
+  noble)
+    APT_PKGS+=(meson)
+    ;;
   bookworm)
     APT_PKGS+=(meson)
     ;;
@@ -350,7 +353,7 @@ if ! [[ -d /usr/include/asm ]]; then
   $SUDO ln -s /usr/include/x86_64-linux-gnu/asm /usr/include/asm
 fi
 if ! command -v meson >/dev/null; then
-  cd "$(github_download mesonbuild/meson 1.2.1)"
+  cd "$(github_download mesonbuild/meson 1.7.0)"
   ./packaging/create_zipapp.py --outfile meson.pyz .
   $SUDO install -m0755 meson.pyz /usr/local/bin/meson
 fi
