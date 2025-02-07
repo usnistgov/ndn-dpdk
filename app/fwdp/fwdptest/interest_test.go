@@ -10,6 +10,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/app/fwdp"
 	"github.com/usnistgov/ndn-dpdk/container/cs"
+	"github.com/usnistgov/ndn-dpdk/core/nnduration"
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/bdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
@@ -270,7 +271,10 @@ func TestHopLimit(t *testing.T) {
 
 func TestHopLimitLooped(t *testing.T) {
 	assert, require := makeAR(t)
-	fixture := NewFixture(t)
+	fixture := NewFixture(t, func(cfg *fwdp.Config) {
+		cfg.Suppress.Min = nnduration.Nanoseconds(1e6)
+		cfg.Suppress.Max = nnduration.Nanoseconds(1e6)
+	})
 
 	face1, face2 := intface.MustNew(), intface.MustNew()
 	collect1 := intface.Collect(face1)
