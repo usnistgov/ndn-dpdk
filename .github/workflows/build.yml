@@ -4,6 +4,8 @@ name: build
   push:
   pull_request:
 permissions: {}
+env:
+  COREPACK_INTEGRITY_KEYS: 0
 jobs:
   build:
     runs-on: ubuntu-22.04

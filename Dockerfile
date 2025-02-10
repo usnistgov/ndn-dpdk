@@ -17,7 +17,7 @@ RUN --mount=rw,target=/root/ndn-dpdk/ <<EOF
   set -euxo pipefail
   export PATH="$PATH:/usr/local/go/bin"
   cd /root/ndn-dpdk
-  corepack pnpm install
+  env COREPACK_INTEGRITY_KEYS=0 corepack pnpm install
   env ${MAKE_ENV} make
   make install
 EOF
