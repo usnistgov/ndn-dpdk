@@ -23,12 +23,12 @@ __attribute__((nonnull)) static inline int
 FibNexthopFilter_Reject(FibNexthopFilter* filter, const FibEntry* entry, FaceID nh) {
   for (uint8_t i = 0; i < entry->nNexthops; ++i) {
     if (entry->nexthops[i] == nh) {
-      *filter |= RTE_BIT32(i);
+      rte_bit_set(filter, i);
       break;
     }
   }
-  static_assert(__builtin_types_compatible_p(typeof(*filter), unsigned int), "");
-  return entry->nNexthops - __builtin_popcount(*filter);
+  static_assert(__builtin_types_compatible_p(typeof(*filter), uint32_t), "");
+  return entry->nNexthops - rte_popcount32(*filter);
 }
 
 #endif // NDNDPDK_FIB_NEXTHOP_FILTER_H
