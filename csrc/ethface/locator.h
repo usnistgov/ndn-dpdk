@@ -19,8 +19,8 @@ typedef struct EthLocator {
   struct rte_ether_addr remote;
   uint16_t vlan;
 
-  uint8_t localIP[16];
-  uint8_t remoteIP[16];
+  struct rte_ipv6_addr localIP;
+  struct rte_ipv6_addr remoteIP;
   uint16_t localUDP;
   uint16_t remoteUDP;
 
@@ -30,8 +30,8 @@ typedef struct EthLocator {
 
   uint32_t ulTEID;
   uint32_t dlTEID;
-  uint8_t innerLocalIP[16];
-  uint8_t innerRemoteIP[16];
+  struct rte_ipv6_addr innerLocalIP;
+  struct rte_ipv6_addr innerRemoteIP;
   uint8_t ulQFI;
   uint8_t dlQFI;
   bool isGtp;

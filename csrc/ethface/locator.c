@@ -4,8 +4,8 @@
 #define IP_HOPLIMIT_VALUE 64
 #define VXLAN_SRCPORT_BASE 0xC000
 #define VXLAN_SRCPORT_MASK 0x3FFF
-static const uint8_t V4_IN_V6_PREFIX[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                          0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF};
+static const struct rte_ipv6_addr V4_IN_V6_PREFIX = RTE_IPV6_ADDR_PREFIX_V4MAPPED;
+enum { V4_IN_V6_PREFIX_OCTETS = 12, V4_IN_V6_PREFIX_BITS = V4_IN_V6_PREFIX_OCTETS * CHAR_BIT };
 static RTE_DEFINE_PER_LCORE(uint16_t, txVxlanSrcPort);
 
 EthLocatorClass
@@ -19,7 +19,9 @@ EthLocator_Classify(const EthLocator* loc) {
   }
   c.multicast = rte_is_multicast_ether_addr(&loc->remote);
   c.udp = loc->remoteUDP != 0;
-  c.v4 = memcmp(loc->remoteIP, V4_IN_V6_PREFIX, sizeof(V4_IN_V6_PREFIX)) == 0;
+  // as of DPDK 24.11, rte_ipv6_addr_is_v4mapped has a bug:
+  // it is passing depth=32 to rte_ipv6_addr_eq_prefix, should be depth=96
+  c.v4 = rte_ipv6_addr_eq_prefix(&loc->remoteIP, &V4_IN_V6_PREFIX, V4_IN_V6_PREFIX_BITS);
   c.tunnel = 0;
   if (!rte_is_zero_ether_addr(&loc->innerRemote)) {
     c.tunnel = 'V';
@@ -65,8 +67,8 @@ EthLocator_CanCoexist(const EthLocator* a, const EthLocator* b) {
     // Ethernet faces with different unicast MAC addresses can coexist
     return true;
   }
-  if (memcmp(a->localIP, b->localIP, sizeof(a->localIP)) != 0 ||
-      memcmp(a->remoteIP, b->remoteIP, sizeof(a->remoteIP)) != 0) {
+  if (!rte_ipv6_addr_eq(&a->localIP, &b->localIP) ||
+      !rte_ipv6_addr_eq(&a->remoteIP, &b->remoteIP)) {
     // different IP addresses can coexist
     return true;
   }
@@ -124,25 +126,25 @@ PutEtherVlanHdr(uint8_t* buffer, const struct rte_ether_addr* src, const struct 
 }
 
 __attribute__((nonnull)) static uint8_t
-PutIpv4Hdr(uint8_t* buffer, const uint8_t* src, const uint8_t* dst) {
+PutIpv4Hdr(uint8_t* buffer, const struct rte_ipv6_addr src, const struct rte_ipv6_addr dst) {
   struct rte_ipv4_hdr* ip = (struct rte_ipv4_hdr*)buffer;
   ip->version_ihl = RTE_IPV4_VHL_DEF;
   ip->fragment_offset = rte_cpu_to_be_16(RTE_IPV4_HDR_DF_FLAG);
   ip->time_to_live = IP_HOPLIMIT_VALUE;
   ip->next_proto_id = IPPROTO_UDP;
-  rte_memcpy(&ip->src_addr, RTE_PTR_ADD(src, sizeof(V4_IN_V6_PREFIX)), sizeof(ip->src_addr));
-  rte_memcpy(&ip->dst_addr, RTE_PTR_ADD(dst, sizeof(V4_IN_V6_PREFIX)), sizeof(ip->dst_addr));
+  rte_memcpy(&ip->src_addr, &src.a[V4_IN_V6_PREFIX_OCTETS], sizeof(ip->src_addr));
+  rte_memcpy(&ip->dst_addr, &dst.a[V4_IN_V6_PREFIX_OCTETS], sizeof(ip->dst_addr));
   return sizeof(*ip);
 }
 
 __attribute__((nonnull)) static uint8_t
-PutIpv6Hdr(uint8_t* buffer, const uint8_t* src, const uint8_t* dst) {
+PutIpv6Hdr(uint8_t* buffer, const struct rte_ipv6_addr src, const struct rte_ipv6_addr dst) {
   struct rte_ipv6_hdr* ip = (struct rte_ipv6_hdr*)buffer;
   ip->vtc_flow = rte_cpu_to_be_32(6 << 28); // IP version 6
   ip->proto = IPPROTO_UDP;
   ip->hop_limits = IP_HOPLIMIT_VALUE;
-  rte_memcpy(ip->src_addr, src, sizeof(ip->src_addr));
-  rte_memcpy(ip->dst_addr, dst, sizeof(ip->dst_addr));
+  ip->src_addr = src;
+  ip->dst_addr = dst;
   return sizeof(*ip);
 }
 
@@ -318,15 +320,14 @@ EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc) {
   }
 
   if (c.v4) {
-    rte_memcpy(xl->ip, RTE_PTR_ADD(loc->remoteIP, sizeof(V4_IN_V6_PREFIX)),
+    rte_memcpy(xl->ip, RTE_PTR_ADD(loc->remoteIP.a, V4_IN_V6_PREFIX_OCTETS),
                RTE_SIZEOF_FIELD(struct rte_ipv4_hdr, src_addr));
     rte_memcpy(RTE_PTR_ADD(xl->ip, RTE_SIZEOF_FIELD(struct rte_ipv4_hdr, src_addr)),
-               RTE_PTR_ADD(loc->localIP, sizeof(V4_IN_V6_PREFIX)),
+               RTE_PTR_ADD(loc->localIP.a, V4_IN_V6_PREFIX_OCTETS),
                RTE_SIZEOF_FIELD(struct rte_ipv4_hdr, dst_addr));
   } else {
-    rte_memcpy(xl->ip, loc->remoteIP, RTE_SIZEOF_FIELD(struct rte_ipv6_hdr, src_addr));
-    rte_memcpy(RTE_PTR_ADD(xl->ip, RTE_SIZEOF_FIELD(struct rte_ipv6_hdr, src_addr)), loc->localIP,
-               RTE_SIZEOF_FIELD(struct rte_ipv6_hdr, dst_addr));
+    rte_memcpy(xl->ip, loc->remoteIP.a, RTE_IPV6_ADDR_SIZE);
+    rte_memcpy(RTE_PTR_ADD(xl->ip, RTE_IPV6_ADDR_SIZE), loc->localIP.a, RTE_IPV6_ADDR_SIZE);
   }
   xl->udpSrc = rte_cpu_to_be_16(loc->remoteUDP);
   xl->udpDst = rte_cpu_to_be_16(loc->localUDP);

@@ -8,7 +8,6 @@ package spdkenv
 #include <spdk/log.h>
 #include <spdk/version.h>
 #include <rte_power.h>
-#include <openssl/crypto.h>
 
 static void c_SpdkLoggerReady()
 {
@@ -40,7 +39,7 @@ func InitEnv() error {
 		return e
 	}
 
-	C.spdk_log_open((*C.logfunc)(C.Logger_Spdk))
+	C.spdk_log_open((*C.spdk_log_cb)(C.Logger_Spdk))
 
 	if res := int(C.spdk_env_dpdk_post_init(C.bool(false))); res != 0 {
 		return fmt.Errorf("spdk_env_dpdk_post_init error: %w", eal.MakeErrno(res))
@@ -51,13 +50,9 @@ func InitEnv() error {
 }
 
 func loadLibspdk() error {
-	// As of SPDK 24.01, libspdk_scheduler_dpdk_governor.so depends on rte_power_freq_max symbol
+	// As of SPDK 25.01-rc1, libspdk_scheduler_dpdk_governor.so depends on rte_power_freq_max symbol
 	// exported by librte_power.so but does not link with that library.
 	_ = &C.rte_power_freq_max
-
-	// As of SPDK 24.01, libspdk_env_dpdk.so depends on OPENSSL_INIT_free symbol
-	// exported by libssl.so but does not link with that library.
-	_ = C.OPENSSL_INIT_free
 
 	errs := []error{}
 	for _, libdir := range []string{"/usr/local/lib", "/usr/lib"} {

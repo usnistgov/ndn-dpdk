@@ -57,8 +57,8 @@ func (loc IPLocator) Validate() error {
 
 func (loc IPLocator) ipLocatorC() (locC ethport.LocatorC) {
 	locC = loc.EtherLocator.EthLocatorC()
-	locC.LocalIP = loc.LocalIP.As16()
-	locC.RemoteIP = loc.RemoteIP.As16()
+	locC.LocalIP.A = loc.LocalIP.As16()
+	locC.RemoteIP.A = loc.RemoteIP.As16()
 	return
 }
 

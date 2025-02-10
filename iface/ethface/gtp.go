@@ -82,8 +82,8 @@ func (loc GtpLocator) EthLocatorC() (locC ethport.LocatorC) {
 	locC.UlQFI = uint8(loc.UlQFI)
 	locC.DlTEID = uint32(loc.DlTEID)
 	locC.DlQFI = uint8(loc.DlQFI)
-	locC.InnerLocalIP = loc.InnerLocalIP.As16()
-	locC.InnerRemoteIP = loc.InnerRemoteIP.As16()
+	locC.InnerLocalIP.A = loc.InnerLocalIP.As16()
+	locC.InnerRemoteIP.A = loc.InnerRemoteIP.As16()
 	return
 }
 
