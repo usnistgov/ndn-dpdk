@@ -7,7 +7,6 @@ package spdkenv
 #include <spdk/init.h>
 #include <spdk/log.h>
 #include <spdk/version.h>
-#include <rte_power.h>
 
 static void c_SpdkLoggerReady()
 {
@@ -50,11 +49,14 @@ func InitEnv() error {
 }
 
 func loadLibspdk() error {
+	errs := []error{}
+
 	// As of SPDK 25.01-rc1, libspdk_scheduler_dpdk_governor.so depends on rte_power_freq_max symbol
 	// exported by librte_power.so but does not link with that library.
-	_ = &C.rte_power_freq_max
+	if _, e := dlopen.Load("librte_power.so"); e != nil {
+		errs = append(errs, fmt.Errorf("dlopen(librte_power.so): %w", e))
+	}
 
-	errs := []error{}
 	for _, libdir := range []string{"/usr/local/lib", "/usr/lib"} {
 		filename := filepath.Join(libdir, "libspdk.so")
 		if e := dlopen.LoadGroup(filename); e != nil {
@@ -63,6 +65,7 @@ func loadLibspdk() error {
 			return nil
 		}
 	}
+
 	return errors.Join(errs...)
 }
 
