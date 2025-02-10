@@ -3,7 +3,8 @@ name: build
 'on':
   push:
   pull_request:
-permissions: {}
+permissions:
+  packages: write
 env:
   COREPACK_INTEGRITY_KEYS: 0
 jobs:
@@ -21,7 +22,7 @@ jobs:
         name: Install dependencies
         run: |
           docs/ndndpdk-depends.sh -y --node=0 --go=0 --dpdk=0 --spdk=0
-          echo meson=$(meson --version) >> $GITHUB_OUTPUT
+          echo meson=$(meson --version) >>$GITHUB_OUTPUT
           sudo update-alternatives --install /usr/bin/go go $(command -v go) 1
       - name: Cache DPDK and SPDK
         uses: actions/cache@v4
@@ -84,17 +85,29 @@ jobs:
   docker:
     runs-on: ubuntu-22.04
     steps:
+      - id: prepare
+        name: Prepare build
+        run: |
+          echo tag=ghcr.io/${{ github.repository_owner }}/ndn-dpdk >>$GITHUB_OUTPUT
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event_name == 'push' }}
       - uses: docker/build-push-action@v6
         with:
-          tags: localhost/ndn-dpdk
+          tags: ${{ steps.prepare.outputs.tag }}
           build-args: |
             BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
-            DEPENDS_ARGS='-Ddisable_drivers=common/cnxk,common/dpaax,net/bnxt'
-            MAKE_ENV=NDNDPDK_MK_RELEASE=1
+            APT_PKGS=libibverbs-dev
+            DEPENDS_ARGS=--arch=x86-64-v3 --dpdk-opts={"disable_drivers":"common/cnxk,common/dpaax,net/bnxt"}
+            MAKE_ENV=GOAMD64=v3 NDNDPDK_MK_RELEASE=1
+          push: ${{ github.event_name == 'push' }}
       - name: Show image size
-        run: docker image inspect -f '{{.Size}}' localhost/ndn-dpdk
+        run: docker image inspect -f '{{.Size}}' ${{ steps.prepare.outputs.tag }}
       - name: List files in image
-        run: docker run --rm localhost/ndn-dpdk find /usr/local
+        run: docker run --rm ${{ steps.prepare.outputs.tag }} find /usr/local
   library:
     runs-on: ubuntu-22.04
     steps:
