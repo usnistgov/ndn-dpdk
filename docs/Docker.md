@@ -2,6 +2,19 @@
 
 This page describes how to run NDN-DPDK service in a Docker container.
 
+## Pre-built Image
+
+You can pull a pre-built Docker image from [GitHub Container Registry](https://github.com/usnistgov/ndn-dpdk/pkgs/container/ndn-dpdk):
+
+```bash
+docker pull ghcr.io/usnistgov/ndn-dpdk
+docker tag ghcr.io/usnistgov/ndn-dpdk localhost/ndn-dpdk
+```
+
+This image is built in GitHub Actions and suitable for quickstart evaluations.
+It targets x86-64-v3 psABI, comes with a subset of DPDK drivers, and has THREADSLEEP option enabled.
+For best performance you should build the image locally with customized options.
+
 ## Build the Image
 
 The simplest command to build a Docker image with the provided [Dockerfile](../Dockerfile) is:
@@ -18,7 +31,7 @@ By default, the image is non-portable due to the use of `-march=native` compiler
 The [installation guide](INSTALL.md) "compile-time settings" section explains how to change these settings.
 You can use `DEPENDS_ENV` and `DEPENDS_ARGS` build arguments to pass environment variables and command line arguments to the dependency installation script, and use `MAKE_ENV` build argument to pass environment variables to the Makefile.
 
-Example command to enable mlx5 driver, target x86-64 v3 CPU, and select release mode:
+Example command with build arguments:
 
 ```bash
 docker build --pull \

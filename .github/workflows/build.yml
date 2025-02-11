@@ -46,6 +46,10 @@ jobs:
           sudo make uninstall
         env:
           NDNDPDK_MK_THREADSLEEP: 1
+      - name: Check code style
+        run: |
+          make lint
+          git diff --exit-code
       - name: Run required unit tests
         run: |
           echo 'bdev|disk|ethface|fetch|fileserver|fwdp|memifface|memiftransport|tgconsumer|tgproducer' >~/acceptable-failures.txt
@@ -58,10 +62,6 @@ jobs:
         env:
           NDNDPDK_MK_THREADSLEEP: 1
         continue-on-error: true
-      - name: Check code style
-        run: |
-          make lint
-          git diff --exit-code
       - name: Build docs
         run: make doxygen
       - name: Build docs site
@@ -98,11 +98,11 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           tags: ${{ steps.prepare.outputs.tag }}
-          build-args: |
+          build-args: | # cannot have bash escape patterns
             BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
             APT_PKGS=libibverbs-dev
             DEPENDS_ARGS=--arch=x86-64-v3 --dpdk-opts={"disable_drivers":"common/cnxk,common/dpaax,net/bnxt"}
-            MAKE_ENV=GOAMD64=v3 NDNDPDK_MK_RELEASE=1
+            MAKE_ENV=GOAMD64=v3 NDNDPDK_MK_RELEASE=1 NDNDPDK_MK_THREADSLEEP=1
           push: ${{ github.event_name == 'push' }}
       - name: Show image size
         run: docker image inspect -f '{{.Size}}' ${{ steps.prepare.outputs.tag }}
