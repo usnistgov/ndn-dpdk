@@ -255,7 +255,7 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc) {
   EthLocatorClass c = EthLocator_Classify(loc);
 
   *match = (const EthRxMatch){.f = MatchAlways};
-  if (c.etherType == 0) {
+  if (c.etherType == 0) { // memif or passthru
     return;
   }
 
@@ -295,6 +295,7 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc) {
   }
 
 #undef BUF_TAIL
+  NDNDPDK_ASSERT(match->len <= sizeof(match->buf));
 }
 
 void
@@ -587,4 +588,5 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
   }
 
 #undef BUF_TAIL
+  NDNDPDK_ASSERT(hdr->len <= sizeof(hdr->buf));
 }

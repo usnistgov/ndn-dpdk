@@ -77,14 +77,17 @@ func NewRxMatch(loc Locator) (match RxMatch) {
 	return
 }
 
-// TxHdr contains prepare buffer to prepend headers to outgoing packets.
+// TxHdr contains prepared buffer to prepend headers to outgoing packets.
 type TxHdr C.EthTxHdr
 
 func (hdr TxHdr) copyToC(c *C.EthTxHdr) {
 	*c = *(*C.EthTxHdr)(&hdr)
 }
 
-// IPLen returns the total length of IP, UDP, and VXLAN headers.
+// IPLen returns the total length of L3 and higher layer headers.
+//
+// Excludes: outer Ethernet, outer VLAN.
+// Includes: outer IPv4/IPv6, outer UDP, VXLAN, inner Ethernet, GTPv1, etc.
 func (hdr TxHdr) IPLen() int {
 	return int(hdr.len - hdr.l2len)
 }

@@ -6,13 +6,6 @@
 #include "../dpdk/ethdev.h"
 #include "xdp-locator.h"
 
-/** @brief EthFace header buffer length. */
-#define ETHHDR_MAXLEN                                                                              \
-  (RTE_ETHER_HDR_LEN + RTE_VLAN_HLEN +                                                             \
-   spdk_max(sizeof(struct rte_ipv4_hdr), sizeof(struct rte_ipv6_hdr)) + RTE_ETHER_VXLAN_HLEN +     \
-   RTE_ETHER_HDR_LEN)
-static_assert(ETHHDR_MAXLEN <= RTE_PKTMBUF_HEADROOM, "");
-
 /** @brief EthFace address information. */
 typedef struct EthLocator {
   struct rte_ether_addr local;
@@ -54,6 +47,17 @@ typedef struct EthLocatorClass {
 __attribute__((nonnull)) EthLocatorClass
 EthLocator_Classify(const EthLocator* loc);
 
+enum {
+  /** @brief EthFace header buffer length. */
+  EthFace_HdrMax =
+    RTE_ETHER_HDR_LEN + RTE_VLAN_HLEN +
+    spdk_max(sizeof(struct rte_ipv4_hdr), sizeof(struct rte_ipv6_hdr)) +
+    sizeof(struct rte_udp_hdr) +
+    spdk_max(sizeof(struct rte_vxlan_hdr) + RTE_ETHER_HDR_LEN,
+             sizeof(EthGtpHdr) + sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_udp_hdr))
+};
+static_assert(EthFace_HdrMax <= RTE_PKTMBUF_HEADROOM, "");
+
 typedef struct EthRxMatch EthRxMatch;
 
 /** @brief EthFace RX matcher. */
@@ -64,7 +68,7 @@ struct EthRxMatch {
   uint8_t l3matchOff;
   uint8_t l3matchLen;
   uint8_t udpOff;
-  uint8_t buf[ETHHDR_MAXLEN];
+  uint8_t buf[EthFace_HdrMax];
 };
 
 /** @brief Prepare RX matcher from locator. */
@@ -137,7 +141,7 @@ struct EthTxHdr {
   uint8_t len;
   uint8_t l2len;
   char tunnel;
-  uint8_t buf[ETHHDR_MAXLEN];
+  uint8_t buf[EthFace_HdrMax];
 };
 
 /** @brief Prepare TX header from locator. */

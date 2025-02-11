@@ -36,7 +36,8 @@ func (loc PassthruLocator) Validate() error {
 
 // EthLocatorC implements ethport.Locator interface.
 func (loc PassthruLocator) EthLocatorC() (c ethport.LocatorC) {
-	c.Remote.Bytes = [6]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF} // C.EthLocator_Classify
+	// C.EthLocator_Classify interprets the broadcast address as pass-through face
+	c.Remote.Bytes = [6]byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 	return
 }
 

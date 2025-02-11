@@ -84,19 +84,18 @@ var serializeBufferPool = sync.Pool{
 	New: func() any { return gopacket.NewSerializeBuffer() },
 }
 
+type checksumTransportLayer interface {
+	SetNetworkLayerForChecksum(l gopacket.NetworkLayer) error
+}
+
 func packetFromLayers(hdrs ...gopacket.SerializableLayer) (b []byte, discard func()) {
-	type TransportLayer interface {
-		SetNetworkLayerForChecksum(l gopacket.NetworkLayer) error
-	}
 	var netLayer gopacket.NetworkLayer
-	for _, hdr := range hdrs {
-		switch layer := hdr.(type) {
+	for _, l := range hdrs {
+		switch l := l.(type) {
 		case gopacket.NetworkLayer:
-			netLayer = layer
-		case TransportLayer:
-			if netLayer != nil {
-				layer.SetNetworkLayerForChecksum(netLayer)
-			}
+			netLayer = l
+		case checksumTransportLayer:
+			l.SetNetworkLayerForChecksum(netLayer) // ignore error when netLayer==nil
 		}
 	}
 

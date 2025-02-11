@@ -35,7 +35,37 @@ It prepends Ethernet/UDP/VXLAN headers to each frame (implemented in `EthTxHdr` 
 The send path is thread-safe only if the underlying DPDK PMD is thread safe, which generally is not the case.
 Therefore, **iface.TxLoop** calls `EthFace_TxBurst` from the same thread for all faces on the same port.
 
-### Pass-through Face Implementation Details
+## EthLocator Implementation Details
+
+Package ethport supports multiple face schemes, such as Ethernet, UDP, VXLAN, and GTP-U.
+Each protocol scheme involves different packet headers, checksum requirements, and hardware filters.
+These differences are abstracted in `C.EthLocator` and related types.
+
+Each locator type in package ethface implements `ethport.Locator` face.
+It contains an `EthLocatorC` method that populates and returns an `ethport.LocatorC`.
+
+`ethport.LocatorC` is an alias of `C.EthLocator`.
+It contains protocol header fields, such as MAC addresses, IP addresses, port numbers, and tunnel identifiers.
+From there, it can be converted to four structures: `C.EthRxMatch`, `C.EthXdpLocator`, `C.EthFlowPattern`, `C.EthTxHdr`.
+
+`C.EthRxMatch` is used in receive path to determine whether an incoming Ethernet frame is intended for the face.
+It is used in **RxTable** and in **RxFlow** when not flow isolated.
+It also indicates the header length that should be removed by the receive path implementation.
+
+`C.EthXdpLocator` is used in receive path when an Ethernet device is using AF\_XDP driver.
+It is stored in a BPF map that is queried by the XDP program to find the matching face.
+
+`C.EthFlowPattern` is used during **RxFlow** setup.
+It describes the hardware filters for matching Ethernet frames intended for the face.
+
+`C.EthTxHdr` is used in send path to generate protocol headers.
+It has a semi-complete buffer of protocol headers that is prepended before each NDNLPv2 packet.
+It also comes with a function pointer for the final touches, such as updating length and checksum fields.
+
+## Pass-through Face Implementation Details
+
+This section describes how the pass-through face is implemented.
+See [package ethface](../ethface/README.md) for how to use it.
 
 During face creation:
 
