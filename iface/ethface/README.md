@@ -97,3 +97,5 @@ Caveats and limitations:
 * TAP netif name is unchangeable.
 * In packet counters, all packets are considered "Interests".
 * This is incompatible with [packet dumper](../../app/pdump).
+
+See [package ethport](../ethport/README.md) for implementation details.

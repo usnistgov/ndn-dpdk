@@ -16,6 +16,7 @@ var (
 )
 
 const schemeGtp = "gtp"
+const maxQFI = 0b111111
 
 // GtpLocator describes a GTP-U face.
 type GtpLocator struct {
@@ -57,13 +58,9 @@ func (loc GtpLocator) Validate() error {
 
 	local, remote := loc.InnerLocalIP.Unmap(), loc.InnerRemoteIP.Unmap()
 	switch {
-	case loc.UlTEID < 0, loc.UlTEID > math.MaxUint32:
+	case loc.UlTEID < 0, loc.UlTEID > math.MaxUint32, loc.DlTEID < 0, loc.DlTEID > math.MaxUint32:
 		return ErrTEID
-	case loc.UlQFI < 0, loc.UlQFI > 0b111111:
-		return ErrQFI
-	case loc.DlTEID < 0, loc.DlTEID > math.MaxUint32:
-		return ErrTEID
-	case loc.DlQFI < 0, loc.DlQFI > 0b111111:
+	case loc.UlQFI < 0, loc.UlQFI > maxQFI, loc.DlQFI < 0, loc.DlQFI > maxQFI:
 		return ErrQFI
 	case !local.Is4(), local.IsMulticast(), !remote.Is4(), remote.IsMulticast():
 		return ErrUnicastIP

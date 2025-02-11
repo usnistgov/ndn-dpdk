@@ -34,3 +34,52 @@ It prepends Ethernet/UDP/VXLAN headers to each frame (implemented in `EthTxHdr` 
 
 The send path is thread-safe only if the underlying DPDK PMD is thread safe, which generally is not the case.
 Therefore, **iface.TxLoop** calls `EthFace_TxBurst` from the same thread for all faces on the same port.
+
+### Pass-through Face Implementation Details
+
+During face creation:
+
+1. `ethport.NewFace` is invoked with an `ethface.PassthruLocator`.
+
+2. As part of `iface.NewParams.Init`, `ethport.passthruInit` overwrites two function pointers on `iface.InitResult`:
+
+    * `initResult.RxInput` is set to `C.EthPassthru_FaceRxInput`.
+    * `initResult.TxLoop` is set to `C.EthPassthru_TxLoop`.
+
+3. As part of `iface.NewParams.Start`, `ethport.passthruStart` creates the TAP device.
+
+    * Data structures related to the TAP device is stored in the `C.EthFacePriv` area of the pass-through face.
+    * The TAP device is itself an DPDK ethdev and it's activated as an RxGroup here.
+
+4. As part of `iface.NewParams.Start`, `ethport.rxImpl.Start` is invoked.
+
+    * Handling of pass-through face is only implemented in `ethport.rxTable`.
+    * A pass-through face is appended at the tail of `C.EthRxTable.head` linked list, while faces with other schemes are prepended at the head of this linked list.
+
+During face teardown:
+
+1. As part of `iface.NewParams.Stop`, `ethport.passthruStop` destroys the TAP device.
+
+Receive path from DPDK ethdev to TAP netif:
+
+1. `C.EthRxTable_RxBurst` receives a burst of Ethernet frames and calls `C.EthRxTable_Accept` on each packet to find which faces could accept it.
+
+2. The pass-through face is at the tail of `C.EthRxTable.head` linked list and has an `C.EthRxMatch` that matches all packets, so that it will always accept the packet if no other face has accepted it.
+
+3. The accepted packet is passed to `C.EthPassthru_FaceRxInput`, which immediately transmits the packet on the TAP netif.
+
+    * This occurs in the RX thread.
+      The packet does not go through the TX thread.
+
+Send path from TAP netif to DPDK ethdev:
+
+1. The RxGroup for the TAP device uses `C.EthPassthru_TapPortRxBurst` as its `C.RxGroup_RxBurstFunc` function pointer.
+
+    * `C.EthPassthru_TapPortRxBurst` receives a burst of Ethernet frames from the TAP netif and immediately enqueues them for transmission on the pass-through face.
+    * This occurs in the RX thread.
+
+2. The TxLoop of the pass-through face uses `C.EthPassthru_TxLoop` as its `C.Face_TxLoopFunc` function pointer.
+
+    * `C.EthPassthru_TxLoop` dequeues outgoing packets for the face and passes them to `C.TxLoop_TxFrames`, bypassing fragmentation.
+    * `C.TxLoop_TxFrames` invokes `C.FaceImpl.txBurst` that is usually `C.EthFace_TxBurst` to transmit the packet.
+    * This occurs in the TX thread.
