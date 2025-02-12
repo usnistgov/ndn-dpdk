@@ -239,7 +239,7 @@ func TestLocatorRxMatch(t *testing.T) {
 	payload := make(gopacket.Payload, 200)
 	rand.Read([]byte(payload))
 	onlyMatch := func(matcherKey string, headers ...gopacket.SerializableLayer) {
-		pkt := pktmbufFromLayers(append(slices.Clone(headers), payload)...)
+		pkt := pktmbufFromLayers(0, append(slices.Clone(headers), payload)...)
 		defer pkt.Close()
 
 		for key, m := range matchers {
@@ -455,33 +455,19 @@ func TestLocatorTxHdr(t *testing.T) {
 		txHdr.Prepend(pkt, true)
 
 		wire := pkt.Bytes()
-		parsed := gopacket.NewPacket(wire, layers.LayerTypeEthernet, gopacket.NoCopy)
 		expectedLayerTypes = append(expectedLayerTypes, ndnlayer.LayerTypeTLV, ndnlayer.LayerTypeNDN)
-		ipLen, actualLayerTypes := 0, []gopacket.LayerType{}
+		parsed := checkPacketLayers(t, wire, expectedLayerTypes...)
+		ipLen := 0
 		for i, l := range parsed.Layers() {
-			if i < 2 {
-				switch l.LayerType() {
-				case layers.LayerTypeEthernet, layers.LayerTypeDot1Q:
-					ipLen = len(l.LayerPayload()) - len(payload)
-				}
+			if i >= 2 {
+				break
 			}
-			actualLayerTypes = append(actualLayerTypes, l.LayerType())
+			switch l.LayerType() {
+			case layers.LayerTypeEthernet, layers.LayerTypeDot1Q:
+				ipLen = len(l.LayerPayload()) - len(payload)
+			}
 		}
 		assert.Equal(ipLen, txHdr.IPLen())
-		assert.Equal(expectedLayerTypes, actualLayerTypes)
-
-		var netLayer gopacket.NetworkLayer
-		for _, l := range parsed.Layers() {
-			switch l := l.(type) {
-			case gopacket.NetworkLayer:
-				netLayer = l
-			case checksumTransportLayer:
-				l.SetNetworkLayerForChecksum(netLayer) // ignore error when netLayer==nil
-			}
-		}
-		e, mismatches := parsed.VerifyChecksums()
-		assert.NoError(e)
-		assert.Empty(mismatches)
 
 		return parsed
 	}

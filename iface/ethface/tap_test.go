@@ -14,6 +14,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/bpf"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethnetif"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
@@ -374,4 +375,82 @@ func TestPassthru(t *testing.T) {
 
 	assert.EqualValues(500, txUDP4.Load())
 	assert.Less(int(txOther.Load())-int(cntPassthru.TxFrames), 50)
+}
+
+func TestGtpip(t *testing.T) {
+	assert, require := makeAR(t)
+	tap := newTapFixture(t, func(ifname string) ethnetif.Config {
+		return ethnetif.Config{
+			Driver: ethnetif.DriverAfPacket,
+			Netif:  ifname,
+		}
+	})
+	ethDev := tap.Port.EthDev()
+
+	table, e := ethport.NewGtpipTable(ethport.GtpipTableConfig{
+		IPv4Capacity: 8192,
+	}, ethDev.NumaSocket())
+	require.NoError(e)
+
+	// var locPassthru ethface.PassthruLocator
+	// locPassthru.EthDev = tap.Port.EthDev()
+	// facePassthru := tap.AddFace(locPassthru)
+
+	var facesGTP []iface.Face
+	for i := range 96 {
+		var loc ethface.GtpLocator
+		loc.Local.HardwareAddr = ethDev.HardwareAddr()
+		loc.Remote.HardwareAddr = net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, byte(i >> 4)}
+		loc.LocalIP = netip.AddrFrom4([4]byte{192, 168, 3, 254})
+		loc.RemoteIP = netip.AddrFrom4([4]byte{192, 168, 3, byte(i >> 4)})
+		loc.UlTEID, loc.DlTEID = 0x10000000+i, 0x20000000+i
+		loc.UlQFI, loc.DlQFI = 2, 12
+		loc.InnerLocalIP = netip.AddrFrom4([4]byte{192, 168, 60, 254})
+		loc.InnerRemoteIP = netip.AddrFrom4([4]byte{192, 168, 60, byte(i)})
+
+		face := tap.AddFace(loc)
+		facesGTP = append(facesGTP, face)
+
+		e = table.Insert(loc.InnerRemoteIP, face)
+		assert.NoError(e, "%d", i)
+	}
+
+	for i := range 100 {
+		pkt := pktmbufFromLayers(pktmbuf.DefaultHeadroom,
+			&layers.Ethernet{
+				SrcMAC:       net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 0xFE},
+				DstMAC:       ethDev.HardwareAddr(),
+				EthernetType: layers.EthernetTypeIPv4,
+			},
+			&layers.IPv4{
+				Version:  4,
+				TTL:      64,
+				Protocol: layers.IPProtocolICMPv4,
+				SrcIP:    netip.AddrFrom4([4]byte{192, 168, 6, 254}).AsSlice(),
+				DstIP:    netip.AddrFrom4([4]byte{192, 168, 60, byte(i)}).AsSlice(),
+			},
+			&layers.ICMPv4{
+				TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoReply, 0),
+				Id:       uint16(i),
+				Seq:      1,
+			},
+		)
+		pktLen := pkt.Len()
+
+		ok := table.ProcessDownlink(pkt)
+		if i >= len(facesGTP) {
+			assert.False(ok, "%d", i)
+			assert.Equal(pktLen, pkt.Len(), "%d", i)
+		} else if assert.True(ok, "%d", i) {
+			loc := facesGTP[i].Locator().(ethface.GtpLocator)
+			wire := pkt.Bytes()
+			parsed := checkPacketLayers(t, wire,
+				layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeUDP, layers.LayerTypeGTPv1U,
+				layers.LayerTypeIPv4, layers.LayerTypeICMPv4)
+			gtp := parsed.Layer(layers.LayerTypeGTPv1U).(*layers.GTPv1U)
+			assert.EqualValues(loc.DlTEID, gtp.TEID, "%d", i)
+		}
+
+		pkt.Close()
+	}
 }

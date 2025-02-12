@@ -7,6 +7,7 @@ import (
 
 	"github.com/gopacket/gopacket"
 	"github.com/gopacket/gopacket/layers"
+	"github.com/stretchr/testify/require"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
@@ -118,10 +119,10 @@ func writeToFromLayers(w io.Writer, hdrs ...gopacket.SerializableLayer) (n int, 
 	return w.Write(b)
 }
 
-func pktmbufFromLayers(hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {
+func pktmbufFromLayers(headroom mbuftestenv.Headroom, hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {
 	b, discard := packetFromLayers(hdrs...)
 	defer discard()
-	return makePacket(mbuftestenv.Headroom(0), b)
+	return makePacket(headroom, b)
 }
 
 // makeGTPv1U constructs a GTPv1U layer.
@@ -137,4 +138,30 @@ func makeGTPv1U(teid uint32, pduType uint8, qfi uint8) *layers.GTPv1U {
 			{Type: 0x85, Content: []byte{pduType << 4, qfi & 0x3F}},
 		},
 	}
+}
+
+func checkPacketLayers(t require.TestingT, wire []byte, expectedLayerTypes ...gopacket.LayerType) gopacket.Packet {
+	assert, _ := makeAR(t)
+
+	parsed := gopacket.NewPacket(wire, layers.LayerTypeEthernet, gopacket.NoCopy)
+	actualLayerTypes := []gopacket.LayerType{}
+	for _, l := range parsed.Layers() {
+		actualLayerTypes = append(actualLayerTypes, l.LayerType())
+	}
+	assert.Equal(expectedLayerTypes, actualLayerTypes)
+
+	var netLayer gopacket.NetworkLayer
+	for _, l := range parsed.Layers() {
+		switch l := l.(type) {
+		case gopacket.NetworkLayer:
+			netLayer = l
+		case checksumTransportLayer:
+			l.SetNetworkLayerForChecksum(netLayer) // ignore error when netLayer==nil
+		}
+	}
+	e, mismatches := parsed.VerifyChecksums()
+	assert.NoError(e)
+	assert.Empty(mismatches)
+
+	return parsed
 }
