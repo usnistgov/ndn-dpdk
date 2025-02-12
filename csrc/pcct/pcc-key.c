@@ -1,37 +1,24 @@
 #include "pcc-key.h"
 #include "../core/base16.h"
+#include "../core/logger.h"
 #include "pcc-entry.h"
 
 static_assert(sizeof(PccKeyExt) <= sizeof(PccEntry), "");
 
-enum {
-  PccSearchDebugStringLength = 2 * Base16_BufferSize(NameMaxLength) + 32,
-};
-static RTE_DEFINE_PER_LCORE(
-  struct { char buffer[PccSearchDebugStringLength]; }, PccSearchDebugStringBuffer);
-
 const char*
 PccSearch_ToDebugString(const PccSearch* search) {
-  int pos = 0;
-#define buffer (RTE_PER_LCORE(PccSearchDebugStringBuffer).buffer)
-#define append(fn, ...)                                                                            \
-  do {                                                                                             \
-    pos += fn(RTE_PTR_ADD(buffer, pos), sizeof(buffer) - pos, __VA_ARGS__);                        \
-  } while (false)
+  DebugString_Use(2 * Base16_BufferSize(NameMaxLength) + 32);
 
-  append(Base16_Encode, search->name.value, search->name.length);
+  DebugString_Append(Base16_Encode, search->name.value, search->name.length);
+  DebugString_Append(snprintf, ",");
 
-  append(snprintf, ",");
   if (search->fh.length == 0) {
-    append(snprintf, "(no-fh)");
+    DebugString_Append(snprintf, "(no-fh)");
   } else {
-    append(Base16_Encode, search->fh.value, search->fh.length);
+    DebugString_Append(Base16_Encode, search->fh.value, search->fh.length);
   }
 
-  NDNDPDK_ASSERT(pos + 1 <= PccSearchDebugStringLength);
-  return buffer;
-#undef buffer
-#undef append
+  DebugString_Return();
 }
 
 bool

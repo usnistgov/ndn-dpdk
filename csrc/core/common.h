@@ -43,6 +43,7 @@
 #include <rte_cycles.h>
 #include <rte_debug.h>
 #include <rte_errno.h>
+#include <rte_lcore_var.h>
 #include <rte_malloc.h>
 #include <rte_memcpy.h>
 
@@ -58,6 +59,13 @@
 #else
 #define NDNDPDK_ASSERT(x) RTE_VERIFY((x))
 #endif
+
+/** @brief RTE_LCORE_VAR but returns valid pointer when called from non-lcore thread. */
+#define LCORE_VAR_SAFE(handle)                                                                     \
+  __extension__({                                                                                  \
+    unsigned lc = rte_lcore_id();                                                                  \
+    RTE_LCORE_VAR_LCORE(lc == LCORE_ID_ANY ? RTE_MAX_LCORE - 1 : lc, handle);                      \
+  })
 
 #endif // __BPF__
 

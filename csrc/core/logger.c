@@ -55,3 +55,21 @@ Logger_HexDump(const uint8_t* b, size_t count) {
   fprintf(stderr, "\n");
   fflush(stderr);
 }
+
+enum {
+  DebugString_MaxCapacity = 100000,
+  DebugString_StructSize =
+    sizeof(DebugString) - RTE_SIZEOF_FIELD(DebugString, buffer) + DebugString_MaxCapacity,
+};
+static RTE_LCORE_VAR_HANDLE(DebugString, theDebugString);
+RTE_LCORE_VAR_INIT_SIZE(theDebugString, DebugString_StructSize)
+
+DebugString*
+DebugString_Get(size_t capacity) {
+  NDNDPDK_ASSERT(capacity <= DebugString_MaxCapacity);
+  DebugString* ds = LCORE_VAR_SAFE(theDebugString);
+  ds->pos = 0;
+  ds->cap = capacity;
+  ds->buffer[0] = '\0';
+  return ds;
+}

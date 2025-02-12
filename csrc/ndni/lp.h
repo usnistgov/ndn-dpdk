@@ -47,7 +47,7 @@ LpPitToken_Set(LpPitToken* token, uint8_t length, const uint8_t* value) {
 
 /**
  * @brief Print PIT token as string for logging.
- * @return string on thread local variable.
+ * @return see @c DebugString_Get
  */
 __attribute__((nonnull, returns_nonnull)) const char*
 LpPitToken_ToString(const LpPitToken* token);

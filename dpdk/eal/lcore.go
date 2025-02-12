@@ -46,7 +46,11 @@ func LCoreFromID(id int) (lc LCore) {
 
 // CurrentLCore returns the current lcore.
 func CurrentLCore() LCore {
-	return LCoreFromID(int(C.rte_lcore_id()))
+	lc := C.rte_lcore_id()
+	if lc == C.LCORE_ID_ANY {
+		return LCore{}
+	}
+	return LCoreFromID(int(lc))
 }
 
 // ID returns lcore ID.

@@ -99,7 +99,7 @@ PitEntry_Finalize(PitEntry* entry) {
 
 /**
  * @brief Convert @p entry to a string for debug purpose.
- * @return pointer to a per-lcore static buffer that will be overwritten on subsequent calls.
+ * @return see @c DebugString_Get
  */
 __attribute__((nonnull, returns_nonnull)) const char*
 PitEntry_ToDebugString(PitEntry* entry);

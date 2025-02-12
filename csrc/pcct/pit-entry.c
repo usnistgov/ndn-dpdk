@@ -8,33 +8,22 @@ N_LOG_INIT(PitEntry);
 
 static_assert(sizeof(PitEntryExt) <= sizeof(PccEntry), "");
 
-enum {
-  PitDebugStringLength = Base16_BufferSize(NameMaxLength) +
-                         6 * (PitMaxDns + PitMaxExtDns + PitMaxUps + PitMaxExtUps) + 32,
-};
-static RTE_DEFINE_PER_LCORE(
-  struct { char buffer[PitDebugStringLength]; }, PitDebugStringBuffer);
-
 const char*
 PitEntry_ToDebugString(PitEntry* entry) {
-  int pos = 0;
-#define buffer (RTE_PER_LCORE(PitDebugStringBuffer).buffer)
-#define append(fn, ...)                                                                            \
-  do {                                                                                             \
-    pos += fn(RTE_PTR_ADD(buffer, pos), PitDebugStringLength - pos, __VA_ARGS__);                  \
-  } while (false)
+  DebugString_Use(Base16_BufferSize(NameMaxLength) +
+                  6 * (PitMaxDns + PitMaxExtDns + PitMaxUps + PitMaxExtUps) + 32);
 
   PInterest* interest = Packet_GetInterestHdr(entry->npkt);
-  append(Base16_Encode, interest->name.value, interest->name.length);
+  DebugString_Append(Base16_Encode, interest->name.value, interest->name.length);
 
   if (entry->nCanBePrefix > 0) {
-    append(snprintf, "[P%" PRIu8 "]", entry->nCanBePrefix);
+    DebugString_Append(snprintf, "[P%" PRIu8 "]", entry->nCanBePrefix);
   }
   if (entry->mustBeFresh) {
-    append(snprintf, "[F]");
+    DebugString_Append(snprintf, "[F]");
   }
 
-  append(snprintf, ",DN[");
+  DebugString_Append(snprintf, ",DN[");
   {
     const char* delim = "";
     PitDn_Each (it, entry, false) {
@@ -42,15 +31,15 @@ PitEntry_ToDebugString(PitEntry* entry) {
         break;
       }
       if (it.index >= PitMaxDns + PitMaxExtDns) {
-        append(snprintf, "%s...", delim);
+        DebugString_Append(snprintf, "%s...", delim);
         break;
       }
-      append(snprintf, "%s%" PRI_FaceID, delim, it.dn->face);
+      DebugString_Append(snprintf, "%s%" PRI_FaceID, delim, it.dn->face);
       delim = " ";
     }
   }
 
-  append(snprintf, "],UP[");
+  DebugString_Append(snprintf, "],UP[");
   {
     const char* delim = "";
     PitUp_Each (it, entry, false) {
@@ -58,18 +47,16 @@ PitEntry_ToDebugString(PitEntry* entry) {
         break;
       }
       if (it.index >= PitMaxUps + PitMaxExtUps) {
-        append(snprintf, "%s...", delim);
+        DebugString_Append(snprintf, "%s...", delim);
         break;
       }
-      append(snprintf, "%s%" PRI_FaceID, delim, it.up->face);
+      DebugString_Append(snprintf, "%s%" PRI_FaceID, delim, it.up->face);
       delim = " ";
     }
   }
-  append(snprintf, "]");
+  DebugString_Append(snprintf, "]");
 
-  return buffer;
-#undef buffer
-#undef append
+  DebugString_Return();
 }
 
 FibEntry*

@@ -41,7 +41,8 @@ func (stop StopChan) AfterWait() {
 }
 
 // RequestStop requests a stop.
-// This may be used independent from Thread.
+//
+// This may be used independently from Thread.
 func (stop StopChan) RequestStop() {
 	stop <- true
 }

@@ -39,7 +39,7 @@ PccSearch_FromNames(const PName* name, const PInterest* interest) {
 
 /**
  * @brief Convert @p search to a string for debug purpose.
- * @return pointer to a per-lcore static buffer that will be overwritten on subsequent calls.
+ * @return see @c DebugString_Get
  */
 __attribute__((nonnull, returns_nonnull)) const char*
 PccSearch_ToDebugString(const PccSearch* search);

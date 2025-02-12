@@ -1,12 +1,16 @@
 #include "locator.h"
 #include "../ndni/an.h"
 
-#define IP_HOPLIMIT_VALUE 64
-#define VXLAN_SRCPORT_BASE 0xC000
-#define VXLAN_SRCPORT_MASK 0x3FFF
 static const struct rte_ipv6_addr V4_IN_V6_PREFIX = RTE_IPV6_ADDR_PREFIX_V4MAPPED;
-enum { V4_IN_V6_PREFIX_OCTETS = 12, V4_IN_V6_PREFIX_BITS = V4_IN_V6_PREFIX_OCTETS * CHAR_BIT };
-static RTE_DEFINE_PER_LCORE(uint16_t, txVxlanSrcPort);
+enum {
+  IP_HOPLIMIT_VALUE = 64,
+  VXLAN_SRCPORT_BASE = 0xC000,
+  VXLAN_SRCPORT_MASK = 0x3FFF,
+  V4_IN_V6_PREFIX_OCTETS = 12,
+  V4_IN_V6_PREFIX_BITS = V4_IN_V6_PREFIX_OCTETS * CHAR_BIT,
+};
+static RTE_LCORE_VAR_HANDLE(uint16_t, txVxlanSrcPort);
+RTE_LCORE_VAR_INIT(txVxlanSrcPort)
 
 EthLocatorClass
 EthLocator_Classify(const EthLocator* loc) {
@@ -478,9 +482,8 @@ TxUdpCommon(const EthTxHdr* hdr, struct rte_udp_hdr* udp, uint16_t udpLen, bool 
   switch (hdr->tunnel) {
     case 'V': {
       static_assert((VXLAN_SRCPORT_BASE & VXLAN_SRCPORT_MASK) == 0, "");
-      RTE_PER_LCORE(txVxlanSrcPort) += (uint16_t)newBurst;
-      udp->src_port =
-        rte_cpu_to_be_16((RTE_PER_LCORE(txVxlanSrcPort) & VXLAN_SRCPORT_MASK) | VXLAN_SRCPORT_BASE);
+      uint16_t srcPort = (*LCORE_VAR_SAFE(txVxlanSrcPort) += (uint16_t)newBurst);
+      udp->src_port = rte_cpu_to_be_16((srcPort & VXLAN_SRCPORT_MASK) | VXLAN_SRCPORT_BASE);
       break;
     }
     case 'G': {
