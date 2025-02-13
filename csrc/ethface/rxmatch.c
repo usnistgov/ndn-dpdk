@@ -59,6 +59,7 @@ MatchVxlan(const EthRxMatch* match, const struct rte_mbuf* m) {
 __attribute__((nonnull)) static inline bool
 MatchGtp(const EthRxMatch* match, const struct rte_mbuf* m) {
   // exact match on TEID and QFI; type=1 for uplink
+  // inner IPv4+UDP headers are ignored
   const EthGtpHdr* gtpM =
     rte_pktmbuf_mtod_offset(m, const EthGtpHdr*, match->udpOff + sizeof(struct rte_udp_hdr));
   const EthGtpHdr* gtpT = RTE_PTR_ADD(match->buf, match->udpOff + sizeof(struct rte_udp_hdr));
@@ -66,11 +67,20 @@ MatchGtp(const EthRxMatch* match, const struct rte_mbuf* m) {
          gtpM->ext.next_ext == 0x85 && gtpM->psc.type == 1 && gtpM->psc.qfi == gtpT->psc.qfi;
 }
 
+const EthRxMatch_MatchFunc EthRxMatch_MatchJmp[] = {
+  [EthRxMatchActAlways] = MatchAlways,
+  [EthRxMatchActEtherUnicast] = MatchEtherUnicast,
+  [EthRxMatchActEtherMulticast] = MatchEtherMulticast,
+  [EthRxMatchActUdp] = MatchUdp,
+  [EthRxMatchActVxlan] = MatchVxlan,
+  [EthRxMatchActGtp] = MatchGtp,
+};
+
 void
 EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc) {
   EthLocatorClass c = EthLocator_Classify(loc);
 
-  *match = (const EthRxMatch){.f = MatchAlways};
+  *match = (const EthRxMatch){.act = EthRxMatchActAlways};
   if (c.etherType == 0) { // memif or passthru
     return;
   }
@@ -79,7 +89,7 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc) {
 
   match->l2len = PutEtherVlanHdr(BUF_TAIL, &loc->remote, &loc->local, loc->vlan, c.etherType);
   match->len += match->l2len;
-  match->f = c.multicast ? MatchEtherMulticast : MatchEtherUnicast;
+  match->act = c.multicast ? EthRxMatchActEtherMulticast : EthRxMatchActEtherUnicast;
   if (!c.udp) {
     return;
   }
@@ -89,7 +99,7 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc) {
                             : sizeof(struct rte_ipv6_hdr) - offsetof(struct rte_ipv6_hdr, src_addr);
   match->udpOff = match->len;
   match->len += PutUdpHdr(BUF_TAIL, loc->remoteUDP, loc->localUDP);
-  match->f = MatchUdp;
+  match->act = EthRxMatchActUdp;
   match->l3matchOff = match->udpOff - l3addrsLen;
   match->l3matchLen = l3addrsLen + offsetof(struct rte_udp_hdr, dgram_len);
 
@@ -98,14 +108,14 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc) {
       match->l3matchLen = l3addrsLen;
       match->len += PutVxlanHdr(BUF_TAIL, loc->vxlan);
       match->len += PutEtherVlanHdr(BUF_TAIL, &loc->innerRemote, &loc->innerLocal, 0, EtherTypeNDN);
-      match->f = MatchVxlan;
+      match->act = EthRxMatchActVxlan;
       break;
     }
     case 'G': {
       match->len += PutGtpHdr(BUF_TAIL, true, loc->ulTEID, loc->ulQFI);
       match->len += PutIpv4Hdr(BUF_TAIL, loc->innerLocalIP, loc->innerRemoteIP);
       match->len += PutUdpHdr(BUF_TAIL, UDPPortNDN, UDPPortNDN);
-      match->f = MatchGtp;
+      match->act = EthRxMatchActGtp;
       break;
     }
   }

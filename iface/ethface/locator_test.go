@@ -452,7 +452,7 @@ func TestLocatorTxHdr(t *testing.T) {
 		txHdr := ethport.NewTxHdr(loc, false)
 		pkt := makePacket(payload)
 		defer pkt.Close()
-		txHdr.Prepend(pkt, true)
+		txHdr.Prepend(pkt, ethport.TxHdrPrependOptions{NewBurst: true})
 
 		wire := pkt.Bytes()
 		expectedLayerTypes = append(expectedLayerTypes, ndnlayer.LayerTypeTLV, ndnlayer.LayerTypeNDN)

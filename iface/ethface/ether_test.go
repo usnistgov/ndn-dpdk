@@ -144,7 +144,7 @@ func TestReassembly(t *testing.T) {
 	txHdrA := ethport.NewTxHdr(locA, false)
 	txqA := portA.TxQueues()[0]
 	sendMbufA := func(m *pktmbuf.Packet) {
-		txHdrA.Prepend(m, false)
+		txHdrA.Prepend(m, ethport.TxHdrPrependOptions{})
 		n := txqA.TxBurst(pktmbuf.Vector{m})
 		if !assert.Equal(1, n) {
 			m.Close()

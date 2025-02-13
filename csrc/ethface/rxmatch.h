@@ -5,11 +5,22 @@
 
 #include "locator.h"
 
+typedef enum EthRxMatchAct {
+  EthRxMatchActAlways = 1,
+  EthRxMatchActEtherUnicast,
+  EthRxMatchActEtherMulticast,
+  EthRxMatchActUdp,
+  EthRxMatchActVxlan,
+  EthRxMatchActGtp,
+} EthRxMatchAct;
+
 typedef struct EthRxMatch EthRxMatch;
+typedef bool (*EthRxMatch_MatchFunc)(const EthRxMatch* match, const struct rte_mbuf* m);
+extern const EthRxMatch_MatchFunc EthRxMatch_MatchJmp[];
 
 /** @brief EthFace RX matcher. */
 struct EthRxMatch {
-  bool (*f)(const EthRxMatch* match, const struct rte_mbuf* m);
+  EthRxMatchAct act;
   uint8_t len;
   uint8_t l2len;
   uint8_t l3matchOff;
@@ -28,7 +39,7 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc);
  */
 __attribute__((nonnull)) static inline bool
 EthRxMatch_Match(const EthRxMatch* match, const struct rte_mbuf* m) {
-  return m->data_len >= match->len && match->f(match, m);
+  return m->data_len >= match->len && EthRxMatch_MatchJmp[match->act](match, m);
 }
 
 #endif // NDNDPDK_ETHFACE_RXMATCH_H

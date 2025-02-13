@@ -101,8 +101,15 @@ func (hdr TxHdr) IPLen() int {
 //	newBurst: whether pkt is the first packet in a burst. It increments UDP source port in VXLAN
 //	          headers. If NDN network layer packet is fragmented, only the first fragment might
 //	          start a new burst, so that all fragments have the same UDP source port.
-func (hdr TxHdr) Prepend(pkt *pktmbuf.Packet, newBurst bool) {
-	C.EthTxHdr_Prepend((*C.EthTxHdr)(&hdr), (*C.struct_rte_mbuf)(pkt.Ptr()), C.bool(newBurst))
+func (hdr TxHdr) Prepend(pkt *pktmbuf.Packet, opts TxHdrPrependOptions) {
+	var flags C.EthTxHdrFlags
+	if opts.NewBurst {
+		flags |= C.EthTxHdrFlagsNewBurst
+	}
+	if opts.Gtpip {
+		flags |= C.EthTxHdrFlagsGtpip
+	}
+	C.EthTxHdr_Prepend((*C.EthTxHdr)(&hdr), (*C.struct_rte_mbuf)(pkt.Ptr()), flags)
 }
 
 // NewTxHdr creates TxHdr from a locator.
@@ -110,4 +117,10 @@ func NewTxHdr(loc Locator, hasChecksumOffloads bool) (hdr TxHdr) {
 	locC := loc.EthLocatorC()
 	C.EthTxHdr_Prepare((*C.EthTxHdr)(&hdr), locC.ptr(), C.bool(hasChecksumOffloads))
 	return
+}
+
+// TxHdrPrependOptions indicates options for TxHdr.Prepend.
+type TxHdrPrependOptions struct {
+	NewBurst bool
+	Gtpip    bool
 }
