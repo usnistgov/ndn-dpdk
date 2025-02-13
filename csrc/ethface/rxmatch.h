@@ -26,7 +26,7 @@ struct EthRxMatch {
   uint8_t l3matchOff;
   uint8_t l3matchLen;
   uint8_t udpOff;
-  uint8_t buf[EthFace_HdrMax];
+  uint8_t buf[EthLocator_MaxHdrLen];
 };
 
 /** @brief Prepare RX matcher from locator. */
@@ -41,5 +41,12 @@ __attribute__((nonnull)) static inline bool
 EthRxMatch_Match(const EthRxMatch* match, const struct rte_mbuf* m) {
   return m->data_len >= match->len && EthRxMatch_MatchJmp[match->act](match, m);
 }
+
+/**
+ * @brief Determine whether a received frame matches GTP-U tunnel.
+ * @param match EthRxMatch prepared by @c EthRxMatch_Prepare , which must represent a GTP-U tunnel.
+ */
+__attribute__((nonnull)) bool
+EthRxMatch_MatchGtpip(const EthRxMatch* match, const struct rte_mbuf* m);
 
 #endif // NDNDPDK_ETHFACE_RXMATCH_H

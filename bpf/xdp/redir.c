@@ -83,7 +83,7 @@ SEC("xdp") int xdp_prog(struct xdp_md* ctx) {
       const size_t gtpSize = sizeof(EthGtpHdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
       const EthGtpHdr* gtp = PacketPtrAs((const EthGtpHdr*)pkt, gtpSize);
       pkt += gtpSize;
-      if (gtp->hdr.e != 1 || gtp->ext.next_ext != 0x85) {
+      if (gtp->hdr.e != 1 || gtp->ext.next_ext != EthGtpExtTypePsc) {
         goto REJECT;
       }
       loc.teid = gtp->hdr.teid;

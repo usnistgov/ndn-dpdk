@@ -430,7 +430,7 @@ func TestGtpip(t *testing.T) {
 				DstIP:    netip.AddrFrom4([4]byte{192, 168, 60, byte(i)}).AsSlice(),
 			},
 			&layers.ICMPv4{
-				TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoReply, 0),
+				TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoRequest, 0),
 				Id:       uint16(i),
 				Seq:      1,
 			},
@@ -449,6 +449,53 @@ func TestGtpip(t *testing.T) {
 				layers.LayerTypeIPv4, layers.LayerTypeICMPv4)
 			gtp := parsed.Layer(layers.LayerTypeGTPv1U).(*layers.GTPv1U)
 			assert.EqualValues(loc.DlTEID, gtp.TEID, "%d", i)
+		}
+
+		pkt.Close()
+	}
+
+	for i := range 100 {
+		pkt := pktmbufFromLayers(pktmbuf.DefaultHeadroom,
+			&layers.Ethernet{
+				SrcMAC:       net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, byte(i >> 4)},
+				DstMAC:       ethDev.HardwareAddr(),
+				EthernetType: layers.EthernetTypeIPv4,
+			},
+			&layers.IPv4{
+				Version:  4,
+				TTL:      64,
+				Protocol: layers.IPProtocolUDP,
+				SrcIP:    netip.AddrFrom4([4]byte{192, 168, 3, byte(i >> 4)}).AsSlice(),
+				DstIP:    netip.AddrFrom4([4]byte{192, 168, 3, 254}).AsSlice(),
+			},
+			&layers.UDP{
+				SrcPort: ethport.UDPPortGTP,
+				DstPort: ethport.UDPPortGTP,
+			},
+			makeGTPv1U(0x10000000+uint32(i), 1, 2),
+			&layers.IPv4{
+				Version:  4,
+				TTL:      64,
+				Protocol: layers.IPProtocolICMPv4,
+				SrcIP:    netip.AddrFrom4([4]byte{192, 168, 60, byte(i)}).AsSlice(),
+				DstIP:    netip.AddrFrom4([4]byte{192, 168, 6, 254}).AsSlice(),
+			},
+			&layers.ICMPv4{
+				TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoReply, 0),
+				Id:       uint16(i),
+				Seq:      1,
+			},
+		)
+		pktLen := pkt.Len()
+
+		ok := table.ProcessUplink(pkt)
+		if i >= len(facesGTP) {
+			assert.False(ok, "%d", i)
+			assert.Equal(pktLen, pkt.Len(), "%d", i)
+		} else if assert.True(ok, "%d", i) {
+			wire := pkt.Bytes()
+			checkPacketLayers(t, wire,
+				layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeICMPv4)
 		}
 
 		pkt.Close()

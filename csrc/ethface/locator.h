@@ -48,14 +48,14 @@ __attribute__((nonnull)) EthLocatorClass
 EthLocator_Classify(const EthLocator* loc);
 
 enum {
-  /** @brief EthFace header buffer length. */
-  EthFace_HdrMax =
+  /** @brief EthLocator derived header buffer length. */
+  EthLocator_MaxHdrLen =
     RTE_ETHER_HDR_LEN + RTE_VLAN_HLEN +
     spdk_max(sizeof(struct rte_ipv4_hdr), sizeof(struct rte_ipv6_hdr)) +
     sizeof(struct rte_udp_hdr) +
     spdk_max(sizeof(struct rte_vxlan_hdr) + RTE_ETHER_HDR_LEN,
              sizeof(EthGtpHdr) + sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_udp_hdr))
 };
-static_assert(EthFace_HdrMax <= RTE_PKTMBUF_HEADROOM, "");
+static_assert(EthLocator_MaxHdrLen <= RTE_PKTMBUF_HEADROOM, "");
 
 #endif // NDNDPDK_ETHFACE_LOCATOR_H

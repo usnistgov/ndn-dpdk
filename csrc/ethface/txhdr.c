@@ -4,13 +4,12 @@
 enum {
   VXLAN_SRCPORT_BASE = 0xC000,
   VXLAN_SRCPORT_MASK = 0x3FFF,
-  GTPIP_INNERLEN = sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_udp_hdr),
 };
 
 static RTE_LCORE_VAR_HANDLE(uint16_t, txVxlanSrcPort);
 RTE_LCORE_VAR_INIT(txVxlanSrcPort)
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 TxNoHdr(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {}
 
 __attribute__((nonnull)) static __rte_always_inline void
@@ -19,15 +18,15 @@ TxPrepend(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {
   uint8_t prependLen = hdr->len;
   if (unlikely((flags & EthTxHdrFlagsGtpip) != 0)) {
     NDNDPDK_ASSERT(hdr->tunnel == 'G');
-    copyLen -= GTPIP_INNERLEN;                        // don't prepend inner IPv4 and UDP headers
-    prependLen -= GTPIP_INNERLEN + RTE_ETHER_HDR_LEN; // overwrite existing Ethernet header
+    copyLen -= GTP_INNER_LEN;                        // don't prepend inner IPv4 and UDP headers
+    prependLen -= GTP_INNER_LEN + RTE_ETHER_HDR_LEN; // overwrite existing Ethernet header
   }
   char* room = rte_pktmbuf_prepend(m, prependLen);
   NDNDPDK_ASSERT(room != NULL); // enough headroom is required
   rte_memcpy(room, hdr->buf, copyLen);
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 TxEther(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {
   TxPrepend(hdr, m, 0);
 }
@@ -70,13 +69,13 @@ TxUdp4(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {
   return ip;
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 TxUdp4Checksum(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {
   struct rte_ipv4_hdr* ip = TxUdp4(hdr, m, flags);
   ip->hdr_checksum = rte_ipv4_cksum(ip);
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 TxUdp4Offload(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {
   struct rte_ipv4_hdr* ip = TxUdp4(hdr, m, flags);
   m->l2_len = hdr->l2len;
@@ -94,14 +93,14 @@ TxUdp6(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {
   return ip;
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 TxUdp6Checksum(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {
   struct rte_ipv6_hdr* ip = TxUdp6(hdr, m, flags);
   struct rte_udp_hdr* udp = RTE_PTR_ADD(ip, sizeof(*ip));
   udp->dgram_cksum = rte_ipv6_udptcp_cksum_mbuf(m, ip, hdr->l2len + sizeof(*ip));
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 TxUdp6Offload(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {
   struct rte_ipv6_hdr* ip = TxUdp6(hdr, m, flags);
   struct rte_udp_hdr* udp = RTE_PTR_ADD(ip, sizeof(*ip));
@@ -132,7 +131,7 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
 
 #define BUF_TAIL (RTE_PTR_ADD(hdr->buf, hdr->len))
 
-  hdr->l2len = PutEtherVlanHdr(BUF_TAIL, &loc->local, &loc->remote, loc->vlan, c.etherType);
+  hdr->l2len = PutEtherVlanHdr(BUF_TAIL, loc->local, loc->remote, loc->vlan, c.etherType);
   hdr->len += hdr->l2len;
   if (!c.udp) {
     hdr->act = EthTxHdrActEther;
@@ -147,7 +146,7 @@ EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads)
   switch (c.tunnel) {
     case 'V': {
       hdr->len += PutVxlanHdr(BUF_TAIL, loc->vxlan);
-      hdr->len += PutEtherVlanHdr(BUF_TAIL, &loc->innerLocal, &loc->innerRemote, 0, EtherTypeNDN);
+      hdr->len += PutEtherVlanHdr(BUF_TAIL, loc->innerLocal, loc->innerRemote, 0, EtherTypeNDN);
       break;
     }
     case 'G': {

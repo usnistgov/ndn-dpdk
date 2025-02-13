@@ -38,9 +38,9 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
 
   MASK(flow->ethMask.hdr.dst_addr);
   MASK(flow->ethMask.hdr.ether_type);
-  PutEtherHdr((uint8_t*)(&flow->ethSpec.hdr), &loc->remote, &loc->local, loc->vlan, c.etherType);
+  PutEtherHdr((uint8_t*)(&flow->ethSpec.hdr), loc->remote, loc->local, loc->vlan, c.etherType);
   if (c.multicast) {
-    rte_ether_addr_copy(&loc->remote, &flow->ethSpec.hdr.dst_addr);
+    flow->ethSpec.hdr.dst_addr = loc->remote;
   } else {
     MASK(flow->ethMask.hdr.src_addr);
   }
@@ -89,7 +89,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
       MASK(flow->innerEthMask.hdr.dst_addr);
       MASK(flow->innerEthMask.hdr.src_addr);
       MASK(flow->innerEthMask.hdr.ether_type);
-      PutEtherHdr((uint8_t*)(&flow->innerEthSpec.hdr), &loc->innerRemote, &loc->innerLocal, 0,
+      PutEtherHdr((uint8_t*)(&flow->innerEthSpec.hdr), loc->innerRemote, loc->innerLocal, 0,
                   EtherTypeNDN);
       APPEND(ETH, innerEth);
       break;

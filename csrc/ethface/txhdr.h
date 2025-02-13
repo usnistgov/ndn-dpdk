@@ -33,7 +33,7 @@ struct EthTxHdr {
   uint8_t len;
   uint8_t l2len;
   char tunnel;
-  uint8_t buf[EthFace_HdrMax];
+  uint8_t buf[EthLocator_MaxHdrLen];
 };
 
 /** @brief Prepare TX header from locator. */

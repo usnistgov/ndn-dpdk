@@ -40,6 +40,11 @@ typedef struct EthGtpHdr {
   uint8_t next;
 } __rte_packed EthGtpHdr;
 
+enum {
+  /** @brief Value of @c EthGtpHdr.ext.next_ext . */
+  EthGtpExtTypePsc = 0x85,
+};
+
 #ifndef __BPF__
 
 typedef struct EthLocator EthLocator;

@@ -59,6 +59,10 @@ func (table *GtpipTable) ProcessDownlink(pkt *pktmbuf.Packet) bool {
 	return bool(C.GtpipTable_ProcessDownlink((*C.GtpipTable)(table), (*C.struct_rte_mbuf)(pkt.Ptr())))
 }
 
+func (table *GtpipTable) ProcessUplink(pkt *pktmbuf.Packet) bool {
+	return bool(C.GtpipTable_ProcessUplink((*C.GtpipTable)(table), (*C.struct_rte_mbuf)(pkt.Ptr())))
+}
+
 // Close deletes the table.
 func (table *GtpipTable) Close() error {
 	if table.ipv4 != nil {
