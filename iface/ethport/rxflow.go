@@ -2,6 +2,7 @@ package ethport
 
 /*
 #include "../../csrc/ethface/face.h"
+#include "../../csrc/ethface/flow-pattern.h"
 */
 import "C"
 import (

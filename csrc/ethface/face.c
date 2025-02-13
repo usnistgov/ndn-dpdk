@@ -1,5 +1,6 @@
 #include "face.h"
 #include "../iface/face.h"
+#include "flow-pattern.h"
 
 enum {
   EthMaxBurstSize = RTE_DIM(((RxGroupBurstCtx*)NULL)->pkts),

@@ -40,4 +40,14 @@ typedef struct EthGtpHdr {
   uint8_t next;
 } __rte_packed EthGtpHdr;
 
+#ifndef __BPF__
+
+typedef struct EthLocator EthLocator;
+
+/** @brief Prepare XDP locator from locator. */
+__attribute__((nonnull)) void
+EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc);
+
+#endif // __BPF__
+
 #endif // NDNDPDK_ETHFACE_XDP_LOCATOR_H

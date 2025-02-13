@@ -4,7 +4,8 @@
 /** @file */
 
 #include "../iface/rxloop.h"
-#include "locator.h"
+#include "rxmatch.h"
+#include "txhdr.h"
 #include <urcu/rculist.h>
 
 /** @brief rte_flow hardware assisted RX dispatching. */

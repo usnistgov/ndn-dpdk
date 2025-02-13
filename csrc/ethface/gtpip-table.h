@@ -6,7 +6,7 @@
 #include "../dpdk/hashtable.h"
 #include "../iface/face.h"
 
-/** @brief Forwarder data plane, crypto helper. */
+/** @brief GTP-IP table. */
 typedef struct GtpipTable {
   struct rte_hash* ipv4;
 } GtpipTable;

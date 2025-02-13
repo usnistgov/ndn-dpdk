@@ -5,6 +5,9 @@
 N_LOG_INIT(GtpipTable);
 
 enum {
+  // Length of inner IPv4+UDP headers for NDN over GTP-U packets as prepared in EthTxHdr.
+  // Since we are dealing with IP traffic that already has IP headers, these headers shall
+  // not be prepended onto downlink packets.
   EthTxHdr_InnerLen = sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_udp_hdr),
 };
 
@@ -49,6 +52,7 @@ GtpipTable_ProcessDownlink(GtpipTable* table, struct rte_mbuf* m) {
   EthTxHdr* hdr = &priv->txHdr;
   NDNDPDK_ASSERT(hdr->tunnel == 'G');
 
+  // strip the Ethernet header, then prepend outer Ethernet+IP+UDP+GTP headers
   uint16_t innerLen = (uint16_t)m->pkt_len - RTE_ETHER_HDR_LEN;
   char* room = rte_pktmbuf_prepend(m, hdr->len - EthTxHdr_InnerLen - RTE_ETHER_HDR_LEN);
   if (unlikely(room == NULL)) {
