@@ -1,11 +1,11 @@
-#include "gtpip-table.h"
+#include "gtpip.h"
 #include "../core/logger.h"
 #include "face.h"
 
-N_LOG_INIT(GtpipTable);
+N_LOG_INIT(EthGtpip);
 
 bool
-GtpipTable_ProcessDownlink(GtpipTable* table, struct rte_mbuf* m) {
+EthGtpip_ProcessDownlink(EthGtpip* g, struct rte_mbuf* m) {
   if (unlikely(m->data_len < RTE_ETHER_HDR_LEN + sizeof(struct rte_ipv4_hdr))) {
     return false;
   }
@@ -17,7 +17,7 @@ GtpipTable_ProcessDownlink(GtpipTable* table, struct rte_mbuf* m) {
   rte_be32_t ueIP = ip->dst_addr;
 
   void* hdata = NULL;
-  int res = rte_hash_lookup_data(table->ipv4, &ueIP, &hdata);
+  int res = rte_hash_lookup_data(g->ipv4, &ueIP, &hdata);
   if (res < 0) {
     return false;
   }
@@ -41,7 +41,7 @@ enum {
 };
 
 bool
-GtpipTable_ProcessUplink(GtpipTable* table, struct rte_mbuf* m) {
+EthGtpip_ProcessUplink(EthGtpip* g, struct rte_mbuf* m) {
   const struct rte_ether_hdr* eth = rte_pktmbuf_mtod(m, const struct rte_ether_hdr*);
   const struct rte_vlan_hdr* vlan = RTE_PTR_ADD(eth, RTE_ETHER_HDR_LEN);
   uint16_t hdrLen = 0;
@@ -63,11 +63,16 @@ GtpipTable_ProcessUplink(GtpipTable* table, struct rte_mbuf* m) {
     return false;
   }
   hdrLen -= sizeof(struct rte_ipv4_hdr); // keep inner IPv4 header
+  const struct rte_udp_hdr* udp = RTE_PTR_ADD(eth, hdrLen - sizeof(EthGtpHdr) - sizeof(*udp));
+  if (unlikely(udp->src_port != rte_cpu_to_be_16(RTE_GTPU_UDP_PORT)) ||
+      unlikely(udp->dst_port != rte_cpu_to_be_16(RTE_GTPU_UDP_PORT))) {
+    return false;
+  }
   const struct rte_ipv4_hdr* iip = RTE_PTR_ADD(eth, hdrLen);
   rte_be32_t ueIP = iip->src_addr;
 
   void* hdata = NULL;
-  int res = rte_hash_lookup_data(table->ipv4, &ueIP, &hdata);
+  int res = rte_hash_lookup_data(g->ipv4, &ueIP, &hdata);
   if (res < 0) {
     return false;
   }

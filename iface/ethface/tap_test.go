@@ -387,7 +387,7 @@ func TestGtpip(t *testing.T) {
 	})
 	ethDev := tap.Port.EthDev()
 
-	table, e := ethport.NewGtpipTable(ethport.GtpipTableConfig{
+	table, e := ethport.NewGtpip(ethport.GtpipConfig{
 		IPv4Capacity: 8192,
 	}, ethDev.NumaSocket())
 	require.NoError(e)
