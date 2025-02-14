@@ -3,7 +3,7 @@
 
 /** @file */
 
-#include "../iface/rxloop.h"
+#include "passthru.h"
 #include "rxmatch.h"
 #include "txhdr.h"
 #include <urcu/rculist.h>
@@ -21,11 +21,13 @@ typedef struct EthRxFlow {
 
 /** @brief Ethernet face private data. */
 typedef struct EthFacePriv {
-  EthRxFlow rxf[MaxFaceRxThreads];
+  union {
+    EthRxFlow rxf[MaxFaceRxThreads];
+    EthPassthru passthru;
+  };
   EthTxHdr txHdr;
   FaceID faceID;
   uint16_t port;
-  uint16_t tapPort;
 
   struct cds_list_head rxtNode;
   EthRxMatch rxMatch;

@@ -6,6 +6,16 @@
 #include "../iface/rxloop.h"
 
 /**
+ * @brief Ethernet pass-through face and its associated TAP port.
+ *
+ * This struct also serves as the RxGroup of the TAP port.
+ */
+typedef struct EthPassthru {
+  RxGroup base;
+  uint16_t tapPort;
+} EthPassthru;
+
+/**
  * @brief Process incoming Ethernet frame on a pass-through face.
  *
  * This is set as @c Face_RxInputFunc of a pass-through face.

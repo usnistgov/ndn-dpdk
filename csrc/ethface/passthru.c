@@ -9,9 +9,11 @@ EthPassthru_FaceRxInput(Face* face, int rxThread, struct rte_mbuf* pkt) {
   EthFacePriv* priv = Face_GetPriv(face);
   rxt->nFrames[FaceRxThread_cntNOctets] += pkt->pkt_len;
   ++rxt->nFrames[1];
+
   uint16_t nSent = 0;
-  if (likely(priv->tapPort != UINT16_MAX)) {
-    nSent = rte_eth_tx_burst(priv->tapPort, 0, &pkt, 1);
+  uint16_t tapPort = priv->passthru.tapPort;
+  if (likely(tapPort != UINT16_MAX)) {
+    nSent = rte_eth_tx_burst(tapPort, 0, &pkt, 1);
   }
   if (nSent == 0) {
     rte_pktmbuf_free(pkt);
@@ -23,19 +25,20 @@ STATIC_ASSERT_FUNC_TYPE(Face_RxInputFunc, EthPassthru_FaceRxInput);
 
 void
 EthPassthru_TapPortRxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
-  EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
-  uint16_t nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, RTE_DIM(ctx->pkts));
+  EthPassthru* pt = container_of(rxg, EthPassthru, base);
+  EthFacePriv* priv = container_of(pt, EthFacePriv, passthru);
+  uint16_t nRx = rte_eth_rx_burst(pt->tapPort, 0, ctx->pkts, RTE_DIM(ctx->pkts));
   if (nRx == 0) {
     return;
   }
-  uint64_t now = rte_get_tsc_cycles();
 
+  uint64_t now = rte_get_tsc_cycles();
   for (uint16_t i = 0; i < nRx; ++i) {
     struct rte_mbuf* m = ctx->pkts[i];
     Mbuf_SetTimestamp(m, now);
   }
 
-  Face_TxBurst(rxf->faceID, (Packet**)ctx->pkts, nRx);
+  Face_TxBurst(priv->faceID, (Packet**)ctx->pkts, nRx);
 }
 
 STATIC_ASSERT_FUNC_TYPE(RxGroup_RxBurstFunc, EthPassthru_TapPortRxBurst);

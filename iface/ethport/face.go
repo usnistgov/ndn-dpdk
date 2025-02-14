@@ -2,12 +2,16 @@ package ethport
 
 /*
 #include "../../csrc/ethface/face.h"
+
+static_assert(offsetof(EthFacePriv, rxf) == 0, "");
+static_assert(RTE_SIZEOF_FIELD(EthFacePriv, rxf) == 64*MaxFaceRxThreads, "");
+static_assert(offsetof(EthFacePriv, passthru) == 0, "");
 */
 import "C"
 import (
 	"errors"
-	"math"
 	"net"
+	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
@@ -95,6 +99,14 @@ type Face struct {
 	rxf  []*rxgFlow
 }
 
+func (face *Face) rxfC(index int) *C.EthRxFlow {
+	return (*C.EthRxFlow)(unsafe.Add(unsafe.Pointer(face.priv), 64*index))
+}
+
+func (face *Face) passthruC() *C.EthPassthru {
+	return (*C.EthPassthru)(unsafe.Pointer(face.priv))
+}
+
 // NewFace creates a face on the given port.
 func NewFace(port *Port, loc Locator) (iface.Face, error) {
 	face := &Face{
@@ -124,9 +136,8 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 
 			face.priv = (*C.EthFacePriv)(C.Face_GetPriv(faceC))
 			*face.priv = C.EthFacePriv{
-				faceID:  C.FaceID(id),
-				port:    C.uint16_t(face.port.dev.ID()),
-				tapPort: math.MaxUint16,
+				faceID: C.FaceID(id),
+				port:   C.uint16_t(face.port.dev.ID()),
 			}
 
 			cfg := face.loc.EthFaceConfig()

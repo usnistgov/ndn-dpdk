@@ -198,7 +198,7 @@ func (rxf *rxgFlow) NumaSocket() eal.NumaSocket {
 }
 
 func (rxf *rxgFlow) RxGroup() (ptr unsafe.Pointer, desc string) {
-	return unsafe.Pointer(&rxf.face.priv.rxf[rxf.index].base),
+	return unsafe.Pointer(&rxf.face.rxfC(rxf.index).base),
 		fmt.Sprintf("EthRxFlow(face=%d,port=%d,queue=%d)", rxf.face.ID(), rxf.face.port.EthDev().ID(), rxf.queue)
 }
 

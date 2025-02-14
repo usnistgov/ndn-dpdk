@@ -6,6 +6,8 @@ package ethport
 import "C"
 import (
 	"fmt"
+	"math"
+	"sync"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
@@ -23,7 +25,10 @@ func MakePassthruTapName(dev ethdev.EthDev) string {
 	return fmt.Sprintf("ndndpdkPT%d", dev.ID())
 }
 
-var passthruPorts = map[iface.ID]*passthruPort{}
+var (
+	passthruPorts      = map[iface.ID]*passthruPort{}
+	passthruPortsMutex sync.Mutex
+)
 
 // passthruPort holds a passthru face and the associated TAP netif.
 type passthruPort struct {
@@ -41,7 +46,7 @@ func (fport *passthruPort) NumaSocket() eal.NumaSocket {
 }
 
 func (fport *passthruPort) RxGroup() (ptr unsafe.Pointer, desc string) {
-	return unsafe.Pointer(&fport.face.priv.rxf[0].base),
+	return unsafe.Pointer(&fport.face.passthruC().base),
 		fmt.Sprintf("EthRxPassthru(face=%d,port=%d)", fport.face.ID(), fport.face.port.EthDev().ID())
 }
 
@@ -66,11 +71,9 @@ func (fport *passthruPort) startTap() (e error) {
 		return e
 	}
 
-	priv := fport.face.priv
-	priv.tapPort = C.uint16_t(fport.tapDev.ID())
-	rxfC := &priv.rxf[0]
-	rxfC.base.rxBurst = C.RxGroup_RxBurstFunc(C.EthPassthru_TapPortRxBurst)
-	rxfC.port, rxfC.queue, rxfC.faceID = fport.face.priv.tapPort, 0, priv.faceID
+	ptC := fport.face.passthruC()
+	ptC.tapPort = C.uint16_t(fport.tapDev.ID())
+	ptC.base.rxBurst = C.RxGroup_RxBurstFunc(C.EthPassthru_TapPortRxBurst)
 
 	rxl := iface.ActivateRxGroup(fport)
 	fport.face.logger.Info("activated TAP device",
@@ -84,7 +87,7 @@ func (fport *passthruPort) startTap() (e error) {
 func (fport *passthruPort) stopTap() {
 	tapDevField := fport.tapDev.ZapField("tap-port")
 	iface.DeactivateRxGroup(fport)
-	fport.face.logger.Info("deactivate TAP device",
+	fport.face.logger.Info("deactivated TAP device",
 		tapDevField,
 	)
 
@@ -97,12 +100,14 @@ func (fport *passthruPort) stopTap() {
 }
 
 func passthruInit(face *Face, initResult *iface.InitResult) {
-	_ = face
+	face.passthruC().tapPort = math.MaxUint16
 	initResult.RxInput = C.EthPassthru_FaceRxInput
 	initResult.TxLoop = C.EthPassthru_TxLoop
 }
 
 func passthruStart(face *Face) error {
+	passthruPortsMutex.Lock()
+	defer passthruPortsMutex.Unlock()
 	fport := &passthruPort{face: face}
 	if e := fport.startTap(); e != nil {
 		return e
@@ -112,6 +117,8 @@ func passthruStart(face *Face) error {
 }
 
 func passthruStop(face *Face) {
+	passthruPortsMutex.Lock()
+	defer passthruPortsMutex.Unlock()
 	fport := passthruPorts[face.ID()]
 	fport.stopTap()
 	delete(passthruPorts, face.ID())
