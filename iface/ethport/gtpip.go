@@ -82,7 +82,7 @@ func (g *Gtpip) Close() error {
 	return nil
 }
 
-// NewGtpip creates a GTP-IP table.
+// NewGtpip creates a GTP-IP handler.
 func NewGtpip(cfg GtpipConfig, socket eal.NumaSocket) (g *Gtpip, e error) {
 	g = (*Gtpip)(eal.Zmalloc[C.EthGtpip]("EthGtpip", C.sizeof_EthGtpip, socket))
 

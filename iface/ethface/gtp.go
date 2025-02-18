@@ -84,6 +84,11 @@ func (loc GtpLocator) EthLocatorC() (locC ethport.LocatorC) {
 	return
 }
 
+// EthGtpUEIP implements ethport.passthruPort.withUEIP interface.
+func (loc GtpLocator) EthGtpUEIP() netip.Addr {
+	return loc.InnerRemoteIP
+}
+
 // CreateFace creates a GTP-U face.
 func (loc GtpLocator) CreateFace() (face iface.Face, e error) {
 	port, e := loc.FaceConfig.FindPort(loc.Local.HardwareAddr)

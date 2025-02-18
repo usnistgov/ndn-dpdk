@@ -27,6 +27,8 @@ func (PassthruLocator) Scheme() string {
 }
 
 // GtpipConfig returns GtpipConfig if present.
+//
+// Implements passthruStart.withGtpipConfig interface.
 func (loc PassthruLocator) GtpipConfig() *ethport.GtpipConfig {
 	return loc.Gtpip
 }

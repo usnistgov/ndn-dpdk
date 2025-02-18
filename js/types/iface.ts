@@ -86,6 +86,7 @@ interface EthFaceConfig extends FaceConfig {
 export interface PassthruLocator extends EthFaceConfig {
   scheme: "passthru";
   local?: string;
+  gtpip?: GtpipConfig;
 }
 
 interface EtherLocatorBase extends EthFaceConfig {
@@ -173,6 +174,19 @@ export interface GtpLocator extends IpLocatorBase {
 
   innerLocalIP: string;
   innerRemoteIP: string;
+}
+
+/**
+ * GTP-IP handler config.
+ * @see <https://pkg.go.dev/github.com/usnistgov/ndn-dpdk/iface/ethport#GtpipConfig>
+ */
+export interface GtpipConfig {
+  /**
+   * @minimum 256
+   * @maximum 65536
+   * @default 256
+   */
+  ipv4capacity?: Uint;
 }
 
 export type MemifRole = "server" | "client";

@@ -7,6 +7,7 @@ import "C"
 import (
 	"fmt"
 	"math"
+	"net/netip"
 	"sync"
 	"unsafe"
 
@@ -25,7 +26,7 @@ func MakePassthruTapName(dev ethdev.EthDev) string {
 	return fmt.Sprintf("ndndpdkPT%d", dev.ID())
 }
 
-// GtpipFromPassthruFace retrieves GTP-IP table associated with a pass-through face.
+// GtpipFromPassthruFace retrieves GTP-IP handler associated with a pass-through face.
 func GtpipFromPassthruFace(id iface.ID) *Gtpip {
 	passthruPortsMutex.Lock()
 	defer passthruPortsMutex.Unlock()
@@ -43,9 +44,10 @@ var (
 
 // passthruPort holds a passthru face and the associated TAP netif.
 type passthruPort struct {
-	face   *Face
-	tapDev ethdev.EthDev
-	gtpip  *Gtpip
+	face         *Face
+	tapDev       ethdev.EthDev
+	gtpip        *Gtpip
+	cancelEvents []func()
 }
 
 var (
@@ -114,20 +116,83 @@ func (fport *passthruPort) stopTap() {
 func (fport *passthruPort) enableGtpip(cfg GtpipConfig) (e error) {
 	fport.gtpip, e = NewGtpip(cfg, fport.NumaSocket())
 
-	if e == nil {
-		ptC := fport.face.passthruC()
-		ptC.gtpip = (*C.EthGtpip)(fport.gtpip)
+	if e != nil {
+		return e
 	}
 
-	return
+	fport.cancelEvents = append(fport.cancelEvents,
+		iface.OnFaceNew(fport.handleFaceNew),
+		iface.OnFaceClosing(fport.handleFaceClosing),
+	)
+
+	ptC := fport.face.passthruC()
+	ptC.gtpip = (*C.EthGtpip)(fport.gtpip)
+	return nil
 }
 
 func (fport *passthruPort) disableGtpip() {
 	if fport.gtpip == nil {
 		return
 	}
+
+	for _, cancel := range fport.cancelEvents {
+		cancel()
+	}
+	fport.cancelEvents = nil
+
 	fport.gtpip.Close()
 	fport.gtpip = nil
+}
+
+func (fport *passthruPort) handleFaceEvent(id iface.ID) (face iface.Face, ueIP netip.Addr, logEntry *zap.Logger, ok bool) {
+	face = iface.Get(id)
+	if face1, ok1 := iface.Get(id).(*Face); !ok1 || face1.port != fport.face.port {
+		return
+	}
+
+	type withUEIP interface {
+		EthGtpUEIP() netip.Addr
+	}
+	loc, ok1 := face.Locator().(withUEIP)
+	if !ok1 {
+		return
+	}
+
+	ueIP = loc.EthGtpUEIP()
+	logEntry = fport.face.logger.With(
+		face.ID().ZapField("gtp-face"),
+		zap.Stringer("ueip", ueIP),
+	)
+	ok = true
+	return
+}
+
+func (fport *passthruPort) handleFaceNew(id iface.ID) {
+	face, ueIP, logEntry, ok := fport.handleFaceEvent(id)
+	if !ok {
+		return
+	}
+
+	e := fport.gtpip.Insert(ueIP, face)
+	if e != nil {
+		logEntry.Error("insert GTP-IP handler record error", zap.Error(e))
+	} else {
+		logEntry.Info("inserted GTP-IP handler record")
+	}
+}
+
+func (fport *passthruPort) handleFaceClosing(id iface.ID) {
+	_, ueIP, logEntry, ok := fport.handleFaceEvent(id)
+	if !ok {
+		return
+	}
+
+	e := fport.gtpip.Delete(ueIP)
+	if e != nil {
+		logEntry.Error("delete GTP-IP handler record error", zap.Error(e))
+	} else {
+		logEntry.Info("deleted GTP-IP handler record")
+	}
 }
 
 func passthruInit(face *Face, initResult *iface.InitResult) {

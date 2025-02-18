@@ -76,20 +76,21 @@ The overall packet structure is as follows:
 ## Pass-through Face
 
 The pass-through face allows receiving and sending non-NDN traffic, on a DPDK ethdev exclusively occupied by NDN-DPDK.
-To create a pass-through face, using the locator:
+To create a pass-through face, use the locator:
 
 ```jsonc
 {
   "scheme": "passthru",
-  "port": "b9RENroce85E",      // ethdev GraphQL ID, or
-  "local": "02:00:00:00:00:00" // ethdev local MAC address
+  "port": "b9RENroce85E",       // ethdev GraphQL ID, or
+  "local": "02:00:00:00:00:00", // ethdev local MAC address
+  "gtpip": {}                   // (optional) enable GTP-IP handler
 }
 ```
 
 Each port can have at most one pass-through face.
 The pass-through face is associated with a TAP netif, which has the same local MAC address and MTU as the ethdev.
-Packets sent to the TAP netif are transmitted out of the ethdev.
 Packets received by the ethdev that do not match an NDN face are received by the TAP netif.
+Packets sent to the TAP netif are transmitted out of the ethdev.
 
 Caveats and limitations:
 
@@ -99,3 +100,15 @@ Caveats and limitations:
 * This is incompatible with [packet dumper](../../app/pdump).
 
 See [package ethport](../ethport/README.md) for implementation details.
+
+### GTP-IP Handler
+
+The GTP-IP handler allows forwarding non-NDN traffic on GTP-U tunnel faces via the pass-through face.
+To enable this feature, provide a GTP-IP handler configuration object (could be an empty object) to the *gtpip* field of the passthru locator.
+The pass-through face must be created before creating GTP-U tunnel faces.
+
+With the GTP-IP handler enabled, the pass-through face behavior changes as follows:
+
+* GTP-U packets received by the ethdev whose headers (up to inner IPv4 header) match a GTP-U tunnel face is decapsulated out of the tunnel.
+* IP packets sent to the TAP netif whose destination address matches a GTP-U tunnel face is encapsulated in the GTP-U tunnel.
+* In packet counters, these packets are reflected in "RX Data" and "TX Data" counters.

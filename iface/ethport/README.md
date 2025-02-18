@@ -80,6 +80,7 @@ During face creation:
 
     * Data structures related to the TAP device is stored in the `C.EthFacePriv` area of the pass-through face.
     * The TAP device is itself an DPDK ethdev and it's activated as an RxGroup here.
+    * If GTP-IP handler is enabled, it is created and associated with the pass-through face.
 
 4. As part of `iface.NewParams.Start`, `ethport.rxImpl.Start` is invoked.
 
@@ -90,15 +91,19 @@ During face teardown:
 
 1. As part of `iface.NewParams.Stop`, `ethport.passthruStop` destroys the TAP device.
 
+    * If GTP-IP handler is enabled, it is destroyed.
+
 Receive path from DPDK ethdev to TAP netif:
 
 1. `C.EthRxTable_RxBurst` receives a burst of Ethernet frames and calls `C.EthRxTable_Accept` on each packet to find which faces could accept it.
 
 2. The pass-through face is at the tail of `C.EthRxTable.head` linked list and has an `C.EthRxMatch` that matches all packets, so that it will always accept the packet if no other face has accepted it.
 
-3. The accepted packet is passed to `C.EthPassthru_FaceRxInput`, which immediately transmits the packet on the TAP netif.
+3. The packet is passed to `C.EthPassthru_FaceRxInput`, which immediately transmits the packet on the TAP netif.
 
-    * This occurs in the RX thread.
+    * If GTP-IP handler is enabled, `C.EthGtpip_ProcessUplink` is invoked.
+      If the packet is recognized as GTP-U and matches an existing GTP-U tunnel face, the packet is modified with outer header removal.
+    * These operations occur in the RX thread.
       The packet does not go through the TX thread.
 
 Send path from TAP netif to DPDK ethdev:
@@ -110,6 +115,12 @@ Send path from TAP netif to DPDK ethdev:
 
 2. The TxLoop of the pass-through face uses `C.EthPassthru_TxLoop` as its `C.Face_TxLoopFunc` function pointer.
 
-    * `C.EthPassthru_TxLoop` dequeues outgoing packets for the face and passes them to `C.TxLoop_TxFrames`, bypassing fragmentation.
-    * `C.TxLoop_TxFrames` invokes `C.FaceImpl.txBurst` that is usually `C.EthFace_TxBurst` to transmit the packet.
-    * This occurs in the TX thread.
+    * `C.EthPassthru_TxLoop` dequeues outgoing packets for the face.
+    * If GTP-IP handler is enabled, `C.EthGtpip_ProcessDownlink` is invoked.
+      If the destination IP address matches an existing GTP-U tunnel face, the packet is modified with outer header creation.
+    * The packet is then passes to `C.TxLoop_TxFrames` without going through NDNLPv2 fragmentation.
+    * These operations occur in the TX thread.
+
+3. Finally, `C.TxLoop_TxFrames` invokes `C.FaceImpl.txBurst` to transmit the packet.
+
+    * `C.FaceImpl.txBurst` is usually `C.EthFace_TxBurst`.
