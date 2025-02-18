@@ -16,11 +16,19 @@ type PassthruLocator struct {
 	// Local is the local MAC address.
 	// This must be a 48-bit unicast address.
 	Local macaddr.Flag `json:"local,omitempty"`
+
+	// Gtpip enables and configures GTP-IP handler.
+	Gtpip *ethport.GtpipConfig `json:"gtpip,omitempty"`
 }
 
 // Scheme returns "passthru".
 func (PassthruLocator) Scheme() string {
 	return ethport.SchemePassthru
+}
+
+// GtpipConfig returns GtpipConfig if present.
+func (loc PassthruLocator) GtpipConfig() *ethport.GtpipConfig {
+	return loc.Gtpip
 }
 
 // Validate checks Locator fields.

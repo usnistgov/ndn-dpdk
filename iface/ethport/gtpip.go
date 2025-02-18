@@ -30,6 +30,13 @@ type GtpipConfig struct {
 // Gtpip represents GTP-IP handler.
 type Gtpip C.EthGtpip
 
+// Len returns number of entries.
+func (g *Gtpip) Len() int {
+	var n C.int32_t
+	n += C.rte_hash_count(g.ipv4)
+	return int(n)
+}
+
 // Insert inserts a record of UE IP Address and GTP-U face.
 func (g *Gtpip) Insert(ueIP netip.Addr, face iface.Face) error {
 	switch {
@@ -56,15 +63,17 @@ func (g *Gtpip) Delete(ueIP netip.Addr) error {
 	return errors.New("not IPv4 address")
 }
 
+// ProcessDownlink processes a downlink Ethernet frame.
 func (g *Gtpip) ProcessDownlink(pkt *pktmbuf.Packet) bool {
 	return bool(C.EthGtpip_ProcessDownlink((*C.EthGtpip)(g), (*C.struct_rte_mbuf)(pkt.Ptr())))
 }
 
+// ProcessUplink processes an uplink Ethernet frame.
 func (g *Gtpip) ProcessUplink(pkt *pktmbuf.Packet) bool {
 	return bool(C.EthGtpip_ProcessUplink((*C.EthGtpip)(g), (*C.struct_rte_mbuf)(pkt.Ptr())))
 }
 
-// Close deletes the table.
+// Close releases memory.
 func (g *Gtpip) Close() error {
 	if g.ipv4 != nil {
 		C.rte_hash_free(g.ipv4)

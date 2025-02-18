@@ -4,7 +4,7 @@
 /** @file */
 
 #include "../dpdk/hashtable.h"
-#include "../iface/face.h"
+#include "../dpdk/mbuf.h"
 
 /** @brief GTP-IP handler. */
 typedef struct EthGtpip {

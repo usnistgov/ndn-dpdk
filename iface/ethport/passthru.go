@@ -25,6 +25,17 @@ func MakePassthruTapName(dev ethdev.EthDev) string {
 	return fmt.Sprintf("ndndpdkPT%d", dev.ID())
 }
 
+// GtpipFromPassthruFace retrieves GTP-IP table associated with a pass-through face.
+func GtpipFromPassthruFace(id iface.ID) *Gtpip {
+	passthruPortsMutex.Lock()
+	defer passthruPortsMutex.Unlock()
+
+	if fport, ok := passthruPorts[id]; ok {
+		return fport.gtpip
+	}
+	return nil
+}
+
 var (
 	passthruPorts      = map[iface.ID]*passthruPort{}
 	passthruPortsMutex sync.Mutex
@@ -34,6 +45,7 @@ var (
 type passthruPort struct {
 	face   *Face
 	tapDev ethdev.EthDev
+	gtpip  *Gtpip
 }
 
 var (
@@ -99,8 +111,29 @@ func (fport *passthruPort) stopTap() {
 	}
 }
 
+func (fport *passthruPort) enableGtpip(cfg GtpipConfig) (e error) {
+	fport.gtpip, e = NewGtpip(cfg, fport.NumaSocket())
+
+	if e == nil {
+		ptC := fport.face.passthruC()
+		ptC.gtpip = (*C.EthGtpip)(fport.gtpip)
+	}
+
+	return
+}
+
+func (fport *passthruPort) disableGtpip() {
+	if fport.gtpip == nil {
+		return
+	}
+	fport.gtpip.Close()
+	fport.gtpip = nil
+}
+
 func passthruInit(face *Face, initResult *iface.InitResult) {
-	face.passthruC().tapPort = math.MaxUint16
+	ptC := face.passthruC()
+	ptC.tapPort = math.MaxUint16
+	ptC.gtpip = nil
 	initResult.RxInput = C.EthPassthru_FaceRxInput
 	initResult.TxLoop = C.EthPassthru_TxLoop
 }
@@ -108,10 +141,24 @@ func passthruInit(face *Face, initResult *iface.InitResult) {
 func passthruStart(face *Face) error {
 	passthruPortsMutex.Lock()
 	defer passthruPortsMutex.Unlock()
+
 	fport := &passthruPort{face: face}
 	if e := fport.startTap(); e != nil {
 		return e
 	}
+
+	type withGtpipConfig interface {
+		GtpipConfig() *GtpipConfig
+	}
+	if loc, ok := face.loc.(withGtpipConfig); ok {
+		if cfg := loc.GtpipConfig(); cfg != nil {
+			if e := fport.enableGtpip(*cfg); e != nil {
+				fport.stopTap()
+				return e
+			}
+		}
+	}
+
 	passthruPorts[face.ID()] = fport
 	return nil
 }
@@ -119,7 +166,9 @@ func passthruStart(face *Face) error {
 func passthruStop(face *Face) {
 	passthruPortsMutex.Lock()
 	defer passthruPortsMutex.Unlock()
+
 	fport := passthruPorts[face.ID()]
+	fport.disableGtpip()
 	fport.stopTap()
 	delete(passthruPorts, face.ID())
 }

@@ -5,6 +5,15 @@
 
 #include "../iface/rxloop.h"
 
+typedef struct EthGtpip EthGtpip;
+
+enum {
+  /// FaceRx/TxThread.nFrames[cntNPkts] counts non-GTP-IP packets.
+  EthPassthru_cntNPkts = PktInterest,
+  /// FaceRx/TxThread.nFrames[cntNGtpip] counts GTP-IP packets.
+  EthPassthru_cntNGtpip = PktData,
+};
+
 /**
  * @brief Ethernet pass-through face and its associated TAP port.
  *
@@ -13,6 +22,7 @@
 typedef struct EthPassthru {
   RxGroup base;
   uint16_t tapPort;
+  EthGtpip* gtpip;
 } EthPassthru;
 
 /**
