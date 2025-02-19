@@ -40,11 +40,7 @@ struct EthTxHdr {
 __attribute__((nonnull)) void
 EthTxHdr_Prepare(EthTxHdr* hdr, const EthLocator* loc, bool hasChecksumOffloads);
 
-/**
- * @brief Prepend TX header.
- * @param hdr prepared by @c EthTxHdr_Prepare .
- * @param newBurst whether @p m is the first frame in a new burst.
- */
+/** @brief Prepend TX header. */
 __attribute__((nonnull)) static inline void
 EthTxHdr_Prepend(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {
   EthTxHdr_PrependJmp[hdr->act](hdr, m, flags);

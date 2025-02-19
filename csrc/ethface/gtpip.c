@@ -4,30 +4,54 @@
 
 N_LOG_INIT(EthGtpip);
 
-bool
-EthGtpip_ProcessDownlink(EthGtpip* g, struct rte_mbuf* m) {
-  if (unlikely(m->data_len < RTE_ETHER_HDR_LEN + sizeof(struct rte_ipv4_hdr))) {
-    return false;
-  }
-  const struct rte_ether_hdr* eth = rte_pktmbuf_mtod(m, const struct rte_ether_hdr*);
-  if (eth->ether_type != rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4)) {
-    return false;
-  }
-  const struct rte_ipv4_hdr* ip = RTE_PTR_ADD(eth, RTE_ETHER_HDR_LEN);
-  rte_be32_t ueIP = ip->dst_addr;
+uint64_t
+EthGtpip_ProcessDownlinkBulk(EthGtpip* g, struct rte_mbuf* pkts[], uint32_t count) {
+  NDNDPDK_ASSERT(count <= RTE_HASH_LOOKUP_BULK_MAX);
 
-  void* hdata = NULL;
-  int res = rte_hash_lookup_data(g->ipv4, &ueIP, &hdata);
-  if (res < 0) {
-    return false;
+  uint32_t nLookups = 0;
+  uint64_t mask = 0;
+  const void* keys[RTE_HASH_LOOKUP_BULK_MAX] = {0};
+  for (uint32_t i = 0; i < count; ++i) {
+    struct rte_mbuf* pkt = pkts[i];
+    if (unlikely(pkt->data_len < RTE_ETHER_HDR_LEN + sizeof(struct rte_ipv4_hdr))) {
+      continue;
+    }
+    const struct rte_ether_hdr* eth = rte_pktmbuf_mtod(pkt, const struct rte_ether_hdr*);
+    if (eth->ether_type != rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4)) {
+      continue;
+    }
+    const struct rte_ipv4_hdr* ip = RTE_PTR_ADD(eth, RTE_ETHER_HDR_LEN);
+    rte_bit_set(&mask, i);
+    keys[nLookups++] = &ip->dst_addr;
+  }
+  if (nLookups == 0) {
+    return 0;
   }
 
-  FaceID id = (FaceID)(uintptr_t)hdata;
-  EthFacePriv* priv = Face_GetPriv(Face_Get(id));
-  EthTxHdr* hdr = &priv->txHdr;
-  EthTxHdr_Prepend(hdr, m, EthTxHdrFlagsGtpip);
+  uint64_t hMask = 0;
+  void* hData[RTE_HASH_LOOKUP_BULK_MAX];
+  int hHits = rte_hash_lookup_bulk_data(g->ipv4, keys, nLookups, &hMask, hData);
+  if (unlikely(hHits <= 0)) {
+    return 0;
+  }
 
-  return true;
+  nLookups = 0;
+  for (uint32_t i = 0; i < count; ++i) {
+    if (!rte_bit_test(&mask, i)) {
+      continue;
+    }
+    uint32_t hIndex = nLookups++;
+    if (unlikely(!rte_bit_test(&hMask, hIndex))) {
+      rte_bit_clear(&mask, i);
+      continue;
+    }
+    FaceID id = (FaceID)(uintptr_t)(hData[hIndex]);
+    EthFacePriv* priv = Face_GetPriv(Face_Get(id));
+    EthTxHdr* hdr = &priv->txHdr;
+    struct rte_mbuf* pkt = pkts[i];
+    EthTxHdr_Prepend(hdr, pkt, EthTxHdrFlagsGtpip);
+  }
+  return mask;
 }
 
 // Uplink header lengths, from outer Ethernet to inner IPv4.

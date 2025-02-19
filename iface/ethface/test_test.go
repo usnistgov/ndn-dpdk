@@ -2,6 +2,8 @@ package ethface_test
 
 import (
 	"io"
+	"net"
+	"net/netip"
 	"sync"
 	"testing"
 
@@ -123,6 +125,34 @@ func pktmbufFromLayers(headroom mbuftestenv.Headroom, hdrs ...gopacket.Serializa
 	b, discard := packetFromLayers(hdrs...)
 	defer discard()
 	return makePacket(headroom, b)
+}
+
+// makeARP constructs Ethernet and ARP layers.
+//
+//	dstMAC: if nil, make ARP request; otherwise, make ARP reply.
+func makeARP(srcMAC net.HardwareAddr, srcIP netip.Addr, dstMAC net.HardwareAddr, dstIP netip.Addr) []gopacket.SerializableLayer {
+	op, ethDst := uint16(layers.ARPReply), dstMAC
+	if len(dstMAC) == 0 {
+		op = layers.ARPRequest
+		ethDst = net.HardwareAddr{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+		dstMAC = net.HardwareAddr{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	}
+	return []gopacket.SerializableLayer{
+		&layers.Ethernet{
+			SrcMAC:       srcMAC,
+			DstMAC:       ethDst,
+			EthernetType: layers.EthernetTypeARP,
+		},
+		&layers.ARP{
+			AddrType:          layers.LinkTypeEthernet,
+			Protocol:          layers.EthernetTypeIPv4,
+			Operation:         op,
+			SourceHwAddress:   srcMAC,
+			SourceProtAddress: srcIP.AsSlice(),
+			DstHwAddress:      dstMAC,
+			DstProtAddress:    dstIP.AsSlice(),
+		},
+	}
 }
 
 // makeGTPv1U constructs a GTPv1U layer.

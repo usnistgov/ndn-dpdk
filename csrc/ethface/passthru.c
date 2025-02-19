@@ -34,18 +34,18 @@ void
 EthPassthru_TapPortRxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
   EthPassthru* pt = container_of(rxg, EthPassthru, base);
   EthFacePriv* priv = container_of(pt, EthFacePriv, passthru);
-  uint16_t nRx = rte_eth_rx_burst(pt->tapPort, 0, ctx->pkts, RTE_DIM(ctx->pkts));
-  if (nRx == 0) {
+  uint16_t count = rte_eth_rx_burst(pt->tapPort, 0, ctx->pkts, RTE_DIM(ctx->pkts));
+  if (count == 0) {
     return;
   }
 
   uint64_t now = rte_get_tsc_cycles();
-  for (uint16_t i = 0; i < nRx; ++i) {
+  for (uint16_t i = 0; i < count; ++i) {
     struct rte_mbuf* m = ctx->pkts[i];
     Mbuf_SetTimestamp(m, now);
   }
 
-  Face_TxBurst(priv->faceID, (Packet**)ctx->pkts, nRx);
+  Face_TxBurst(priv->faceID, (Packet**)ctx->pkts, count);
 }
 
 STATIC_ASSERT_FUNC_TYPE(RxGroup_RxBurstFunc, EthPassthru_TapPortRxBurst);
@@ -53,24 +53,23 @@ STATIC_ASSERT_FUNC_TYPE(RxGroup_RxBurstFunc, EthPassthru_TapPortRxBurst);
 uint16_t
 EthPassthru_TxLoop(Face* face, int txThread) {
   FaceTxThread* txt = &face->impl->tx[txThread];
-  struct rte_mbuf* frames[MaxBurstSize];
-  uint16_t nTx = rte_ring_dequeue_burst(face->outputQueue, (void**)frames, MaxBurstSize, NULL);
-  if (nTx == 0) {
+  struct rte_mbuf* pkts[MaxBurstSize];
+  uint16_t count = rte_ring_dequeue_burst(face->outputQueue, (void**)pkts, MaxBurstSize, NULL);
+  if (count == 0) {
     return 0;
   }
 
   EthFacePriv* priv = Face_GetPriv(face);
   EthPassthru* pt = &priv->passthru;
-  for (uint16_t i = 0; i < nTx; ++i) {
-    struct rte_mbuf* m = frames[i];
-    if (pt->gtpip != NULL && EthGtpip_ProcessDownlink(pt->gtpip, m)) {
-      ++txt->nFrames[EthPassthru_cntNGtpip];
-    } else {
-      ++txt->nFrames[EthPassthru_cntNPkts];
-    }
+  if (pt->gtpip == NULL) {
+    txt->nFrames[EthPassthru_cntNPkts] += count;
+  } else {
+    uint64_t nGtpip = rte_popcount64(EthGtpip_ProcessDownlinkBulk(pt->gtpip, pkts, count));
+    txt->nFrames[EthPassthru_cntNGtpip] += nGtpip;
+    txt->nFrames[EthPassthru_cntNPkts] += count - nGtpip;
   }
-  TxLoop_TxFrames(face, txThread, frames, nTx);
-  return nTx;
+  TxLoop_TxFrames(face, txThread, pkts, count);
+  return count;
 }
 
 STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, EthPassthru_TxLoop);

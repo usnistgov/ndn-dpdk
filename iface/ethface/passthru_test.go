@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net"
 	"net/netip"
+	"slices"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -151,22 +152,7 @@ func TestPassthru(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 		switch i % 10 {
 		case 0: // receive ARP queries
-			tap.WriteToFromLayers(
-				&layers.Ethernet{
-					SrcMAC:       locUDP4.Remote.HardwareAddr,
-					DstMAC:       net.HardwareAddr{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-					EthernetType: layers.EthernetTypeARP,
-				},
-				&layers.ARP{
-					AddrType:          layers.LinkTypeEthernet,
-					Protocol:          layers.EthernetTypeIPv4,
-					Operation:         layers.ARPRequest,
-					SourceHwAddress:   locUDP4.Remote.HardwareAddr,
-					SourceProtAddress: locUDP4.RemoteIP.AsSlice(),
-					DstHwAddress:      make([]byte, len(locUDP4.Local.HardwareAddr)),
-					DstProtAddress:    locUDP4.LocalIP.AsSlice(),
-				},
-			)
+			tap.WriteToFromLayers(makeARP(locUDP4.Remote.HardwareAddr, locUDP4.RemoteIP, nil, locUDP4.LocalIP)...)
 		case 1, 4, 7: // receive ICMP pings
 			tap.WriteToFromLayers(
 				&layers.Ethernet{
@@ -261,91 +247,120 @@ func TestGtpipProcess(t *testing.T) {
 	}
 	assert.Equal(len(facesGTP), g.Len())
 
-	for i := range 100 {
-		pkt := pktmbufFromLayers(pktmbuf.DefaultHeadroom,
-			&layers.Ethernet{
-				SrcMAC:       net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 0xFE},
-				DstMAC:       ethDev.HardwareAddr(),
-				EthernetType: layers.EthernetTypeIPv4,
-			},
-			&layers.IPv4{
-				Version:  4,
-				TTL:      64,
-				Protocol: layers.IPProtocolICMPv4,
-				SrcIP:    net.IPv4(192, 168, 6, 254),
-				DstIP:    net.IPv4(192, 168, 60, 2+byte(i)),
-			},
-			&layers.ICMPv4{
-				TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoRequest, 0),
-				Id:       uint16(i),
-				Seq:      1,
-			},
-		)
-		pktLen := pkt.Len()
-
-		ok := g.ProcessDownlink(pkt)
-		if i >= len(facesGTP) {
-			assert.False(ok, "%d", i)
-			assert.Equal(pktLen, pkt.Len(), "%d", i)
-		} else if assert.True(ok, "%d", i) {
-			loc := facesGTP[i].Locator().(ethface.GtpLocator)
-			wire := pkt.Bytes()
-			parsed := checkPacketLayers(t, wire,
-				layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeUDP, layers.LayerTypeGTPv1U,
-				layers.LayerTypeIPv4, layers.LayerTypeICMPv4)
-			gtp := parsed.Layer(layers.LayerTypeGTPv1U).(*layers.GTPv1U)
-			assert.EqualValues(loc.DlTEID, gtp.TEID, "%d", i)
+	t.Run("ProcessDownlink", func(t *testing.T) {
+		assert, _ := makeAR(t)
+		vec := make(pktmbuf.Vector, 100)
+		defer vec.Close()
+		pktLens := make([]int, len(vec))
+		for i := range vec {
+			switch i {
+			case 99:
+				vec[i] = pktmbufFromLayers(pktmbuf.DefaultHeadroom,
+					makeARP(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 0xFE}, netip.AddrFrom4([4]byte{192, 168, 6, 254}),
+						nil, netip.AddrFrom4([4]byte{192, 168, 6, 200}))...,
+				)
+			default:
+				vec[i] = pktmbufFromLayers(pktmbuf.DefaultHeadroom,
+					&layers.Ethernet{
+						SrcMAC:       net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 0xFE},
+						DstMAC:       ethDev.HardwareAddr(),
+						EthernetType: layers.EthernetTypeIPv4,
+					},
+					&layers.IPv4{
+						Version:  4,
+						TTL:      64,
+						Protocol: layers.IPProtocolICMPv4,
+						SrcIP:    net.IPv4(192, 168, 6, 254),
+						DstIP:    net.IPv4(192, 168, 60, 2+byte(i)),
+					},
+					&layers.ICMPv4{
+						TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoRequest, 0),
+						Id:       uint16(i),
+						Seq:      1,
+					},
+				)
+			}
+			pktLens[i] = vec[i].Len()
 		}
 
-		pkt.Close()
-	}
-
-	for i := range 100 {
-		pkt := pktmbufFromLayers(pktmbuf.DefaultHeadroom,
-			&layers.Ethernet{
-				SrcMAC:       net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i>>4)},
-				DstMAC:       ethDev.HardwareAddr(),
-				EthernetType: layers.EthernetTypeIPv4,
-			},
-			&layers.IPv4{
-				Version:  4,
-				TTL:      64,
-				Protocol: layers.IPProtocolUDP,
-				SrcIP:    net.IPv4(192, 168, 3, 2+byte(i>>4)),
-				DstIP:    net.IPv4(192, 168, 3, 254),
-			},
-			&layers.UDP{
-				SrcPort: ethport.UDPPortGTP,
-				DstPort: ethport.UDPPortGTP,
-			},
-			makeGTPv1U(0x10000000+uint32(i), 1, 2),
-			&layers.IPv4{
-				Version:  4,
-				TTL:      64,
-				Protocol: layers.IPProtocolICMPv4,
-				SrcIP:    net.IPv4(192, 168, 60, 2+byte(i)),
-				DstIP:    net.IPv4(192, 168, 6, 254),
-			},
-			&layers.ICMPv4{
-				TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoReply, 0),
-				Id:       uint16(i),
-				Seq:      1,
-			},
-		)
-		pktLen := pkt.Len()
-
-		ok := g.ProcessUplink(pkt)
-		if i >= len(facesGTP) {
-			assert.False(ok, "%d", i)
-			assert.Equal(pktLen, pkt.Len(), "%d", i)
-		} else if assert.True(ok, "%d", i) {
-			wire := pkt.Bytes()
-			checkPacketLayers(t, wire,
-				layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeICMPv4)
+		matches := g.ProcessDownlink(vec[:50])
+		{
+			// put non-matching packets in the middle
+			vec2 := slices.Concat(vec[70:], vec[50:70])
+			matches2 := g.ProcessDownlink(vec2)
+			matches = append(matches, matches2[30:]...)
+			matches = append(matches, matches2[:30]...)
 		}
 
-		pkt.Close()
-	}
+		for i, pkt := range vec {
+			if i >= len(facesGTP) {
+				assert.False(matches[i], "%d", i)
+				assert.Equal(pktLens[i], pkt.Len(), "%d", i)
+			} else if assert.True(matches[i], "%d", i) {
+				loc := facesGTP[i].Locator().(ethface.GtpLocator)
+				wire := pkt.Bytes()
+				parsed := checkPacketLayers(t, wire,
+					layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeUDP, layers.LayerTypeGTPv1U,
+					layers.LayerTypeIPv4, layers.LayerTypeICMPv4)
+				gtp := parsed.Layer(layers.LayerTypeGTPv1U).(*layers.GTPv1U)
+				assert.EqualValues(loc.DlTEID, gtp.TEID, "%d", i)
+			}
+		}
+		vec.Close()
+	})
+
+	t.Run("ProcessUplink", func(t *testing.T) {
+		assert, _ := makeAR(t)
+		vec := make(pktmbuf.Vector, 100)
+		defer vec.Close()
+		for i := range vec {
+			vec[i] = pktmbufFromLayers(pktmbuf.DefaultHeadroom,
+				&layers.Ethernet{
+					SrcMAC:       net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i>>4)},
+					DstMAC:       ethDev.HardwareAddr(),
+					EthernetType: layers.EthernetTypeIPv4,
+				},
+				&layers.IPv4{
+					Version:  4,
+					TTL:      64,
+					Protocol: layers.IPProtocolUDP,
+					SrcIP:    net.IPv4(192, 168, 3, 2+byte(i>>4)),
+					DstIP:    net.IPv4(192, 168, 3, 254),
+				},
+				&layers.UDP{
+					SrcPort: ethport.UDPPortGTP,
+					DstPort: ethport.UDPPortGTP,
+				},
+				makeGTPv1U(0x10000000+uint32(i), 1, 2),
+				&layers.IPv4{
+					Version:  4,
+					TTL:      64,
+					Protocol: layers.IPProtocolICMPv4,
+					SrcIP:    net.IPv4(192, 168, 60, 2+byte(i)),
+					DstIP:    net.IPv4(192, 168, 6, 254),
+				},
+				&layers.ICMPv4{
+					TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoReply, 0),
+					Id:       uint16(i),
+					Seq:      1,
+				},
+			)
+		}
+
+		for i, pkt := range vec {
+			pktLen := pkt.Len()
+
+			ok := g.ProcessUplink(pkt)
+			if i >= len(facesGTP) {
+				assert.False(ok, "%d", i)
+				assert.Equal(pktLen, pkt.Len(), "%d", i)
+			} else if assert.True(ok, "%d", i) {
+				wire := pkt.Bytes()
+				checkPacketLayers(t, wire,
+					layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeICMPv4)
+			}
+		}
+	})
 }
 
 func TestGtpipPassthru(t *testing.T) {
@@ -400,23 +415,10 @@ func TestGtpipPassthru(t *testing.T) {
 			parsed := gopacket.NewPacket(pkt, layers.LayerTypeEthernet, gopacket.NoCopy)
 			if arp, ok := parsed.Layer(layers.LayerTypeARP).(*layers.ARP); ok && arp.Operation == layers.ARPRequest {
 				if n3net.Contains(arp.DstProtAddress) && arp.DstProtAddress[3] < 0xF0 {
-					remoteMac := net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, arp.DstProtAddress[3]}
-					tap.WriteToFromLayers(
-						&layers.Ethernet{
-							SrcMAC:       remoteMac,
-							DstMAC:       parsed.Layer(layers.LayerTypeEthernet).(*layers.Ethernet).SrcMAC,
-							EthernetType: layers.EthernetTypeARP,
-						},
-						&layers.ARP{
-							AddrType:          layers.LinkTypeEthernet,
-							Protocol:          layers.EthernetTypeIPv4,
-							Operation:         layers.ARPReply,
-							SourceHwAddress:   remoteMac,
-							SourceProtAddress: arp.DstProtAddress,
-							DstHwAddress:      arp.SourceHwAddress,
-							DstProtAddress:    arp.SourceProtAddress,
-						},
-					)
+					remoteIP, _ := netip.AddrFromSlice(arp.DstProtAddress)
+					remoteMAC := net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, remoteIP.As4()[3]}
+					localIP, _ := netip.AddrFromSlice(arp.SourceProtAddress)
+					tap.WriteToFromLayers(makeARP(remoteMAC, remoteIP, arp.SourceHwAddress, localIP)...)
 				}
 				txARP.Add(1)
 			} else if icmp, ok := parsed.Layer(layers.LayerTypeICMPv4).(*layers.ICMPv4); ok && icmp.TypeCode.Type() == layers.ICMPv4TypeEchoReply {

@@ -116,7 +116,7 @@ Send path from TAP netif to DPDK ethdev:
 2. The TxLoop of the pass-through face uses `C.EthPassthru_TxLoop` as its `C.Face_TxLoopFunc` function pointer.
 
     * `C.EthPassthru_TxLoop` dequeues outgoing packets for the face.
-    * If GTP-IP handler is enabled, `C.EthGtpip_ProcessDownlink` is invoked.
+    * If GTP-IP handler is enabled, `C.EthGtpip_ProcessDownlinkBulk` is invoked.
       If the destination IP address matches an existing GTP-U tunnel face, the packet is modified with outer header creation.
     * The packet is then passes to `C.TxLoop_TxFrames` without going through NDNLPv2 fragmentation.
     * These operations occur in the TX thread.

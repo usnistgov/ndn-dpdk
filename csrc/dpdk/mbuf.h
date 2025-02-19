@@ -52,9 +52,9 @@ Mbuf_AsIovec(struct rte_mbuf* m, struct iovec* iov, uint32_t offset, uint32_t le
  * @param[out] iov room iov, must be filled/zeroed by caller.
  * @param[inout] iovcnt @p iov capacity; room iov count.
  * @param firstHeadroom headroom in first mbuf.
- * @param firstDataLen data length in first mbuf.
+ * @param firstDataLen data length in first mbuf, defaults to maximum available.
  * @param eachHeadroom headroom in subsequent mbuf.
- * @param eachDataLen data length in subsequent mbuf.
+ * @param eachDataLen data length in subsequent mbuf, defaults to maximum available.
  * @param pktLen total packet length i.e. size of room.
  * @return chained mbuf, or NULL upon failure.
  * @post @c rte_errno=E2BIG if either @c firstHeadroom+firstDataLen or

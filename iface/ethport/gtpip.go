@@ -15,6 +15,7 @@ import (
 	"net/netip"
 	"unsafe"
 
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -64,8 +65,13 @@ func (g *Gtpip) Delete(ueIP netip.Addr) error {
 }
 
 // ProcessDownlink processes a downlink Ethernet frame.
-func (g *Gtpip) ProcessDownlink(pkt *pktmbuf.Packet) bool {
-	return bool(C.EthGtpip_ProcessDownlink((*C.EthGtpip)(g), (*C.struct_rte_mbuf)(pkt.Ptr())))
+func (g *Gtpip) ProcessDownlink(vec pktmbuf.Vector) []bool {
+	matches := make([]bool, len(vec))
+	bits := C.EthGtpip_ProcessDownlinkBulk((*C.EthGtpip)(g), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint32_t(len(vec)))
+	for i := range vec {
+		matches[i] = (bits & (1 << i)) != 0
+	}
+	return matches
 }
 
 // ProcessUplink processes an uplink Ethernet frame.
