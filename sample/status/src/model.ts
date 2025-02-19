@@ -46,6 +46,9 @@ export function describeFaceLocator(loc: FaceLocator): string {
     case "memif": {
       return `memif ${loc.socketName} ${loc.id}`;
     }
+    case "passthru": {
+      return "passthru";
+    }
     default: {
       return JSON.stringify(loc);
     }
