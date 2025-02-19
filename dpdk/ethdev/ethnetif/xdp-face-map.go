@@ -76,11 +76,9 @@ func (xd *xdpDev) FindFaceMap() *gobpfld.HashMap {
 }
 
 func xdpMatchHashMap(mid uint32, wantName string) (hash *gobpfld.HashMap) {
-	logEntry := logger.With(zap.Uint32("map-id", mid))
-
 	m, e := gobpfld.MapFromID(mid)
 	if e != nil {
-		logEntry.Warn("gobpfld.MapFromID error", zap.Error(e))
+		logger.Warn("gobpfld.MapFromID error", zap.Error(e), zap.Uint32("map-id", mid))
 		return nil
 	}
 
@@ -96,12 +94,13 @@ func xdpMatchHashMap(mid uint32, wantName string) (hash *gobpfld.HashMap) {
 
 // XDPInsertFaceMapEntry inserts an entry in the FaceMap defined in the XDP program attached to the EthDev.
 // If the EthDev is not using XDP driver, this operation has no effect.
-func XDPInsertFaceMapEntry(dev ethdev.EthDev, key []byte, xskQueue int) {
+func XDPInsertFaceMapEntry(dev ethdev.EthDev, getKey func() []byte, xskQueue int) {
 	fm := xdpDevs[dev.ID()].FindFaceMap()
 	if fm == nil {
 		return
 	}
 
+	key := getKey()
 	logEntry := logger.With(
 		zap.Uint32("map-fd", uint32(fm.GetFD())),
 		zap.Binary("key", key),
@@ -119,12 +118,13 @@ func XDPInsertFaceMapEntry(dev ethdev.EthDev, key []byte, xskQueue int) {
 
 // XDPDeleteFaceMapEntry deletes an entry in the FaceMap defined in the XDP program attached to the EthDev.
 // If the EthDev is not using XDP driver, this operation has no effect.
-func XDPDeleteFaceMapEntry(dev ethdev.EthDev, key []byte) {
+func XDPDeleteFaceMapEntry(dev ethdev.EthDev, getKey func() []byte) {
 	fm := xdpDevs[dev.ID()].FindFaceMap()
 	if fm == nil {
 		return
 	}
 
+	key := getKey()
 	logEntry := logger.With(
 		zap.Uint32("map-fd", uint32(fm.GetFD())),
 		zap.Binary("key", key),

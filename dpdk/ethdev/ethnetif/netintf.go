@@ -83,25 +83,25 @@ func (n NetIntf) PCIAddr() (a pciaddr.PCIAddress, e error) {
 func (n NetIntf) NumaSocket() (socket eal.NumaSocket) {
 	body, e := os.ReadFile(filepath.Join("/dev/class/net", n.Name, "device/numa_node"))
 	if e != nil {
-		return eal.NumaSocket{}
+		return
 	}
 
 	i, e := strconv.ParseInt(string(body), 10, 8)
 	if e != nil {
-		return eal.NumaSocket{}
+		return
 	}
 	return eal.NumaSocketFromID(int(i))
 }
 
 // FindDev locates an existing EthDev for the network interface.
-func (n NetIntf) FindDev() (dev ethdev.EthDev) {
+func (n NetIntf) FindDev() ethdev.EthDev {
 	if pciAddr, e := n.PCIAddr(); e == nil {
-		if dev = ethdev.FromPCI(pciAddr); dev != nil {
+		if dev := ethdev.FromPCI(pciAddr); dev != nil {
 			return dev
 		}
 	}
 	for _, drv := range []string{ethdev.DriverXDP, ethdev.DriverAfPacket} {
-		if dev = ethdev.FromName(n.VDevName(drv)); dev != nil {
+		if dev := ethdev.FromName(n.VDevName(drv)); dev != nil {
 			return dev
 		}
 	}
