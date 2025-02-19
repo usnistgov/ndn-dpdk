@@ -71,11 +71,17 @@ PutUdpHdr(uint8_t* buffer, uint16_t src, uint16_t dst) {
   return sizeof(*udp);
 }
 
+__attribute__((nonnull)) static __rte_always_inline void
+PutVxlanVni(uint8_t vni[3], uint32_t vniH) {
+  rte_be32_t vniB = rte_cpu_to_be_32(vniH);
+  memcpy(vni, RTE_PTR_ADD(&vniB, 1), 3);
+}
+
 __attribute__((nonnull)) static inline uint8_t
 PutVxlanHdr(uint8_t* buffer, uint32_t vni) {
   struct rte_vxlan_hdr* vxlan = (struct rte_vxlan_hdr*)buffer;
   vxlan->flag_i = 1;
-  vxlan->vx_vni = rte_cpu_to_be_32(vni << 8);
+  PutVxlanVni(vxlan->vni, vni);
   return sizeof(*vxlan);
 }
 

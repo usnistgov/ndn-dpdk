@@ -82,7 +82,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
 
   switch (c.tunnel) {
     case 'V': {
-      flow->vxlanMask.hdr.vx_vni = ~rte_cpu_to_be_32(0xFF); // don't mask reserved byte
+      MASK(flow->vxlanMask.hdr.vni);
       PutVxlanHdr((uint8_t*)(&flow->vxlanSpec.hdr), loc->vxlan);
       APPEND(VXLAN, vxlan);
 

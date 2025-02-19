@@ -52,13 +52,13 @@ MatchVxlan(const EthRxMatch* match, const struct rte_mbuf* m) {
   const struct rte_vxlan_hdr* vxlanT = RTE_PTR_ADD(udpT, sizeof(*udpT));
   const struct rte_ether_hdr* iethT = RTE_PTR_ADD(vxlanT, sizeof(*vxlanT));
   return MatchIpUdp(match, m) && udpM->dst_port == udpT->dst_port &&
-         (vxlanM->vx_vni & ~rte_cpu_to_be_32(0xFF)) == vxlanT->vx_vni &&
-         memcmp(iethM, iethT, RTE_ETHER_HDR_LEN) == 0;
+         memcmp(vxlanM->vni, vxlanT->vni, 3) == 0 && memcmp(iethM, iethT, RTE_ETHER_HDR_LEN) == 0;
 }
 
 __attribute__((nonnull)) static __rte_always_inline bool
 MatchGtpCommon(const EthRxMatch* match, const struct rte_mbuf* m, const EthGtpHdr** gtpM,
                const EthGtpHdr** gtpT) {
+  // exact match on TEID and QFI; require psc.type=1 for uplink
   *gtpM = rte_pktmbuf_mtod_offset(m, const EthGtpHdr*, match->udpOff + sizeof(struct rte_udp_hdr));
   *gtpT = RTE_PTR_ADD(match->buf, match->udpOff + sizeof(struct rte_udp_hdr));
   return MatchIpUdp(match, m) && (*gtpM)->hdr.teid == (*gtpT)->hdr.teid && (*gtpM)->hdr.e == 1 &&
@@ -68,7 +68,6 @@ MatchGtpCommon(const EthRxMatch* match, const struct rte_mbuf* m, const EthGtpHd
 
 __attribute__((nonnull)) static inline bool
 MatchGtp(const EthRxMatch* match, const struct rte_mbuf* m) {
-  // exact match on TEID and QFI; psc.type=1 for uplink
   // exact match on inner IPv4 addresses and UDP port numbers
   const EthGtpHdr* gtpM = NULL;
   const EthGtpHdr* gtpT = NULL;

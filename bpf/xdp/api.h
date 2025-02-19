@@ -22,9 +22,17 @@ struct vlanhdr {
 } __rte_packed;
 
 struct vxlanhdr {
-  uint32_t vx_flags;
-  uint32_t vx_vni;
+  uint8_t flags;
+  uint8_t rsvd0[3];
+  uint8_t vni[3];
+  uint8_t rsvd1;
 } __rte_packed;
+
+typedef struct VxlanInnerHdr {
+  struct vxlanhdr vx;
+  struct ethhdr eth;
+  struct udphdr udp;
+} __rte_packed VxlanInnerHdr;
 
 enum {
   UDPPortVXLAN = 4789,

@@ -70,13 +70,19 @@ SEC("xdp") int xdp_prog(struct xdp_md* ctx) {
     case bpf_htons(UDPPortVXLAN): {
       loc.udpSrc = 0;
 
-      const struct vxlanhdr* vxlan = PacketPtrAs((const struct udphdr*)pkt);
-      pkt += sizeof(*vxlan);
-      loc.vxlan = vxlan->vx_vni & ~bpf_htonl(0xFF);
-
-      const struct ethhdr* inner = PacketPtrAs((const struct ethhdr*)pkt, ETH_HLEN);
-      pkt += ETH_HLEN;
-      memcpy(loc.inner, inner->h_dest, 2 * ETH_ALEN);
+      const VxlanInnerHdr* vxi = PacketPtrAs((const VxlanInnerHdr*)pkt);
+      pkt += sizeof(*vxi);
+      enum {
+        vxiOffsetVni = offsetof(VxlanInnerHdr, vx.vni),
+        vxiOffsetEth = offsetof(VxlanInnerHdr, eth.h_proto),
+        vxiLen = vxiOffsetEth - vxiOffsetVni,
+        locOffsetVni = offsetof(EthXdpLocator, vx.vni),
+        locOffsetEth = offsetof(EthXdpLocator, vx.inner) + sizeof(loc.vx.inner),
+        locLen = locOffsetEth - locOffsetVni,
+      };
+      static_assert(vxiLen == locLen, "");
+      memcpy(loc.vx.vni, vxi->vx.vni, locLen);
+      loc.vx.rsvd1 = 0;
       break;
     }
     case bpf_htons(UDPPortGTP): {
@@ -86,8 +92,8 @@ SEC("xdp") int xdp_prog(struct xdp_md* ctx) {
       if (gtp->hdr.e != 1 || gtp->ext.next_ext != EthGtpExtTypePsc) {
         goto REJECT;
       }
-      loc.teid = gtp->hdr.teid;
-      loc.qfi = gtp->psc.qfi;
+      loc.gtp.teid = gtp->hdr.teid;
+      loc.gtp.qfi = gtp->psc.qfi;
       break;
     }
   }

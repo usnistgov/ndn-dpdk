@@ -38,14 +38,15 @@ EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc) {
   switch (c.tunnel) {
     case 'V': {
       xl->udpSrc = 0;
-      xl->vxlan = rte_cpu_to_be_32(loc->vxlan << 8);
-      rte_memcpy(xl->inner, &loc->innerLocal, RTE_ETHER_ADDR_LEN);
-      rte_memcpy(RTE_PTR_ADD(xl->inner, RTE_ETHER_ADDR_LEN), &loc->innerRemote, RTE_ETHER_ADDR_LEN);
+      PutVxlanVni(xl->vx.vni, loc->vxlan);
+      rte_memcpy(xl->vx.inner, loc->innerLocal.addr_bytes, RTE_ETHER_ADDR_LEN);
+      rte_memcpy(RTE_PTR_ADD(xl->vx.inner, RTE_ETHER_ADDR_LEN), loc->innerRemote.addr_bytes,
+                 RTE_ETHER_ADDR_LEN);
       break;
     }
     case 'G': {
-      xl->teid = rte_cpu_to_be_32(loc->ulTEID);
-      xl->qfi = loc->ulQFI;
+      xl->gtp.teid = rte_cpu_to_be_32(loc->ulTEID);
+      xl->gtp.qfi = loc->ulQFI;
       break;
     }
   }
