@@ -97,7 +97,7 @@ Receive path from DPDK ethdev to TAP netif:
 
 1. `C.EthRxTable_RxBurst` receives a burst of Ethernet frames and calls `C.EthRxTable_Accept` on each packet to find which faces could accept it.
 
-2. The pass-through face is at the tail of `C.EthRxTable.head` linked list and has an `C.EthRxMatch` that matches all packets, so that it will always accept the packet if no other face has accepted it.
+2. The pass-through face is at the tail of `C.EthRxTable.head` linked list and has a `C.EthRxMatch` that matches all packets, so that it will always accept the packet if no other face has accepted it.
 
 3. The packet is passed to `C.EthPassthru_FaceRxInput`, which immediately transmits the packet on the TAP netif.
 

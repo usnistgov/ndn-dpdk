@@ -34,18 +34,24 @@ void
 EthPassthru_TapPortRxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
   EthPassthru* pt = container_of(rxg, EthPassthru, base);
   EthFacePriv* priv = container_of(pt, EthFacePriv, passthru);
-  uint16_t count = rte_eth_rx_burst(pt->tapPort, 0, ctx->pkts, RTE_DIM(ctx->pkts));
-  if (count == 0) {
+  ctx->nRx = rte_eth_rx_burst(pt->tapPort, 0, ctx->pkts, RTE_DIM(ctx->pkts));
+  if (ctx->nRx == 0) {
     return;
   }
 
   uint64_t now = rte_get_tsc_cycles();
-  for (uint16_t i = 0; i < count; ++i) {
+  for (uint16_t i = 0; i < ctx->nRx; ++i) {
     struct rte_mbuf* m = ctx->pkts[i];
     Mbuf_SetTimestamp(m, now);
   }
 
-  Face_TxBurst(priv->faceID, (Packet**)ctx->pkts, count);
+  Face_TxBurst(priv->faceID, (Packet**)ctx->pkts, ctx->nRx);
+
+  // RxLoop.ctrl needs non-zero ctx->nRx to properly track empty polls vs valid polls.
+  // ctx->dropBits must be set so that RxLoop_Transfer does not send packets to NDN pipelines.
+  // ctx->pkts must be cleared so that RxLoop_Transfer does not attempt to free the mbufs.
+  rte_bitset_set_all(ctx->dropBits, MaxBurstSize);
+  memset(ctx->pkts, 0, sizeof(ctx->pkts));
 }
 
 STATIC_ASSERT_FUNC_TYPE(RxGroup_RxBurstFunc, EthPassthru_TapPortRxBurst);

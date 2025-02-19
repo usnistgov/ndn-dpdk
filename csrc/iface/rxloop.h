@@ -6,10 +6,11 @@
 #include "../dpdk/thread.h"
 #include "face.h"
 #include "input-demux.h"
+#include <rte_bitset.h>
 
 /** @brief Context of RxGroup_RxBurstFunc operation. */
 typedef struct RxGroupBurstCtx {
-  uint64_t dropBits[SPDK_CEIL_DIV(MaxBurstSize, 64)];
+  RTE_BITSET_DECLARE(dropBits, MaxBurstSize);
   uint16_t nRx;
   RTE_MARKER zeroizeEnd_;
   struct rte_mbuf* pkts[MaxBurstSize];
@@ -18,7 +19,7 @@ typedef struct RxGroupBurstCtx {
 /** @brief Mark @c ctx->pkts[i] as to be dropped. */
 __attribute__((nonnull)) static inline void
 RxGroupBurstCtx_Drop(RxGroupBurstCtx* ctx, uint16_t i) {
-  ctx->dropBits[i >> 6] |= 1 << (i & 0x3F);
+  rte_bitset_set(ctx->dropBits, i);
 }
 
 typedef struct RxGroup RxGroup;

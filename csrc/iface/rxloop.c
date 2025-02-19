@@ -12,12 +12,13 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg) {
   for (uint16_t i = 0; i < ctx.nRx; ++i) {
     struct rte_mbuf* pkt = ctx.pkts[i];
 
-    bool dropped = (ctx.dropBits[i >> 6] & (1 << (i & 0x3F))) != 0;
-    if (unlikely(dropped)) {
+    if (unlikely(rte_bitset_test(ctx.dropBits, i))) {
       if (likely(pkt != NULL)) {
         frees[nFrees++] = pkt;
       } else {
-        // pkt was passed to pdump or freed as bounceBufs in EthRxTable_RxBurst
+        // pkt was passed to pdump
+        // pkt was passed to EthPassthru
+        // pkt was freed as bounceBufs in EthRxTable_RxBurst
       }
       continue;
     }
