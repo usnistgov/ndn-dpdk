@@ -9,8 +9,9 @@
  * @brief Process a burst of received L2 frames.
  * @see @c Face_RxInputFunc
  */
-__attribute__((nonnull)) FaceRxInputResult
-FaceRx_Input(Face* face, int rxThread, struct rte_mbuf** pkts, Packet** npkts, uint16_t count);
+__attribute__((nonnull)) void
+FaceRx_Input(Face* face, int rxThread, FaceRxInputCtx* ctx);
+;
 
 __attribute__((nonnull)) static __rte_always_inline void
 FaceTx_CheckDirectFragmentMbuf_(struct rte_mbuf* pkt) {

@@ -4,20 +4,19 @@
 
 N_LOG_INIT(FaceRx);
 
-FaceRxInputResult
-FaceRx_Input(Face* face, int rxThread, struct rte_mbuf** pkts, Packet** npkts, uint16_t count) {
-  FaceRxInputResult res = {0};
+void
+FaceRx_Input(Face* face, int rxThread, FaceRxInputCtx* ctx) {
   FaceRxThread* rxt = &face->impl->rx[rxThread];
 
-  for (uint16_t i = 0; i < count; ++i) {
-    struct rte_mbuf* pkt = pkts[i];
+  for (uint16_t i = 0; i < ctx->count; ++i) {
+    struct rte_mbuf* pkt = ctx->pkts[i];
     rxt->nFrames[FaceRxThread_cntNOctets] += pkt->pkt_len;
 
     Packet* npkt = Packet_FromMbuf(pkt);
     if (unlikely(!Packet_Parse(npkt, face->impl->rxParseFor))) {
       ++rxt->nDecodeErr;
       N_LOGD("l2-decode-error face=%" PRI_FaceID " thread=%d", face->id, rxThread);
-      pkts[res.nFree++] = pkt;
+      ctx->frees[ctx->nFree++] = pkt;
       continue;
     }
     NULLize(pkt); // pkt aliases npkt, but npkt will be owned by reassembler
@@ -32,7 +31,7 @@ FaceRx_Input(Face* face, int rxThread, struct rte_mbuf** pkts, Packet** npkts, u
       if (unlikely(!Packet_ParseL3(npkt, face->impl->rxParseFor))) {
         ++rxt->nDecodeErr;
         N_LOGD("l3-decode-error face=%" PRI_FaceID " thread=%d", face->id, rxThread);
-        pkts[res.nFree++] = Packet_ToMbuf(npkt);
+        ctx->frees[ctx->nFree++] = Packet_ToMbuf(npkt);
         continue;
       }
 
@@ -40,10 +39,8 @@ FaceRx_Input(Face* face, int rxThread, struct rte_mbuf** pkts, Packet** npkts, u
     }
 
     ++rxt->nFrames[pktType];
-    npkts[res.nL3++] = npkt;
+    ctx->npkts[ctx->nL3++] = npkt;
   }
-
-  return res;
 }
 
 STATIC_ASSERT_FUNC_TYPE(Face_RxInputFunc, FaceRx_Input);

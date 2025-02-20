@@ -31,9 +31,9 @@ typedef struct EthPassthru {
  * This is set as @c Face_RxInputFunc of a pass-through face.
  * It transmits every packet out of the associated TAP ethdev.
  */
-__attribute__((nonnull)) FaceRxInputResult
-EthPassthru_FaceRxInput(Face* face, int rxThread, struct rte_mbuf** pkts, Packet** npkts,
-                        uint16_t count);
+__attribute__((nonnull)) void
+EthPassthru_FaceRxInput(Face* face, int rxThread, FaceRxInputCtx* ctx);
+;
 
 /**
  * @brief Receive Ethernet frames on a TAP ethdev associated with a pass-through face.

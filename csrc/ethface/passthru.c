@@ -3,16 +3,14 @@
 #include "face.h"
 #include "gtpip.h"
 
-FaceRxInputResult
-EthPassthru_FaceRxInput(Face* face, int rxThread, struct rte_mbuf** pkts, Packet** npkts,
-                        uint16_t count) {
-  FaceRxInputResult res = {0};
+void
+EthPassthru_FaceRxInput(Face* face, int rxThread, FaceRxInputCtx* ctx) {
   FaceRxThread* rxt = &face->impl->rx[rxThread];
   EthFacePriv* priv = Face_GetPriv(face);
   EthPassthru* pt = &priv->passthru;
 
-  for (uint16_t i = 0; i < count; ++i) {
-    struct rte_mbuf* pkt = pkts[i];
+  for (uint16_t i = 0; i < ctx->count; ++i) {
+    struct rte_mbuf* pkt = ctx->pkts[i];
     rxt->nFrames[FaceRxThread_cntNOctets] += pkt->pkt_len;
     if (pt->gtpip != NULL && EthGtpip_ProcessUplink(pt->gtpip, pkt)) {
       ++rxt->nFrames[EthPassthru_cntNGtpip];
@@ -24,13 +22,12 @@ EthPassthru_FaceRxInput(Face* face, int rxThread, struct rte_mbuf** pkts, Packet
   uint16_t nSent = 0;
   uint16_t tapPort = pt->tapPort;
   if (likely(tapPort != UINT16_MAX)) {
-    nSent = rte_eth_tx_burst(pt->tapPort, 0, pkts, count);
+    nSent = rte_eth_tx_burst(pt->tapPort, 0, ctx->pkts, ctx->count);
   }
-  res.nFree = count - nSent;
-  if (unlikely(res.nFree > 0)) {
-    memmove(pkts, &pkts[nSent], sizeof(pkts[0]) * res.nFree);
+  ctx->nFree = ctx->count - nSent;
+  if (unlikely(ctx->nFree > 0)) {
+    rte_memcpy(ctx->frees, ctx->pkts + nSent, sizeof(ctx->pkts[0]) * ctx->nFree);
   }
-  return res;
 }
 
 STATIC_ASSERT_FUNC_TYPE(Face_RxInputFunc, EthPassthru_FaceRxInput);
@@ -47,13 +44,14 @@ EthPassthru_TapPortRxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx) {
   uint64_t now = rte_get_tsc_cycles();
   for (uint16_t i = 0; i < ctx->nRx; ++i) {
     struct rte_mbuf* m = ctx->pkts[i];
+    m->port = priv->faceID;
     Mbuf_SetTimestamp(m, now);
   }
 
   Face_TxBurst(priv->faceID, (Packet**)ctx->pkts, ctx->nRx);
 
   // RxLoop.ctrl needs non-zero ctx->nRx to properly track empty polls vs valid polls.
-  // ctx->dropBits must be set so that RxLoop_Transfer does not send packets to NDN pipelines.
+  // ctx->dropBits must be set so that RxLoop_Transfer does not dispatch packets as NDN.
   // ctx->pkts must be cleared so that RxLoop_Transfer does not attempt to free the mbufs.
   rte_bitset_set_all(ctx->dropBits, MaxBurstSize);
   memset(ctx->pkts, 0, sizeof(ctx->pkts));

@@ -10,6 +10,43 @@
 #include "../pdump/source.h"
 #include <urcu/rcuhlist.h>
 
+/** @brief @c Face_RxInputFunc inputs and outputs. */
+typedef struct FaceRxInputCtx {
+  struct rte_mbuf** pkts;  ///< pkts[:count] is received L2 frames
+  Packet** npkts;          ///< npkts[:nL3] shall be filled with L3 packets ready for dispatching
+  struct rte_mbuf** frees; ///< frees[:nFree] shall be filled with mbufs to be freed
+  uint16_t count;          ///< input, non-zero
+  uint16_t nL3;            ///< output, initialized to zero, cannot exceed count
+  uint16_t nFree;          ///< output, initialized to zero, cannot exceed count
+} FaceRxInputCtx;
+
+/**
+ * @brief Process a burst of received L2 frames.
+ * @param[inout] pkts received L2 frames; mbufs to be freed.
+ * @param[out] npkts L3 packets.
+ * @param count number of L2 frames in @p pkts ; capacity of @p npkts ;
+ *              maximum allowable sum of nL3+nFree in return value.
+ *
+ * Default implementation for NDN traffic is @c FaceRx_Input .
+ */
+typedef void (*Face_RxInputFunc)(Face* face, int rxThread, FaceRxInputCtx* ctx);
+
+/**
+ * @brief Transfer a burst of L3 packets from outputQueue to @c Face_TxBurstFunc .
+ *
+ * Default implementations are @c TxLoop_Transfer_Linear and @c TxLoop_Transfer_Chained .
+ * This function should perform fragmentation and hrlog submission as necessary.
+ */
+typedef uint16_t (*Face_TxLoopFunc)(Face* face, int txThread);
+
+/**
+ * @brief Transmit a burst of L2 frames.
+ * @param pkts L2 frames.
+ * @return successfully queued frames.
+ * @post FaceImpl owns queued frames, but does not own remaining frames.
+ */
+typedef uint16_t (*Face_TxBurstFunc)(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
+
 enum {
   /// FaceRxThread.nFrames[cntNOctets] is nOctets counter
   FaceRxThread_cntNOctets = PktFragment,
@@ -35,40 +72,6 @@ typedef struct FaceTxThread {
   uint64_t nDroppedFrames;  ///< dropped L2 frames
   uint64_t nDroppedOctets;  ///< dropped L2 octets
 } __rte_cache_aligned FaceTxThread;
-
-/** @brief Return value of @c Face_RxInputFunc . */
-typedef struct FaceRxInputResult {
-  uint16_t nL3;   ///< L3 packets ready to be dispatched, filled in npkts
-  uint16_t nFree; ///< mbufs to be freed, filled in pkts
-} FaceRxInputResult;
-
-/**
- * @brief Process a burst of received L2 frames.
- * @param[inout] pkts received L2 frames; mbufs to be freed.
- * @param[out] npkts L3 packets.
- * @param count number of L2 frames in @p pkts ; capacity of @p npkts .
- * @return number of L3 packets to be dispatched.
- *
- * Default implementation for NDN traffic is @c FaceRx_Input .
- */
-typedef FaceRxInputResult (*Face_RxInputFunc)(Face* face, int rxThread, struct rte_mbuf** pkts,
-                                              Packet** npkts, uint16_t count);
-
-/**
- * @brief Transfer a burst of L3 packets from outputQueue to @c Face_TxBurstFunc .
- *
- * Default implementations are @c TxLoop_Transfer_Linear and @c TxLoop_Transfer_Chained .
- * This function should perform fragmentation and hrlog submission as necessary.
- */
-typedef uint16_t (*Face_TxLoopFunc)(Face* face, int txThread);
-
-/**
- * @brief Transmit a burst of L2 frames.
- * @param pkts L2 frames.
- * @return successfully queued frames.
- * @post FaceImpl owns queued frames, but does not own remaining frames.
- */
-typedef uint16_t (*Face_TxBurstFunc)(Face* face, struct rte_mbuf** pkts, uint16_t nPkts);
 
 /**
  * @brief Face details.
