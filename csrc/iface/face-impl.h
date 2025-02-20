@@ -6,13 +6,11 @@
 #include "face.h"
 
 /**
- * @brief Process an incoming L2 frame.
- * @param pkt incoming L2 frame, starting from NDNLP header; face takes ownership.
- * @return L3 packet after @c Packet_ParseL3 ; face releases ownership.
- * @retval NULL no L3 packet is ready at this moment.
+ * @brief Process a burst of received L2 frames.
+ * @see @c Face_RxInputFunc
  */
-__attribute__((nonnull)) Packet*
-FaceRx_Input(Face* face, int rxThread, struct rte_mbuf* pkt);
+__attribute__((nonnull)) FaceRxInputResult
+FaceRx_Input(Face* face, int rxThread, struct rte_mbuf** pkts, Packet** npkts, uint16_t count);
 
 __attribute__((nonnull)) static __rte_always_inline void
 FaceTx_CheckDirectFragmentMbuf_(struct rte_mbuf* pkt) {

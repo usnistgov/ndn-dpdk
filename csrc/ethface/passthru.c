@@ -3,29 +3,34 @@
 #include "face.h"
 #include "gtpip.h"
 
-Packet*
-EthPassthru_FaceRxInput(Face* face, int rxThread, struct rte_mbuf* pkt) {
-  NDNDPDK_ASSERT(pkt->port == face->id);
+FaceRxInputResult
+EthPassthru_FaceRxInput(Face* face, int rxThread, struct rte_mbuf** pkts, Packet** npkts,
+                        uint16_t count) {
+  FaceRxInputResult res = {0};
   FaceRxThread* rxt = &face->impl->rx[rxThread];
   EthFacePriv* priv = Face_GetPriv(face);
   EthPassthru* pt = &priv->passthru;
 
-  rxt->nFrames[FaceRxThread_cntNOctets] += pkt->pkt_len;
-  if (pt->gtpip != NULL && EthGtpip_ProcessUplink(pt->gtpip, pkt)) {
-    ++rxt->nFrames[EthPassthru_cntNGtpip];
-  } else {
-    ++rxt->nFrames[EthPassthru_cntNPkts];
+  for (uint16_t i = 0; i < count; ++i) {
+    struct rte_mbuf* pkt = pkts[i];
+    rxt->nFrames[FaceRxThread_cntNOctets] += pkt->pkt_len;
+    if (pt->gtpip != NULL && EthGtpip_ProcessUplink(pt->gtpip, pkt)) {
+      ++rxt->nFrames[EthPassthru_cntNGtpip];
+    } else {
+      ++rxt->nFrames[EthPassthru_cntNPkts];
+    }
   }
 
   uint16_t nSent = 0;
-  uint16_t tapPort = priv->passthru.tapPort;
+  uint16_t tapPort = pt->tapPort;
   if (likely(tapPort != UINT16_MAX)) {
-    nSent = rte_eth_tx_burst(tapPort, 0, &pkt, 1);
+    nSent = rte_eth_tx_burst(pt->tapPort, 0, pkts, count);
   }
-  if (unlikely(nSent == 0)) {
-    rte_pktmbuf_free(pkt);
+  res.nFree = count - nSent;
+  if (unlikely(res.nFree > 0)) {
+    memmove(pkts, &pkts[nSent], sizeof(pkts[0]) * res.nFree);
   }
-  return NULL;
+  return res;
 }
 
 STATIC_ASSERT_FUNC_TYPE(Face_RxInputFunc, EthPassthru_FaceRxInput);

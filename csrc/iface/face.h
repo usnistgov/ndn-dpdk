@@ -36,13 +36,23 @@ typedef struct FaceTxThread {
   uint64_t nDroppedOctets;  ///< dropped L2 octets
 } __rte_cache_aligned FaceTxThread;
 
+/** @brief Return value of @c Face_RxInputFunc . */
+typedef struct FaceRxInputResult {
+  uint16_t nL3;   ///< L3 packets ready to be dispatched, filled in npkts
+  uint16_t nFree; ///< mbufs to be freed, filled in pkts
+} FaceRxInputResult;
+
 /**
- * @brief Process a received L2 frame.
- * @return L3 packet to be dispatched, or NULL if no NDN packet is ready.
+ * @brief Process a burst of received L2 frames.
+ * @param[inout] pkts received L2 frames; mbufs to be freed.
+ * @param[out] npkts L3 packets.
+ * @param count number of L2 frames in @p pkts ; capacity of @p npkts .
+ * @return number of L3 packets to be dispatched.
  *
  * Default implementation for NDN traffic is @c FaceRx_Input .
  */
-typedef Packet* (*Face_RxInputFunc)(Face* face, int rxThread, struct rte_mbuf* pkt);
+typedef FaceRxInputResult (*Face_RxInputFunc)(Face* face, int rxThread, struct rte_mbuf** pkts,
+                                              Packet** npkts, uint16_t count);
 
 /**
  * @brief Transfer a burst of L3 packets from outputQueue to @c Face_TxBurstFunc .

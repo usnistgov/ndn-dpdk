@@ -31,9 +31,13 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg) {
 
     PdumpSourceRef_Process(&face->impl->rxPdump, &pkt, 1);
 
-    Packet* npkt = face->impl->rxInput(face, rxg->rxThread, pkt);
+    Packet* npkt = NULL;
+    FaceRxInputResult rxInputRes = face->impl->rxInput(face, rxg->rxThread, &pkt, &npkt, 1);
+    if (rxInputRes.nFree == 1) {
+      frees[nFrees++] = pkt;
+    }
     NULLize(pkt);
-    if (npkt == NULL) {
+    if (rxInputRes.nL3 == 0) {
       continue;
     }
 
@@ -46,6 +50,7 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg) {
   }
 
   if (unlikely(nFrees > 0)) {
+    NDNDPDK_ASSERT(nFrees <= RTE_DIM(frees));
     rte_pktmbuf_free_bulk(frees, nFrees);
   }
   return ctx.nRx;

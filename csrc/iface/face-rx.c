@@ -4,42 +4,46 @@
 
 N_LOG_INIT(FaceRx);
 
-Packet*
-FaceRx_Input(Face* face, int rxThread, struct rte_mbuf* pkt) {
-  NDNDPDK_ASSERT(pkt->port == face->id);
+FaceRxInputResult
+FaceRx_Input(Face* face, int rxThread, struct rte_mbuf** pkts, Packet** npkts, uint16_t count) {
+  FaceRxInputResult res = {0};
   FaceRxThread* rxt = &face->impl->rx[rxThread];
-  rxt->nFrames[FaceRxThread_cntNOctets] += pkt->pkt_len;
 
-  Packet* npkt = Packet_FromMbuf(pkt);
-  if (unlikely(!Packet_Parse(npkt, face->impl->rxParseFor))) {
-    ++rxt->nDecodeErr;
-    N_LOGD("l2-decode-error face=%" PRI_FaceID " thread=%d", face->id, rxThread);
-    rte_pktmbuf_free(pkt);
-    return NULL;
-  }
+  for (uint16_t i = 0; i < count; ++i) {
+    struct rte_mbuf* pkt = pkts[i];
+    rxt->nFrames[FaceRxThread_cntNOctets] += pkt->pkt_len;
 
-  PktType pktType = Packet_GetType(npkt);
-  if (likely(pktType != PktFragment)) {
+    Packet* npkt = Packet_FromMbuf(pkt);
+    if (unlikely(!Packet_Parse(npkt, face->impl->rxParseFor))) {
+      ++rxt->nDecodeErr;
+      N_LOGD("l2-decode-error face=%" PRI_FaceID " thread=%d", face->id, rxThread);
+      pkts[res.nFree++] = pkt;
+      continue;
+    }
+    NULLize(pkt); // pkt aliases npkt, but npkt will be owned by reassembler
+
+    PktType pktType = Packet_GetType(npkt);
+    if (unlikely(pktType == PktFragment)) {
+      npkt = Reassembler_Accept(&rxt->reass, npkt);
+      if (npkt == NULL) {
+        continue;
+      }
+
+      if (unlikely(!Packet_ParseL3(npkt, face->impl->rxParseFor))) {
+        ++rxt->nDecodeErr;
+        N_LOGD("l3-decode-error face=%" PRI_FaceID " thread=%d", face->id, rxThread);
+        pkts[res.nFree++] = Packet_ToMbuf(npkt);
+        continue;
+      }
+
+      pktType = Packet_GetType(npkt);
+    }
+
     ++rxt->nFrames[pktType];
-    return npkt;
+    npkts[res.nL3++] = npkt;
   }
 
-  NULLize(pkt); // pkt aliases npkt, but npkt will be owned by reassembler
-  npkt = Reassembler_Accept(&rxt->reass, npkt);
-  if (npkt == NULL) {
-    return NULL;
-  }
-
-  if (unlikely(!Packet_ParseL3(npkt, face->impl->rxParseFor))) {
-    ++rxt->nDecodeErr;
-    N_LOGD("l3-decode-error face=%" PRI_FaceID " thread=%d", face->id, rxThread);
-    rte_pktmbuf_free(Packet_ToMbuf(npkt));
-    return NULL;
-  }
-
-  pktType = Packet_GetType(npkt);
-  ++rxt->nFrames[pktType];
-  return npkt;
+  return res;
 }
 
 STATIC_ASSERT_FUNC_TYPE(Face_RxInputFunc, FaceRx_Input);
