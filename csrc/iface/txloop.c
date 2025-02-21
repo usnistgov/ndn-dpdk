@@ -92,13 +92,12 @@ TxLoop_Transfer_Linear(Face* face, int txThread) {
   return TxLoop_Transfer(face, txThread, FaceTx_LinearOne, FaceTx_LinearFrag);
 }
 
-STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, TxLoop_Transfer_Linear);
-
 uint16_t
 TxLoop_Transfer_Chained(Face* face, int txThread) {
   return TxLoop_Transfer(face, txThread, FaceTx_ChainedOne, FaceTx_ChainedFrag);
 }
 
+STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, TxLoop_Transfer_Linear);
 STATIC_ASSERT_FUNC_TYPE(Face_TxLoopFunc, TxLoop_Transfer_Chained);
 
 int

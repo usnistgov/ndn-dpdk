@@ -18,10 +18,11 @@ import (
 )
 
 type InputDemuxFixture struct {
-	t       testing.TB
-	D       *iface.InputDemux
-	Q       []*iface.PktQueue
-	Rejects pktmbuf.Vector
+	t         testing.TB
+	D         *iface.InputDemux
+	Q         []*iface.PktQueue
+	ChunkSize int
+	Rejects   pktmbuf.Vector
 }
 
 func (fixture *InputDemuxFixture) SetDests(n int) {
@@ -36,23 +37,27 @@ func (fixture *InputDemuxFixture) SetDests(n int) {
 	}
 }
 
-func (fixture *InputDemuxFixture) Dispatch(pkt *ndni.Packet) (accepted bool) {
-	accepted = fixture.D.Dispatch(pkt)
-	if !accepted {
-		fixture.Rejects = append(fixture.Rejects, pkt.Mbuf())
+func (fixture *InputDemuxFixture) Dispatch(vec pktmbuf.Vector) (rejects []bool, nRejected int) {
+	rejects = fixture.D.Dispatch(fixture.ChunkSize, vec)
+	for i, rej := range rejects {
+		if rej {
+			fixture.Rejects = append(fixture.Rejects, vec[i])
+			nRejected++
+		}
 	}
 	return
 }
 
 func (fixture *InputDemuxFixture) DispatchInterests(prefix string, n int, suffix string) (pkts []*ndni.Packet, nRejected int) {
+	pkts = make([]*ndni.Packet, n)
+	vec := make(pktmbuf.Vector, n)
 	for i := range n {
 		name := fmt.Sprintf("%s/%d%s", prefix, i, suffix)
-		pkt := ndnitestenv.MakeInterest(name)
-		pkts = append(pkts, pkt)
-		if accepted := fixture.Dispatch(pkt); !accepted {
-			nRejected++
-		}
+		pkts[i] = ndnitestenv.MakeInterest(name)
+		vec[i] = pkts[i].Mbuf()
 	}
+
+	_, nRejected = fixture.Dispatch(vec)
 	return
 }
 
@@ -103,6 +108,7 @@ func testInputDemuxRoundRobin(t testing.TB, n int) {
 	fixture := NewInputDemuxFixture(t)
 	fixture.SetDests(n)
 	fixture.D.InitRoundrobin(n)
+	fixture.ChunkSize = 2
 
 	fixture.DispatchInterests("/I", 500, "")
 	assert.Empty(fixture.Rejects)
@@ -115,15 +121,16 @@ func testInputDemuxRoundRobin(t testing.TB, n int) {
 		cntMax = max(cntMax, c)
 	}
 	assert.Equal(500, cntSum)
-	assert.InDelta(cntMin, cntMax, 1.0)
+	assert.InDelta(cntMin, cntMax, float64(fixture.ChunkSize))
 }
 
-func TestInputDemuxRoundRobin5(t *testing.T) {
-	testInputDemuxRoundRobin(t, 5)
-}
-
-func TestInputDemuxRoundRobin8(t *testing.T) {
-	testInputDemuxRoundRobin(t, 8)
+func TestInputDemuxRoundRobin(t *testing.T) {
+	t.Run("div", func(t *testing.T) {
+		testInputDemuxRoundRobin(t, 5)
+	})
+	t.Run("mask", func(t *testing.T) {
+		testInputDemuxRoundRobin(t, 8)
+	})
 }
 
 func testInputDemuxGenericHash(t testing.TB, n int) {
@@ -145,12 +152,13 @@ func testInputDemuxGenericHash(t testing.TB, n int) {
 	assert.Equal(cnt, fixture.Counts())
 }
 
-func TestInputDemuxGenericHash5(t *testing.T) {
-	testInputDemuxGenericHash(t, 5)
-}
-
-func TestInputDemuxGenericHash8(t *testing.T) {
-	testInputDemuxGenericHash(t, 8)
+func TestInputDemuxGenericHash(t *testing.T) {
+	t.Run("div", func(t *testing.T) {
+		testInputDemuxGenericHash(t, 5)
+	})
+	t.Run("mask", func(t *testing.T) {
+		testInputDemuxGenericHash(t, 8)
+	})
 }
 
 func TestInputDemuxNdt(t *testing.T) {
@@ -183,7 +191,7 @@ func TestInputDemuxNdt(t *testing.T) {
 	ndq.Init(theNdt, eal.NumaSocket{})
 	defer ndq.Clear(theNdt)
 
-	fixture.Dispatch(ndnitestenv.MakeInterest(prefix))
+	fixture.Dispatch(pktmbuf.Vector{ndnitestenv.MakeInterest(prefix).Mbuf()})
 	fixture.DispatchInterests(prefix, 8, "")
 	fixture.DispatchInterests(prefix, 8, "/A")
 	fixture.DispatchInterests(prefix, 7, "/B")
@@ -198,17 +206,29 @@ func TestInputDemuxToken(t *testing.T) {
 	fixture.SetDests(11)
 	fixture.D.InitToken(1)
 
-	for i := range byte(200) {
-		accepted := fixture.Dispatch(ndnitestenv.MakeInterest(fmt.Sprintf("/I/%d", i),
-			ndnitestenv.SetPitToken([]byte{i / 100, i % 100, 0xA1})))
-		if i%100 < 11 {
-			assert.True(accepted, i)
-		} else {
-			assert.False(accepted, i)
+	vec := make(pktmbuf.Vector, 201)
+	for i := range vec {
+		var token []byte
+		switch i {
+		case 200:
+			token = []byte{0xA2}
+		default:
+			token = []byte{byte(i / 100), byte(i % 100), 0xA1}
+		}
+		vec[i] = ndnitestenv.MakeInterest(fmt.Sprintf("/I/%d", i), ndnitestenv.SetPitToken(token)).Mbuf()
+	}
+
+	rejects, _ := fixture.Dispatch(vec)
+	for i, rejected := range rejects {
+		switch {
+		case i == 200: // token too short
+			assert.True(rejected, i)
+		case i%100 < 11: // accepted
+			assert.False(rejected, i)
+		default: // token value exceeds nDest
+			assert.True(rejected, i)
 		}
 	}
-	accepted := fixture.Dispatch(ndnitestenv.MakeInterest("/I/X", ndnitestenv.SetPitToken([]byte{0xA2})))
-	assert.False(accepted)
 	assert.Len(fixture.Rejects, 179)
 
 	assert.Equal([]int{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, fixture.Counts())

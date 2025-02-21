@@ -32,6 +32,13 @@
 #define N_LOG_ERROR_ERRNO N_LOG_ERROR("errno<%d>")
 #define N_LOG_ERROR_STR N_LOG_ERROR("%s")
 
+/**
+ * @brief Determine if a log level is enabled.
+ * @param lvl one of DEBUG, INFO, NOTICE, WARNING, ERR.
+ */
+#define N_LOG_ENABLED(lvl)                                                                         \
+  (RTE_LOG_DP_LEVEL >= RTE_LOG_##lvl && rte_log_get_level(RTE_LOGTYPE_NDN) >= (int)RTE_LOG_##lvl)
+
 __attribute__((nonnull)) int
 Logger_Dpdk_Init(FILE* output);
 
@@ -56,7 +63,7 @@ typedef struct DebugString {
 /**
  * @brief Obtain a buffer for populating a debug string.
  * @param capacity buffer capacity; panics on oversized request.
- * @returns pointer to a per-lcore static buffer that will be overwritten on subsequent calls
+ * @return pointer to a per-lcore static buffer that will be overwritten on subsequent calls
  */
 __attribute__((returns_nonnull)) DebugString*
 DebugString_Get(size_t capacity);

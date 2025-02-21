@@ -46,12 +46,9 @@ FwCrypto_Output(FwCrypto* fwc, CryptoQueuePair cqp) {
     }
   }
 
-  for (uint16_t i = 0; i < nFinish; ++i) {
-    Packet* npkt = npkts[i];
-    bool accepted = InputDemux_Dispatch(&fwc->output, npkt);
-    if (unlikely(!accepted)) {
-      drops[nDrops++] = Packet_ToMbuf(npkt);
-    }
+  if (nFinish > 0) {
+    uint64_t rejectMask = InputDemux_Dispatch(&fwc->output, npkts, nFinish);
+    InputDemux_FreeRejected(drops, &nDrops, npkts, rejectMask);
   }
 
   if (unlikely(nDrops > 0)) {

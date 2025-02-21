@@ -26,7 +26,7 @@ var defaultTxLoopFunc = map[bool]C.Face_TxLoopFunc{
 	false: C.Face_TxLoopFunc(C.TxLoop_Transfer_Chained),
 }
 
-// TxLoop is the output thread that processes outgoing packets on a set of TxGroups.
+// TxLoop is the output thread that processes outgoing packets.
 // Functions are non-thread-safe.
 type TxLoop interface {
 	eal.WithNumaSocket

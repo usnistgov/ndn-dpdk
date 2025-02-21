@@ -10,7 +10,6 @@
 /** @brief Input demultiplexer dispatch method. */
 typedef enum InputDemuxAct {
   InputDemuxActDrop,
-  InputDemuxActToFirst,
   InputDemuxActRoundrobinDiv,
   InputDemuxActRoundrobinMask,
   InputDemuxActGenericHashDiv,
@@ -46,7 +45,7 @@ typedef struct InputDemux {
   InputDemuxDest dest[MaxInputDemuxDest];
 } InputDemux;
 
-typedef bool (*InputDemux_DispatchFunc)(InputDemux* demux, Packet* npkt);
+typedef uint64_t (*InputDemux_DispatchFunc)(InputDemux* demux, Packet** npkts, uint16_t count);
 extern const InputDemux_DispatchFunc InputDemux_DispatchJmp[];
 
 __attribute__((nonnull, returns_nonnull)) NdtQuerier*
@@ -59,14 +58,30 @@ __attribute__((nonnull)) void
 InputDemux_SetDispatchByToken(InputDemux* demux, uint8_t offset);
 
 /**
- * @brief Dispatch a packet.
- * @param npkt parsed L3 packet.
- * @retval true packet is dispatched.
- * @retval false packet is rejected and should be freed by caller.
+ * @brief Dispatch a burst of L3 packets.
+ * @param npkts L3 packets. They shall come from the same face.
+ * @return bitset of rejected packets. They must be freed by the caller.
  */
-__attribute__((nonnull, warn_unused_result)) static inline bool
-InputDemux_Dispatch(InputDemux* demux, Packet* npkt) {
-  return InputDemux_DispatchJmp[demux->dispatch](demux, npkt);
+__attribute__((nonnull, warn_unused_result)) static inline uint64_t
+InputDemux_Dispatch(InputDemux* demux, Packet** npkts, uint16_t count) {
+  NDNDPDK_ASSERT(count > 0 && count <= 64);
+  return InputDemux_DispatchJmp[demux->dispatch](demux, npkts, count);
+}
+
+/**
+ * @brief Append rejected packets to be freed.
+ * @param frees vector of mbufs to be freed by the caller.
+ * @param[inout] nFree index into @p frees vector.
+ * @param npkts vector of L3 packets passed to @c InputDemux_Dispatch .
+ * @param mask return value of @c InputDemux_Dispatch .
+ */
+__attribute__((nonnull)) static inline void
+InputDemux_FreeRejected(struct rte_mbuf** frees, uint16_t* nFree, Packet** npkts, uint64_t mask) {
+  uint32_t i = 0;
+  while (rte_bsf64_safe(mask, &i)) {
+    frees[(*nFree)++] = Packet_ToMbuf(npkts[i]);
+    rte_bit_clear(&mask, i);
+  }
 }
 
 /** @brief InputDemuxes for Interest, Data, Nack. */

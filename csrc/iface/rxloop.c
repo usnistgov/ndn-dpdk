@@ -10,9 +10,21 @@ typedef struct RxLoopTransferCtx {
   struct rte_mbuf* frees[MaxBurstSize];
 } RxLoopTransferCtx;
 
-/** @brief Dispatch a burst of packets that belong to the same face. */
+/** @brief Dispatch a burst of packets of the same type from the same face. */
 __attribute__((nonnull)) static inline void
-RxLoop_Dispatch(RxLoop* rxl, RxGroup* rxg, RxLoopTransferCtx* tCtx) {
+RxLoop_ToDemux(RxLoopTransferCtx* tCtx, InputDemuxes* demuxes, Packet** npkts, uint16_t lbound,
+               uint16_t ubound) {
+  if (lbound == ubound) {
+    return;
+  }
+  InputDemux* demux = InputDemux_Of(demuxes, Packet_GetType(npkts[lbound]));
+  uint64_t rejectMask = InputDemux_Dispatch(demux, npkts + lbound, ubound - lbound);
+  InputDemux_FreeRejected(tCtx->frees, &tCtx->nFree, npkts + lbound, rejectMask);
+}
+
+/** @brief Dispatch a burst of packets from the same face. */
+__attribute__((nonnull)) static inline void
+RxLoop_ToFace(RxLoop* rxl, RxGroup* rxg, RxLoopTransferCtx* tCtx) {
   uint16_t count = tCtx->nPending;
   if (count == 0) {
     return;
@@ -42,13 +54,18 @@ RxLoop_Dispatch(RxLoop* rxl, RxGroup* rxg, RxLoopTransferCtx* tCtx) {
 
   InputDemuxes* demuxes =
     likely(face->impl->rxDemuxes == NULL) ? &rxl->demuxes : face->impl->rxDemuxes;
+  uint16_t lbound = 0;
+  PktType lastType = PktFragment;
   for (uint16_t i = 0; i < fCtx.nL3; ++i) {
     Packet* npkt = npkts[i];
-    bool accepted = InputDemux_Dispatch(InputDemux_Of(demuxes, Packet_GetType(npkt)), npkt);
-    if (unlikely(!accepted)) {
-      tCtx->frees[tCtx->nFree++] = Packet_ToMbuf(npkt);
+    PktType thisType = Packet_GetType(npkt);
+    if (unlikely(thisType != lastType)) {
+      RxLoop_ToDemux(tCtx, demuxes, npkts, lbound, i);
+      lbound = i;
+      lastType = thisType;
     }
   }
+  RxLoop_ToDemux(tCtx, demuxes, npkts, lbound, fCtx.nL3);
 }
 
 /** @brief Receive a burst of packets from @p rxg and dispatch them. */
@@ -76,13 +93,13 @@ RxLoop_Transfer(RxLoop* rxl, RxGroup* rxg) {
     }
 
     if (unlikely(pkt->port != tCtx.pendingFace)) {
-      RxLoop_Dispatch(rxl, rxg, &tCtx);
+      RxLoop_ToFace(rxl, rxg, &tCtx);
       tCtx.pendingFace = pkt->port;
     }
 
     tCtx.pkts[tCtx.nPending++] = pkt;
   }
-  RxLoop_Dispatch(rxl, rxg, &tCtx);
+  RxLoop_ToFace(rxl, rxg, &tCtx);
 
   if (unlikely(tCtx.nFree > 0)) {
     rte_pktmbuf_free_bulk(tCtx.frees, tCtx.nFree);

@@ -6,9 +6,12 @@ package iface
 import "C"
 
 import (
+	"math"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
+	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 )
 
@@ -65,10 +68,18 @@ func (demux *InputDemux) SetDest(i int, q *PktQueue) {
 	demux.dest[i].queue = q.ptr()
 }
 
-// Dispatch submits a packet for dispatching.
-// Returns true if accepted, false if rejected (in this case, pkt must be freed by caller).
-func (demux *InputDemux) Dispatch(pkt *ndni.Packet) bool {
-	return bool(C.InputDemux_Dispatch(demux.ptr(), (*C.Packet)(pkt.Ptr())))
+// Dispatch submits a burst of L3 packets for dispatching.
+// Returns booleans to indicate rejected packets (they must be freed by caller).
+func (demux *InputDemux) Dispatch(chunkSize int, vec pktmbuf.Vector) (rejects []bool) {
+	if chunkSize == 0 {
+		chunkSize = math.MaxInt
+	}
+	chunkSize = min(chunkSize, 64)
+
+	return cptr.MapInChunksOf(chunkSize, vec, func(vec pktmbuf.Vector) []bool {
+		mask := C.InputDemux_Dispatch(demux.ptr(), cptr.FirstPtr[*C.Packet](vec), C.uint16_t(len(vec)))
+		return cptr.ExpandBits(len(vec), mask)
+	})
 }
 
 // InputDemuxCounters contains InputDemux counters.

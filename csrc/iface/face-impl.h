@@ -11,7 +11,6 @@
  */
 __attribute__((nonnull)) void
 FaceRx_Input(Face* face, int rxThread, FaceRxInputCtx* ctx);
-;
 
 __attribute__((nonnull)) static __rte_always_inline void
 FaceTx_CheckDirectFragmentMbuf_(struct rte_mbuf* pkt) {

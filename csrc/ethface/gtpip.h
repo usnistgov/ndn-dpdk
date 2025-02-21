@@ -23,7 +23,7 @@ typedef struct EthGtpip {
  * @brief Process downlink packets.
  * @param pkts Ethernet frames received on N6 interface.
  * @param count quantity of @p pkts , maximum is 64.
- * @returns bitfield of accepted packets. Use @c rte_popcount64 to obtain quantity.
+ * @return bitset of accepted packets.
  *
  * If a packet carries IP traffic that matches a known UE in @p g , its Ethernet header is removed
  * and then the packet is encapsulated in GTP-U tunnel by prepending outer Ethernet + outer IP +
@@ -36,7 +36,7 @@ EthGtpip_ProcessDownlinkBulk(EthGtpip* g, struct rte_mbuf* pkts[], uint32_t coun
  * @brief Process uplink packets.
  * @param pkts Ethernet frames received on N3 interface.
  * @param count quantity of @p pkts , maximum is 64.
- * @returns bitfield of accepted packets. Use @c rte_popcount64 to obtain quantity.
+ * @return bitset of accepted packets.
  *
  * If a packet carries GTP-U traffic that matches a known UE in @p g , its outer Ethernet +
  * outer IP + outer UDP + GTPv1 headers are removed, and then a new Ethernet header is prepended.

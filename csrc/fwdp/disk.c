@@ -3,8 +3,8 @@
 void
 FwDisk_GotData(Packet* npkt, uintptr_t ctx) {
   FwDisk* fwdisk = (FwDisk*)ctx;
-  bool accepted = InputDemux_Dispatch(&fwdisk->output, npkt);
-  if (unlikely(!accepted)) {
+  uint64_t rejectMask = InputDemux_Dispatch(&fwdisk->output, &npkt, 1);
+  if (unlikely(rejectMask != 0)) {
     Packet_Free(npkt);
   }
 }

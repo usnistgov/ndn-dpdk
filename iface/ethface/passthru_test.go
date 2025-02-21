@@ -240,15 +240,11 @@ func TestGtpipProcess(t *testing.T) {
 	}, ethDev.NumaSocket())
 	require.NoError(e)
 
-	process100PktsInTwoBatches := func(f func(vec pktmbuf.Vector) []bool, vec pktmbuf.Vector) []bool {
+	process100Pkts := func(f func(vec pktmbuf.Vector) []bool, vec pktmbuf.Vector) []bool {
 		require.Len(vec, 100)
-		matches := f(vec[:50])
 		// put non-matching packets in the middle
-		vec2 := slices.Concat(vec[70:], vec[50:70])
-		matches2 := f(vec2)
-		matches = append(matches, matches2[30:]...)
-		matches = append(matches, matches2[:30]...)
-		return matches
+		matches := f(slices.Concat(vec[:50], vec[70:], vec[50:70]))
+		return slices.Concat(matches[:50], matches[80:], matches[50:80])
 	}
 
 	facesGTP := addGtpFaces(tap)
@@ -294,7 +290,7 @@ func TestGtpipProcess(t *testing.T) {
 			pktLens[i] = vec[i].Len()
 		}
 
-		matches := process100PktsInTwoBatches(g.ProcessDownlink, vec)
+		matches := process100Pkts(g.ProcessDownlink, vec)
 		for i, pkt := range vec {
 			if i >= len(facesGTP) {
 				assert.False(matches[i], "%d", i)
@@ -352,7 +348,7 @@ func TestGtpipProcess(t *testing.T) {
 			pktLens[i] = vec[i].Len()
 		}
 
-		matches := process100PktsInTwoBatches(g.ProcessUplink, vec)
+		matches := process100Pkts(g.ProcessUplink, vec)
 		for i, pkt := range vec {
 			if i >= len(facesGTP) {
 				assert.False(matches[i], "%d", i)
