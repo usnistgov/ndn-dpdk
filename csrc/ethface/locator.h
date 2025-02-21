@@ -51,10 +51,10 @@ enum {
   /** @brief EthLocator derived header buffer length. */
   EthLocator_MaxHdrLen =
     RTE_ETHER_HDR_LEN + RTE_VLAN_HLEN +
-    spdk_max(sizeof(struct rte_ipv4_hdr), sizeof(struct rte_ipv6_hdr)) +
+    RTE_MAX_T(sizeof(struct rte_ipv4_hdr), sizeof(struct rte_ipv6_hdr), size_t) +
     sizeof(struct rte_udp_hdr) +
-    spdk_max(sizeof(struct rte_vxlan_hdr) + RTE_ETHER_HDR_LEN,
-             sizeof(EthGtpHdr) + sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_udp_hdr))
+    RTE_MAX_T(sizeof(struct rte_vxlan_hdr) + RTE_ETHER_HDR_LEN,
+              sizeof(EthGtpHdr) + sizeof(struct rte_ipv4_hdr) + sizeof(struct rte_udp_hdr), size_t)
 };
 static_assert(EthLocator_MaxHdrLen <= RTE_PKTMBUF_HEADROOM, "");
 

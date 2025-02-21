@@ -362,7 +362,7 @@ FileServerFd_GenerateLs(FileServer* p, FileServerFd* entry) {
 
   entry->lsL = 0;
   bool isFull = false;
-  uint8_t dents[spdk_min(FileServerMaxLsResult, 1 << 18)];
+  uint8_t dents[RTE_MIN_T(FileServerMaxLsResult, 1 << 18, size_t)];
   while ((res = syscall(SYS_getdents64, entry->fd, dents, sizeof(dents))) > 0) {
     for (int offset = 0; offset < res;) {
       struct dirent64* de = RTE_PTR_ADD(dents, offset);

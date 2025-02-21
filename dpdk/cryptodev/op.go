@@ -5,9 +5,7 @@ package cryptodev
 
 enum {
 	c_offsetof_Op_status = offsetof(struct rte_crypto_op, status),
-	c_sizeof_Op_sym = sizeof(struct rte_crypto_sym_op),
-	c_sizeof_Op_asym = sizeof(struct rte_crypto_asym_op),
-	c_sizeof_Op_sym_asym = spdk_max(c_sizeof_Op_sym, c_sizeof_Op_asym),
+	c_sizeof_Op_sym_asym = RTE_MAX_T(sizeof(struct rte_crypto_sym_op), sizeof(struct rte_crypto_asym_op), size_t),
 };
 */
 import "C"
