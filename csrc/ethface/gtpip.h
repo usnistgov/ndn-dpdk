@@ -33,15 +33,15 @@ __attribute__((nonnull)) uint64_t
 EthGtpip_ProcessDownlinkBulk(EthGtpip* g, struct rte_mbuf* pkts[], uint32_t count);
 
 /**
- * @brief Process uplink packet.
- * @param m Ethernet frame received on N3 interface.
- * @returns whether the packet matches a UE.
+ * @brief Process uplink packets.
+ * @param pkts Ethernet frames received on N3 interface.
+ * @param count quantity of @p pkts , maximum is 64.
+ * @returns bitfield of accepted packets. Use @c rte_popcount64 to obtain quantity.
  *
- * If @p m carries IP traffic in GTP-U tunnel that matches a known UE in @p g , returns true.
- * The outer Ethernet + outer IP + outer UDP + GTPv1 headers are removed, and then a new
- * Ethernet header is prepended.
+ * If a packet carries GTP-U traffic that matches a known UE in @p g , its outer Ethernet +
+ * outer IP + outer UDP + GTPv1 headers are removed, and then a new Ethernet header is prepended.
  */
-__attribute__((nonnull)) bool
-EthGtpip_ProcessUplink(EthGtpip* g, struct rte_mbuf* m);
+__attribute__((nonnull)) uint64_t
+EthGtpip_ProcessUplinkBulk(EthGtpip* g, struct rte_mbuf* pkts[], uint32_t count);
 
 #endif // NDNDPDK_ETHFACE_GTPIP_H

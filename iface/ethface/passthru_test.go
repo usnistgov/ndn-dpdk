@@ -240,6 +240,17 @@ func TestGtpipProcess(t *testing.T) {
 	}, ethDev.NumaSocket())
 	require.NoError(e)
 
+	process100PktsInTwoBatches := func(f func(vec pktmbuf.Vector) []bool, vec pktmbuf.Vector) []bool {
+		require.Len(vec, 100)
+		matches := f(vec[:50])
+		// put non-matching packets in the middle
+		vec2 := slices.Concat(vec[70:], vec[50:70])
+		matches2 := f(vec2)
+		matches = append(matches, matches2[30:]...)
+		matches = append(matches, matches2[:30]...)
+		return matches
+	}
+
 	facesGTP := addGtpFaces(tap)
 	for i, face := range facesGTP {
 		e = g.Insert(face.Locator().(ethface.GtpLocator).InnerRemoteIP, face)
@@ -283,15 +294,7 @@ func TestGtpipProcess(t *testing.T) {
 			pktLens[i] = vec[i].Len()
 		}
 
-		matches := g.ProcessDownlink(vec[:50])
-		{
-			// put non-matching packets in the middle
-			vec2 := slices.Concat(vec[70:], vec[50:70])
-			matches2 := g.ProcessDownlink(vec2)
-			matches = append(matches, matches2[30:]...)
-			matches = append(matches, matches2[:30]...)
-		}
-
+		matches := process100PktsInTwoBatches(g.ProcessDownlink, vec)
 		for i, pkt := range vec {
 			if i >= len(facesGTP) {
 				assert.False(matches[i], "%d", i)
@@ -313,6 +316,7 @@ func TestGtpipProcess(t *testing.T) {
 		assert, _ := makeAR(t)
 		vec := make(pktmbuf.Vector, 100)
 		defer vec.Close()
+		pktLens := make([]int, len(vec))
 		for i := range vec {
 			vec[i] = pktmbufFromLayers(pktmbuf.DefaultHeadroom,
 				&layers.Ethernet{
@@ -345,16 +349,15 @@ func TestGtpipProcess(t *testing.T) {
 					Seq:      1,
 				},
 			)
+			pktLens[i] = vec[i].Len()
 		}
 
+		matches := process100PktsInTwoBatches(g.ProcessUplink, vec)
 		for i, pkt := range vec {
-			pktLen := pkt.Len()
-
-			ok := g.ProcessUplink(pkt)
 			if i >= len(facesGTP) {
-				assert.False(ok, "%d", i)
-				assert.Equal(pktLen, pkt.Len(), "%d", i)
-			} else if assert.True(ok, "%d", i) {
+				assert.False(matches[i], "%d", i)
+				assert.Equal(pktLens[i], pkt.Len(), "%d", i)
+			} else if assert.True(matches[i], "%d", i) {
 				wire := pkt.Bytes()
 				checkPacketLayers(t, wire,
 					layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeICMPv4)

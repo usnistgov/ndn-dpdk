@@ -55,7 +55,7 @@ PutIpv4Hdr(uint8_t* buffer, const struct rte_ipv6_addr src, const struct rte_ipv
 __attribute__((nonnull)) static inline uint8_t
 PutIpv6Hdr(uint8_t* buffer, const struct rte_ipv6_addr src, const struct rte_ipv6_addr dst) {
   struct rte_ipv6_hdr* ip = (struct rte_ipv6_hdr*)buffer;
-  ip->vtc_flow = rte_cpu_to_be_32(6 << 28); // IP version 6
+  ip->version = 6;
   ip->proto = IPPROTO_UDP;
   ip->hop_limits = IP_HOPLIMIT_VALUE;
   ip->src_addr = src;
@@ -74,7 +74,7 @@ PutUdpHdr(uint8_t* buffer, uint16_t src, uint16_t dst) {
 __attribute__((nonnull)) static __rte_always_inline void
 PutVxlanVni(uint8_t vni[3], uint32_t vniH) {
   rte_be32_t vniB = rte_cpu_to_be_32(vniH);
-  memcpy(vni, RTE_PTR_ADD(&vniB, 1), 3);
+  rte_memcpy(vni, RTE_PTR_ADD(&vniB, 1), 3);
 }
 
 __attribute__((nonnull)) static inline uint8_t

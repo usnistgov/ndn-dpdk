@@ -64,19 +64,16 @@ func (g *Gtpip) Delete(ueIP netip.Addr) error {
 	return errors.New("not IPv4 address")
 }
 
-// ProcessDownlink processes a downlink Ethernet frame.
+// ProcessDownlink processes a burst of downlink Ethernet frames.
 func (g *Gtpip) ProcessDownlink(vec pktmbuf.Vector) []bool {
-	matches := make([]bool, len(vec))
-	bits := C.EthGtpip_ProcessDownlinkBulk((*C.EthGtpip)(g), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint32_t(len(vec)))
-	for i := range vec {
-		matches[i] = (bits & (1 << i)) != 0
-	}
-	return matches
+	mask := C.EthGtpip_ProcessDownlinkBulk((*C.EthGtpip)(g), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint32_t(len(vec)))
+	return expandUint64Bitmask(len(vec), mask)
 }
 
-// ProcessUplink processes an uplink Ethernet frame.
-func (g *Gtpip) ProcessUplink(pkt *pktmbuf.Packet) bool {
-	return bool(C.EthGtpip_ProcessUplink((*C.EthGtpip)(g), (*C.struct_rte_mbuf)(pkt.Ptr())))
+// ProcessUplink processes a burst of uplink Ethernet frames.
+func (g *Gtpip) ProcessUplink(vec pktmbuf.Vector) []bool {
+	mask := C.EthGtpip_ProcessUplinkBulk((*C.EthGtpip)(g), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint32_t(len(vec)))
+	return expandUint64Bitmask(len(vec), mask)
 }
 
 // Close releases memory.
@@ -107,4 +104,12 @@ func NewGtpip(cfg GtpipConfig, socket eal.NumaSocket) (g *Gtpip, e error) {
 	}
 
 	return g, nil
+}
+
+func expandUint64Bitmask(n int, mask C.uint64_t) (bits []bool) {
+	bits = make([]bool, n)
+	for i := range bits {
+		bits[i] = (mask & (1 << i)) != 0
+	}
+	return bits
 }

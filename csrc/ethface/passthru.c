@@ -12,11 +12,13 @@ EthPassthru_FaceRxInput(Face* face, int rxThread, FaceRxInputCtx* ctx) {
   for (uint16_t i = 0; i < ctx->count; ++i) {
     struct rte_mbuf* pkt = ctx->pkts[i];
     rxt->nFrames[FaceRxThread_cntNOctets] += pkt->pkt_len;
-    if (pt->gtpip != NULL && EthGtpip_ProcessUplink(pt->gtpip, pkt)) {
-      ++rxt->nFrames[EthPassthru_cntNGtpip];
-    } else {
-      ++rxt->nFrames[EthPassthru_cntNPkts];
-    }
+  }
+  if (pt->gtpip == NULL) {
+    rxt->nFrames[EthPassthru_cntNPkts] += ctx->count;
+  } else {
+    uint64_t nGtpip = rte_popcount64(EthGtpip_ProcessUplinkBulk(pt->gtpip, ctx->pkts, ctx->count));
+    rxt->nFrames[EthPassthru_cntNGtpip] += nGtpip;
+    rxt->nFrames[EthPassthru_cntNPkts] += ctx->count - nGtpip;
   }
 
   uint16_t nSent = 0;
