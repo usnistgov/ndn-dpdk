@@ -34,6 +34,12 @@ typedef struct VxlanInnerHdr {
   struct udphdr udp;
 } __rte_packed VxlanInnerHdr;
 
+typedef struct GtpInnerHdr {
+  EthGtpHdr gtp;
+  struct iphdr ipv4;
+  struct udphdr udp;
+} __rte_packed GtpInnerHdr;
+
 enum {
   UDPPortVXLAN = 4789,
   UDPPortGTP = 2152,

@@ -81,19 +81,18 @@ SEC("xdp") int xdp_prog(struct xdp_md* ctx) {
         locLen = locOffsetEth - locOffsetVni,
       };
       static_assert(vxiLen == locLen, "");
-      memcpy(loc.vx.vni, vxi->vx.vni, locLen);
+      memcpy(loc.vx.vni, vxi->vx.vni, locLen); // VNI + innerLocal + innerRemote
       loc.vx.rsvd1 = 0;
       break;
     }
     case bpf_htons(UDPPortGTP): {
-      const size_t gtpSize = sizeof(EthGtpHdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
-      const EthGtpHdr* gtp = PacketPtrAs((const EthGtpHdr*)pkt, gtpSize);
-      pkt += gtpSize;
-      if (gtp->hdr.e != 1 || gtp->ext.next_ext != EthGtpExtTypePsc) {
+      const GtpInnerHdr* gih = PacketPtrAs((const GtpInnerHdr*)pkt);
+      pkt += sizeof(*gih);
+      if (!EthGtpHdr_IsUplink(&gih->gtp) || gih->ipv4.version != IPVERSION) {
         goto REJECT;
       }
-      loc.gtp.teid = gtp->hdr.teid;
-      loc.gtp.qfi = gtp->psc.qfi;
+      loc.gtp.teid = gih->gtp.hdr.teid;
+      loc.gtp.qfi = gih->gtp.psc.qfi;
       break;
     }
   }

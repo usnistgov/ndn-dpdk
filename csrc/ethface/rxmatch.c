@@ -61,9 +61,8 @@ MatchGtpCommon(const EthRxMatch* match, const struct rte_mbuf* m, const EthGtpHd
   // exact match on TEID and QFI; require psc.type=1 for uplink
   *gtpM = rte_pktmbuf_mtod_offset(m, const EthGtpHdr*, match->udpOff + sizeof(struct rte_udp_hdr));
   *gtpT = RTE_PTR_ADD(match->buf, match->udpOff + sizeof(struct rte_udp_hdr));
-  return MatchIpUdp(match, m) && (*gtpM)->hdr.teid == (*gtpT)->hdr.teid && (*gtpM)->hdr.e == 1 &&
-         (*gtpM)->ext.next_ext == EthGtpExtTypePsc && (*gtpM)->psc.type == 1 &&
-         (*gtpM)->psc.qfi == (*gtpT)->psc.qfi;
+  return MatchIpUdp(match, m) && EthGtpHdr_IsUplink(*gtpM) &&
+         (*gtpM)->hdr.teid == (*gtpT)->hdr.teid && (*gtpM)->psc.qfi == (*gtpT)->psc.qfi;
 }
 
 __attribute__((nonnull)) static inline bool
