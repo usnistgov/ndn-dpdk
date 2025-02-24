@@ -48,16 +48,3 @@ func ExpandBits[T ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64](n int, mask T) [
 	}
 	return bits
 }
-
-// MapInChunksOf invokes a callback function with sub-vectors not exceeding a maximum length.
-//
-//	n: maximum vector length passed to callback function.
-//	vec: input vector.
-//	f: function to transform input vector of [1,n] elements to same number of outputs.
-func MapInChunksOf[E any, V ~[]E, T any, R ~[]T](n int, vec V, f func(vec V) R) (results R) {
-	results = make(R, 0, len(vec))
-	for i := 0; i < len(vec); i += n {
-		results = append(results, f(vec[i:min(len(vec), i+n)])...)
-	}
-	return
-}

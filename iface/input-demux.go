@@ -7,12 +7,14 @@ import "C"
 
 import (
 	"math"
+	"slices"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/ndt"
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"github.com/zyedidia/generic"
 )
 
 // InputDemux is a demultiplexer for incoming packets of one L3 type.
@@ -70,16 +72,20 @@ func (demux *InputDemux) SetDest(i int, q *PktQueue) {
 
 // Dispatch submits a burst of L3 packets for dispatching.
 // Returns booleans to indicate rejected packets (they must be freed by caller).
+//
+//	chunkSize: between 1 and 64, defaults to 64.
 func (demux *InputDemux) Dispatch(chunkSize int, vec pktmbuf.Vector) (rejects []bool) {
 	if chunkSize == 0 {
 		chunkSize = math.MaxInt
 	}
-	chunkSize = min(chunkSize, 64)
+	chunkSize = generic.Clamp(chunkSize, 1, 64)
 
-	return cptr.MapInChunksOf(chunkSize, vec, func(vec pktmbuf.Vector) []bool {
-		mask := C.InputDemux_Dispatch(demux.ptr(), cptr.FirstPtr[*C.Packet](vec), C.uint16_t(len(vec)))
-		return cptr.ExpandBits(len(vec), mask)
-	})
+	rejects = make([]bool, 0, len(vec))
+	for pkts := range slices.Chunk(vec, chunkSize) {
+		mask := C.InputDemux_Dispatch(demux.ptr(), cptr.FirstPtr[*C.Packet](pkts), C.uint16_t(len(pkts)))
+		rejects = append(rejects, cptr.ExpandBits(len(pkts), mask)...)
+	}
+	return
 }
 
 // InputDemuxCounters contains InputDemux counters.

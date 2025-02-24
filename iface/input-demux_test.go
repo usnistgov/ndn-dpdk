@@ -108,6 +108,8 @@ func testInputDemuxRoundRobin(t testing.TB, n int) {
 	fixture := NewInputDemuxFixture(t)
 	fixture.SetDests(n)
 	fixture.D.InitRoundrobin(n)
+
+	// ChunkSize matters in round-robin: each burst is sent to the same queue.
 	fixture.ChunkSize = 2
 
 	fixture.DispatchInterests("/I", 500, "")

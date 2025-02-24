@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"slices"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -65,19 +66,23 @@ func (g *Gtpip) Delete(ueIP netip.Addr) error {
 }
 
 // ProcessDownlink processes a burst of downlink Ethernet frames.
-func (g *Gtpip) ProcessDownlink(vec pktmbuf.Vector) []bool {
-	return cptr.MapInChunksOf(64, vec, func(vec pktmbuf.Vector) []bool {
-		mask := C.EthGtpip_ProcessDownlinkBulk((*C.EthGtpip)(g), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint32_t(len(vec)))
-		return cptr.ExpandBits(len(vec), mask)
-	})
+func (g *Gtpip) ProcessDownlink(vec pktmbuf.Vector) (accepts []bool) {
+	accepts = make([]bool, 0, len(vec))
+	for pkts := range slices.Chunk(vec, 64) {
+		mask := C.EthGtpip_ProcessDownlinkBulk((*C.EthGtpip)(g), cptr.FirstPtr[*C.struct_rte_mbuf](pkts), C.uint32_t(len(pkts)))
+		accepts = append(accepts, cptr.ExpandBits(len(pkts), mask)...)
+	}
+	return
 }
 
 // ProcessUplink processes a burst of uplink Ethernet frames.
-func (g *Gtpip) ProcessUplink(vec pktmbuf.Vector) []bool {
-	return cptr.MapInChunksOf(64, vec, func(vec pktmbuf.Vector) []bool {
-		mask := C.EthGtpip_ProcessUplinkBulk((*C.EthGtpip)(g), cptr.FirstPtr[*C.struct_rte_mbuf](vec), C.uint32_t(len(vec)))
-		return cptr.ExpandBits(len(vec), mask)
-	})
+func (g *Gtpip) ProcessUplink(vec pktmbuf.Vector) (accepts []bool) {
+	accepts = make([]bool, 0, len(vec))
+	for pkts := range slices.Chunk(vec, 64) {
+		mask := C.EthGtpip_ProcessUplinkBulk((*C.EthGtpip)(g), cptr.FirstPtr[*C.struct_rte_mbuf](pkts), C.uint32_t(len(pkts)))
+		accepts = append(accepts, cptr.ExpandBits(len(pkts), mask)...)
+	}
+	return
 }
 
 // Close releases memory.
