@@ -13,7 +13,7 @@ typedef enum EthTxHdrAct {
   EthTxHdrActUdp4Offload = 0b1011,
   EthTxHdrActUdp6Checksum = 0b1000,
   EthTxHdrActUdp6Offload = 0b1001,
-} EthTxHdrAct;
+} __rte_packed EthTxHdrAct;
 
 /** @brief Bit flags for @c EthTxHdr_Prepend . */
 typedef enum EthTxHdrFlags {
@@ -21,7 +21,7 @@ typedef enum EthTxHdrFlags {
   EthTxHdrFlagsNewBurst = RTE_BIT32(0),
   /** @brief Whether mbuf contains Ethernet+IPv4 instead of NDN. */
   EthTxHdrFlagsGtpip = RTE_BIT32(1),
-} EthTxHdrFlags;
+} __rte_packed EthTxHdrFlags;
 
 typedef struct EthTxHdr EthTxHdr;
 typedef void (*EthTxHdr_PrependFunc)(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags);

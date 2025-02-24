@@ -28,7 +28,7 @@ TxPrepend(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {
 
 __attribute__((nonnull)) static inline void
 TxEther(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags) {
-  TxPrepend(hdr, m, 0);
+  TxPrepend(hdr, m, flags);
 }
 
 __attribute__((nonnull)) static __rte_always_inline void

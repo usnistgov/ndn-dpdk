@@ -30,7 +30,7 @@ typedef enum FileServerRequestKind {
   FileServerRequestSegment = 1 << 1,
   FileServerRequestLs = 1 << 2,
   FileServerRequestMetadata = 1 << 3,
-} FileServerRequestKind;
+} __rte_packed FileServerRequestKind;
 
 /** @brief Parsed Interest name processed by file server. */
 typedef struct FileServerRequestName {

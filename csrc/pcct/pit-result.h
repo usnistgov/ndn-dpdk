@@ -10,7 +10,7 @@ typedef enum PitInsertResultKind {
   PIT_INSERT_FULL = 0, ///< PIT is full, cannot insert
   PIT_INSERT_PIT = 1,  ///< created or found PIT entry
   PIT_INSERT_CS = 2,   ///< found existing CS entry that matches the Interest
-} PitInsertResultKind;
+} __rte_packed PitInsertResultKind;
 
 /** @brief Result of PIT insert. */
 typedef struct PitInsertResult {
@@ -31,7 +31,7 @@ typedef enum PitFindResultFlag {
   /// need Data digest to determine match, PccEntry is set on PitInsertResult,
   /// PIT_FIND_PIT0 and PIT_FIND_PIT1 indicate existence of PIT entries.
   PIT_FIND_NEED_DIGEST = RTE_BIT32(2),
-} PitFindResultFlag;
+} __rte_packed PitFindResultFlag;
 
 /** @brief Result of PIT find. */
 typedef struct PitFindResult {

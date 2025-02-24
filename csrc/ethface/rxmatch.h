@@ -12,7 +12,7 @@ typedef enum EthRxMatchAct {
   EthRxMatchActUdp,
   EthRxMatchActVxlan,
   EthRxMatchActGtp,
-} EthRxMatchAct;
+} __rte_packed EthRxMatchAct;
 
 typedef struct EthRxMatch EthRxMatch;
 typedef bool (*EthRxMatch_MatchFunc)(const EthRxMatch* match, const struct rte_mbuf* m);

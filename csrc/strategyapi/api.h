@@ -20,7 +20,7 @@ typedef enum SgEvent {
   SGEVT_DATA,     ///< Data arrives
   SGEVT_NACK,     ///< Nack arrives
   SGEVT_TIMER,    ///< timer expires
-} SgEvent;
+} __rte_packed SgEvent;
 
 /** @brief Context of strategy invocation. */
 typedef struct SgCtx {
@@ -108,7 +108,7 @@ typedef enum SgForwardInterestResult {
   SGFWDI_NONONCE,    ///< upstream has rejected all nonces
   SGFWDI_SUPPRESSED, ///< forwarding is suppressed
   SGFWDI_HOPZERO,    ///< HopLimit has become zero
-} SgForwardInterestResult;
+} __rte_packed SgForwardInterestResult;
 
 /**
  * @brief Forward an Interest to a nexthop.

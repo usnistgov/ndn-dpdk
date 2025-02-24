@@ -9,7 +9,7 @@ ProcessBulk(EthGtpip* g, struct rte_mbuf* pkts[], uint32_t count,
             __attribute__((nonnull)) const void* extractKey(const struct rte_mbuf* pkt),
             __attribute__((nonnull)) bool updatePkt(struct rte_mbuf* pkt, const void* key,
                                                     EthFacePriv* priv)) {
-  NDNDPDK_ASSERT(count <= RTE_MAX_T(MaxBurstSize, RTE_HASH_LOOKUP_BULK_MAX, uint32_t));
+  NDNDPDK_ASSERT(count <= RTE_MIN_T(MaxBurstSize, RTE_HASH_LOOKUP_BULK_MAX, uint32_t));
   uint32_t nLookups = 0;
   uint64_t mask = 0;
   const void* keys[RTE_HASH_LOOKUP_BULK_MAX] = {0};
@@ -108,7 +108,7 @@ UlExtractKey(const struct rte_mbuf* pkt) {
     return NULL;
   }
 
-  const struct rte_ipv4_hdr* iip = RTE_PTR_ADD(eth, hdrLen - sizeof(struct rte_ipv4_hdr));
+  const struct rte_ipv4_hdr* iip = RTE_PTR_ADD(eth, hdrLen - sizeof(*iip));
   const struct rte_udp_hdr* udp = RTE_PTR_SUB(iip, sizeof(*udp) + sizeof(EthGtpHdr));
   if (unlikely(udp->src_port != rte_cpu_to_be_16(RTE_GTPU_UDP_PORT)) ||
       unlikely(udp->dst_port != rte_cpu_to_be_16(RTE_GTPU_UDP_PORT))) {

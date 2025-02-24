@@ -16,7 +16,7 @@ typedef enum InputDemuxAct {
   InputDemuxActGenericHashMask,
   InputDemuxActByNdt,
   InputDemuxActByToken,
-} InputDemuxAct;
+} __rte_packed InputDemuxAct;
 
 /** @brief Destination of input packet demultiplexer. */
 typedef struct InputDemuxDest {

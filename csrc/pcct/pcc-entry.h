@@ -36,7 +36,7 @@ typedef enum PccSlotIndex {
   PCC_SLOT1 = 1,
   PCC_SLOT2 = 2,
   PCC_SLOT3 = 3,
-} PccSlotIndex;
+} __rte_packed PccSlotIndex;
 
 /**
  * @brief PCC entry extension.

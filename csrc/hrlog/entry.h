@@ -13,7 +13,7 @@ typedef enum HrlogAction {
   HRLOG_OI = 1, // Interest TX since RX
   HRLOG_OD = 2, // retrieved Data TX since RX
   HRLOG_OC = 4, // cached Data TX since Interest RX
-} HrlogAction;
+} __rte_packed HrlogAction;
 
 /** @brief A high resolution log entry. */
 typedef uint64_t HrlogEntry;
