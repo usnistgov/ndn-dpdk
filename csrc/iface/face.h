@@ -22,10 +22,6 @@ typedef struct FaceRxInputCtx {
 
 /**
  * @brief Process a burst of received L2 frames.
- * @param[inout] pkts received L2 frames; mbufs to be freed.
- * @param[out] npkts L3 packets.
- * @param count number of L2 frames in @p pkts ; capacity of @p npkts ;
- *              maximum allowable sum of nL3+nFree in return value.
  *
  * Default implementation for NDN traffic is @c FaceRx_Input .
  */

@@ -42,7 +42,6 @@ typedef struct FetchWindow {
 /**
  * @brief Initialize FetchWindow.
  * @param capacity maximum distance between lower and upper bounds of segment numbers.
- * @return whether success.
  */
 __attribute__((nonnull)) void
 FetchWindow_Init(FetchWindow* win, uint32_t capacity, int numaSocket);

@@ -73,7 +73,7 @@ typedef struct PdumpFaceSource {
 } PdumpFaceSource;
 
 /**
- * @brief Perform name filtering to deterine whether to capture a packet.
+ * @brief Perform name filtering to determine whether to capture a packet.
  * @param pkt packet positioned at NDNLPv2 header.
  * @return whether to capture the packet.
  */
