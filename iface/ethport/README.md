@@ -10,20 +10,45 @@ It manages ethdev resources and prevents conflicts among the faces.
 
 ## Receive Path
 
-There are three receive path implementations.
-One of them is chosen during port creation; the choice cannot be changed afterwards.
+There are three receive path implementations:
 
-**RxFlow** is a hardware-accelerated receive path.
-It uses one or more RX queues per face, and creates a *flow* via rte\_flow API to steer incoming frames to those queues.
+* RxFlow: hardware-accelerated receive path.
+* RxTable: software receive path.
+* RxMemif: memif-specific receive path.
+
+One of them is chosen during port creation.
+The choice cannot be changed afterwards.
+
+Each receive path implementation is responsible for:
+
+1. Setup the Ethernet adapter to receive packets toward the faces.
+2. Receive packets from the Ethernet adapter.
+3. Filter out irrelevant packets, if needed.
+4. Label each packet with FaceID and timestamp, and strip packet headers leaving only the NDN packet.
+
+### RxFlow
+
+RxFlow is a hardware-accelerated receive path.
+It uses one or more RX queues per face, and creates a *flow* via rte\_flow API to steer incoming frames to those queues (implemented in `C.EthFlowPattern` struct).
 The hardware performs header matching; there is minimal checking on software side.
 
-**RxTable** is a software receive path.
-It continuously polls ethdev RX queue 0 for incoming frames.
-For each incoming frame, the software performs header matching (implemented in `EthRxMatch` struct), and then labels each matched frame with the face ID.
-Matchings are attempted iteratively for each face that are arranged in an RCU-protected linked list; if the port has a pass-through face, it is arranged last and would always match.
-If no match is found for an incoming frame, the Ethernet frame is sent to [packet dumper](../../app/pdump) if enabled, otherwise it is dropped.
+### RxTable
 
-**RxMemif** is a memif-specific receive path, where each port has only one face.
+RxTable is a software receive path.
+It continuously polls ethdev RX queue 0 for incoming frames.
+
+For each incoming frame, the software performs header matching (implemented in `C.EthRxMatch` struct), and then labels each matched frame with the face ID.
+Matchings are attempted iteratively for each face that are arranged in an RCU-protected linked list.
+If the port has a pass-through face, it is arranged last and would always match.
+In case no match is found for an incoming frame, the Ethernet frame is sent to [packet dumper](../../app/pdump) if enabled, otherwise it is dropped.
+
+On a port using XDP driver, the BPF program can overwrite the Ethernet header of an incoming packet with `C.EthXdpHdr` struct that contains a magic number and the FaceID.
+The magic number is UINT64\_MAX, which cannot appear as the first 8 octets of a normal Ethernet header.
+Upon detecting this magic number, RxTable bypasses the iterative header matching procedure and only performs a minimal header length checking.
+
+### RxMemif
+
+RxMemif is a memif-specific receive path, where each port has only one face.
 It continuously polls ethdev RX queue 0 for incoming frames, and then labels each frame with the only face ID.
 
 ## Send Path

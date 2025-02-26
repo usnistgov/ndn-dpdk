@@ -7,7 +7,7 @@
 
 /**
  * @brief TCP CUBIC algorithm.
- * @sa https://tools.ietf.org/html/rfc8312
+ * @sa https://datatracker.ietf.org/doc/html/rfc8312
  */
 typedef struct TcpCubic {
   TscTime t0;

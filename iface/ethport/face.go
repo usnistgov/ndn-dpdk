@@ -169,9 +169,12 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 				face.logger.Error("face start error; change Port config or locator, and try again", zap.Error(e))
 				return e
 			}
+
+			queue := uint8(0)                     // currently only use XSK queue index 0
+			fmv := uint32(id)<<16 | uint32(queue) // face_map value: 16-bit faceID, 8-bit unused, 8-bit XSK queue index
 			ethnetif.XDPInsertFaceMapEntry(face.port.dev, func() []byte {
 				return face.loc.EthLocatorC().toXDP()
-			}, 0)
+			}, fmv)
 
 			face.port.activateTx(face)
 			face.logger.Info("face started",

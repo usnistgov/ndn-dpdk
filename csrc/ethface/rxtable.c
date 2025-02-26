@@ -1,5 +1,8 @@
 #include "rxtable.h"
+#include "../core/logger.h"
 #include "face.h"
+
+N_LOG_INIT(EthRxTable);
 
 void
 EthRxTable_Init(EthRxTable* rxt, uint16_t port) {
@@ -12,17 +15,31 @@ EthRxTable_Init(EthRxTable* rxt, uint16_t port) {
 
 __attribute__((nonnull)) static inline bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m) {
+  EthFacePriv* priv = NULL;
+
+  const EthXdpHdr* xh = rte_pktmbuf_mtod(m, const EthXdpHdr*);
+  if (likely(m->data_len >= sizeof(*xh)) && xh->magic == UINT64_MAX) {
+    Face* face = Face_Get((FaceID)(xh->fmv >> 16));
+    if (likely(face->impl != NULL) &&
+        likely((priv = Face_GetPriv(face))->rxMatch.len == xh->hdrLen)) {
+      goto ACCEPT;
+    }
+  }
+
   // RCU lock is inherited from RxLoop_Run
   struct cds_list_head* pos;
   cds_list_for_each_rcu (pos, &rxt->head) {
-    EthFacePriv* priv = container_of(pos, EthFacePriv, rxtNode);
+    priv = container_of(pos, EthFacePriv, rxtNode);
     if (EthRxMatch_Match(&priv->rxMatch, m)) {
-      m->port = priv->faceID;
-      rte_pktmbuf_adj(m, priv->rxMatch.len);
-      return true;
+      goto ACCEPT;
     }
   }
   return false;
+
+ACCEPT:
+  m->port = priv->faceID;
+  rte_pktmbuf_adj(m, priv->rxMatch.len);
+  return true;
 }
 
 void

@@ -35,6 +35,13 @@ typedef struct EthXdpLocator {
   uint8_t ip[2 * 16];   ///< outer IPv4/IPv6 source and destination
 } __rte_packed EthXdpLocator;
 
+/** @brief Overwritten header after matching in XDP program. */
+typedef struct EthXdpHdr {
+  uint64_t magic;  ///< UINT64_MAX
+  uint32_t fmv;    ///< face_map value
+  uint16_t hdrLen; ///< header length
+} __rte_packed EthXdpHdr;
+
 /** @brief GTP-U header with PDU session container. */
 typedef struct EthGtpHdr {
   struct rte_gtp_hdr hdr;

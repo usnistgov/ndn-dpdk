@@ -94,7 +94,7 @@ func xdpMatchHashMap(mid uint32, wantName string) (hash *gobpfld.HashMap) {
 
 // XDPInsertFaceMapEntry inserts an entry in the FaceMap defined in the XDP program attached to the EthDev.
 // If the EthDev is not using XDP driver, this operation has no effect.
-func XDPInsertFaceMapEntry(dev ethdev.EthDev, getKey func() []byte, xskQueue int) {
+func XDPInsertFaceMapEntry(dev ethdev.EthDev, getKey func() []byte, value uint32) {
 	fm := xdpDevs[dev.ID()].FindFaceMap()
 	if fm == nil {
 		return
@@ -104,11 +104,10 @@ func XDPInsertFaceMapEntry(dev ethdev.EthDev, getKey func() []byte, xskQueue int
 	logEntry := logger.With(
 		zap.Uint32("map-fd", uint32(fm.GetFD())),
 		zap.Binary("key", key),
-		zap.Int("xsk-queue", xskQueue),
+		zap.Uint32("value", value),
 	)
 
 	keyPtr := xdpHashMakeKey(fm.GetDefinition().KeySize, key)
-	value := int32(xskQueue)
 	if e := fm.Set(keyPtr, &value, bpfsys.BPFMapElemAny); e != nil {
 		logEntry.Warn("HashMap.Set error", zap.Error(e))
 	} else {

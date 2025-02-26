@@ -8,7 +8,7 @@
 
 /**
  * @brief SRTT and RTTVAR values in RTT estimator.
- * @sa https://tools.ietf.org/html/rfc6298
+ * @sa https://datatracker.ietf.org/doc/html/rfc6298
  */
 typedef struct RttValue {
   float sRtt;
@@ -50,7 +50,7 @@ extern TscDuration RttEstTscMaxRto;
 
 /**
  * @brief RTT estimator.
- * @sa https://tools.ietf.org/html/rfc6298
+ * @sa https://datatracker.ietf.org/doc/html/rfc6298
  */
 typedef struct RttEst {
   RttValue rttv;

@@ -1,6 +1,8 @@
 #include "xdp-locator.h"
 #include "hdr-impl.h"
 
+static_assert(sizeof(EthXdpHdr) == RTE_ETHER_HDR_LEN, "");
+
 void
 EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc) {
   EthLocatorClass c = EthLocator_Classify(loc);

@@ -31,7 +31,6 @@ struct vxlanhdr {
 typedef struct VxlanInnerHdr {
   struct vxlanhdr vx;
   struct ethhdr eth;
-  struct udphdr udp;
 } __rte_packed VxlanInnerHdr;
 
 typedef struct GtpInnerHdr {
