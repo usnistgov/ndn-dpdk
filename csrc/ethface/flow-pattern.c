@@ -74,9 +74,9 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
   }
 
   if (c.tunnel != 'V') { // VXLAN packet can have any UDP source port
-    MASK(flow->udpMask.hdr.dst_port);
+    MASK(flow->udpMask.hdr.src_port);
   }
-  MASK(flow->udpMask.hdr.src_port);
+  MASK(flow->udpMask.hdr.dst_port);
   PutUdpHdr((uint8_t*)(&flow->udpSpec.hdr), loc->remoteUDP, loc->localUDP);
   APPEND(UDP, udp);
 

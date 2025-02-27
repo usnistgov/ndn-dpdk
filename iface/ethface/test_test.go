@@ -10,11 +10,13 @@ import (
 	"github.com/gopacket/gopacket"
 	"github.com/gopacket/gopacket/layers"
 	"github.com/stretchr/testify/require"
+	"github.com/usnistgov/ndn-dpdk/bpf"
 	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealtestenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ealthread"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethnetif"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethringdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf/mbuftestenv"
@@ -29,6 +31,12 @@ import (
 
 func TestMain(m *testing.M) {
 	ealtestenv.Init()
+
+	if xdpProgram, e := bpf.XDP.Find("redir"); e == nil {
+		ethnetif.XDPProgram = xdpProgram
+	} else {
+		panic(e)
+	}
 
 	pktmbuf.Direct.Update(pktmbuf.PoolConfig{
 		Dataroom: 9000, // needed by fragmentation test case

@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
-	"reflect"
 
 	"github.com/gopacket/gopacket/afpacket"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
@@ -44,20 +43,20 @@ func New(ifname string, cfg Config) (Transport, error) {
 	}
 	cfg.MTU = intf.MTU
 
-	h, e := afpacket.NewTPacket()
+	tpacket, e := afpacket.NewTPacket()
 	if e != nil {
 		return nil, fmt.Errorf("afpacket.NewTPacket() %w", e)
 	}
 
 	tr := &transport{
-		h:    h,
+		h:    NewTPacketHandle(tpacket),
 		intf: *intf,
 	}
 	if e = tr.prepare(cfg.Locator); e != nil {
 		return nil, e
 	}
 
-	tr.Transport, e = packettransport.New(h, cfg.Config)
+	tr.Transport, e = packettransport.New(tpacket, cfg.Config)
 	if e != nil {
 		return nil, e
 	}
@@ -71,12 +70,12 @@ func New(ifname string, cfg Config) (Transport, error) {
 
 type transport struct {
 	packettransport.Transport
-	h    *afpacket.TPacket
+	h    *TPacketHandle
 	intf net.Interface
 }
 
 func (tr *transport) prepare(loc packettransport.Locator) error {
-	fd := int(reflect.ValueOf(tr.h).Elem().FieldByName("fd").Int())
+	fd := tr.h.FD()
 	ifindex := tr.intf.Index
 
 	var ethtype [2]byte
