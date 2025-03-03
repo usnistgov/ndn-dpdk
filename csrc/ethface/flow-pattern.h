@@ -26,6 +26,12 @@ typedef struct EthFlowPattern {
   struct rte_flow_item_udp udpMask;
   union {
     struct {
+      struct rte_flow_item_raw rawSpec;
+      struct rte_flow_item_raw rawMask;
+      uint8_t rawSpecBuf[16];
+      uint8_t rawMaskBuf[16];
+    };
+    struct {
       struct rte_flow_item_vxlan vxlanSpec;
       struct rte_flow_item_vxlan vxlanMask;
       struct rte_flow_item_eth innerEthSpec;
@@ -43,11 +49,10 @@ typedef struct EthFlowPattern {
  * @param[out] flow Flow pattern.
  * @param[out] priority Flow priority.
  * @param loc Locator.
- * @param prefersFlowItemGTP For GTP-U flow item, whether to use RTE_FLOW_ITEM_TYPE_GTP instead
- *                           of RTE_FLOW_ITEM_TYPE_GTPU. Correct value depends on the NIC driver.
+ * @param flowFlags @p EthFlowFlags bits.
  */
 __attribute__((nonnull)) void
 EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocator* loc,
-                       bool prefersFlowItemGTP);
+                       uint32_t flowFlags);
 
 #endif // NDNDPDK_ETHFACE_FLOW_PATTERN_H

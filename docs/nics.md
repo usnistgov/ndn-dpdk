@@ -8,7 +8,7 @@ model | speed | DPDK driver | RxFlow Ethernet | RxFlow UDP | RxFlow VXLAN | RxFl
 -|-|-|-|-|-|-
 NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes | yes | yes | no
 NVIDIA ConnectX-6 | 200 Gbps | mlx5 | yes | yes | yes | yes
-Intel X710 | 10 Gbps | i40e | no | yes | no | yes
+Intel X710 | 10 Gbps | i40e | no | yes | yes | yes
 Intel X710 VF | 10 Gbps | iavf | untested | untested | untested | untested
 Intel XXV710 | 25 Gbps | i40e | untested | untested | untested | untested
 Intel X520 | 10 Gbps | ixgbe | no | yes | no | untested
@@ -213,9 +213,17 @@ ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500
 ```
 
-GTP-U tunnel face with RxFlow is supported with [I40E poll mode driver](https://doc.dpdk.org/guides/nics/i40e.html) on Intel Ethernet 700 series.
-It relies on [Dynamic Device Personalization (DDP)](https://www.intel.com/content/www/us/en/developer/articles/technical/dynamic-device-personalization-for-intel-ethernet-700-series.html) feature.
-You must manually download the *GTPv1 DDP profile* and place it at `/lib/firmware/intel/i40e/ddp/gtp.pkg`.
+### RxFlow Feature on I40E
+
+DPDK [I40E poll mode driver](https://doc.dpdk.org/guides/nics/i40e.html) supports Intel Ethernet 700 series.
+In the driver code, `i40e_supported_patterns` vector defines supported flow patterns.
+
+VXLAN tunnel face is supported through `pattern_fdir_ipv4_udp_raw_1` or `pattern_fdir_ipv6_udp_raw_1`, where VNI and inner MAC addresses are matched with a RAW item.
+The VXLAN item in `pattern_vxlan_1` and `pattern_vxlan_2` patterns are unusable because the parser disallows specifying outer IP addresses.
+
+GTP-U tunnel face is supported through `pattern_fdir_ipv4_gtpu`.
+This pattern relies on [Dynamic Device Personalization (DDP)](https://www.intel.com/content/www/us/en/developer/articles/technical/dynamic-device-personalization-for-intel-ethernet-700-series.html) feature.
+You must manually download the [GTPv1 DDP profile](https://downloadcenter.intel.com/download/27587) and place it at `/lib/firmware/intel/i40e/ddp/gtp.pkg`.
 If the profile is found, you would see "upload DDP package success" log message during Ethernet port creation.
 Without the profile, GTP-U face creation on RxFlow would fail with "GTP is not supported by default" log message.
 During NDN-DPDK service shutdown, a profile rollback will be attempted.

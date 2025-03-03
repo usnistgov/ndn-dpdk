@@ -104,15 +104,15 @@ func (info DevInfo) HasTxChecksumOffload() bool {
 	return info.Tx_offload_capa&txOffloadChecksum == txOffloadChecksum
 }
 
-// PrefersFlowItemGTP indicates the device prefers RTE_FLOW_ITEM_TYPE_GTP to RTE_FLOW_ITEM_TYPE_GTPU.
-//
-// https://doc.dpdk.org/guides/nics/overview.html rte_flow items availability in networking drivers
-func (info DevInfo) PrefersFlowItemGTP() bool {
+// FlowFlags returns C.EthFlowFlags bits to guide EthFlowPattern generation.
+func (info DevInfo) FlowFlags() (flags uint32) {
 	switch info.Driver() {
 	case DriverMlx5:
-		return true
+		flags |= C.EthFlowFlagsGtp
+	case DriverI40e:
+		flags |= C.EthFlowFlagsVxRaw
 	}
-	return false
+	return
 }
 
 // MarshalJSON implements json.Marshaler interface.

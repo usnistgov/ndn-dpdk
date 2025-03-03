@@ -36,7 +36,7 @@ typedef struct EthFacePriv {
 /** @brief Setup rte_flow on EthDev for hardware dispatching. */
 __attribute__((nonnull)) struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const EthLocator* loc,
-                  bool isolated, bool prefersFlowItemGTP, struct rte_flow_error* error);
+                  bool isolated, uint32_t flowFlags, struct rte_flow_error* error);
 
 /** @brief Setup RX for memif. */
 __attribute__((nonnull)) void

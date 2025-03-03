@@ -7,6 +7,7 @@ import (
 	"net/netip"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -425,100 +426,143 @@ func TestTapAfPacket(t *testing.T) {
 	testPortRemote(prf, "")
 }
 
-func TestVf(t *testing.T) {
-	_, require := makeAR(t)
-	envVf, ok := os.LookupEnv("ETHFACETEST_VF")
+type vfTestEnv struct {
+	t            testing.TB
+	RemoteIfname string
+	LocalIfname  string
+	LocalPCI     *pciaddr.PCIAddress
+	Flags        string
+	RxEpsilon    float64
+	TxEpsilon    float64
+
+	RegSel       string   // locator selection in non-flow mode
+	FlowSel      []string // locator selection in flow mode
+	RxFlowQueues int
+}
+
+func (env *vfTestEnv) MakePrf(configPort func(ifname string) ethport.Config) *PortRemoteFixture {
+	prf := NewPortRemoteFixture(env.t, env.RemoteIfname, env.LocalIfname, configPort)
+	prf.RxEpsilon, prf.TxEpsilon = env.RxEpsilon, env.TxEpsilon
+	return prf
+}
+
+func (env *vfTestEnv) ConfigPortPCI(ifname string) ethport.Config {
+	netifConfig := ethnetif.Config{
+		Driver: ethnetif.DriverPCI,
+	}
+	if env.LocalPCI == nil {
+		netifConfig.Netif = ifname
+	} else {
+		netifConfig.PCIAddr = env.LocalPCI
+	}
+
+	return ethport.Config{
+		Config:       netifConfig,
+		RxQueueSize:  512,
+		TxQueueSize:  512,
+		RxFlowQueues: env.RxFlowQueues,
+	}
+}
+
+func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
+	env.t = t
+
+	line, ok := os.LookupEnv("ETHFACETEST_VF")
 	if !ok {
-		t.Skip("VF test disabled; rerun test suite and specify two netifs in ETHFACETEST_VF environ.")
-		// ETHFACETEST_VF syntax: remoteIfname,localIfname=localPCI,vfFlags
+		// ETHFACETEST_VF syntax: remoteIfname,localIfname=localPCI,vfFlags,rxEpsilon,txEpsilon
 		// remoteIfname: netif name for the "remote" netif, will be attached with gopacket/afpacket library.
 		// localIfname: netif name for the "local" netif, will be attached with DPDK drivers.
 		// localPCI (optional): PCI address for the "local" netif; it could be a different VF.
-		// vfFlags: "+" separated. "vlan" enables VLAN locators. "gtp" enables GTP-U locators. "flow" enables RxFlow tests.
+		// vfFlags: "+" separated.
+		//   "vlan" enables VLAN locators.
+		//   "gtp" enables GTP-U locators.
+		//   "flow" enables RxFlow tests with default selections.
+		// rxEpsilon: defaults to 0.000.
+		// txEpsilon: defaults to 0.020.
 		//
 		// Examples:
 		//   ETHFACETEST_VF=enp7s0np0,enp8s0np0,flow
-		//   ETHFACETEST_VF=enp4s0f1v0,enp4s0f1v1=04:0a.2,gtp+vlan
+		//   ETHFACETEST_VF=enp4s0f1v0,enp4s0f1v1=04:0a.2,gtp+vlan,0.05,0.05
+		t.Skip("VF test disabled; rerun test suite and specify two netifs in ETHFACETEST_VF environ.")
 	}
 
-	vfTokens := strings.SplitN(envVf, ",", 3)
-	for len(vfTokens) < 3 {
-		vfTokens = append(vfTokens, "")
+	tokens := strings.Split(line, ",")
+	for len(tokens) < 3 {
+		tokens = append(tokens, "")
 	}
-	remoteIfname, localIfname, vfFlags := vfTokens[0], vfTokens[1], vfTokens[2]
-	var localPCI *pciaddr.PCIAddress
-	if localIfTokens := strings.SplitN(localIfname, "=", 2); len(localIfTokens) == 2 {
-		localIfname = localIfTokens[0]
-		pciAddr, e := pciaddr.Parse(localIfTokens[1])
-		require.NoError(e)
-		localPCI = &pciAddr
-	}
+	env.RemoteIfname, env.LocalIfname, env.Flags = tokens[0], tokens[1], tokens[2]
 
-	pciRxFlowQueues := 0
-	configPortPCI := func(ifname string) ethport.Config {
-		netifConfig := ethnetif.Config{
-			Driver: ethnetif.DriverPCI,
-		}
-		if localPCI == nil {
-			netifConfig.Netif = ifname
-		} else {
-			netifConfig.PCIAddr = localPCI
-		}
-
-		return ethport.Config{
-			Config:       netifConfig,
-			RxQueueSize:  512,
-			TxQueueSize:  512,
-			RxFlowQueues: pciRxFlowQueues,
-		}
+	if localIfTokens := strings.SplitN(env.LocalIfname, "=", 2); len(localIfTokens) == 2 {
+		env.LocalIfname = localIfTokens[0]
+		pciAddr, _ := pciaddr.Parse(localIfTokens[1])
+		env.LocalPCI = &pciAddr
 	}
 
-	vlanExclusion := "-vlan,vlan-udp4,vlan-udp6"
-	if strings.Contains(vfFlags, "vlan") {
-		vlanExclusion = ""
+	if len(tokens) > 4 {
+		env.RxEpsilon, _ = strconv.ParseFloat(tokens[3], 64)
+		env.TxEpsilon, _ = strconv.ParseFloat(tokens[4], 64)
 	}
 
-	t.Run("XDP", func(t *testing.T) {
-		prf := NewPortRemoteFixture(t, remoteIfname, localIfname, configPortXDP)
-		prf.TxEpsilon = 0.02
-		testPortRemote(prf, vlanExclusion)
-	})
+	env.RegSel = "-vlan,vlan-udp4,vlan-udp6"
+	if strings.Contains(env.Flags, "vlan") {
+		env.RegSel = ""
+	}
 
-	t.Run("AfPacket", func(t *testing.T) {
-		prf := NewPortRemoteFixture(t, remoteIfname, localIfname, nil)
-		prf.TxEpsilon = 0.02
-		testPortRemote(prf, vlanExclusion)
-	})
+	env.RxFlowQueues = 4
+	if line, ok := os.LookupEnv("ETHFACETEST_VFFLOW"); ok {
+		// ETHFACETEST_VFFLOW syntax: number of queues, followed by comma-separated locator titles.
+		// If unset but flags contain "flow", 4 queues and default selections are used.
+		// Example:
+		//   ETHFACETEST_VFFLOW=6,ether,vlan,udp4,udp6
+		env.FlowSel = strings.Split(line, ",")
+		nQueues, _ := strconv.ParseInt(env.FlowSel[0], 10, 32)
+		env.FlowSel = env.FlowSel[1:]
+		env.RxFlowQueues = int(nQueues)
+	}
 
-	t.Run("RxTable", func(t *testing.T) {
-		pciRxFlowQueues = 0
-		prf := NewPortRemoteFixture(t, remoteIfname, localIfname, configPortPCI)
-		prf.TxEpsilon = 0.02
-		testPortRemote(prf, vlanExclusion)
-	})
+	return
+}
 
-	t.Run("RxFlow0", func(t *testing.T) {
-		if !strings.Contains(vfFlags, "flow") {
-			t.Skip("VF-RxFlow tests disabled")
+func TestVfXDP(t *testing.T) {
+	env := parseVfTestEnv(t)
+	prf := env.MakePrf(configPortXDP)
+	testPortRemote(prf, env.RegSel)
+}
+
+func TestVfAfPacket(t *testing.T) {
+	env := parseVfTestEnv(t)
+	prf := env.MakePrf(nil)
+	testPortRemote(prf, env.RegSel)
+}
+
+func TestVfRxTable(t *testing.T) {
+	env := parseVfTestEnv(t)
+	env.RxFlowQueues = 0
+	prf := env.MakePrf(env.ConfigPortPCI)
+	testPortRemote(prf, env.RegSel)
+}
+
+func TestVfRxFlow(t *testing.T) {
+	env := parseVfTestEnv(t)
+	if len(env.FlowSel) == 0 {
+		if !strings.Contains(env.Flags, "flow") {
+			t.Skip("VfRxFlow tests disabled")
 		}
-		pciRxFlowQueues = 4
-		prf := NewPortRemoteFixture(t, remoteIfname, localIfname, configPortPCI)
-		prf.TxEpsilon = 0.02
-		testPortRemote(prf, "ether,udp4,udp4p1,vx4")
-	})
 
-	t.Run("RxFlow1", func(t *testing.T) {
-		if !strings.Contains(vfFlags, "flow") {
-			t.Skip("VF-RxFlow tests disabled")
+		env.FlowSel = []string{"ether", "udp4", "udp4p1", "udp6", "vx4", "vx6"}
+		if strings.Contains(env.Flags, "gtp") {
+			env.FlowSel = append(env.FlowSel, "gtp8", "gtp9")
 		}
-		pciRxFlowQueues = 4
-		prf := NewPortRemoteFixture(t, remoteIfname, localIfname, configPortPCI)
-		prf.TxEpsilon = 0.02
+	}
 
-		inclusions := "vx6,udp6"
-		if strings.Contains(vfFlags, "gtp") {
-			inclusions += ",gtp8,gtp9"
-		}
-		testPortRemote(prf, inclusions)
-	})
+	i := 0
+	for group := range slices.Chunk(env.FlowSel, env.RxFlowQueues) {
+		sel := strings.Join(group, ",")
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			env.t = t
+			prf := env.MakePrf(env.ConfigPortPCI)
+			testPortRemote(prf, sel)
+		})
+		i++
+	}
 }
