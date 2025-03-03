@@ -1,7 +1,7 @@
 package endpoint
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/zyedidia/generic"

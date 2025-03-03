@@ -4,7 +4,7 @@ package fwdp
 import (
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib"
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"
@@ -299,7 +299,7 @@ func New(cfg Config) (dp *DataPlane, e error) {
 		if fwcsh := dp.fwcsh[fwd.NumaSocket()]; fwcsh != nil {
 			fwcsh.ConnectTo(fwd)
 		} else if n := len(fwcshList); n > 0 {
-			fwcshList[rand.Intn(n)].ConnectTo(fwd)
+			fwcshList[rand.IntN(n)].ConnectTo(fwd)
 		}
 		ealthread.Launch(fwd)
 	}

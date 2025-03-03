@@ -15,7 +15,7 @@ require (
 	github.com/gorilla/schema v1.4.1
 	github.com/graphql-go/graphql v0.8.1
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20250210230444-5fae499d98fc
-	github.com/jacobsa/fuse v0.0.0-20241025064006-8ccd61173b05
+	github.com/jacobsa/fuse v0.0.0-20250228153609-219b4762b40e
 	github.com/jfoster/binary-utilities v0.2.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
@@ -69,7 +69,7 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.34.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

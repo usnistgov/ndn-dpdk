@@ -5,7 +5,7 @@ package fetchtest
 */
 import "C"
 import (
-	"math/rand"
+	"math/rand/v2"
 	"testing"
 	"time"
 	"unsafe"
@@ -59,7 +59,7 @@ func ctestLogic(t *testing.T) {
 				// packet loss
 			} else {
 				go func() {
-					time.Sleep(time.Duration(5000+rand.Intn(1000)) * time.Microsecond)
+					time.Sleep(time.Duration(5000+rand.IntN(1000)) * time.Microsecond)
 					rxData <- txSegNum
 				}()
 			}

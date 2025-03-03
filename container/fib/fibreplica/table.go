@@ -7,7 +7,7 @@ package fibreplica
 import "C"
 import (
 	"errors"
-	"math/rand"
+	"math/rand/v2"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/container/fib/fibdef"

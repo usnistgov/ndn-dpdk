@@ -286,8 +286,8 @@ github.com/ianlancetaylor/cgosymbolizer v0.0.0-20250210230444-5fae499d98fc/go.mo
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
-github.com/jacobsa/fuse v0.0.0-20241025064006-8ccd61173b05 h1:PDBoLGtxDPVzWurS8Vd5SFbafRRg2gSNVjLEaJlGTxw=
-github.com/jacobsa/fuse v0.0.0-20241025064006-8ccd61173b05/go.mod h1:JYi9iIxdYNgxmMgLwtSHO/hmVnP2kfX1oc+mtx+XWLA=
+github.com/jacobsa/fuse v0.0.0-20250228153609-219b4762b40e h1:1k0eO4yveJsWQDzjA7YbnqDfT631ld5wGfr9uPN15N0=
+github.com/jacobsa/fuse v0.0.0-20250228153609-219b4762b40e/go.mod h1:JYi9iIxdYNgxmMgLwtSHO/hmVnP2kfX1oc+mtx+XWLA=
 github.com/jfoster/binary-utilities v0.2.1 h1:QlsTWJTe4X/CI69z3MBtp5m2oyW1txX7jaxqaIBUfhg=
 github.com/jfoster/binary-utilities v0.2.1/go.mod h1:i/pKfbFZeEXPpWZAdXBPfFXQDMWU+ltImrklLVPsrrI=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
@@ -524,8 +524,8 @@ golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8U
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20210817164053-32db794688a5/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
-golang.org/x/crypto v0.34.0 h1:+/C6tk6rf/+t5DhUketUbD1aNGqiSX3j15Z6xuIDlBA=
-golang.org/x/crypto v0.34.0/go.mod h1:dy7dXNW32cAb/6/PRuTNsix8T+vJAqvuIy5Bli/x0YQ=
+golang.org/x/crypto v0.35.0 h1:b15kiHdrGCHrP6LvwaQ3c03kgNhhiMgvlhxHQhmg2Xs=
+golang.org/x/crypto v0.35.0/go.mod h1:dy7dXNW32cAb/6/PRuTNsix8T+vJAqvuIy5Bli/x0YQ=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190306152737-a1d7652674e8/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190510132918-efd6b22b2522/go.mod h1:ZjyILWgesfNpC6sMxTJOJm9Kp84zZh5NQWvqDGG3Qr8=

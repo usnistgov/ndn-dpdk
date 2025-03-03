@@ -2,7 +2,7 @@
 package eal
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"slices"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -63,7 +63,7 @@ func UpdateLCoreSockets(lcoreSockets map[int]int, mainLCoreID int) (undo func())
 // RandomSocket returns a random NumaSocket that has at least one worker lcore.
 func RandomSocket() (socket NumaSocket) {
 	if n := len(Sockets); n > 0 {
-		return Sockets[rand.Intn(n)]
+		return Sockets[rand.IntN(n)]
 	}
 	return NumaSocket{}
 }

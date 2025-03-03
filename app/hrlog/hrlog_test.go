@@ -1,7 +1,7 @@
 package hrlog_test
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"path/filepath"
 	"testing"
 	"time"

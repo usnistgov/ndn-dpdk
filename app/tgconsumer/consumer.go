@@ -13,7 +13,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 	"unsafe"
 

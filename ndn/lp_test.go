@@ -3,7 +3,7 @@ package ndn_test
 import (
 	"bytes"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"reflect"
 	"strconv"
 	"testing"

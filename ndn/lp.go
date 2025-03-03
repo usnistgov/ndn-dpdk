@@ -3,7 +3,7 @@ package ndn
 import (
 	"bytes"
 	"encoding/binary"
-	"math/rand"
+	"math/rand/v2"
 	"strconv"
 
 	"github.com/usnistgov/ndn-dpdk/ndn/an"

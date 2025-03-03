@@ -1,7 +1,7 @@
 package ndt_test
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"reflect"
 	"strconv"
 	"sync"

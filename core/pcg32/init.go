@@ -6,7 +6,7 @@ package pcg32
 */
 import "C"
 import (
-	"math/rand"
+	"math/rand/v2"
 	"unsafe"
 )
 

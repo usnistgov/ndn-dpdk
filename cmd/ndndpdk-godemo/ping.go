@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	crypto_rand "crypto/rand"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/rand/v2"
 	"sync/atomic"
 	"time"
 
@@ -47,7 +48,7 @@ func init() {
 		Before: openUplink,
 		Action: func(c *cli.Context) error {
 			payload := make([]byte, payloadLen)
-			rand.New(rand.NewSource(rand.Int63())).Read(payload)
+			crypto_rand.Read(payload)
 			var signer ndn.Signer
 			if wantSign {
 				signer = ndn.DigestSigning

@@ -2,7 +2,7 @@ package ethringdev
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"reflect"
 	"time"
 
@@ -98,7 +98,7 @@ func (vnet *VNet) pass(srcIndex int, srcQ ethdev.RxQueue) {
 			txPkts[i].Append(pkt.Bytes())
 		}
 
-		dstQ := dst.txq[vnet.rng.Intn(len(dst.txq))]
+		dstQ := dst.txq[vnet.rng.IntN(len(dst.txq))]
 		nTx := dstQ.TxBurst(txPkts)
 		txDrops := txPkts[nTx:]
 		vnet.NDrops += len(txDrops)
@@ -126,7 +126,7 @@ func NewVNet(cfg VNetConfig) (vnet *VNet, e error) {
 	vnet = &VNet{
 		cfg:    cfg,
 		logger: logger.With(zap.Int("vnet", rand.Int())),
-		rng:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng:    rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), 1)),
 		stop:   ealthread.NewStopChan(),
 	}
 	vnet.Thread = ealthread.New(

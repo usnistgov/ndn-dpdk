@@ -2,7 +2,7 @@
 package ndt
 
 import (
-	"math/rand"
+	"math/rand/v2"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/ndn"
@@ -113,7 +113,7 @@ func (ndt *Ndt) Update(index uint64, value uint8) {
 // This should only be used during initialization.
 func (ndt *Ndt) Randomize(max uint8) {
 	for i := range ndt.cfg.Capacity {
-		ndt.Update(uint64(i), uint8(rand.Intn(int(max))))
+		ndt.Update(uint64(i), uint8(rand.IntN(int(max))))
 	}
 }
 

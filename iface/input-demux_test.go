@@ -3,7 +3,7 @@ package iface_test
 import (
 	"fmt"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"testing"
 	"unsafe"
 

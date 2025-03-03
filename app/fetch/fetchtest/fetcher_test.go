@@ -2,7 +2,7 @@ package fetchtest
 
 import (
 	"io"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"testing"

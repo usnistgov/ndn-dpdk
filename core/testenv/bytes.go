@@ -1,17 +1,24 @@
 package testenv
 
 import (
+	crypto_rand "crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"strings"
 
 	"github.com/stretchr/testify/assert"
 )
 
+var chacha8 = func() *rand.ChaCha8 {
+	var seed [32]byte
+	crypto_rand.Read(seed[:])
+	return rand.NewChaCha8(seed)
+}()
+
 // RandBytes fills []byte with non-crypto-safe random bytes.
 func RandBytes(p []byte) {
-	rand.New(rand.NewSource(rand.Int63())).Read(p)
+	chacha8.Read(p)
 }
 
 // BytesFromHex converts a hexadecimal string to a byte slice.

@@ -1,7 +1,7 @@
 package iface
 
 import (
-	"math/rand"
+	"math/rand/v2"
 
 	"go.uber.org/zap"
 )

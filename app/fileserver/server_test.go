@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	iofs "io/fs"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"path"
 	"slices"

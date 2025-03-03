@@ -2,7 +2,7 @@ package bdev_test
 
 import (
 	"bytes"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"testing"
@@ -86,7 +86,7 @@ func makeRW4(device bdev.Device) (rwt0, rwt1, rwt2, rwt3 bdevRWTest) {
 	for {
 		blockSet, totalBlocks := mapset.New[int64](), 0
 		for _, rwt := range []*bdevRWTest{&rwt0, &rwt1, &rwt2, &rwt3} {
-			rwt.blockOffset = rand.Int63n(nBlocks - int64(rwt.nBlocks) + 1)
+			rwt.blockOffset = rand.Int64N(nBlocks - int64(rwt.nBlocks) + 1)
 			for i := range rwt.nBlocks {
 				blockSet.Put(rwt.blockOffset + int64(i))
 				totalBlocks++

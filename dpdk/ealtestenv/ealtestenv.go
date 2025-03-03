@@ -3,7 +3,7 @@ package ealtestenv
 
 import (
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"reflect"
 	"strconv"

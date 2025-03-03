@@ -1,7 +1,7 @@
 package ndntestenv
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"net"
 	"time"
 
