@@ -32,6 +32,8 @@ import (
 	"go4.org/must"
 )
 
+const dfltEpsilon = 0.02
+
 // PortRemoteFixture tests a local port with a connected "remote" network interface.
 // The local port is a DPDK EthDev using AfPacket, XDP, or PCI driver.
 // The remote network interface is either a TAP file descriptor associated with the local port,
@@ -85,7 +87,11 @@ func NewPortRemoteFixture(
 	configPort func(ifname string) ethport.Config,
 ) *PortRemoteFixture {
 	_, require := makeAR(t)
-	prf := &PortRemoteFixture{t: t}
+	prf := &PortRemoteFixture{
+		t:         t,
+		RxEpsilon: dfltEpsilon,
+		TxEpsilon: dfltEpsilon,
+	}
 
 	if remoteIfname == "" {
 		require.Empty(localIfname)
@@ -238,6 +244,7 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 						classify = "ether"
 					}
 				case *layers.Dot1Q:
+					isVlan = true
 					if l.Type == an.EtherTypeNDN {
 						classify = "vlan"
 					}
@@ -328,7 +335,7 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 		if loc, rec := locVlanUDP4, faces["vlan-udp4"]; rec != nil {
 			prf.RemoteWrite(
 				&layers.Ethernet{SrcMAC: loc.Remote.HardwareAddr, DstMAC: loc.Local.HardwareAddr, EthernetType: layers.EthernetTypeDot1Q},
-				&layers.Dot1Q{VLANIdentifier: uint16(locUDP4.VLAN), Type: layers.EthernetTypeIPv4},
+				&layers.Dot1Q{VLANIdentifier: uint16(loc.VLAN), Type: layers.EthernetTypeIPv4},
 				&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolUDP, SrcIP: loc.RemoteIP.AsSlice(), DstIP: loc.LocalIP.AsSlice()},
 				&layers.UDP{SrcPort: layers.UDPPort(loc.RemoteUDP), DstPort: layers.UDPPort(loc.LocalUDP)},
 				prf.MakeRxFrame("vlan-udp4", i),
@@ -349,7 +356,7 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 		if loc, rec := locVlanUDP6, faces["vlan-udp6"]; rec != nil {
 			prf.RemoteWrite(
 				&layers.Ethernet{SrcMAC: loc.Remote.HardwareAddr, DstMAC: loc.Local.HardwareAddr, EthernetType: layers.EthernetTypeDot1Q},
-				&layers.Dot1Q{VLANIdentifier: uint16(locUDP4.VLAN), Type: layers.EthernetTypeIPv6},
+				&layers.Dot1Q{VLANIdentifier: uint16(loc.VLAN), Type: layers.EthernetTypeIPv6},
 				&layers.IPv6{Version: 6, NextHeader: layers.IPProtocolUDP, SrcIP: loc.RemoteIP.AsSlice(), DstIP: loc.LocalIP.AsSlice()},
 				&layers.UDP{SrcPort: layers.UDPPort(loc.RemoteUDP), DstPort: layers.UDPPort(loc.LocalUDP)},
 				prf.MakeRxFrame("vlan-udp6", i),
@@ -423,7 +430,7 @@ func TestTapXDP(t *testing.T) {
 
 func TestTapAfPacket(t *testing.T) {
 	prf := NewPortRemoteFixture(t, "", "", nil)
-	testPortRemote(prf, "")
+	testPortRemote(prf, "tapSel")
 }
 
 type vfTestEnv struct {
@@ -477,8 +484,6 @@ func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
 		//   "vlan" enables VLAN locators.
 		//   "gtp" enables GTP-U locators.
 		//   "flow" enables RxFlow tests with default selections.
-		// rxEpsilon: defaults to 0.000.
-		// txEpsilon: defaults to 0.020.
 		//
 		// Examples:
 		//   ETHFACETEST_VF=enp7s0np0,enp8s0np0,flow
@@ -501,6 +506,8 @@ func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
 	if len(tokens) > 4 {
 		env.RxEpsilon, _ = strconv.ParseFloat(tokens[3], 64)
 		env.TxEpsilon, _ = strconv.ParseFloat(tokens[4], 64)
+	} else {
+		env.RxEpsilon, env.TxEpsilon = dfltEpsilon, dfltEpsilon
 	}
 
 	env.RegSel = "-vlan,vlan-udp4,vlan-udp6"
