@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/usnistgov/ndn-dpdk/app/upf"
+	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
@@ -27,13 +28,36 @@ const (
 	pfcpFree5gcMod  = "233400980000000000000001000007c00039000d020000000000000002ac19c31300090041003800020002001d0004000000ff00020017001400010100160005047663746c005d0005060a8d0001006c00040000000200510004000000010051000400000002000a0032006c000400000002002c000102000b0021002a00010000160005047663746c0054000a010000000002ac19c2140031000100"
 	pfcpOaiEst      = "213200a70000000000000002bfd1d300003c000500ac19c40a0039000d020000000000000002ac19c40a00010052003800020001001d000400000000000200330014000100001500090100000002ac19c3070016000f06616363657373036f6169036f7267005d0005020a8d0002007c000109005f000100006c00040000000100030027006c000400000001002c00010200040016002a0001010016000d04636f7265036f6169036f7267"
 	pfcpOaiMod      = "213400840000000000000001bfd1d50000010039003800020002001d0004000000000002001f00140001010016000d04636f7265036f6169036f7267005d0005060a8d0002006c00040000000200030037006c000400000002002c00010200040026002a0001000016000f06616363657373036f6169036f72670054000a010000000002ac19c30e"
+	pfcpOpen5gsEst  = "2132024a000000000000000000000400003c000500ac19c20d0039000d02000000000000035dac19c20d00010040003800020001001d0004000000ff0002001600140001010016000403613030005d0005060a800001006c0004000000010051000400000001006d00040000000100010049003800020002001d0004000000ff000200210014000100001500020f050016000403613030005d0005020a800001007c000101005f00020001006c000400000002006d00040000000100010039003800020003001d0004000003e800020012001400010300150001070016000403613030005f000100006c000400000001006d00040000000100010069003800020004001d0004000000010002004a0014000100001500020f0500160004036130300017002e0100002a7065726d6974206f75742035382066726f6d20666630323a3a322f31323820746f2061737369676e6564007c000101005f000100006c00040000000300030013006c000400000001002c00020c0000580001010003001f006c000400000002002c000202000004000d002a00010100160004036130300003002d006c000400000003002c000202000004001b002a00010300160004036130300054000a010000000001ac19c20d000600210051000400000001003e00010200250003020000001f000901000000000640000000070020006d0004000000010019000100001a000a00000f424000000f4240007c0001010055000500580001010071000101008d0013030800017100550500f0083407181652181615009f0004036130300101000480000000"
+	pfcpOpen5gsMod  = "2134003d000000000000046f00000500000a002d006c000400000001002c00020200000b001b002a00010000160004036130300054000a010000000001ac19c30f"
 )
 
-func parseSession(t *testing.T, est, mod string) (sess upf.SessionParser) {
-	_, require := makeAR(t)
-	_, e := sess.EstablishmentRequest(parsePFCP(est).(*message.SessionEstablishmentRequest), nil)
+var parseSessionLocalIP = netip.MustParseAddr("192.168.3.2")
+
+func parseSession(t *testing.T, est, mod string) (sess upf.SessionParser, estRsp, modRsp []*ie.IE) {
+	assert, require := makeAR(t)
+	var e error
+
+	nChosenTeids := 0
+	sess.ChooseTeid = func(fTEID *ie.FTEIDFields) *ie.FTEIDFields {
+		assert.True(fTEID.HasCh())
+
+		teid := uint32(0x8F000000)
+		if fTEID.HasChID() {
+			teid |= uint32(fTEID.ChooseID) << 8
+		} else {
+			nChosenTeids++
+			teid |= uint32(nChosenTeids)
+		}
+
+		rsp := ie.NewFTEIDFields(0, teid, parseSessionLocalIP.AsSlice(), nil, 0)
+		rsp.SetIPv4Flag()
+		return rsp
+	}
+
+	estRsp, e = sess.EstablishmentRequest(parsePFCP(est).(*message.SessionEstablishmentRequest), nil)
 	require.NoError(e)
-	_, e = sess.ModificationRequest(parsePFCP(mod).(*message.SessionModificationRequest), nil)
+	modRsp, e = sess.ModificationRequest(parsePFCP(mod).(*message.SessionModificationRequest), nil)
 	require.NoError(e)
 	return
 }
@@ -41,7 +65,7 @@ func parseSession(t *testing.T, est, mod string) (sess upf.SessionParser) {
 func TestSessionParserPhoenix(t *testing.T) {
 	assert, require := makeAR(t)
 
-	sess := parseSession(t, pfcpPhoenixEst0, pfcpPhoenixMod0)
+	sess, _, _ := parseSession(t, pfcpPhoenixEst0, pfcpPhoenixMod0)
 
 	loc, ok := sess.LocatorFields()
 	require.True(ok)
@@ -56,7 +80,7 @@ func TestSessionParserPhoenix(t *testing.T) {
 func TestSessionParserFree5gc(t *testing.T) {
 	assert, require := makeAR(t)
 
-	sess := parseSession(t, pfcpFree5gcEst, pfcpFree5gcMod)
+	sess, _, _ := parseSession(t, pfcpFree5gcEst, pfcpFree5gcMod)
 
 	loc, ok := sess.LocatorFields()
 	require.True(ok)
@@ -71,7 +95,7 @@ func TestSessionParserFree5gc(t *testing.T) {
 func TestSessionParserOai(t *testing.T) {
 	assert, require := makeAR(t)
 
-	sess := parseSession(t, pfcpOaiEst, pfcpOaiMod)
+	sess, _, _ := parseSession(t, pfcpOaiEst, pfcpOaiMod)
 
 	loc, ok := sess.LocatorFields()
 	require.True(ok)
@@ -81,4 +105,29 @@ func TestSessionParserOai(t *testing.T) {
 	assert.EqualValues(9, loc.DlQFI)
 	assert.EqualValues(netip.MustParseAddr("172.25.195.14"), loc.RemoteIP)
 	assert.EqualValues(netip.MustParseAddr("10.141.0.2"), loc.InnerRemoteIP)
+}
+
+func TestSessionParserOpen5gs(t *testing.T) {
+	assert, require := makeAR(t)
+
+	sess, estRsp, modRsp := parseSession(t, pfcpOpen5gsEst, pfcpOpen5gsMod)
+
+	loc, ok := sess.LocatorFields()
+	require.True(ok)
+	assert.EqualValues(0x8F000500, loc.UlTEID)
+	assert.EqualValues(0x00000001, loc.DlTEID)
+	assert.EqualValues(1, loc.UlQFI)
+	assert.EqualValues(1, loc.DlQFI)
+	assert.EqualValues(netip.MustParseAddr("172.25.195.15"), loc.RemoteIP)
+	assert.EqualValues(netip.MustParseAddr("10.128.0.1"), loc.InnerRemoteIP)
+
+	estCreatedPDRs := gatherCreatedPDRs(t, estRsp)
+	assert.Equal([]createdPDR{
+		{2, loc.UlTEID, parseSessionLocalIP},
+		{3, 0x8F000001, parseSessionLocalIP},
+		{4, loc.UlTEID, parseSessionLocalIP},
+	}, estCreatedPDRs)
+
+	modCreatedPDRs := gatherCreatedPDRs(t, modRsp)
+	assert.Len(modCreatedPDRs, 0)
 }

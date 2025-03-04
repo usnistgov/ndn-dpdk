@@ -5,6 +5,7 @@ go 1.23.6
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
 	github.com/bhoriuchi/graphql-go-tools v1.0.3
+	github.com/bobg/seqs v1.5.2
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/chaseisabelle/flagz v0.0.0-20211022193420-183f0ea66d78
 	github.com/coreos/go-systemd/v22 v22.5.0
@@ -47,6 +48,7 @@ require (
 
 require (
 	github.com/alecthomas/participle/v2 v2.0.0-alpha6 // indirect
+	github.com/bobg/go-generics/v4 v4.1.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect

@@ -44,7 +44,7 @@ func TestSessionTable(t *testing.T) {
 		ctx:   ctx,
 		Table: map[string]upf.SessionLocatorFields{},
 	}
-	st := upf.NewSessionTable(fc.CreateFace, fc.DestroyFace)
+	st := upf.NewSessionTable(netip.MustParseAddr("192.168.3.2"), fc.CreateFace, fc.DestroyFace)
 
 	establishment := func(wireHex string) *upf.Session {
 		sess, _, e := st.EstablishmentRequest(ctx, parsePFCP(wireHex).(*message.SessionEstablishmentRequest), nil)

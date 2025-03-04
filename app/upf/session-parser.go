@@ -33,6 +33,9 @@ const (
 
 // SessionParser parses PFCP messages to construct GTP-U face locator.
 type SessionParser struct {
+	// Handle F-TEID with CH flag, returns updated F-TEID for CreatedPDR.
+	ChooseTeid func(fTEID *ie.FTEIDFields) *ie.FTEIDFields
+
 	loc              SessionLocatorFields
 	ulQERID, dlQERID uint32
 	have             uint32
@@ -85,39 +88,46 @@ func (sp *SessionParser) createPDR(pdr *ie.IE, rspIEs []*ie.IE) ([]*ie.IE, error
 	if e != nil {
 		return rspIEs, fmt.Errorf("PDRID: %w", e)
 	}
-	createdIEs := []*ie.IE{
+	createdPdr := []*ie.IE{
 		ie.NewPDRID(pdrID),
 	}
 
+	isAccess := false
 	switch si {
 	case ie.SrcInterfaceAccess:
-		fTEID, e := sp.createPDRAccess(pdr)
+		isAccess = true
+		fallthrough
+	case ie.SrcInterfaceCPFunction:
+		fTEID, e := sp.createPDRWithFTEID(pdr, isAccess)
 		if e != nil {
 			return rspIEs, e
 		}
-		createdIEs = append(createdIEs,
-			ie.NewFTEID(fTEID.Flags, fTEID.TEID, fTEID.IPv4Address, fTEID.IPv6Address, fTEID.ChooseID),
-		)
+		createdPdr = append(createdPdr, encodeFTEID(*fTEID))
 	case ie.SrcInterfaceCore:
 		return rspIEs, sp.createPDRCore(pdr)
 	default:
 		return rspIEs, fmt.Errorf("SourceInterface %d unknown", si)
 	}
 
-	rspIEs = append(rspIEs, ie.NewCreatedPDR(createdIEs...))
+	rspIEs = append(rspIEs, ie.NewCreatedPDR(createdPdr...))
 	return rspIEs, nil
 }
 
-// createPDRAccess handles a CreatePDR IE with SourceInterface=access.
-func (sp *SessionParser) createPDRAccess(pdr *ie.IE) (*ie.FTEIDFields, error) {
-	pdi := findIE(ie.PDI).Within(pdr.CreatePDR())
+// createPDRWithFTEID handles a CreatePDR IE expected to contain PDI.
+func (sp *SessionParser) createPDRWithFTEID(pdr *ie.IE, isAccess bool) (*ie.FTEIDFields, error) {
+	pdi := FindIE(ie.PDI).Within(pdr.CreatePDR())
 	fTEID, e := pdi.FTEID()
 	if e != nil {
 		return nil, fmt.Errorf("FTEID: %w", e)
 	}
-	if fTEID.HasCh() {
-		return nil, fmt.Errorf("FTEID CH flag is not supported")
+	if !fTEID.HasIPv4() {
+		return nil, fmt.Errorf("FTEID without IPv4 flag is not supported")
 	}
+
+	if fTEID.HasCh() {
+		fTEID = sp.ChooseTeid(fTEID)
+	}
+
 	sp.loc.UlTEID = fTEID.TEID
 	sp.have |= spHaveUlTEID
 
@@ -127,7 +137,7 @@ func (sp *SessionParser) createPDRAccess(pdr *ie.IE) (*ie.FTEIDFields, error) {
 	} else if errors.Is(e, ie.ErrIENotFound) {
 		// OAI-CN5G-SMF v2.0.1 does not send CreateQER, but QFI is available in the PDI.
 		// UlQFI and DlQFI are assumed to be the same.
-		sp.loc.UlQFI, e = findIE(ie.QFI).Within(pdi.PDI()).QFI()
+		sp.loc.UlQFI, e = FindIE(ie.QFI).Within(pdi.PDI()).QFI()
 		if e != nil {
 			return nil, fmt.Errorf("QFI: %w", e)
 		}
@@ -167,6 +177,10 @@ func (sp *SessionParser) createPDRCore(pdr *ie.IE) error {
 
 // createFAR handles a CreateFAR IE.
 func (sp *SessionParser) createFAR(far *ie.IE) error {
+	if !far.HasFORW() {
+		return nil
+	}
+
 	fps, e := far.ForwardingParameters()
 	if e != nil {
 		return fmt.Errorf("ForwardingParameters: %w", e)
@@ -189,7 +203,7 @@ func (sp *SessionParser) cuFAR(fps []*ie.IE) error {
 		return errors.New("ForwardingParameters or UpdateForwardingParameters empty")
 	}
 
-	di, e := findIE(ie.DestinationInterface).Within(fps, nil).DestinationInterface()
+	di, e := FindIE(ie.DestinationInterface).Within(fps, nil).DestinationInterface()
 	if e != nil {
 		return fmt.Errorf("DestinationInterface: %w", e)
 	}
@@ -197,7 +211,7 @@ func (sp *SessionParser) cuFAR(fps []*ie.IE) error {
 	switch di {
 	case ie.DstInterfaceAccess:
 		return sp.cuFARAccess(fps)
-	case ie.DstInterfaceCore:
+	case ie.DstInterfaceCore, ie.DstInterfaceCPFunction:
 		return nil
 	}
 	return fmt.Errorf("DestinationInterface %d unknown", di)
@@ -205,7 +219,7 @@ func (sp *SessionParser) cuFAR(fps []*ie.IE) error {
 
 // cuFARAccess handles a CreateFAR or UpdateFAR IE with DestinationInterface=access.
 func (sp *SessionParser) cuFARAccess(fps []*ie.IE) error {
-	ohcFound := findIE(ie.OuterHeaderCreation).Within(fps, nil)
+	ohcFound := FindIE(ie.OuterHeaderCreation).Within(fps, nil)
 	if ohcFound.Type == 0 {
 		return nil
 	}

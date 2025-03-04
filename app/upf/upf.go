@@ -107,6 +107,7 @@ func (upf *UPF) AssociationSetupRequest(ctx context.Context, req *message.Associ
 		upf.params.UpfNodeID,
 		ie.NewCause(ie.CauseRequestAccepted),
 		upf.params.RecoveryTimestamp,
+		ie.NewUPFunctionFeatures(0x10, 0x00, 0x00, 0x00), // FTUP
 	), nil
 }
 
@@ -161,6 +162,7 @@ func NewUPF(
 ) *UPF {
 	return &UPF{
 		st: NewSessionTable(
+			params.Locator.LocalIP,
 			func(ctx context.Context, sloc SessionLocatorFields) (id string, e error) {
 				loc, e := params.MakeLocator(sloc)
 				if e != nil {
