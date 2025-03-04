@@ -1,9 +1,9 @@
 package l3
 
 import (
-	"math/rand/v2"
 	"sync"
 
+	"github.com/usnistgov/ndn-dpdk/core/uintalloc"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/zyedidia/generic/multimap"
 	"github.com/zyedidia/generic/set"
@@ -82,9 +82,7 @@ func (fw *forwarder) AddFace(face Face) (ff FwFace, e error) {
 			return
 		}
 
-		for f.id == 0 || fw.faces[f.id] != nil {
-			f.id = rand.Uint32()
-		}
+		f.id = uintalloc.Alloc32(fw.faces)
 		fw.faces[f.id] = f
 	})
 

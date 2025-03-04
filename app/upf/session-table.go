@@ -3,9 +3,9 @@ package upf
 import (
 	"context"
 	"fmt"
-	"math/rand/v2"
 	"os"
 
+	"github.com/usnistgov/ndn-dpdk/core/uintalloc"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -33,9 +33,7 @@ func (st *SessionTable) EstablishmentRequest(ctx context.Context, req *message.S
 
 	sess = &Session{
 		CpSEID: cpfSEID.SEID,
-	}
-	for sess.UpSEID == 0 || st.table[sess.UpSEID] != nil {
-		sess.UpSEID = rand.Uint64()
+		UpSEID: uintalloc.Alloc64(st.table),
 	}
 	st.table[sess.UpSEID] = sess
 
@@ -76,12 +74,12 @@ func (st *SessionTable) DeletionRequest(ctx context.Context, req *message.Sessio
 	if sess = st.table[req.SEID()]; sess == nil {
 		return nil, os.ErrNotExist
 	}
-
 	defer delete(st.table, sess.UpSEID)
-	if sess.FaceID == "" {
-		return sess, nil
+
+	if sess.FaceID != "" {
+		e = st.destroyFace(ctx, sess.FaceID)
 	}
-	return sess, st.destroyFace(ctx, sess.FaceID)
+	return
 }
 
 // NewSessionTable constructs SessionTable.
