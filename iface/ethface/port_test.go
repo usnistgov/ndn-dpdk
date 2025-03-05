@@ -112,6 +112,7 @@ func NewPortRemoteFixture(
 		require.NoError(e)
 		e = link.EnsureLinkUp(false)
 		require.NoError(e)
+		link.SetOffload("rx-vlan-filter", false)
 		prf.RemoteMAC = link.HardwareAddr
 
 		tpacket, e := goafpacket.NewTPacket(goafpacket.OptInterface(remoteIfname), goafpacket.OptAddVLANHeader(true))
@@ -484,6 +485,7 @@ func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
 		//   "vlan" enables VLAN locators.
 		//   "gtp" enables GTP-U locators.
 		//   "flow" enables RxFlow tests with default selections.
+		// rxEpsilon,txEpsilon: defaults to 0.02.
 		//
 		// Examples:
 		//   ETHFACETEST_VF=enp7s0np0,enp8s0np0,flow

@@ -143,10 +143,12 @@ func (n *NetIntf) SetOneChannel() {
 	n.Refresh()
 }
 
-// DisableVLANOffload modifies the Ethernet device to disable VLAN offload.
-// This helps ensure all traffic goes into the XDP program.
-func (n *NetIntf) DisableVLANOffload() {
-	logEntry := n.logger
+// SetOffload changes an ethtool offload feature but skips unsupported offloads.
+func (n *NetIntf) SetOffload(key string, wanted bool) {
+	logEntry := n.logger.With(
+		zap.String("key", key),
+		zap.Bool("wanted", wanted),
+	)
 
 	features, e := etht.Features(n.Name)
 	if e != nil {
@@ -154,27 +156,30 @@ func (n *NetIntf) DisableVLANOffload() {
 		return
 	}
 
-	const rxvlanKey = "rx-vlan-hw-parse"
-	rxvlan, ok := features[rxvlanKey]
+	actual, ok := features[key]
 	if !ok {
-		logEntry.Debug("rxvlan offload not supported")
+		logEntry.Debug("offload not supported")
 		return
 	}
-	if !rxvlan {
-		logEntry.Debug("rxvlan offload already disabled")
+	if actual == wanted {
+		logEntry.Debug("offload already has wanted value")
 		return
 	}
 
-	e = etht.Change(n.Name, map[string]bool{
-		rxvlanKey: false,
-	})
+	e = etht.Change(n.Name, map[string]bool{key: wanted})
 	if e != nil {
-		logEntry.Error("ethtool.Change(rxvlan=false) error", zap.Error(e))
+		logEntry.Error("ethtool.Change error", zap.Error(e))
 		return
 	}
 
-	logEntry.Debug("disabled rxvlan offload")
+	logEntry.Debug("changed offload")
 	n.Refresh()
+}
+
+// DisableVLANOffload modifies the Ethernet device to disable VLAN offload.
+// This helps ensure all traffic goes into the XDP program.
+func (n *NetIntf) DisableVLANOffload() {
+	n.SetOffload("rx-vlan-hw-parse", false)
 }
 
 // UnloadXDP unloads any existing XDP program on a network interface.

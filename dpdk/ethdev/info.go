@@ -20,7 +20,7 @@ const (
 	DriverAfPacket = "net_af_packet"
 	DriverI40e     = "net_i40e"
 	DriverMemif    = "net_memif"
-	DriverMlx5     = "net_mlx5"
+	DriverMlx5     = "mlx5_pci"
 	DriverRing     = "net_ring"
 	DriverTAP      = "net_tap"
 	DriverXDP      = "net_af_xdp"
