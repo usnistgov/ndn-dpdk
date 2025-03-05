@@ -1,11 +1,15 @@
 #include "flow-pattern.h"
+#include "../core/base16.h"
+#include "../core/logger.h"
 #include "hdr-impl.h"
+
+N_LOG_INIT(EthFlowPattern);
 
 #define MASK(field) memset(&(field), 0xFF, sizeof(field))
 
-static void
-SetItem(EthFlowPattern* flow, size_t i, enum rte_flow_item_type typ, uint8_t* spec, uint8_t* mask,
-        size_t size) {
+__attribute__((nonnull)) static void
+SetItem(EthFlowPattern* flow, size_t i, enum rte_flow_item_type typ, uint8_t* spec,
+        const uint8_t* mask, size_t size) {
   for (size_t j = 0; j < size; ++j) {
     spec[j] &= mask[j];
   }
@@ -14,7 +18,25 @@ SetItem(EthFlowPattern* flow, size_t i, enum rte_flow_item_type typ, uint8_t* sp
   flow->pattern[i].mask = mask;
 }
 
-static void
+__attribute__((nonnull)) static void
+PrintPattern(const EthFlowPattern* flow, size_t specLen[]) {
+  for (int i = 0;; ++i) {
+    const struct rte_flow_item* item = &flow->pattern[i];
+    char b16Spec[Base16_BufferSize(64)] = {'-', 0};
+    char b16Mask[Base16_BufferSize(64)] = {'-', 0};
+    if (item->spec != NULL && item->mask != NULL) {
+      NDNDPDK_ASSERT(specLen[i] <= 64);
+      Base16_Encode(b16Spec, sizeof(b16Spec), item->spec, specLen[i]);
+      Base16_Encode(b16Mask, sizeof(b16Mask), item->mask, specLen[i]);
+    }
+    N_LOGD("^ index=%d type=%d spec=%s mask=%s", i, (int)item->type, b16Spec, b16Mask);
+    if (item->type == RTE_FLOW_ITEM_TYPE_END) {
+      break;
+    }
+  }
+}
+
+__attribute__((nonnull)) static void
 PrepareVxlan(const EthLocator* loc, struct rte_vxlan_hdr* vxlanSpec,
              struct rte_vxlan_hdr* vxlanMask, struct rte_ether_hdr* innerEthSpec,
              struct rte_ether_hdr* innerEthMask) {
@@ -35,11 +57,13 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
   *flow = (const EthFlowPattern){0};
   flow->pattern[0].type = RTE_FLOW_ITEM_TYPE_END;
   *priority = 0;
+
+  size_t specLen[RTE_DIM(flow->pattern)];
   size_t i = 0;
 #define APPEND(typ, field)                                                                         \
   do {                                                                                             \
     SetItem(flow, i, RTE_FLOW_ITEM_TYPE_##typ, (uint8_t*)&flow->field##Spec,                       \
-            (uint8_t*)&flow->field##Mask, sizeof(flow->field##Mask));                              \
+            (const uint8_t*)&flow->field##Mask, (specLen[i] = sizeof(flow->field##Spec)));         \
     ++i;                                                                                           \
     NDNDPDK_ASSERT(i < RTE_DIM(flow->pattern));                                                    \
     flow->pattern[i].type = RTE_FLOW_ITEM_TYPE_END;                                                \
@@ -47,7 +71,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
 
   if (c.passthru) {
     *priority = 1;
-    return;
+    goto FINISH;
   }
 
   MASK(flow->ethMask.hdr.dst_addr);
@@ -69,7 +93,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
 
   if (!c.udp) {
     MASK(flow->vlanMask.hdr.eth_proto);
-    return;
+    goto FINISH;
   }
   // several drivers do not support ETH+IP combination, so clear ETH spec
   flow->pattern[0].spec = NULL;
@@ -100,7 +124,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
         struct {
           struct rte_vxlan_hdr vxlan;
           struct rte_ether_hdr eth;
-        } __rte_aligned(2) spec, mask;
+        } __rte_aligned(2) spec = {0}, mask = {0};
         PrepareVxlan(loc, &spec.vxlan, &mask.vxlan, &spec.eth, &mask.eth);
         static_assert(sizeof(spec) == 4 + 16 + 2, "");
         rte_mov16(flow->rawSpecBuf, RTE_PTR_ADD(&spec, 4));
@@ -121,8 +145,11 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
       break;
     }
     case 'G': {
+      EthGtpHdr spec = {0};
+      PutGtpHdr((uint8_t*)&spec, true, loc->ulTEID, loc->ulQFI);
+      rte_memcpy(&flow->gtpSpec.hdr, &spec.hdr, sizeof(flow->gtpSpec.hdr));
       MASK(flow->gtpMask.hdr.teid);
-      PutGtpHdrMinimal(&flow->gtpSpec.hdr, loc->ulTEID);
+
       if (flowFlags & EthFlowFlagsGtp) {
         APPEND(GTP, gtp);
       } else {
@@ -132,5 +159,10 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
     }
   }
 
+FINISH:
+  if (N_LOG_ENABLED(DEBUG)) {
+    N_LOGD("Prepare success loc=%p flow-flags=%" PRIx32, loc, flowFlags);
+    PrintPattern(flow, specLen);
+  }
 #undef APPEND
 }

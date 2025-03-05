@@ -85,20 +85,15 @@ PutVxlanHdr(uint8_t* buffer, uint32_t vni) {
   return sizeof(*vxlan);
 }
 
-__attribute__((nonnull)) static inline void
-PutGtpHdrMinimal(struct rte_gtp_hdr* hdr, uint32_t teid) {
-  hdr->ver = 1;
-  hdr->pt = 1;
-  hdr->e = 1;
-  hdr->msg_type = 0xFF;
-  hdr->teid = rte_cpu_to_be_32(teid);
-}
-
 __attribute__((nonnull)) static inline uint8_t
 PutGtpHdr(uint8_t* buffer, bool ul, uint32_t teid, uint8_t qfi) {
   EthGtpHdr* gtp = (EthGtpHdr*)buffer;
   static_assert(sizeof(*gtp) == 16, "");
-  PutGtpHdrMinimal(&gtp->hdr, teid);
+  gtp->hdr.ver = 1;
+  gtp->hdr.pt = 1;
+  gtp->hdr.e = 1;
+  gtp->hdr.msg_type = 0xFF;
+  gtp->hdr.teid = rte_cpu_to_be_32(teid);
   gtp->ext.next_ext = EthGtpExtTypePsc;
   gtp->psc.ext_hdr_len = 1;
   gtp->psc.type = (int)ul;

@@ -7,23 +7,24 @@
 #include <rte_ethdev.h>
 #include <rte_flow.h>
 
-/** @brief Bit flags for rte_flow preferences. */
+/**
+ * @brief Bit flags for rte_flow preferences.
+ * @see https://doc.dpdk.org/guides/nics/overview.html "rte_flow items availability"
+ */
 typedef enum EthFlowFlags {
-  /**
-   * @brief How to generate GTP-U flow item.
-   * 0 = prefer @c RTE_FLOW_ITEM_TYPE_GTPU .
-   * 1 = prefer @c RTE_FLOW_ITEM_TYPE_GTP .
-   * @see https://doc.dpdk.org/guides/nics/overview.html
-   *      "rte_flow items availability in networking drivers"
-   */
-  EthFlowFlagsGtp = RTE_BIT32(0),
-
   /**
    * @brief How to generate VXLAN flow items.
    * 0 = prefer @c RTE_FLOW_ITEM_TYPE_VXLAN and @c RTE_FLOW_ITEM_TYPE_ETH .
    * 1 = prefer @c RTE_FLOW_ITEM_TYPE_RAW .
    */
-  EthFlowFlagsVxRaw = RTE_BIT32(1),
+  EthFlowFlagsVxRaw = RTE_BIT32(0),
+
+  /**
+   * @brief How to generate GTP-U flow item.
+   * 0 = prefer @c RTE_FLOW_ITEM_TYPE_GTPU .
+   * 1 = prefer @c RTE_FLOW_ITEM_TYPE_GTP .
+   */
+  EthFlowFlagsGtp = RTE_BIT32(4),
 } __rte_packed EthFlowFlags;
 
 /** @brief Retrieve whether an Ethernet device is DOWN. */
