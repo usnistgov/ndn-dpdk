@@ -5,7 +5,6 @@ package ethport
 
 static_assert(offsetof(EthFacePriv, rxf) == 0, "");
 static_assert(RTE_SIZEOF_FIELD(EthFacePriv, rxf) == 64*MaxFaceRxThreads, "");
-static_assert(offsetof(EthFacePriv, passthru) == 0, "");
 */
 import "C"
 import (
@@ -101,10 +100,6 @@ type Face struct {
 
 func (face *Face) rxfC(index int) *C.EthRxFlow {
 	return (*C.EthRxFlow)(unsafe.Add(unsafe.Pointer(face.priv), 64*index))
-}
-
-func (face *Face) passthruC() *C.EthPassthru {
-	return (*C.EthPassthru)(unsafe.Pointer(face.priv))
 }
 
 // NewFace creates a face on the given port.

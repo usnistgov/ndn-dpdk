@@ -53,7 +53,7 @@ func (p *PassthruNetif) EnablePcap() <-chan []byte {
 				p.TP = nil
 				return
 			}
-			if len(wire) > 14 && bytes.Equal(wire[6:12], p.Netif.HardwareAddr) {
+			if len(wire) >= 14 && bytes.Equal(wire[6:12], p.Netif.HardwareAddr) {
 				// discard loopback packets whose source address is self
 				continue
 			}
@@ -85,9 +85,8 @@ func makePassthru(prf *PortRemoteFixture, loc ethface.PassthruLocator) (p Passth
 	return
 }
 
-func TestPassthru(t *testing.T) {
-	assert, _ := makeAR(t)
-	prf := NewPortRemoteFixture(t, "", "", nil)
+func testPassthru(prf *PortRemoteFixture) {
+	assert, _ := makeAR(prf.t)
 
 	var locUDP4 ethface.UDPLocator
 	locUDP4.Local.HardwareAddr = prf.LocalPort.EthDev().HardwareAddr()
@@ -194,14 +193,38 @@ func TestPassthru(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	cntUDP4, cntPassthru := faceUDP4.Counters(), passthru.Face.Counters()
-	assert.InDelta(48, rxARP.Load(), 8)           // [40,56]; 50 from case 0 plus kernel generated minus loss
-	assert.InDelta(48, txARP.Load(), 8)           // replies
-	assert.EqualValues(200, cntUDP4.RxInterests)  // from case 2,5,6,9
-	assert.EqualValues(100, txUDP4.Load())        // from case 3,8
-	assert.InDelta(145, rxICMP.Load(), 5)         // [140,150]; 150 from case 1,4,7 minus loss
-	assert.InDelta(145, txICMP.Load(), 5)         // replies
-	assert.InDelta(220, cntPassthru.RxFrames, 20) // [200,240]; 200 from case 0,1,4,7 plus kernel generated
+	assert.InDelta(48, rxARP.Load(), 8)                       // [40,56]; 50 from case 0 plus kernel generated minus loss
+	assert.InDelta(48, txARP.Load(), 8)                       // replies
+	assert.InEpsilon(200, cntUDP4.RxInterests, prf.RxEpsilon) // from case 2,5,6,9
+	assert.InEpsilon(100, txUDP4.Load(), prf.TxEpsilon)       // from case 3,8
+	assert.InDelta(145, rxICMP.Load(), 5)                     // [140,150]; 150 from case 1,4,7 minus loss
+	assert.InDelta(145, txICMP.Load(), 5)                     // replies
+	assert.InDelta(220, cntPassthru.RxFrames, 20)             // [200,240]; 200 from case 0,1,4,7 plus kernel generated
 	assert.Less(int(txOther.Load()), 30)
 	assert.Greater(int(cntPassthru.RxOctets), 0)
 	assert.Greater(int(cntPassthru.TxOctets), 0)
+}
+
+func TestPassthruTap(t *testing.T) {
+	prf := NewPortRemoteFixture(t, "", "", nil)
+	testPassthru(prf)
+}
+
+func TestPassthruAfPacket(t *testing.T) {
+	env := parseVfTestEnv(t)
+	prf := env.MakePrf(nil)
+	testPassthru(prf)
+}
+
+func TestPassthruRxTable(t *testing.T) {
+	env := parseVfTestEnv(t)
+	env.RxFlowQueues = 0
+	prf := env.MakePrf(env.ConfigPortPCI)
+	testPassthru(prf)
+}
+
+func TestPassthruRxFlow(t *testing.T) {
+	env := parseVfTestEnv(t)
+	prf := env.MakePrf(env.ConfigPortPCI)
+	testPassthru(prf)
 }

@@ -94,7 +94,8 @@ Packets sent to the TAP netif are transmitted out of the ethdev.
 
 Caveats and limitations:
 
-* Currently, this only works with RxTable.
+* With RxTable, you must use AF\_PACKET or PCI driver; the XDP program will not admit non-NDN traffic.
+* With RxFlow, this works only if the driver supports priority levels.
 * TAP netif name is unchangeable.
 * In packet counters, all packets are considered "Interests".
 * This is incompatible with [packet dumper](../../app/pdump).

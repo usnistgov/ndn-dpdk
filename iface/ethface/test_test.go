@@ -1,7 +1,6 @@
 package ethface_test
 
 import (
-	"io"
 	"net"
 	"net/netip"
 	"sync"
@@ -121,12 +120,6 @@ func packetFromLayers(hdrs ...gopacket.SerializableLayer) (b []byte, discard fun
 		buf.Clear()
 		serializeBufferPool.Put(buf)
 	}
-}
-
-func writeToFromLayers(w io.Writer, hdrs ...gopacket.SerializableLayer) (n int, e error) {
-	b, discard := packetFromLayers(hdrs...)
-	defer discard()
-	return w.Write(b)
 }
 
 func pktmbufFromLayers(headroom mbuftestenv.Headroom, hdrs ...gopacket.SerializableLayer) *pktmbuf.Packet {

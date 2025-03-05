@@ -21,10 +21,8 @@ typedef struct EthRxFlow {
 
 /** @brief Ethernet face private data. */
 typedef struct EthFacePriv {
-  union {
-    EthRxFlow rxf[MaxFaceRxThreads];
-    EthPassthru passthru;
-  };
+  EthRxFlow rxf[MaxFaceRxThreads];
+  EthPassthru passthru;
   EthTxHdr txHdr;
   FaceID faceID;
   uint16_t port;

@@ -56,11 +56,24 @@ func (prf *PortRemoteFixture) AddFace(loc ethport.Locator) iface.Face {
 	return face
 }
 
+// OverrideMAC returns prf.RemoteMAC if non-empty, otherwise returns input MAC.
+//
+// In tests that support both PCI Virtual Function and promisc TAP netifs, the TAP test cases
+// can set prf.RemoteMAC to nil and then pass random/arbitrary MAC address through this function.
+func (prf *PortRemoteFixture) OverrideMAC(r net.HardwareAddr) net.HardwareAddr {
+	if len(prf.RemoteMAC) == 0 {
+		return r
+	}
+	return prf.RemoteMAC
+}
+
 // RemoteWrite writes an Ethernet frame via the remote intf.
 // This typically causes the local port to receive the frame.
 func (prf *PortRemoteFixture) RemoteWrite(hdrs ...gopacket.SerializableLayer) {
 	assert, _ := makeAR(prf.t)
-	_, e := writeToFromLayers(prf.RemoteIntf, hdrs...)
+	b, discard := packetFromLayers(hdrs...)
+	defer discard()
+	_, e := prf.RemoteIntf.Write(b)
 	assert.NoError(e)
 }
 
@@ -454,6 +467,10 @@ func (env *vfTestEnv) MakePrf(configPort func(ifname string) ethport.Config) *Po
 	return prf
 }
 
+// ConfigPortPCI can be passed as NewPortRemoteFixture configPort argument to configure a port with PCI driver.
+//
+// parseVfTestEnv initializes env.RxFlowQueues to non-zero, which would create the port with RxFlow.
+// Set env.RxFlowQueues to zero, in order to create the port with RxTable.
 func (env *vfTestEnv) ConfigPortPCI(ifname string) ethport.Config {
 	netifConfig := ethnetif.Config{
 		Driver: ethnetif.DriverPCI,

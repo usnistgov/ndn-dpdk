@@ -1,9 +1,12 @@
 package ethface_test
 
 import (
+	"encoding/hex"
 	"net"
 	"net/netip"
+	"os"
 	"slices"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,12 +20,13 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
+// addGtpFaces creates 96 GTP-U faces.
 func addGtpFaces(prf *PortRemoteFixture) (faces []iface.Face) {
 	local := prf.LocalPort.EthDev().HardwareAddr()
 	for i := range 96 {
 		var loc ethface.GtpLocator
 		loc.Local.HardwareAddr = local
-		loc.Remote.HardwareAddr = net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i>>4)}
+		loc.Remote.HardwareAddr = prf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i>>4)})
 		loc.LocalIP = netip.AddrFrom4([4]byte{192, 168, 3, 254})
 		loc.RemoteIP = netip.AddrFrom4([4]byte{192, 168, 3, 2 + byte(i>>4)})
 		loc.UlTEID, loc.DlTEID = 0x10000000+i, 0x20000000+i
@@ -37,8 +41,8 @@ func addGtpFaces(prf *PortRemoteFixture) (faces []iface.Face) {
 
 func TestGtpipProcess(t *testing.T) {
 	assert, require := makeAR(t)
-	tap := NewPortRemoteFixture(t, "", "", nil)
-	ethDev := tap.LocalPort.EthDev()
+	prf := NewPortRemoteFixture(t, "", "", nil)
+	ethDev := prf.LocalPort.EthDev()
 
 	g, e := ethport.NewGtpip(ethport.GtpipConfig{
 		IPv4Capacity: 8192,
@@ -52,7 +56,8 @@ func TestGtpipProcess(t *testing.T) {
 		return slices.Concat(matches[:50], matches[80:], matches[50:80])
 	}
 
-	facesGTP := addGtpFaces(tap)
+	prf.RemoteMAC = nil
+	facesGTP := addGtpFaces(prf)
 	for i, face := range facesGTP {
 		e = g.Insert(face.Locator().(ethface.GtpLocator).InnerRemoteIP, face)
 		assert.NoError(e, "%d", i)
@@ -167,11 +172,10 @@ func TestGtpipProcess(t *testing.T) {
 	})
 }
 
-func TestGtpipPassthru(t *testing.T) {
-	assert, require := makeAR(t)
-	tap := NewPortRemoteFixture(t, "", "", nil)
-	ethDev := tap.LocalPort.EthDev()
-	passthru := makePassthru(tap, ethface.PassthruLocator{
+func testGtpip(prf *PortRemoteFixture) {
+	assert, require := makeAR(prf.t)
+	ethDev := prf.LocalPort.EthDev()
+	passthru := makePassthru(prf, ethface.PassthruLocator{
 		Gtpip: &ethport.GtpipConfig{
 			IPv4Capacity: 8192,
 		},
@@ -188,14 +192,28 @@ func TestGtpipPassthru(t *testing.T) {
 	g := ethport.GtpipFromPassthruFace(passthru.Face.ID())
 	require.NotNil(g)
 
-	facesGTP := addGtpFaces(tap)
+	facesGTP := addGtpFaces(prf)
 	assert.Equal(len(facesGTP), g.Len())
+
+	dbg, _ := strconv.Atoi(os.Getenv("ETHFACETEST_GTPIPDBG"))
+	if dbg >= 1 {
+		dbgSleep := func() {
+			prf.t.Log("sleep 30 seconds for ETHFACETEST_GTPIPDBG=1")
+			time.Sleep(30 * time.Second)
+		}
+		dbgSleep()
+		defer dbgSleep()
+	}
 
 	var rxICMP, txICMP, txARP atomic.Int32
 
 	// Count non-NDN packets received on the "inner" TAP netif.
 	go func() {
 		for pkt := range pcapRecv {
+			if dbg >= 2 {
+				prf.t.Logf("RX %s", hex.EncodeToString(pkt))
+			}
+
 			parsed := gopacket.NewPacket(pkt, layers.LayerTypeEthernet, gopacket.NoCopy)
 			if icmp, ok := parsed.Layer(layers.LayerTypeICMPv4).(*layers.ICMPv4); ok && icmp.TypeCode.Type() == layers.ICMPv4TypeEchoRequest {
 				rxICMP.Add(1)
@@ -207,22 +225,26 @@ func TestGtpipPassthru(t *testing.T) {
 	// Count packets sent via the "hardware" ethdev.
 	// Respond to ARP requests.
 	go func() {
-		buf := make([]byte, tap.LocalPort.EthDev().MTU())
+		buf := make([]byte, prf.LocalPort.EthDev().MTU())
 		_, n3net, _ := net.ParseCIDR("192.168.3.0/24")
 		for {
-			n, e := tap.RemoteIntf.Read(buf)
+			n, e := prf.RemoteIntf.Read(buf)
 			if e != nil {
 				break
 			}
 			pkt := buf[:n]
 
+			if dbg >= 2 {
+				prf.t.Logf("TX %s", hex.EncodeToString(pkt))
+			}
+
 			parsed := gopacket.NewPacket(pkt, layers.LayerTypeEthernet, gopacket.NoCopy)
 			if arp, ok := parsed.Layer(layers.LayerTypeARP).(*layers.ARP); ok && arp.Operation == layers.ARPRequest {
 				if n3net.Contains(arp.DstProtAddress) && arp.DstProtAddress[3] < 0xF0 {
 					remoteIP, _ := netip.AddrFromSlice(arp.DstProtAddress)
-					remoteMAC := net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, remoteIP.As4()[3]}
+					remoteMAC := prf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, remoteIP.As4()[3]})
 					localIP, _ := netip.AddrFromSlice(arp.SourceProtAddress)
-					tap.RemoteWrite(makeARP(remoteMAC, remoteIP, arp.SourceHwAddress, localIP)...)
+					prf.RemoteWrite(makeARP(remoteMAC, remoteIP, arp.SourceHwAddress, localIP)...)
 				}
 				txARP.Add(1)
 			} else if icmp, ok := parsed.Layer(layers.LayerTypeICMPv4).(*layers.ICMPv4); ok && icmp.TypeCode.Type() == layers.ICMPv4TypeEchoReply {
@@ -231,12 +253,13 @@ func TestGtpipPassthru(t *testing.T) {
 		}
 	}()
 
+	// Transmit 96 UE pings (one from each UE) and 24 non-UE pings.
 	for i := range 120 {
 		time.Sleep(10 * time.Millisecond)
 		if i < len(facesGTP) {
-			tap.RemoteWrite(
+			prf.RemoteWrite(
 				&layers.Ethernet{
-					SrcMAC:       net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i>>4)},
+					SrcMAC:       prf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i>>4)}),
 					DstMAC:       ethDev.HardwareAddr(),
 					EthernetType: layers.EthernetTypeIPv4,
 				},
@@ -266,9 +289,9 @@ func TestGtpipPassthru(t *testing.T) {
 				},
 			)
 		} else {
-			tap.RemoteWrite(
+			prf.RemoteWrite(
 				&layers.Ethernet{
-					SrcMAC:       net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i)},
+					SrcMAC:       prf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i)}),
 					DstMAC:       ethDev.HardwareAddr(),
 					EthernetType: layers.EthernetTypeIPv4,
 				},
@@ -290,13 +313,32 @@ func TestGtpipPassthru(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	nARP, cntPassthru := int(txARP.Load()), passthru.Face.Counters()
-	assert.InDelta(115, rxICMP.Load(), 5)               // [110,120]; 120 pings minus loss
-	assert.InDelta(115, txICMP.Load(), 5)               // replies
+	assert.InDelta(112, rxICMP.Load(), 8)               // [104,120]; 120 pings minus loss
+	assert.InDelta(112, txICMP.Load(), 8)               // replies
 	assert.InDelta(92, cntPassthru.RxData, 4)           // [88,96]; 96 UE pings minus loss
 	assert.InDelta(92, cntPassthru.TxData, 4)           // replies
 	assert.InDelta(24+nARP, cntPassthru.RxInterests, 4) // [20,28]; 24 non-UE pings minus loss plus kernel generated
 	assert.InDelta(24+nARP, cntPassthru.TxInterests, 4) // replies
-	assert.InDelta(30, nARP, 5)                         // [25,35]; 6x N3 peers + 24x non-UE peers, with tolerance
+	assert.InDelta(30, nARP, 10)                        // [25,35]; 6x N3 peers + 24x non-UE peers, with tolerance
 	assert.Greater(int(cntPassthru.RxOctets), 0)
 	assert.Greater(int(cntPassthru.TxOctets), 0)
+}
+
+func TestGtpipTap(t *testing.T) {
+	prf := NewPortRemoteFixture(t, "", "", nil)
+	prf.RemoteMAC = nil // allow arbitrary remote MAC
+	testGtpip(prf)
+}
+
+func TestGtpipAfPacket(t *testing.T) {
+	env := parseVfTestEnv(t)
+	prf := env.MakePrf(nil)
+	testGtpip(prf)
+}
+
+func TestGtpipRxTable(t *testing.T) {
+	env := parseVfTestEnv(t)
+	env.RxFlowQueues = 0
+	prf := env.MakePrf(env.ConfigPortPCI)
+	testGtpip(prf)
 }

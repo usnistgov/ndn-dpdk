@@ -60,7 +60,7 @@ func (fport *passthruPort) NumaSocket() eal.NumaSocket {
 }
 
 func (fport *passthruPort) RxGroup() (ptr unsafe.Pointer, desc string) {
-	return unsafe.Pointer(&fport.face.passthruC().base),
+	return unsafe.Pointer(&fport.face.priv.passthru.base),
 		fmt.Sprintf("EthRxPassthru(face=%d,port=%d)", fport.face.ID(), fport.face.port.EthDev().ID())
 }
 
@@ -85,7 +85,7 @@ func (fport *passthruPort) startTap() (e error) {
 		return e
 	}
 
-	ptC := fport.face.passthruC()
+	ptC := &fport.face.priv.passthru
 	ptC.tapPort = C.uint16_t(fport.tapDev.ID())
 	ptC.base.rxBurst = C.RxGroup_RxBurstFunc(C.EthPassthru_TapPortRxBurst)
 
@@ -125,7 +125,7 @@ func (fport *passthruPort) enableGtpip(cfg GtpipConfig) (e error) {
 		iface.OnFaceClosing(fport.handleFaceClosing),
 	)
 
-	ptC := fport.face.passthruC()
+	ptC := &fport.face.priv.passthru
 	ptC.gtpip = (*C.EthGtpip)(fport.gtpip)
 	return nil
 }
@@ -196,7 +196,7 @@ func (fport *passthruPort) handleFaceClosing(id iface.ID) {
 }
 
 func passthruInit(face *Face, initResult *iface.InitResult) {
-	ptC := face.passthruC()
+	ptC := &face.priv.passthru
 	ptC.tapPort = math.MaxUint16
 	ptC.gtpip = nil
 	initResult.RxInput = C.EthPassthru_FaceRxInput

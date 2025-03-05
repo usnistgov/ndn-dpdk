@@ -4,16 +4,16 @@ NDN-DPDK aims to work with most Ethernet adapters supported by [DPDK Network Int
 
 The developers have tested NDN-DPDK with the following Ethernet adapters:
 
-model | speed | DPDK driver | RxFlow Ethernet | RxFlow UDP | RxFlow VXLAN | RxFlow GTP-U
--|-|-|-|-|-|-
-NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes | yes | yes | no
-NVIDIA ConnectX-6 | 200 Gbps | mlx5 | yes | yes | yes | yes
-Intel X710 | 10 Gbps | i40e | no | yes | yes | yes
-Intel X710 VF | 10 Gbps | iavf | untested | untested | untested | untested
-Intel XXV710 | 25 Gbps | i40e | untested | untested | untested | untested
-Intel X520 | 10 Gbps | ixgbe | no | yes | no | untested
-Intel I350 | 1 Gbps | igb | no | no | no | untested
-Broadcom/QLogic 57810 | 10 Gbps | bnx2x | untested | untested | untested | untested
+model | speed | DPDK driver | RxFlow Ethernet | RxFlow UDP | RxFlow VXLAN | RxFlow GTP-U | RxFlow passthru
+-|-|-|-|-|-|-|-
+NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes | yes | yes | no | untested
+NVIDIA ConnectX-6 | 200 Gbps | mlx5 | yes | yes | yes | yes | yes
+Intel X710 | 10 Gbps | i40e | no | yes | yes | yes | untested
+Intel X710 VF | 10 Gbps | iavf | untested | untested | untested | untested | untested
+Intel XXV710 | 25 Gbps | i40e | untested | untested | untested | untested | untested
+Intel X520 | 10 Gbps | ixgbe | no | yes | no | untested | untested
+Intel I350 | 1 Gbps | igb | no | no | no | untested | untested
+Broadcom/QLogic 57810 | 10 Gbps | bnx2x | untested | untested | untested | untested | untested
 
 Some Ethernet adapters have more than one physical ports on the same PCI card.
 NDN-DPDK is only tested to work on the first port (lowest PCI address) of those dual-port or quad-port adapters.
