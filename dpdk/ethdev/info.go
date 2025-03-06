@@ -12,6 +12,7 @@ import (
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/jsonhelper"
+	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/zyedidia/generic"
 )
 
@@ -161,4 +162,20 @@ func (stats Stats) MarshalJSON() ([]byte, error) {
 func (stats Stats) String() string {
 	return fmt.Sprintf("RX %d pkts, %d bytes, %d missed, %d errors, %d nombuf; TX %d pkts, %d bytes, %d errors",
 		stats.Ipackets, stats.Ibytes, stats.Imissed, stats.Ierrors, stats.Rx_nombuf, stats.Opackets, stats.Obytes, stats.Oerrors)
+}
+
+// GetFlowDump returns internal rte_flow representation.
+func GetFlowDump(dev EthDev) (string, error) {
+	id := dev.(ethDev).cID()
+	var res C.int
+	dump, e := cptr.CaptureFileDump(func(fp unsafe.Pointer) {
+		res = C.rte_flow_dev_dump(id, nil, (*C.FILE)(fp), nil)
+	})
+	if e != nil {
+		return "", e
+	}
+	if res != 0 {
+		return "", eal.MakeErrno(res)
+	}
+	return string(dump), nil
 }

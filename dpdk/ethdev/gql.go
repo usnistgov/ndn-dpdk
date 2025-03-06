@@ -1,16 +1,10 @@
 package ethdev
 
-/*
-#include "../../csrc/dpdk/ethdev.h"
-*/
-import "C"
 import (
 	"errors"
 	"fmt"
-	"unsafe"
 
 	"github.com/graphql-go/graphql"
-	"github.com/usnistgov/ndn-dpdk/core/cptr"
 	"github.com/usnistgov/ndn-dpdk/core/gqlserver"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 )
@@ -111,15 +105,12 @@ func init() {
 				Description: "Internal rte_flow representation.",
 				Type:        gqlserver.NonNullString,
 				Resolve: func(p graphql.ResolveParams) (any, error) {
-					port := p.Source.(ethDev)
-					var res C.int
-					dump, e := cptr.CaptureFileDump(func(fp unsafe.Pointer) {
-						res = C.rte_flow_dev_dump(port.cID(), nil, (*C.FILE)(fp), nil)
-					})
-					if e == nil && res != 0 {
-						return fmt.Sprint("ERROR: ", eal.MakeErrno(res)), nil
+					port := p.Source.(EthDev)
+					dump, e := GetFlowDump(port)
+					if e != nil {
+						return fmt.Sprint("ERROR: ", e), nil
 					}
-					return string(dump), e
+					return string(dump), nil
 				},
 			},
 		},

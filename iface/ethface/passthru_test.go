@@ -99,6 +99,8 @@ func testPassthru(prf *PortRemoteFixture) {
 	passthru.AddIP(netip.PrefixFrom(locUDP4.LocalIP, 24))
 	pcapRecv := passthru.EnablePcap()
 
+	prf.DiagFaces()
+
 	// "RX" and "TX" are in regards to the "hardware" ethdev.
 	// RX packets are received by the "hardware" ethdev; it may go to passthru TAP or faceUDP4.
 	// TX packets are sent to the "hardware" ethdev; it may come from passthru TAP or faceUDP4.

@@ -19,6 +19,7 @@ import (
 	"github.com/songgao/water"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
+	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethnetif"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
@@ -44,6 +45,7 @@ type PortRemoteFixture struct {
 	RemoteMAC  net.HardwareAddr
 	RemoteIntf io.ReadWriteCloser
 	LocalPort  *ethport.Port
+	DiagFaces  func() // invoked after face creation and before traffic generation
 	RxEpsilon  float64
 	TxEpsilon  float64
 }
@@ -103,6 +105,7 @@ func NewPortRemoteFixture(
 	_, require := makeAR(t)
 	prf := &PortRemoteFixture{
 		t:         t,
+		DiagFaces: func() {},
 		RxEpsilon: dfltEpsilon,
 		TxEpsilon: dfltEpsilon,
 	}
@@ -253,6 +256,8 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 	locGtp9 := locGtp8
 	locGtp9.UlTEID, locGtp9.DlTEID = 0x10000009, 0x20000009
 	addFaceIfEnabled("gtp9", locGtp9)
+
+	prf.DiagFaces()
 
 	// Observe packets transmitted by the local port by receiving them on the remote netif.
 	var txOther atomic.Int32
@@ -491,6 +496,12 @@ type vfTestEnv struct {
 
 func (env *vfTestEnv) MakePrf(configPort func(ifname string) ethport.Config) *PortRemoteFixture {
 	prf := NewPortRemoteFixture(env.t, env.RemoteIfname, env.LocalIfname, configPort)
+	if env.RxFlowQueues > 0 {
+		prf.DiagFaces = func() {
+			dump, e := ethdev.GetFlowDump(prf.LocalPort.EthDev())
+			env.t.Log("FlowDump:", e, dump)
+		}
+	}
 	prf.RxEpsilon, prf.TxEpsilon = env.RxEpsilon, env.TxEpsilon
 	return prf
 }

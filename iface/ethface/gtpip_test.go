@@ -195,6 +195,8 @@ func testGtpip(prf *PortRemoteFixture) {
 	facesGTP := addGtpFaces(prf)
 	assert.Equal(len(facesGTP), g.Len())
 
+	prf.DiagFaces()
+
 	dbg, _ := strconv.Atoi(os.Getenv("ETHFACETEST_GTPIPDBG"))
 	if dbg >= 1 {
 		dbgSleep := func() {
