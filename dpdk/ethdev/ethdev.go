@@ -6,6 +6,7 @@ package ethdev
 */
 import "C"
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -14,7 +15,6 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/logging"
-	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go.uber.org/zap"
@@ -298,7 +298,7 @@ func FromName(name string) EthDev {
 func FromHardwareAddr(a net.HardwareAddr) EthDev {
 	for p := C.rte_eth_find_next(0); p < C.RTE_MAX_ETHPORTS; p = C.rte_eth_find_next(p + 1) {
 		dev := ethDev(p)
-		if macaddr.Equal(dev.HardwareAddr(), a) {
+		if bytes.Equal(dev.HardwareAddr(), a) {
 			return dev
 		}
 	}

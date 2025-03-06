@@ -149,18 +149,23 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 			initResult.TxBurst = C.EthFace_TxBurst
 			return initResult, nil
 		},
-		Start: func() error {
+		Start: func() (e error) {
 			face.port.mutex.Lock()
 			defer face.port.mutex.Unlock()
 
 			if face.loc.Scheme() == SchemePassthru {
-				if e := passthruStart(face); e != nil {
+				if e = passthruStart(face); e != nil {
 					return e
 				}
+				defer func() {
+					if e != nil {
+						passthruStop(face)
+					}
+				}()
 			}
 
 			id := face.ID()
-			if e := face.port.rxImpl.Start(face); e != nil {
+			if e = face.port.rxImpl.Start(face); e != nil {
 				face.logger.Error("face start error; change Port config or locator, and try again", zap.Error(e))
 				return e
 			}

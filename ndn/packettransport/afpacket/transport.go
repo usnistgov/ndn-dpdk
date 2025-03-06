@@ -5,6 +5,7 @@
 package afpacket
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"net"
@@ -97,7 +98,7 @@ func (tr *transport) prepare(loc packettransport.Locator) error {
 		if e := unix.SetsockoptPacketMreq(fd, unix.SOL_PACKET, unix.PACKET_ADD_MEMBERSHIP, &mreq); e != nil {
 			return fmt.Errorf("setsockopt(fd=%d, ifindex=%d, PACKET_ADD_MEMBERSHIP=%s) %w", fd, ifindex, loc.Remote, e)
 		}
-	} else if !macaddr.Equal(loc.Local.HardwareAddr, tr.intf.HardwareAddr) {
+	} else if !bytes.Equal(loc.Local.HardwareAddr, tr.intf.HardwareAddr) {
 		mreq := unix.PacketMreq{
 			Ifindex: int32(ifindex),
 			Type:    unix.PACKET_MR_PROMISC,

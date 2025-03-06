@@ -8,7 +8,7 @@ model | speed | DPDK driver | RxFlow Ethernet | RxFlow UDP | RxFlow VXLAN | RxFl
 -|-|-|-|-|-|-|-
 NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes | yes | yes | no | untested
 NVIDIA ConnectX-6 | 200 Gbps | mlx5 | yes | yes | yes | yes | yes
-Intel X710 | 10 Gbps | i40e | no | yes | yes | yes | untested
+Intel X710 | 10 Gbps | i40e | no | yes | yes | yes | no
 Intel X710 VF | 10 Gbps | iavf | untested | untested | untested | untested | untested
 Intel XXV710 | 25 Gbps | i40e | untested | untested | untested | untested | untested
 Intel X520 | 10 Gbps | ixgbe | no | yes | no | untested | untested
@@ -213,10 +213,12 @@ ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500
 ```
 
-### RxFlow Feature on I40E
+### RxFlow Details in I40E
 
 DPDK [I40E poll mode driver](https://doc.dpdk.org/guides/nics/i40e.html) supports Intel Ethernet 700 series.
-In the driver code, `i40e_supported_patterns` vector defines supported flow patterns.
+In the [driver code](https://git.dpdk.org/dpdk/tree/drivers/net/i40e/i40e_flow.c?h=v24.11#n995), `i40e_supported_patterns` vector defines supported flow patterns.
+
+Ethernet face is supported through `pattern_ethertype`
 
 VXLAN tunnel face is supported through `pattern_fdir_ipv4_udp_raw_1` or `pattern_fdir_ipv6_udp_raw_1`, where VNI and inner MAC addresses are matched with a RAW item.
 The VXLAN item in `pattern_vxlan_1` and `pattern_vxlan_2` patterns are unusable because the parser disallows specifying outer IP addresses.

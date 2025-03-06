@@ -136,6 +136,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
         flow->rawMask = flow->rawSpec;
         flow->rawSpec.pattern = flow->rawSpecBuf;
         flow->rawMask.pattern = flow->rawMaskBuf;
+        APPEND(RAW, raw);
       } else {
         PrepareVxlan(loc, &flow->vxlanSpec.hdr, &flow->vxlanMask.hdr, &flow->innerEthSpec.hdr,
                      &flow->innerEthMask.hdr);

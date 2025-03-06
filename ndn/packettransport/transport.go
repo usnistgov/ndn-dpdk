@@ -3,6 +3,7 @@
 package packettransport
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"net"
@@ -115,11 +116,11 @@ type transportRx struct {
 func (rx *transportRx) Prepare(loc Locator) {
 	if macaddr.IsMulticast(loc.Remote.HardwareAddr) {
 		rx.matchLL = func(src, dst net.HardwareAddr) bool {
-			return macaddr.Equal(loc.Remote.HardwareAddr, dst)
+			return bytes.Equal(loc.Remote.HardwareAddr, dst)
 		}
 	} else {
 		rx.matchLL = func(src, dst net.HardwareAddr) bool {
-			return macaddr.Equal(loc.Remote.HardwareAddr, src) && macaddr.Equal(loc.Local.HardwareAddr, dst)
+			return bytes.Equal(loc.Remote.HardwareAddr, src) && bytes.Equal(loc.Local.HardwareAddr, dst)
 		}
 	}
 

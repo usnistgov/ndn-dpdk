@@ -26,6 +26,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndnlayer"
+	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport/afpacket"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/vishvananda/netlink"
@@ -126,6 +127,13 @@ func NewPortRemoteFixture(
 		e = link.EnsureLinkUp(false)
 		require.NoError(e)
 		link.SetOffload("rx-vlan-filter", false)
+		if link.Promisc == 0 {
+			if e = netlink.SetPromiscOn(link.Link); e != nil {
+				t.Logf("netlink.SetPromiscOn(%s) error %v", link.Name, e)
+			} else {
+				t.Cleanup(func() { netlink.SetPromiscOff(link.Link) })
+			}
+		}
 		prf.RemoteMAC = link.HardwareAddr
 
 		tpacket, e := goafpacket.NewTPacket(goafpacket.OptInterface(remoteIfname), goafpacket.OptAddVLANHeader(true))
@@ -178,8 +186,10 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 	faces := map[string]*portRemoteFaceRecord{}
 	addFaceIfEnabled := func(title string, loc ethport.Locator) {
 		if (len(disabled) > 0 && slices.Contains(disabled, title)) || (len(enabled) > 0 && !slices.Contains(enabled, title)) {
+			prf.t.Logf("skipping face locator %s", title)
 			return
 		}
+		prf.t.Logf("creating face locator %s", title)
 		faces[title] = &portRemoteFaceRecord{
 			Face: prf.AddFace(loc),
 		}
@@ -189,6 +199,10 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 	locEther.Local.HardwareAddr = prf.LocalPort.EthDev().HardwareAddr()
 	locEther.Remote.HardwareAddr = prf.RemoteMAC
 	addFaceIfEnabled("ether", locEther)
+
+	locEtherMcast := locEther
+	locEtherMcast.Remote.HardwareAddr = packettransport.MulticastAddressNDN
+	addFaceIfEnabled("ether-mcast", locEtherMcast)
 
 	locVlan := locEther
 	locVlan.VLAN = 1987
@@ -240,6 +254,7 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 	locGtp9.UlTEID, locGtp9.DlTEID = 0x10000009, 0x20000009
 	addFaceIfEnabled("gtp9", locGtp9)
 
+	// Observe packets transmitted by the local port by receiving them on the remote netif.
 	var txOther atomic.Int32
 	go func() {
 		buf := make([]byte, prf.LocalPort.EthDev().MTU())
@@ -256,6 +271,9 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 				case *layers.Ethernet:
 					if i == 0 && l.EthernetType == an.EtherTypeNDN {
 						classify = "ether"
+						if macaddr.IsMulticast(l.DstMAC) {
+							classify = "ether-mcast"
+						}
 					}
 				case *layers.Dot1Q:
 					isVlan = true
@@ -306,6 +324,8 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 		}
 	}()
 
+	// Transmit packets from the remote netif to be received by the local port.
+	// Transmit packets from a local face to be transmitted by the local port.
 	for i := range 500 {
 		time.Sleep(10 * time.Millisecond)
 
@@ -315,6 +335,14 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 				prf.MakeRxFrame("ether", i),
 			)
 			iface.TxBurst(rec.Face.ID(), prf.MakeTxBurst("ether", i))
+		}
+
+		if loc, rec := locEtherMcast, faces["ether-mcast"]; rec != nil {
+			prf.RemoteWrite(
+				&layers.Ethernet{SrcMAC: prf.RemoteMAC, DstMAC: loc.Remote.HardwareAddr, EthernetType: an.EtherTypeNDN},
+				prf.MakeRxFrame("ether-mcast", i),
+			)
+			iface.TxBurst(rec.Face.ID(), prf.MakeTxBurst("ether-mcast", i))
 		}
 
 		if loc, rec := locVlan, faces["vlan"]; rec != nil {
@@ -444,7 +472,7 @@ func TestTapXDP(t *testing.T) {
 
 func TestTapAfPacket(t *testing.T) {
 	prf := NewPortRemoteFixture(t, "", "", nil)
-	testPortRemote(prf, "tapSel")
+	testPortRemote(prf, "")
 }
 
 type vfTestEnv struct {
@@ -499,6 +527,7 @@ func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
 		// localIfname: netif name for the "local" netif, will be attached with DPDK drivers.
 		// localPCI (optional): PCI address for the "local" netif; it could be a different VF.
 		// vfFlags: "+" separated.
+		//   "mcast" enables Ethernet multicast locators.
 		//   "vlan" enables VLAN locators.
 		//   "gtp" enables GTP-U locators.
 		//   "flow" enables RxFlow tests with default selections.
@@ -529,9 +558,15 @@ func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
 		env.RxEpsilon, env.TxEpsilon = dfltEpsilon, dfltEpsilon
 	}
 
-	env.RegSel = "-vlan,vlan-udp4,vlan-udp6"
-	if strings.Contains(env.Flags, "vlan") {
-		env.RegSel = ""
+	exclusions := []string{}
+	if !strings.Contains(env.Flags, "vlan") {
+		exclusions = append(exclusions, "vlan", "vlan-udp4", "vlan-udp6")
+	}
+	if !strings.Contains(env.Flags, "mcast") {
+		exclusions = append(exclusions, "ether-mcast")
+	}
+	if len(exclusions) > 0 {
+		env.RegSel = "-" + strings.Join(exclusions, ",")
 	}
 
 	env.RxFlowQueues = 4

@@ -2,15 +2,9 @@
 package macaddr
 
 import (
-	"bytes"
 	"crypto/rand"
 	"net"
 )
-
-// Equal determines whether two HardwareAddrs are the same.
-func Equal(a, b net.HardwareAddr) bool {
-	return bytes.Equal([]byte(a), []byte(b))
-}
 
 // IsUnicast determines whether the HardwareAddr is a non-zero unicast MAC-48 address.
 func IsUnicast(a net.HardwareAddr) bool {

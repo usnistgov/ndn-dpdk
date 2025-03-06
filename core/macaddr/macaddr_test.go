@@ -17,13 +17,8 @@ func TestMacAddr(t *testing.T) {
 
 	macZero, _ := net.ParseMAC("00:00:00:00:00:00")
 	uA1, _ := net.ParseMAC("02:00:00:00:00:A1")
-	uA2, _ := net.ParseMAC("02:00:00:00:00:A2")
 	mA1, _ := net.ParseMAC("03:00:00:00:00:A1")
 	mac64, _ := net.ParseMAC("02:00:00:00:00:00:00:64")
-
-	assert.True(macaddr.Equal(uA1, uA1))
-	assert.False(macaddr.Equal(uA1, uA2))
-	assert.False(macaddr.Equal(uA1, mA1))
 
 	assert.False(macaddr.IsUnicast(macZero))
 	assert.True(macaddr.IsUnicast(uA1))
