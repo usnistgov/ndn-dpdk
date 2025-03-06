@@ -8,8 +8,8 @@ model | speed | DPDK driver | RxFlow Ethernet | RxFlow UDP | RxFlow VXLAN | RxFl
 -|-|-|-|-|-|-|-
 NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes | yes | yes | no | untested
 NVIDIA ConnectX-6 | 200 Gbps | mlx5 | yes | yes | yes | yes | yes
-Intel X710 | 10 Gbps | i40e | no | yes | yes | yes | no
-Intel X710 VF | 10 Gbps | iavf | untested | untested | untested | untested | untested
+Intel X710 | 10 Gbps | i40e | mcast-only | yes | yes | yes | no
+Intel X710 VF | 10 Gbps | iavf | no | no | no | no | no
 Intel XXV710 | 25 Gbps | i40e | untested | untested | untested | untested | untested
 Intel X520 | 10 Gbps | ixgbe | no | yes | no | untested | untested
 Intel I350 | 1 Gbps | igb | no | no | no | untested | untested
@@ -218,18 +218,25 @@ ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500
 DPDK [I40E poll mode driver](https://doc.dpdk.org/guides/nics/i40e.html) supports Intel Ethernet 700 series.
 In the [driver code](https://git.dpdk.org/dpdk/tree/drivers/net/i40e/i40e_flow.c?h=v24.11#n995), `i40e_supported_patterns` vector defines supported flow patterns.
 
-Ethernet face is supported through `pattern_ethertype`
+Ethernet face is supported through `pattern_ethertype` as `ethertype_filter`.
+This filter only supports destination MAC address and EtherType, hence this only works for multicast faces.
+VLAN is unsupported because `valid_fdir_inset_table[I40E_FILTER_PCTYPE_L2_PAYLOAD]` does not permit filtering by MAC addresses.
 
-VXLAN tunnel face is supported through `pattern_fdir_ipv4_udp_raw_1` or `pattern_fdir_ipv6_udp_raw_1`, where VNI and inner MAC addresses are matched with a RAW item.
-The VXLAN item in `pattern_vxlan_1` and `pattern_vxlan_2` patterns are unusable because the parser disallows specifying outer IP addresses.
+UDP face is supported through `pattern_fdir(_vlan)?_ipv[46]_udp`.
+However, you cannot have both non-VLAN and VLAN UDP face: it fails with "Conflict with the first rule's input set" error.
+
+VXLAN tunnel face is supported through `pattern_fdir_ipv[46]_udp_raw_1`, where VNI and inner MAC addresses are matched with a RAW item.
+The VXLAN item in `pattern_vxlan_[12]` patterns are unusable because the parser disallows specifying outer IP addresses.
 
 GTP-U tunnel face is supported through `pattern_fdir_ipv4_gtpu`.
 This pattern relies on [Dynamic Device Personalization (DDP)](https://www.intel.com/content/www/us/en/developer/articles/technical/dynamic-device-personalization-for-intel-ethernet-700-series.html) feature.
 You must manually download the [GTPv1 DDP profile](https://downloadcenter.intel.com/download/27587) and place it at `/lib/firmware/intel/i40e/ddp/gtp.pkg`.
 If the profile is found, you would see "upload DDP package success" log message during Ethernet port creation.
-Without the profile, GTP-U face creation on RxFlow would fail with "GTP is not supported by default" log message.
+Without the profile, GTP-U face creation on RxFlow fails with "GTP is not supported by default" error.
 During NDN-DPDK service shutdown, a profile rollback will be attempted.
 In case of an abnormal shutdown, you may need to power-cycle the server to cleanup the profile.
+
+Pass-through face is unsupported because the driver does not accept the priority attribute.
 
 ## Broadcom/QLogic Ethernet Adapters
 

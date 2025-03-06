@@ -10,12 +10,27 @@ N_LOG_INIT(EthFlowPattern);
 __attribute__((nonnull)) static void
 SetItem(EthFlowPattern* flow, size_t i, enum rte_flow_item_type typ, uint8_t* spec,
         const uint8_t* mask, size_t size) {
-  for (size_t j = 0; j < size; ++j) {
-    spec[j] &= mask[j];
-  }
   flow->pattern[i].type = typ;
   flow->pattern[i].spec = spec;
   flow->pattern[i].mask = mask;
+}
+
+__attribute__((nonnull)) static void
+CleanPattern(EthFlowPattern* flow, size_t specLen[]) {
+  for (int i = 0;; ++i) {
+    struct rte_flow_item* item = &flow->pattern[i];
+    if (item->type == RTE_FLOW_ITEM_TYPE_END) {
+      break;
+    }
+    if (item->spec == NULL || item->mask == NULL) {
+      continue;
+    }
+    uint8_t* spec = (uint8_t*)item->spec;
+    const uint8_t* mask = (const uint8_t*)item->mask;
+    for (size_t j = 0; j < specLen[i]; ++j) {
+      spec[j] &= mask[j];
+    }
+  }
 }
 
 __attribute__((nonnull)) static void
@@ -75,7 +90,6 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
   }
 
   MASK(flow->ethMask.hdr.dst_addr);
-  MASK(flow->ethMask.hdr.ether_type);
   PutEtherHdr((uint8_t*)(&flow->ethSpec.hdr), loc->remote, loc->local, loc->vlan, c.etherType);
   if (c.multicast) {
     flow->ethSpec.hdr.dst_addr = loc->remote;
@@ -86,12 +100,13 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
 
   if (loc->vlan != 0) {
     flow->vlanMask.hdr.vlan_tci = rte_cpu_to_be_16(0x0FFF); // don't mask PCP & DEI bits
-    MASK(flow->vlanMask.hdr.eth_proto);
     PutVlanHdr((uint8_t*)(&flow->vlanSpec.hdr), loc->vlan, c.etherType);
     APPEND(VLAN, vlan);
   }
 
   if (!c.udp) {
+    // don't mask EtherType for IPv4/IPv6 - rejected by i40e driver
+    MASK(flow->ethMask.hdr.ether_type);
     MASK(flow->vlanMask.hdr.eth_proto);
     goto FINISH;
   }
@@ -161,6 +176,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
   }
 
 FINISH:
+  CleanPattern(flow, specLen);
   if (N_LOG_ENABLED(DEBUG)) {
     N_LOGD("Prepare success loc=%p flow-flags=%" PRIx32, loc, flowFlags);
     PrintPattern(flow, specLen);
