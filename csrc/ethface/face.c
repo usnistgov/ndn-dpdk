@@ -55,7 +55,7 @@ EthRxFlow_RxBurst_Checked(RxGroup* rxg, RxGroupBurstCtx* ctx) {
 
 struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const EthLocator* loc,
-                  bool isolated, uint32_t flowFlags, struct rte_flow_error* error) {
+                  bool isolated, EthFlowFlags flowFlags, struct rte_flow_error* error) {
   EthLocatorClass c = EthLocator_Classify(loc);
   NDNDPDK_ASSERT(nQueues > 0 && nQueues <= (int)RTE_DIM(priv->rxf));
 

@@ -118,7 +118,7 @@ func (impl *rxFlow) setupFlow(face *Face, queues []uint16) error {
 	locC := face.loc.EthLocatorC()
 	var flowErr C.struct_rte_flow_error
 	face.flow = C.EthFace_SetupFlow(face.priv, queuesC, C.int(len(queues)),
-		locC.ptr(), C.bool(impl.isolated), C.uint32_t(impl.flowFlags), &flowErr)
+		locC.ptr(), C.bool(impl.isolated), C.EthFlowFlags(impl.flowFlags), &flowErr)
 	if face.flow == nil {
 		return readFlowErr(flowErr)
 	}

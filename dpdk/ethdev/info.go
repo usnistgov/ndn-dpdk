@@ -110,7 +110,7 @@ func (info DevInfo) FlowFlags() (flags uint32) {
 	case DriverMlx5:
 		flags |= C.EthFlowFlagsGtp
 	case DriverI40e:
-		flags |= C.EthFlowFlagsVxRaw
+		flags |= C.EthFlowFlagsPassthruArp | C.EthFlowFlagsVxRaw
 	}
 	return
 }

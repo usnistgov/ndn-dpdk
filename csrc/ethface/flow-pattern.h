@@ -49,10 +49,10 @@ typedef struct EthFlowPattern {
  * @param[out] flow Flow pattern.
  * @param[out] priority Flow priority.
  * @param loc Locator.
- * @param flowFlags @p EthFlowFlags bits.
+ * @param flowFlags Driver-specific pattern preferences.
  */
 __attribute__((nonnull)) void
 EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocator* loc,
-                       uint32_t flowFlags);
+                       EthFlowFlags flowFlags);
 
 #endif // NDNDPDK_ETHFACE_FLOW_PATTERN_H

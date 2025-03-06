@@ -8,7 +8,7 @@ model | speed | DPDK driver | RxFlow Ethernet | RxFlow UDP | RxFlow VXLAN | RxFl
 -|-|-|-|-|-|-|-
 NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes | yes | yes | no | untested
 NVIDIA ConnectX-6 | 200 Gbps | mlx5 | yes | yes | yes | yes | yes
-Intel X710 | 10 Gbps | i40e | mcast-only | yes | yes | yes | no
+Intel X710 | 10 Gbps | i40e | mcast-only | yes | yes | yes | ARP-only
 Intel X710 VF | 10 Gbps | iavf | no | no | no | no | no
 Intel XXV710 | 25 Gbps | i40e | untested | untested | untested | untested | untested
 Intel X520 | 10 Gbps | ixgbe | no | yes | no | untested | untested
@@ -236,7 +236,8 @@ Without the profile, GTP-U face creation on RxFlow fails with "GTP is not suppor
 During NDN-DPDK service shutdown, a profile rollback will be attempted.
 In case of an abnormal shutdown, you may need to power-cycle the server to cleanup the profile.
 
-Pass-through face is unsupported because the driver does not accept the priority attribute.
+Pass-through face is severely limited: it can only accept ARP packets.
+Full support requires the driver to support the priority attribute, which is unavailable in i40e.
 
 ## Broadcom/QLogic Ethernet Adapters
 

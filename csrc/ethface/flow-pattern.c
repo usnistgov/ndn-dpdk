@@ -7,22 +7,26 @@ N_LOG_INIT(EthFlowPattern);
 
 #define MASK(field) memset(&(field), 0xFF, sizeof(field))
 
-__attribute__((nonnull)) static void
-SetItem(EthFlowPattern* flow, size_t i, enum rte_flow_item_type typ, uint8_t* spec,
-        const uint8_t* mask, size_t size) {
-  flow->pattern[i].type = typ;
-  flow->pattern[i].spec = spec;
-  flow->pattern[i].mask = mask;
+__attribute__((nonnull)) static inline void
+AppendItem(EthFlowPattern* flow, size_t* i, enum rte_flow_item_type typ, const void* spec,
+           const void* mask, size_t size) {
+  flow->pattern[*i].type = typ;
+  flow->pattern[*i].spec = spec;
+  flow->pattern[*i].mask = mask;
+  ++(*i);
+  NDNDPDK_ASSERT(*i < RTE_DIM(flow->pattern));
+  flow->pattern[*i].type = RTE_FLOW_ITEM_TYPE_END;
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 CleanPattern(EthFlowPattern* flow, size_t specLen[]) {
   for (int i = 0;; ++i) {
     struct rte_flow_item* item = &flow->pattern[i];
     if (item->type == RTE_FLOW_ITEM_TYPE_END) {
       break;
     }
-    if (item->spec == NULL || item->mask == NULL) {
+    if (item->spec == NULL) {
+      item->mask = NULL;
       continue;
     }
     uint8_t* spec = (uint8_t*)item->spec;
@@ -33,7 +37,7 @@ CleanPattern(EthFlowPattern* flow, size_t specLen[]) {
   }
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 PrintPattern(const EthFlowPattern* flow, size_t specLen[]) {
   for (int i = 0;; ++i) {
     const struct rte_flow_item* item = &flow->pattern[i];
@@ -44,14 +48,20 @@ PrintPattern(const EthFlowPattern* flow, size_t specLen[]) {
       Base16_Encode(b16Spec, sizeof(b16Spec), item->spec, specLen[i]);
       Base16_Encode(b16Mask, sizeof(b16Mask), item->mask, specLen[i]);
     }
-    N_LOGD("^ index=%d type=%d spec=%s mask=%s", i, (int)item->type, b16Spec, b16Mask);
+    const char* typeName = NULL;
+    if (rte_flow_conv(RTE_FLOW_CONV_OP_ITEM_NAME_PTR, &typeName, sizeof(&typeName),
+                      (const void*)(uintptr_t)item->type, NULL) <= 0) {
+      typeName = "-";
+    }
+    N_LOGD("^ index=%d type=%d type-name=%s spec=%s mask=%s", i, (int)item->type, typeName, b16Spec,
+           b16Mask);
     if (item->type == RTE_FLOW_ITEM_TYPE_END) {
       break;
     }
   }
 }
 
-__attribute__((nonnull)) static void
+__attribute__((nonnull)) static inline void
 PrepareVxlan(const EthLocator* loc, struct rte_vxlan_hdr* vxlanSpec,
              struct rte_vxlan_hdr* vxlanMask, struct rte_ether_hdr* innerEthSpec,
              struct rte_ether_hdr* innerEthMask) {
@@ -66,7 +76,7 @@ PrepareVxlan(const EthLocator* loc, struct rte_vxlan_hdr* vxlanSpec,
 
 void
 EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocator* loc,
-                       uint32_t flowFlags) {
+                       EthFlowFlags flowFlags) {
   EthLocatorClass c = EthLocator_Classify(loc);
 
   *flow = (const EthFlowPattern){0};
@@ -76,16 +86,17 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
   size_t specLen[RTE_DIM(flow->pattern)];
   size_t i = 0;
 #define APPEND(typ, field)                                                                         \
-  do {                                                                                             \
-    SetItem(flow, i, RTE_FLOW_ITEM_TYPE_##typ, (uint8_t*)&flow->field##Spec,                       \
-            (const uint8_t*)&flow->field##Mask, (specLen[i] = sizeof(flow->field##Spec)));         \
-    ++i;                                                                                           \
-    NDNDPDK_ASSERT(i < RTE_DIM(flow->pattern));                                                    \
-    flow->pattern[i].type = RTE_FLOW_ITEM_TYPE_END;                                                \
-  } while (false)
+  AppendItem(flow, &i, RTE_FLOW_ITEM_TYPE_##typ, &flow->field##Spec, &flow->field##Mask,           \
+             (specLen[i] = sizeof(flow->field##Spec)))
 
   if (c.passthru) {
-    *priority = 1;
+    if (flowFlags & EthFlowFlagsPassthruArp) {
+      MASK(flow->ethMask.hdr.ether_type);
+      flow->ethSpec.hdr.ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP);
+      APPEND(ETH, eth);
+    } else {
+      *priority = 1;
+    }
     goto FINISH;
   }
 
@@ -112,7 +123,6 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
   }
   // several drivers do not support ETH+IP combination, so clear ETH spec
   flow->pattern[0].spec = NULL;
-  flow->pattern[0].mask = NULL;
 
   if (c.v4) {
     MASK(flow->ip4Mask.hdr.src_addr);
@@ -178,7 +188,7 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
 FINISH:
   CleanPattern(flow, specLen);
   if (N_LOG_ENABLED(DEBUG)) {
-    N_LOGD("Prepare success loc=%p flow-flags=%" PRIx32, loc, flowFlags);
+    N_LOGD("Prepare success loc=%p flow-flags=%08" PRIx32, loc, flowFlags);
     PrintPattern(flow, specLen);
   }
 #undef APPEND
