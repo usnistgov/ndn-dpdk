@@ -499,7 +499,7 @@ func (env *vfTestEnv) MakePrf(configPort func(ifname string) ethport.Config) *Po
 	if env.RxFlowQueues > 0 {
 		prf.DiagFaces = func() {
 			dump, e := ethdev.GetFlowDump(prf.LocalPort.EthDev())
-			env.t.Log("FlowDump:", e, dump)
+			env.t.Logf("FlowDump: err=%v\n%s", e, dump)
 		}
 	}
 	prf.RxEpsilon, prf.TxEpsilon = env.RxEpsilon, env.TxEpsilon

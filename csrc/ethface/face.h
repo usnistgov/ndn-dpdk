@@ -15,8 +15,7 @@ typedef struct EthRxFlow {
   uint16_t port;
   uint16_t queue;
   uint16_t burstSize;
-  uint16_t hdrLen;     // copy of .rxMatch.len for cache locality
-  EthRxMatch* rxMatch; // when not flow isolated
+  uint16_t hdrLen;
 } __rte_cache_aligned EthRxFlow;
 
 /** @brief Ethernet face private data. */

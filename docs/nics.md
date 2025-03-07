@@ -6,7 +6,7 @@ The developers have tested NDN-DPDK with the following Ethernet adapters:
 
 model | speed | DPDK driver | RxFlow Ethernet | RxFlow UDP | RxFlow VXLAN | RxFlow GTP-U | RxFlow passthru
 -|-|-|-|-|-|-|-
-NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes | yes | yes | no | untested
+NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes | yes | yes | no | yes
 NVIDIA ConnectX-6 | 200 Gbps | mlx5 | yes | yes | yes | yes | yes
 Intel X710 | 10 Gbps | i40e | mcast-only | yes | yes | yes | ARP-only
 Intel X710 VF | 10 Gbps | iavf | no | no | no | no | no
