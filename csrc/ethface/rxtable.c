@@ -17,6 +17,15 @@ __attribute__((nonnull)) static inline bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m) {
   EthFacePriv* priv = NULL;
 
+  FaceID id = EthFace_RxMbufFaceID(m);
+  if (id != 0) {
+    Face* face = Face_Get(id);
+    if (likely(face->impl != NULL)) {
+      priv = Face_GetPriv(face);
+      goto ACCEPT;
+    }
+  }
+
   const EthXdpHdr* xh = rte_pktmbuf_mtod(m, const EthXdpHdr*);
   if (likely(m->data_len >= sizeof(*xh)) && xh->magic == UINT64_MAX) {
     Face* face = Face_Get((FaceID)(xh->fmv >> 16));

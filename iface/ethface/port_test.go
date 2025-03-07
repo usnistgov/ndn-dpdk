@@ -496,11 +496,9 @@ type vfTestEnv struct {
 
 func (env *vfTestEnv) MakePrf(configPort func(ifname string) ethport.Config) *PortRemoteFixture {
 	prf := NewPortRemoteFixture(env.t, env.RemoteIfname, env.LocalIfname, configPort)
-	if env.RxFlowQueues > 0 {
-		prf.DiagFaces = func() {
-			dump, e := ethdev.GetFlowDump(prf.LocalPort.EthDev())
-			env.t.Logf("FlowDump: err=%v\n%s", e, dump)
-		}
+	prf.DiagFaces = func() {
+		dump, e := ethdev.GetFlowDump(prf.LocalPort.EthDev())
+		env.t.Logf("FlowDump: err=%v\n%s", e, dump)
 	}
 	prf.RxEpsilon, prf.TxEpsilon = env.RxEpsilon, env.TxEpsilon
 	return prf

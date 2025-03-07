@@ -12,9 +12,10 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-// Read rte_flow_error into Go error.
+// readFlowErr reads rte_flow_error into Go error.
 func readFlowErr(e C.struct_rte_flow_error) error {
 	if e._type == C.RTE_FLOW_ERROR_TYPE_NONE {
 		return eal.GetErrno()
@@ -27,11 +28,49 @@ func readFlowErr(e C.struct_rte_flow_error) error {
 	return fmt.Errorf("%d %s %p", e._type, message, e.cause)
 }
 
+func setupFlow(face *Face, queues []uint16, isolated bool, flowFlags uint32, logLevelFailure zapcore.Level) error {
+	logEntry := face.logger.With(
+		zap.Uint16s("queues", queues),
+	)
+
+	queuesC := (*C.uint16_t)(unsafe.Pointer(unsafe.SliceData(queues)))
+	locC := face.loc.EthLocatorC()
+
+	var flowErr C.struct_rte_flow_error
+	face.flow = C.EthFace_SetupFlow(face.priv, queuesC, C.int(len(queues)),
+		locC.ptr(), C.bool(isolated), C.EthFlowFlags(flowFlags), &flowErr)
+
+	if face.flow != nil {
+		logEntry.Info("create RxFlow success")
+		return nil
+	}
+
+	e := readFlowErr(flowErr)
+	logEntry.Log(logLevelFailure, "create RxFlow failure", zap.Error(e))
+	return e
+}
+
+func destroyFlow(face *Face) error {
+	if face.flow == nil {
+		return nil
+	}
+
+	var flowErr C.struct_rte_flow_error
+	if res := C.rte_flow_destroy(C.uint16_t(face.port.dev.ID()), face.flow, &flowErr); res == 0 {
+		face.logger.Info("destroy RxFlow success")
+		face.flow = nil
+		return nil
+	}
+
+	e := readFlowErr(flowErr)
+	face.logger.Warn("destroy RxFlow failure; new faces on this Port may not work", zap.Error(e))
+	return e
+}
+
 type rxFlow struct {
-	isolated        bool
-	flowFlags       uint32
-	availQueues     []uint16
-	hasDestroyError bool
+	isolated    bool
+	flowFlags   uint32
+	availQueues []uint16
 }
 
 func (rxFlow) String() string {
@@ -95,33 +134,12 @@ func (impl *rxFlow) Start(face *Face) error {
 	}
 
 	queues := impl.availQueues[:nRxQueues]
-	if e := impl.setupFlow(face, queues); e != nil {
-		face.port.logger.Warn("create RxFlow failure",
-			zap.Uint16s("queues", queues),
-			face.ID().ZapField("face"),
-			zap.Error(e),
-		)
+	if e := setupFlow(face, queues, impl.isolated, impl.flowFlags, zap.WarnLevel); e != nil {
 		return e
 	}
 
 	impl.availQueues = impl.availQueues[nRxQueues:]
-	face.port.logger.Info("create RxFlow success",
-		zap.Uint16s("queues", queues),
-		face.ID().ZapField("face"),
-	)
 	impl.startFlow(face, queues)
-	return nil
-}
-
-func (impl *rxFlow) setupFlow(face *Face, queues []uint16) error {
-	queuesC := (*C.uint16_t)(unsafe.Pointer(unsafe.SliceData(queues)))
-	locC := face.loc.EthLocatorC()
-	var flowErr C.struct_rte_flow_error
-	face.flow = C.EthFace_SetupFlow(face.priv, queuesC, C.int(len(queues)),
-		locC.ptr(), C.bool(impl.isolated), C.EthFlowFlags(impl.flowFlags), &flowErr)
-	if face.flow == nil {
-		return readFlowErr(flowErr)
-	}
 	return nil
 }
 
@@ -147,34 +165,12 @@ func (impl *rxFlow) Stop(face *Face) error {
 		iface.DeactivateRxGroup(rxf)
 	}
 
-	if e := impl.destroyFlow(face); e != nil {
-		face.port.logger.Warn("destroy RxFlow failure; new faces on this Port may not work",
-			face.ID().ZapField("face"),
-			zap.Error(e),
-		)
-		impl.hasDestroyError = true
-	} else {
-		face.port.logger.Info("destroy RxFlow success",
-			face.ID().ZapField("face"),
-		)
+	if e := destroyFlow(face); e == nil {
 		for _, rxf := range face.rxf {
 			impl.availQueues = append(impl.availQueues, rxf.queue)
 		}
 	}
 	face.rxf = nil
-	return nil
-}
-
-func (impl *rxFlow) destroyFlow(face *Face) error {
-	if face.flow == nil {
-		return nil
-	}
-
-	var e C.struct_rte_flow_error
-	if res := C.rte_flow_destroy(C.uint16_t(face.port.dev.ID()), face.flow, &e); res != 0 {
-		return readFlowErr(e)
-	}
-	face.flow = nil
 	return nil
 }
 
@@ -198,7 +194,7 @@ func (rxf *rxgFlow) NumaSocket() eal.NumaSocket {
 }
 
 func (rxf *rxgFlow) RxGroup() (ptr unsafe.Pointer, desc string) {
-	return unsafe.Pointer(&rxf.face.rxfC(rxf.index).base),
+	return unsafe.Pointer(&rxf.face.priv.rxf[rxf.index].base),
 		fmt.Sprintf("EthRxFlow(face=%d,port=%d,queue=%d)", rxf.face.ID(), rxf.face.port.EthDev().ID(), rxf.queue)
 }
 

@@ -13,11 +13,13 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
+	"go.uber.org/zap"
 	"go4.org/must"
 )
 
 type rxTable struct {
-	rxt *rxgTable
+	rxt       *rxgTable
+	flowFlags uint32
 }
 
 func (rxTable) String() string {
@@ -33,10 +35,13 @@ func (impl *rxTable) Init(port *Port) error {
 		return e
 	}
 	impl.rxt = newRxgTable(port)
+	impl.flowFlags = port.devInfo.FlowFlags()
 	return nil
 }
 
 func (impl *rxTable) Start(face *Face) error {
+	setupFlow(face, []uint16{0}, false, impl.flowFlags, zap.InfoLevel)
+
 	if face.loc.Scheme() == SchemePassthru {
 		C.cds_list_add_tail_rcu(&face.priv.rxtNode, &impl.rxt.head)
 	} else {
@@ -48,6 +53,8 @@ func (impl *rxTable) Start(face *Face) error {
 func (impl *rxTable) Stop(face *Face) error {
 	C.cds_list_del_rcu(&face.priv.rxtNode)
 	urcu.Synchronize()
+
+	destroyFlow(face)
 	return nil
 }
 

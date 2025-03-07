@@ -26,8 +26,7 @@ EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated, bool memif)
   for (uint16_t i = 0; i < ctx->nRx; ++i) {
     struct rte_mbuf* m = ctx->pkts[i];
     Mbuf_SetTimestamp(m, now);
-    if (memif || (likely((m->ol_flags & MbufHasMark) == MbufHasMark) &&
-                  likely(m->hash.fdir.hi == rxf->faceID))) {
+    if (memif || likely(EthFace_RxMbufFaceID(m) == rxf->faceID)) {
       m->port = rxf->faceID;
       rte_pktmbuf_adj(m, rxf->hdrLen);
     } else {

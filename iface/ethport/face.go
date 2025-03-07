@@ -10,7 +10,6 @@ import "C"
 import (
 	"errors"
 	"net"
-	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
@@ -96,10 +95,6 @@ type Face struct {
 
 	flow *C.struct_rte_flow
 	rxf  []*rxgFlow
-}
-
-func (face *Face) rxfC(index int) *C.EthRxFlow {
-	return (*C.EthRxFlow)(unsafe.Add(unsafe.Pointer(face.priv), 64*index))
 }
 
 // NewFace creates a face on the given port.
