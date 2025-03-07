@@ -69,7 +69,6 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
   EthFlowPattern pattern;
   EthFlowPattern_Prepare(&pattern, &attr.priority, loc, flowFlags);
 
-  struct rte_flow_action_mark mark = {.id = priv->faceID};
   struct rte_flow_action_queue queue = {.index = queues[0]};
   struct rte_flow_action_rss rss = {
     .level = 1,
@@ -77,14 +76,15 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
     .queue = queues,
     .queue_num = nQueues,
   };
+  struct rte_flow_action_mark mark = {.id = priv->faceID};
   struct rte_flow_action actions[] = {
-    {
-      .type = RTE_FLOW_ACTION_TYPE_MARK,
-      .conf = &mark,
-    },
     {
       .type = nQueues > 1 ? RTE_FLOW_ACTION_TYPE_RSS : RTE_FLOW_ACTION_TYPE_QUEUE,
       .conf = nQueues > 1 ? (const void*)&rss : (const void*)&queue,
+    },
+    {
+      .type = RTE_FLOW_ACTION_TYPE_MARK,
+      .conf = &mark,
     },
     {
       .type = RTE_FLOW_ACTION_TYPE_END,

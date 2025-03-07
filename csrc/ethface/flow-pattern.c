@@ -22,13 +22,20 @@ __attribute__((nonnull)) static inline void
 CleanPattern(EthFlowPattern* flow, size_t specLen[]) {
   for (int i = 0;; ++i) {
     struct rte_flow_item* item = &flow->pattern[i];
-    if (item->type == RTE_FLOW_ITEM_TYPE_END) {
-      break;
+    switch (item->type) {
+      case RTE_FLOW_ITEM_TYPE_END:
+        return;
+      case RTE_FLOW_ITEM_TYPE_RAW:
+        continue;
+      default:
+        break;
     }
+
     if (item->spec == NULL) {
       item->mask = NULL;
       continue;
     }
+
     uint8_t* spec = (uint8_t*)item->spec;
     const uint8_t* mask = (const uint8_t*)item->mask;
     for (size_t j = 0; j < specLen[i]; ++j) {
@@ -158,8 +165,8 @@ EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocato
         flow->rawSpec.relative = 1;
         flow->rawSpec.offset = 4;
         flow->rawSpec.length = 16;
-        flow->rawMask = flow->rawSpec;
         flow->rawSpec.pattern = flow->rawSpecBuf;
+        flow->rawMask = rte_flow_item_raw_mask;
         flow->rawMask.pattern = flow->rawMaskBuf;
         APPEND(RAW, raw);
       } else {
