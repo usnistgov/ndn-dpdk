@@ -34,21 +34,11 @@ type Config struct {
 	PCIAddr *pciaddr.PCIAddress `json:"pciAddr,omitempty" gqldesc:"PCI address (PCI devices)."`
 	DevArgs map[string]any      `json:"devargs,omitempty" gqldesc:"DPDK device arguments."`
 
-	SkipBringUp bool   `json:"skipBringUp,omitempty" gqldesc:"Don't attempt to bring up the interface."`
-	SkipEthtool bool   `json:"skipEthtool,omitempty" gqldesc:"Don't perform ethtool updates for XDP."`
-	XDPProgram  string `json:"-"` // override XDP program
-}
-
-func (cfg *Config) applyDefaults() {
-	if cfg.XDPProgram == "" {
-		cfg.XDPProgram = XDPProgram
-	}
+	SkipEthtool bool `json:"skipEthtool,omitempty" gqldesc:"Don't perform ethtool updates for XDP."`
 }
 
 // CreateEthDev creates an Ethernet device.
 func CreateEthDev(cfg Config) (ethdev.EthDev, error) {
-	cfg.applyDefaults()
-
 	if cfg.Netif != "" {
 		if n, e := NetIntfByName(cfg.Netif); e == nil {
 			if dev := n.FindDev(); dev != nil {
@@ -97,7 +87,7 @@ func createXDP(cfg Config) (ethdev.EthDev, error) {
 	if e != nil {
 		return nil, e
 	}
-	if e = n.EnsureLinkUp(cfg.SkipBringUp); e != nil {
+	if e = n.EnsureLinkUp(); e != nil {
 		return nil, e
 	}
 
@@ -106,17 +96,15 @@ func createXDP(cfg Config) (ethdev.EthDev, error) {
 		"start_queue": 0,
 		"queue_count": 1,
 	}
-	if cfg.XDPProgram != "" {
-		args["xdp_prog"] = cfg.XDPProgram
+	if XDPProgram != "" {
+		args["xdp_prog"] = XDPProgram
 	}
 	maps.Copy(args, cfg.DevArgs)
 
 	if !cfg.SkipEthtool {
 		n.SetOneChannel()
 		n.DisableVLANOffload()
-		if prog, ok := args["xdp_prog"]; ok && prog != nil {
-			n.UnloadXDP()
-		}
+		n.UnloadXDP()
 	}
 
 	dev, e := ethdev.NewVDev(n.VDevName(ethdev.DriverXDP), args, n.NumaSocket())
@@ -137,7 +125,7 @@ func createAfPacket(cfg Config) (ethdev.EthDev, error) {
 	if e != nil {
 		return nil, e
 	}
-	if e = n.EnsureLinkUp(cfg.SkipBringUp); e != nil {
+	if e = n.EnsureLinkUp(); e != nil {
 		return nil, e
 	}
 

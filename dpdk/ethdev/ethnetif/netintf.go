@@ -52,18 +52,16 @@ func (n NetIntf) VDevName(drv string) string {
 }
 
 // EnsureLinkUp brings up the link.
-// If skipBringUp is true but the interface is down, returns an error.
-func (n *NetIntf) EnsureLinkUp(skipBringUp bool) error {
+func (n *NetIntf) EnsureLinkUp() error {
 	if n.Flags&net.FlagUp != 0 {
 		return nil
 	}
-	if skipBringUp {
-		return fmt.Errorf("interface %s is not UP", n.Name)
-	}
+
 	if e := netlink.LinkSetUp(n.Link); e != nil {
 		n.logger.Error("netlink.LinkSetUp error", zap.Error(e))
 		return fmt.Errorf("netlink.LinkSetUp(%s): %w", n.Name, e)
 	}
+
 	n.logger.Info("brought up the interface")
 	n.Refresh()
 	return nil

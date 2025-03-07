@@ -80,7 +80,7 @@ func makePassthru(prf *PortRemoteFixture, loc ethface.PassthruLocator) (p Passth
 
 	p.Netif, e = ethnetif.NetIntfByName(ethport.MakePassthruTapName(prf.LocalPort.EthDev()))
 	require.NoError(e)
-	require.NoError(p.Netif.EnsureLinkUp(false))
+	require.NoError(p.Netif.EnsureLinkUp())
 
 	return
 }

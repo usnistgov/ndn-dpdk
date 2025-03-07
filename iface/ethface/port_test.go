@@ -127,7 +127,7 @@ func NewPortRemoteFixture(
 	} else {
 		link, e := ethnetif.NetIntfByName(remoteIfname)
 		require.NoError(e)
-		e = link.EnsureLinkUp(false)
+		e = link.EnsureLinkUp()
 		require.NoError(e)
 		link.SetOffload("rx-vlan-filter", false)
 		if link.Promisc == 0 {
