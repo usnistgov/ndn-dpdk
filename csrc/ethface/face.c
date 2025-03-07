@@ -6,18 +6,13 @@
 N_LOG_INIT(EthFace);
 
 enum {
-  EthMaxBurstSize = RTE_DIM(((RxGroupBurstCtx*)NULL)->pkts),
-
-  // https://bugs.dpdk.org/show_bug.cgi?id=1273
-  MemifMaxBurstSize = 32,
-
   MbufHasMark = RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID,
 };
 
-__attribute__((nonnull)) static void
-EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated) {
+__attribute__((nonnull)) static __rte_always_inline void
+EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated, bool memif) {
   EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
-  ctx->nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, rxf->burstSize);
+  ctx->nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, RTE_DIM(ctx->pkts));
   uint64_t now = rte_get_tsc_cycles();
 
   PdumpEthPortUnmatchedCtx unmatch;
@@ -31,8 +26,8 @@ EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated) {
   for (uint16_t i = 0; i < ctx->nRx; ++i) {
     struct rte_mbuf* m = ctx->pkts[i];
     Mbuf_SetTimestamp(m, now);
-    if (likely((m->ol_flags & MbufHasMark) == MbufHasMark) &&
-        likely(m->hash.fdir.hi == rxf->faceID)) {
+    if (memif || (likely((m->ol_flags & MbufHasMark) == MbufHasMark) &&
+                  likely(m->hash.fdir.hi == rxf->faceID))) {
       m->port = rxf->faceID;
       rte_pktmbuf_adj(m, rxf->hdrLen);
     } else {
@@ -49,13 +44,18 @@ EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated) {
 }
 
 __attribute__((nonnull)) static void
+EthRxFlow_RxBurst_Memif(RxGroup* rxg, RxGroupBurstCtx* ctx) {
+  EthRxFlow_RxBurst(rxg, ctx, true, true);
+}
+
+__attribute__((nonnull)) static void
 EthRxFlow_RxBurst_Isolated(RxGroup* rxg, RxGroupBurstCtx* ctx) {
-  EthRxFlow_RxBurst(rxg, ctx, true);
+  EthRxFlow_RxBurst(rxg, ctx, true, false);
 }
 
 __attribute__((nonnull)) static void
 EthRxFlow_RxBurst_Checked(RxGroup* rxg, RxGroupBurstCtx* ctx) {
-  EthRxFlow_RxBurst(rxg, ctx, false);
+  EthRxFlow_RxBurst(rxg, ctx, false, false);
 }
 
 struct rte_flow*
@@ -115,7 +115,6 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
       .faceID = priv->faceID,
       .port = priv->port,
       .queue = queues[i],
-      .burstSize = EthMaxBurstSize,
       .hdrLen = priv->rxMatch.len,
     };
   }
@@ -125,11 +124,10 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
 void
 EthFace_SetupRxMemif(EthFacePriv* priv, const EthLocator* loc) {
   priv->rxf[0] = (const EthRxFlow){
-    .base = {.rxBurst = EthRxFlow_RxBurst_Isolated, .rxThread = 0},
+    .base = {.rxBurst = EthRxFlow_RxBurst_Memif, .rxThread = 0},
     .faceID = priv->faceID,
     .port = priv->port,
     .queue = 0,
-    .burstSize = RTE_MIN(EthMaxBurstSize, MemifMaxBurstSize),
     .hdrLen = 0,
   };
 }

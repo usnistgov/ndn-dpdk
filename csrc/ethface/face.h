@@ -14,8 +14,7 @@ typedef struct EthRxFlow {
   FaceID faceID;
   uint16_t port;
   uint16_t queue;
-  uint16_t burstSize;
-  uint16_t hdrLen;
+  uint8_t hdrLen;
 } __rte_cache_aligned EthRxFlow;
 
 /** @brief Ethernet face private data. */
