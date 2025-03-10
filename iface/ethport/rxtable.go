@@ -2,6 +2,7 @@ package ethport
 
 /*
 #include "../../csrc/ethface/rxtable.h"
+#include "../../csrc/dpdk/ethdev.h"
 */
 import "C"
 import (
@@ -19,7 +20,7 @@ import (
 
 type rxTable struct {
 	rxt       *rxgTable
-	flowFlags uint32
+	flowFlags C.EthFlowFlags
 }
 
 func (rxTable) String() string {
@@ -35,12 +36,14 @@ func (impl *rxTable) Init(port *Port) error {
 		return e
 	}
 	impl.rxt = newRxgTable(port)
-	impl.flowFlags = port.devInfo.FlowFlags()
+	impl.flowFlags = C.EthFlowFlags(port.devInfo.FlowFlags())
 	return nil
 }
 
 func (impl *rxTable) Start(face *Face) error {
-	setupFlow(face, []uint16{0}, false, impl.flowFlags, zap.InfoLevel)
+	if impl.flowFlags&C.EthFlowFlagsDisabled == 0 {
+		setupFlow(face, []uint16{0}, impl.flowFlags, zap.InfoLevel)
+	}
 
 	if face.loc.Scheme() == SchemePassthru {
 		C.cds_list_add_tail_rcu(&face.priv.rxtNode, &impl.rxt.head)

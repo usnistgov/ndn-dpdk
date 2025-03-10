@@ -5,16 +5,21 @@
 
 N_LOG_INIT(EthFace);
 
+typedef __attribute__((nonnull)) bool (*AcceptFunc)(EthRxFlow*, struct rte_mbuf*);
+
+/**
+ * @brief EthRxFlow RX burst function template.
+ * @param acceptPkt Packet match function.
+ * @param mayHaveUnmatched If true, @c PdumpEthPortUnmatchedCtx is used to trace unmatched packets.
+ */
 __attribute__((nonnull)) static __rte_always_inline void
-EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated, bool memif) {
+EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, AcceptFunc acceptPkt, bool mayHaveUnmatched) {
   EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
   ctx->nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, RTE_DIM(ctx->pkts));
   uint64_t now = rte_get_tsc_cycles();
 
   PdumpEthPortUnmatchedCtx unmatch;
-  if (isolated) {
-    POISON(&unmatch);
-  } else {
+  if (mayHaveUnmatched) {
     // RCU lock is inherited from RxLoop_Run
     PdumpEthPortUnmatchedCtx_Init(&unmatch, rxf->port);
   }
@@ -22,47 +27,82 @@ EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated, bool memif)
   for (uint16_t i = 0; i < ctx->nRx; ++i) {
     struct rte_mbuf* m = ctx->pkts[i];
     Mbuf_SetTimestamp(m, now);
-    if (memif || likely(EthFace_RxMbufFaceID(m) == rxf->faceID)) {
+    if (likely(acceptPkt(rxf, m))) {
       m->port = rxf->faceID;
       rte_pktmbuf_adj(m, rxf->hdrLen);
     } else {
       RxGroupBurstCtx_Drop(ctx, i);
-      if (!isolated && PdumpEthPortUnmatchedCtx_Append(&unmatch, m)) {
+      if (mayHaveUnmatched && PdumpEthPortUnmatchedCtx_Append(&unmatch, m)) {
         ctx->pkts[i] = NULL;
       }
     }
   }
 
-  if (!isolated) {
+  if (mayHaveUnmatched) {
     PdumpEthPortUnmatchedCtx_Process(&unmatch);
   }
 }
 
-__attribute__((nonnull)) static void
-EthRxFlow_RxBurst_Memif(RxGroup* rxg, RxGroupBurstCtx* ctx) {
-  EthRxFlow_RxBurst(rxg, ctx, true, true);
+__attribute__((nonnull)) static __rte_always_inline bool
+AcceptBypass(__rte_unused EthRxFlow* rxf, __rte_unused struct rte_mbuf* m) {
+  return true;
 }
 
+/** @brief RX burst function that does not check packets and assumes every packet is matching. */
 __attribute__((nonnull)) static void
-EthRxFlow_RxBurst_Isolated(RxGroup* rxg, RxGroupBurstCtx* ctx) {
-  EthRxFlow_RxBurst(rxg, ctx, true, false);
+EthRxFlow_RxBurst_CheckBypass(RxGroup* rxg, RxGroupBurstCtx* ctx) {
+  EthRxFlow_RxBurst(rxg, ctx, AcceptBypass, false);
 }
 
+__attribute__((nonnull)) static __rte_always_inline bool
+AcceptOffload(EthRxFlow* rxf, struct rte_mbuf* m) {
+  return EthFace_RxMbufFaceID(m) == rxf->faceID;
+}
+
+/** @brief RX burst function that checks FaceID from MARK action. */
 __attribute__((nonnull)) static void
-EthRxFlow_RxBurst_Checked(RxGroup* rxg, RxGroupBurstCtx* ctx) {
-  EthRxFlow_RxBurst(rxg, ctx, false, false);
+EthRxFlow_RxBurst_Isolated_CheckOffload(RxGroup* rxg, RxGroupBurstCtx* ctx) {
+  EthRxFlow_RxBurst(rxg, ctx, AcceptOffload, false);
+}
+
+/** @brief RX burst function that checks FaceID from MARK action, tracing unmatched packets. */
+__attribute__((nonnull)) static void
+EthRxFlow_RxBurst_Unisolated_CheckOffload(RxGroup* rxg, RxGroupBurstCtx* ctx) {
+  EthRxFlow_RxBurst(rxg, ctx, AcceptOffload, true);
+}
+
+__attribute__((nonnull)) static __rte_always_inline bool
+AcceptFull(EthRxFlow* rxf, struct rte_mbuf* m) {
+  EthFacePriv* priv =
+    RTE_PTR_SUB(rxf, offsetof(EthFacePriv, rxf) + sizeof(*rxf) * rxf->base.rxThread);
+  return EthRxMatch_Match(&priv->rxMatch, m);
+}
+
+/** @brief RX burst function that performs full checks. */
+__attribute__((nonnull)) static void
+EthRxFlow_RxBurst_CheckFull(RxGroup* rxg, RxGroupBurstCtx* ctx) {
+  EthRxFlow_RxBurst(rxg, ctx, AcceptFull, true);
 }
 
 struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const EthLocator* loc,
-                  bool isolated, EthFlowFlags flowFlags, struct rte_flow_error* error) {
+                  EthFlowFlags flowFlags, struct rte_flow_error* error) {
   EthFlowDef def;
-  EthFlowDef_Prepare(&def, loc, flowFlags, priv->faceID, queues, nQueues);
+  EthFlowDef_Prepare(&def, loc, &flowFlags, priv->faceID, queues, nQueues);
 
   struct rte_flow* flow = rte_flow_create(priv->port, &def.attr, def.pattern, def.actions, error);
   if (flow == NULL) {
     EthFlowDef_UpdateError(&def, error);
     return NULL;
+  }
+
+  RxGroup_RxBurstFunc rxBurst = EthRxFlow_RxBurst_CheckFull;
+  if (flowFlags & EthFlowFlagsMarked) {
+    if (flowFlags & EthFlowFlagsIsolated) {
+      rxBurst = EthRxFlow_RxBurst_Isolated_CheckOffload;
+    } else {
+      rxBurst = EthRxFlow_RxBurst_Unisolated_CheckOffload;
+    }
   }
 
   for (int i = 0; i < (int)RTE_DIM(priv->rxf); ++i) {
@@ -72,11 +112,7 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
       continue;
     }
     *rxf = (const EthRxFlow){
-      .base =
-        {
-          .rxBurst = isolated ? EthRxFlow_RxBurst_Isolated : EthRxFlow_RxBurst_Checked,
-          .rxThread = i,
-        },
+      .base = {.rxBurst = rxBurst, .rxThread = i},
       .faceID = priv->faceID,
       .port = priv->port,
       .queue = queues[i],
@@ -89,7 +125,7 @@ EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const
 void
 EthFace_SetupRxMemif(EthFacePriv* priv, const EthLocator* loc) {
   priv->rxf[0] = (const EthRxFlow){
-    .base = {.rxBurst = EthRxFlow_RxBurst_Memif, .rxThread = 0},
+    .base = {.rxBurst = EthRxFlow_RxBurst_CheckBypass, .rxThread = 0},
     .faceID = priv->faceID,
     .port = priv->port,
     .queue = 0,

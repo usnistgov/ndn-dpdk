@@ -155,7 +155,7 @@ func (port *Port) startDev(nRxQueues int, promisc bool) (e error) {
 		rxPool = ndni.PacketMempool.Get(socket)
 	}
 
-	if port.cfg.RxFlowQueues > 0 && port.devInfo.Driver() == ethdev.DriverI40e {
+	if port.devInfo.Driver() == ethdev.DriverI40e {
 		if dp, e := ethdev.OpenDdpProfile("gtp"); e == nil {
 			port.ddpRollback, _ = dp.Upload(port.dev)
 		}

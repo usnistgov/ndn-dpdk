@@ -108,10 +108,12 @@ func (info DevInfo) HasTxChecksumOffload() bool {
 // FlowFlags returns C.EthFlowFlags bits to guide EthFlowDef generation.
 func (info DevInfo) FlowFlags() (flags uint32) {
 	switch info.Driver() {
+	case DriverAfPacket, DriverTAP, DriverXDP, DriverRing, DriverMemif:
+		flags |= C.EthFlowFlagsDisabled
 	case DriverMlx5:
 		flags |= C.EthFlowFlagsGtp
 	case DriverI40e:
-		flags |= C.EthFlowFlagsPassthruArp | C.EthFlowFlagsVxRaw
+		flags |= C.EthFlowFlagsPassthruArp | C.EthFlowFlagsVxRaw | C.EthFlowFlagsRssUnmarked | C.EthFlowFlagsEtherUnmarked
 	}
 	return
 }

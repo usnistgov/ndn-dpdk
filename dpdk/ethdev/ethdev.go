@@ -206,11 +206,14 @@ func (dev ethDev) stop(close bool) error {
 		return fmt.Errorf("%s %w", step, e)
 	}
 
-	res := C.rte_eth_dev_stop(dev.cID())
-	switch res {
+	switch res := C.rte_eth_dev_stop(dev.cID()); res {
 	case 0, -C.ENOTSUP:
 	default:
 		return bail("rte_eth_dev_stop", res)
+	}
+
+	if res := C.rte_flow_flush(dev.cID(), nil); res != 0 {
+		logEntry.Warn("rte_flow_flush error", zap.Error(eal.GetErrno()))
 	}
 
 	if close {

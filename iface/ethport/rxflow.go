@@ -28,8 +28,9 @@ func readFlowErr(e C.struct_rte_flow_error) error {
 	return fmt.Errorf("%d %s %p", e._type, message, e.cause)
 }
 
-func setupFlow(face *Face, queues []uint16, isolated bool, flowFlags uint32, logLevelFailure zapcore.Level) error {
+func setupFlow(face *Face, queues []uint16, flowFlags C.EthFlowFlags, logLevelFailure zapcore.Level) error {
 	logEntry := face.logger.With(
+		zap.Uint32("flow-flags", uint32(flowFlags)),
 		zap.Uint16s("queues", queues),
 	)
 
@@ -37,8 +38,7 @@ func setupFlow(face *Face, queues []uint16, isolated bool, flowFlags uint32, log
 	locC := face.loc.EthLocatorC()
 
 	var flowErr C.struct_rte_flow_error
-	face.flow = C.EthFace_SetupFlow(face.priv, queuesC, C.int(len(queues)),
-		locC.ptr(), C.bool(isolated), C.EthFlowFlags(flowFlags), &flowErr)
+	face.flow = C.EthFace_SetupFlow(face.priv, queuesC, C.int(len(queues)), locC.ptr(), flowFlags, &flowErr)
 
 	if face.flow != nil {
 		logEntry.Info("create RxFlow success")
@@ -68,8 +68,7 @@ func destroyFlow(face *Face) error {
 }
 
 type rxFlow struct {
-	isolated    bool
-	flowFlags   uint32
+	flowFlags   C.EthFlowFlags
 	availQueues []uint16
 }
 
@@ -97,23 +96,26 @@ func (impl *rxFlow) setIsolate(port *Port, enable bool) error {
 	if res := C.rte_flow_isolate(C.uint16_t(port.dev.ID()), set, &flowErr); res != 0 {
 		return readFlowErr(flowErr)
 	}
-	impl.isolated = enable
 	return nil
 }
 
 func (impl *rxFlow) Init(port *Port) error {
 	*impl = rxFlow{}
-	if e := impl.setIsolate(port, true); e != nil {
+	impl.flowFlags = C.EthFlowFlags(port.devInfo.FlowFlags())
+	needPromisc := false
+	if e := impl.setIsolate(port, true); e == nil {
+		impl.flowFlags |= C.EthFlowFlagsIsolated
+	} else {
 		port.logger.Info("flow isolate mode unavailable", zap.Error(e))
+		needPromisc = true
 	}
-	impl.flowFlags = port.devInfo.FlowFlags()
 
 	maxRxQueues := int(port.devInfo.Max_rx_queues)
 	if port.cfg.RxFlowQueues > maxRxQueues {
 		return fmt.Errorf("%d RX queues requested but only %d allowed by driver", port.cfg.RxFlowQueues, maxRxQueues)
 	}
 
-	if e := port.startDev(port.cfg.RxFlowQueues, !impl.isolated); e != nil {
+	if e := port.startDev(port.cfg.RxFlowQueues, needPromisc); e != nil {
 		return e
 	}
 
@@ -134,7 +136,7 @@ func (impl *rxFlow) Start(face *Face) error {
 	}
 
 	queues := impl.availQueues[:nRxQueues]
-	if e := setupFlow(face, queues, impl.isolated, impl.flowFlags, zap.WarnLevel); e != nil {
+	if e := setupFlow(face, queues, impl.flowFlags, zap.WarnLevel); e != nil {
 		return e
 	}
 

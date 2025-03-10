@@ -57,12 +57,12 @@ typedef struct EthFlowDef {
  * @brief Prepare rte_flow definition from locator.
  * @param[out] flow Flow definition.
  * @param loc Locator.
- * @param flowFlags Driver-specific preferences.
+ * @param[inout] flowFlags Flow preferences.
  * @param mark FDIR mark ID.
  * @param queues Dispatched queues.
  */
 __attribute__((nonnull)) void
-EthFlowDef_Prepare(EthFlowDef* flow, const EthLocator* loc, EthFlowFlags flowFlags, uint32_t mark,
+EthFlowDef_Prepare(EthFlowDef* flow, const EthLocator* loc, EthFlowFlags* flowFlags, uint32_t mark,
                    const uint16_t queues[], int nQueues);
 
 /** @brief Update @c error->cause to be an offset if it's within @p flow . */

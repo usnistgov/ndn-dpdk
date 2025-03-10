@@ -8,7 +8,7 @@ model | speed | DPDK driver | RxFlow Ethernet | RxFlow UDP | RxFlow VXLAN | RxFl
 -|-|-|-|-|-|-|-
 NVIDIA ConnectX-5 | 100 Gbps | mlx5 | yes | yes | yes | no | yes
 NVIDIA ConnectX-6 | 200 Gbps | mlx5 | yes | yes | yes | yes | yes
-Intel X710 | 10 Gbps | i40e | no | yes | yes | yes | ARP-only
+Intel X710 | 10 Gbps | i40e | mcast-only | yes | yes | yes | ARP-only
 Intel X710 VF | 10 Gbps | iavf | no | no | no | no | no
 Intel XXV710 | 25 Gbps | i40e | untested | untested | untested | untested | untested
 Intel X520 | 10 Gbps | ixgbe | no | yes | no | untested | untested
@@ -218,7 +218,9 @@ ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500
 DPDK [I40E poll mode driver](https://doc.dpdk.org/guides/nics/i40e.html) supports Intel Ethernet 700 series.
 In the [driver code](https://git.dpdk.org/dpdk/tree/drivers/net/i40e/i40e_flow.c?h=v24.11#n995), `i40e_supported_patterns` vector defines supported flow patterns.
 
-Ethernet face is not supported, because the EtherType filter does not support MARK action, while the FDIR filter does not permit filtering by MAC addresses.
+Ethernet face is supported through `pattern_ethertype` as `ethertype_filter`.
+This filter only supports destination MAC address and EtherType, so that it only works for multicast faces.
+VLAN is unsupported because `valid_fdir_inset_table[I40E_FILTER_PCTYPE_L2_PAYLOAD]` does not permit filtering by MAC addresses.
 
 UDP face is supported through `pattern_fdir(_vlan)?_ipv[46]_udp`.
 However, you cannot have both non-VLAN and VLAN UDP face: it fails with "Conflict with the first rule's input set" error.

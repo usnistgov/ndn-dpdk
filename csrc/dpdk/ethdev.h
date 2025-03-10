@@ -36,7 +36,28 @@ typedef enum EthFlowFlags {
    */
   EthFlowFlagsGtp = RTE_BIT32(12),
 
-  EthFlowFlagsMax = UINT32_MAX,
+  /**
+   * @brief How to generate actions when RSS is used.
+   * 0 = keep MARK action.
+   * 1 = skip MARK action.
+   */
+  EthFlowFlagsRssUnmarked = RTE_BIT32(16),
+
+  /**
+   * @brief How to generate actions for Ethernet face.
+   * 0 = keep MARK action.
+   * 1 = skip MARK action.
+   */
+  EthFlowFlagsEtherUnmarked = RTE_BIT32(17),
+
+  /** @brief Whether the ethdev is flow isolated. */
+  EthFlowFlagsIsolated = RTE_BIT32(24),
+
+  /** @brief Whether the flow has MARK action set to FaceID. */
+  EthFlowFlagsMarked = RTE_BIT32(25),
+
+  /** @brief Whether rte_flow is unsupported and should not be attempted. */
+  EthFlowFlagsDisabled = RTE_BIT32(31),
 } __rte_packed EthFlowFlags;
 static_assert(sizeof(EthFlowFlags) == sizeof(uint32_t), "");
 

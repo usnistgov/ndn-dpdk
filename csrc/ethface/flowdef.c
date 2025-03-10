@@ -173,9 +173,11 @@ AppendAction(EthFlowDef* flow, size_t* i, enum rte_flow_action_type typ, const v
   NDNDPDK_ASSERT(*i < RTE_DIM(flow->pattern));
 }
 
-__attribute__((nonnull)) static inline void
-GenerateActions(EthFlowDef* flow, EthLocatorClass c, uint32_t mark, const uint16_t queues[],
-                int nQueues) {
+__attribute__((nonnull)) static inline EthFlowFlags
+GenerateActions(EthFlowDef* flow, EthLocatorClass c, EthFlowFlags flowFlags, uint32_t mark,
+                const uint16_t queues[], int nQueues) {
+  EthFlowFlags addFlowFlags = 0;
+
   size_t i = 0;
 #define APPEND(typ, field) AppendAction(flow, &i, RTE_FLOW_ACTION_TYPE_##typ, &flow->field##Act)
 
@@ -192,10 +194,15 @@ GenerateActions(EthFlowDef* flow, EthLocatorClass c, uint32_t mark, const uint16
     APPEND(RSS, rss);
   }
 
-  flow->markAct.id = mark;
-  APPEND(MARK, mark);
+  if (!(((flowFlags & EthFlowFlagsRssUnmarked) && nQueues > 1) ||
+        ((flowFlags & EthFlowFlagsEtherUnmarked) && !c.udp))) {
+    flow->markAct.id = mark;
+    APPEND(MARK, mark);
+    addFlowFlags |= EthFlowFlagsMarked;
+  }
 
 #undef APPEND
+  return addFlowFlags;
 }
 
 __attribute__((nonnull)) static inline void
@@ -236,19 +243,19 @@ PrintDef(const EthFlowDef* flow, size_t specLen[]) {
 }
 
 void
-EthFlowDef_Prepare(EthFlowDef* flow, const EthLocator* loc, EthFlowFlags flowFlags, uint32_t mark,
+EthFlowDef_Prepare(EthFlowDef* flow, const EthLocator* loc, EthFlowFlags* flowFlags, uint32_t mark,
                    const uint16_t queues[], int nQueues) {
   EthLocatorClass c = EthLocator_Classify(loc);
   *flow = (const EthFlowDef){0};
   flow->attr.ingress = 1;
 
   size_t specLen[RTE_DIM(flow->pattern)];
-  GeneratePattern(flow, specLen, loc, c, flowFlags);
+  GeneratePattern(flow, specLen, loc, c, *flowFlags);
   CleanPattern(flow, specLen);
-  GenerateActions(flow, c, mark, queues, nQueues);
+  *flowFlags |= GenerateActions(flow, c, *flowFlags, mark, queues, nQueues);
 
   if (N_LOG_ENABLED(DEBUG)) {
-    N_LOGD("Prepare loc=%p flow-flags=%08" PRIx32, loc, flowFlags);
+    N_LOGD("Prepare loc=%p flow-flags=%08" PRIx32, loc, *flowFlags);
     N_LOGD("^ attr group=%" PRIu32 " priority=%" PRIu32, flow->attr.group, flow->attr.priority);
     PrintDef(flow, specLen);
   }
