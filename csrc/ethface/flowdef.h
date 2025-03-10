@@ -1,12 +1,15 @@
-#ifndef NDNDPDK_ETHFACE_FLOW_PATTERN_H
-#define NDNDPDK_ETHFACE_FLOW_PATTERN_H
+#ifndef NDNDPDK_ETHFACE_FLOWDEF_H
+#define NDNDPDK_ETHFACE_FLOWDEF_H
 
 /** @file */
 
+#include "../iface/enum.h"
 #include "locator.h"
 
 /** @brief EthFace rte_flow pattern. */
-typedef struct EthFlowPattern {
+typedef struct EthFlowDef {
+  struct rte_flow_attr attr;
+
   struct rte_flow_item pattern[7];
   struct rte_flow_item_eth ethSpec;
   struct rte_flow_item_eth ethMask;
@@ -42,17 +45,28 @@ typedef struct EthFlowPattern {
       struct rte_flow_item_gtp gtpMask;
     };
   };
-} EthFlowPattern;
+
+  struct rte_flow_action actions[3];
+  struct rte_flow_action_queue queueAct;
+  struct rte_flow_action_rss rssAct;
+  uint16_t rssQueues[MaxFaceRxThreads];
+  struct rte_flow_action_mark markAct;
+} EthFlowDef;
 
 /**
- * @brief Prepare rte_flow pattern from locator.
- * @param[out] flow Flow pattern.
- * @param[out] priority Flow priority.
+ * @brief Prepare rte_flow definition from locator.
+ * @param[out] flow Flow definition.
  * @param loc Locator.
- * @param flowFlags Driver-specific pattern preferences.
+ * @param flowFlags Driver-specific preferences.
+ * @param mark FDIR mark ID.
+ * @param queues Dispatched queues.
  */
 __attribute__((nonnull)) void
-EthFlowPattern_Prepare(EthFlowPattern* flow, uint32_t* priority, const EthLocator* loc,
-                       EthFlowFlags flowFlags);
+EthFlowDef_Prepare(EthFlowDef* flow, const EthLocator* loc, EthFlowFlags flowFlags, uint32_t mark,
+                   const uint16_t queues[], int nQueues);
 
-#endif // NDNDPDK_ETHFACE_FLOW_PATTERN_H
+/** @brief Update @c error->cause to be an offset if it's within @p flow . */
+__attribute__((nonnull)) void
+EthFlowDef_UpdateError(const EthFlowDef* flow, struct rte_flow_error* error);
+
+#endif // NDNDPDK_ETHFACE_FLOWDEF_H

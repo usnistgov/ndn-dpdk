@@ -1,13 +1,9 @@
 #include "face.h"
 #include "../core/logger.h"
 #include "../iface/face.h"
-#include "flow-pattern.h"
+#include "flowdef.h"
 
 N_LOG_INIT(EthFace);
-
-enum {
-  MbufHasMark = RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID,
-};
 
 __attribute__((nonnull)) static __rte_always_inline void
 EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated, bool memif) {
@@ -17,7 +13,7 @@ EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated, bool memif)
 
   PdumpEthPortUnmatchedCtx unmatch;
   if (isolated) {
-    PdumpEthPortUnmatchedCtx_Disable(&unmatch);
+    POISON(&unmatch);
   } else {
     // RCU lock is inherited from RxLoop_Run
     PdumpEthPortUnmatchedCtx_Init(&unmatch, rxf->port);
@@ -31,7 +27,7 @@ EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, bool isolated, bool memif)
       rte_pktmbuf_adj(m, rxf->hdrLen);
     } else {
       RxGroupBurstCtx_Drop(ctx, i);
-      if (PdumpEthPortUnmatchedCtx_Append(&unmatch, m)) {
+      if (!isolated && PdumpEthPortUnmatchedCtx_Append(&unmatch, m)) {
         ctx->pkts[i] = NULL;
       }
     }
@@ -60,42 +56,12 @@ EthRxFlow_RxBurst_Checked(RxGroup* rxg, RxGroupBurstCtx* ctx) {
 struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const EthLocator* loc,
                   bool isolated, EthFlowFlags flowFlags, struct rte_flow_error* error) {
-  EthLocatorClass c = EthLocator_Classify(loc);
-  NDNDPDK_ASSERT(nQueues > 0 && nQueues <= (int)RTE_DIM(priv->rxf));
+  EthFlowDef def;
+  EthFlowDef_Prepare(&def, loc, flowFlags, priv->faceID, queues, nQueues);
 
-  struct rte_flow_attr attr = {.ingress = true};
-
-  EthFlowPattern pattern;
-  EthFlowPattern_Prepare(&pattern, &attr.priority, loc, flowFlags);
-
-  struct rte_flow_action_queue queue = {.index = queues[0]};
-  struct rte_flow_action_rss rss = {
-    .level = 1,
-    .types = c.v4 ? RTE_ETH_RSS_NONFRAG_IPV4_UDP : RTE_ETH_RSS_NONFRAG_IPV6_UDP,
-    .queue = queues,
-    .queue_num = nQueues,
-  };
-  struct rte_flow_action_mark mark = {.id = priv->faceID};
-  struct rte_flow_action actions[] = {
-    {
-      .type = nQueues > 1 ? RTE_FLOW_ACTION_TYPE_RSS : RTE_FLOW_ACTION_TYPE_QUEUE,
-      .conf = nQueues > 1 ? (const void*)&rss : (const void*)&queue,
-    },
-    {
-      .type = RTE_FLOW_ACTION_TYPE_MARK,
-      .conf = &mark,
-    },
-    {
-      .type = RTE_FLOW_ACTION_TYPE_END,
-    },
-  };
-
-  struct rte_flow* flow = rte_flow_create(priv->port, &attr, pattern.pattern, actions, error);
+  struct rte_flow* flow = rte_flow_create(priv->port, &def.attr, def.pattern, def.actions, error);
   if (flow == NULL) {
-    ptrdiff_t offset = RTE_PTR_DIFF(error->cause, &pattern);
-    if (offset >= 0 && (size_t)offset < sizeof(pattern)) {
-      error->cause = (const void*)offset;
-    }
+    EthFlowDef_UpdateError(&def, error);
     return NULL;
   }
 

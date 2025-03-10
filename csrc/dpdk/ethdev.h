@@ -10,11 +10,14 @@
 /**
  * @brief Bit flags for rte_flow preferences.
  * @see https://doc.dpdk.org/guides/nics/overview.html "rte_flow items availability"
+ *
+ * Bits  0-23 are to describe hardware capabilities.
+ * Bits 24-31 are to describe API level behaviors.
  */
 typedef enum EthFlowFlags {
   /**
    * @brief How to generate flow items for pass-through face.
-   * 0 = empty.
+   * 0 = empty pattern.
    * 1 = @c RTE_FLOW_ITEM_TYPE_ETH with EtherType=ARP.
    */
   EthFlowFlagsPassthruArp = RTE_BIT32(0),
@@ -24,14 +27,14 @@ typedef enum EthFlowFlags {
    * 0 = prefer @c RTE_FLOW_ITEM_TYPE_VXLAN and @c RTE_FLOW_ITEM_TYPE_ETH .
    * 1 = prefer @c RTE_FLOW_ITEM_TYPE_RAW .
    */
-  EthFlowFlagsVxRaw = RTE_BIT32(16),
+  EthFlowFlagsVxRaw = RTE_BIT32(8),
 
   /**
    * @brief How to generate GTP-U flow item.
    * 0 = prefer @c RTE_FLOW_ITEM_TYPE_GTPU .
    * 1 = prefer @c RTE_FLOW_ITEM_TYPE_GTP .
    */
-  EthFlowFlagsGtp = RTE_BIT32(24),
+  EthFlowFlagsGtp = RTE_BIT32(12),
 
   EthFlowFlagsMax = UINT32_MAX,
 } __rte_packed EthFlowFlags;

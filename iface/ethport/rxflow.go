@@ -2,7 +2,7 @@ package ethport
 
 /*
 #include "../../csrc/ethface/face.h"
-#include "../../csrc/ethface/flow-pattern.h"
+#include "../../csrc/ethface/flowdef.h"
 */
 import "C"
 import (
@@ -22,7 +22,7 @@ func readFlowErr(e C.struct_rte_flow_error) error {
 	}
 
 	message := C.GoString(e.message)
-	if causeOffset := uintptr(e.cause); causeOffset < C.sizeof_EthFlowPattern {
+	if causeOffset := uintptr(e.cause); causeOffset < C.sizeof_EthFlowDef {
 		return fmt.Errorf("%d %s %d", e._type, message, causeOffset)
 	}
 	return fmt.Errorf("%d %s %p", e._type, message, e.cause)

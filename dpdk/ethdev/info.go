@@ -105,7 +105,7 @@ func (info DevInfo) HasTxChecksumOffload() bool {
 	return info.Tx_offload_capa&txOffloadChecksum == txOffloadChecksum
 }
 
-// FlowFlags returns C.EthFlowFlags bits to guide EthFlowPattern generation.
+// FlowFlags returns C.EthFlowFlags bits to guide EthFlowDef generation.
 func (info DevInfo) FlowFlags() (flags uint32) {
 	switch info.Driver() {
 	case DriverMlx5:

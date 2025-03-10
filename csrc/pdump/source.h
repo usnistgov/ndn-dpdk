@@ -89,14 +89,6 @@ typedef struct PdumpEthPortUnmatchedCtx {
   struct rte_mbuf* pkts[MaxBurstSize];
 } PdumpEthPortUnmatchedCtx;
 
-/** @brief Initialize PdumpEthPortUnmatchedCtx to be disabled. */
-static __rte_always_inline void
-PdumpEthPortUnmatchedCtx_Disable(PdumpEthPortUnmatchedCtx* ctx) {
-  ctx->source = NULL;
-  ctx->count = 0;
-  POISON(ctx->pkts);
-}
-
 /**
  * @brief Initialize PdumpEthPortUnmatchedCtx for an ethdev.
  * @pre Calling thread holds rcu_read_lock.

@@ -1,11 +1,11 @@
 package ethport
 
 /*
+#include "../../csrc/ethface/flowdef.h"
 #include "../../csrc/ethface/locator.h"
 #include "../../csrc/ethface/rxmatch.h"
-#include "../../csrc/ethface/flow-pattern.h"
-#include "../../csrc/ethface/xdp-locator.h"
 #include "../../csrc/ethface/txhdr.h"
+#include "../../csrc/ethface/xdp-locator.h"
 */
 import "C"
 import (

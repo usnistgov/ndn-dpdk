@@ -29,7 +29,7 @@ Each receive path implementation is responsible for:
 ### RxFlow
 
 RxFlow is a hardware-accelerated receive path.
-It uses one or more RX queues per face, and creates a *flow* via rte\_flow API to steer incoming frames to those queues (implemented in `C.EthFlowPattern` struct).
+It uses one or more RX queues per face, and creates a *flow* via rte\_flow API to steer incoming frames to those queues (implemented in `C.EthFlowDef` struct).
 The hardware performs header matching; there is minimal checking on software side.
 
 ### RxTable
@@ -71,7 +71,7 @@ It contains an `EthLocatorC` method that populates and returns an `ethport.Locat
 
 `ethport.LocatorC` is an alias of `C.EthLocator`.
 It contains protocol header fields, such as MAC addresses, IP addresses, port numbers, and tunnel identifiers.
-From there, it can be converted to four structures: `C.EthRxMatch`, `C.EthXdpLocator`, `C.EthFlowPattern`, `C.EthTxHdr`.
+From there, it can be converted to four structures: `C.EthRxMatch`, `C.EthXdpLocator`, `C.EthFlowDef`, `C.EthTxHdr`.
 
 `C.EthRxMatch` is used in receive path to determine whether an incoming Ethernet frame is intended for the face.
 It is used in **RxTable** and in **RxFlow** when not flow isolated.
@@ -80,7 +80,7 @@ It also indicates the header length that should be removed by the receive path i
 `C.EthXdpLocator` is used in receive path when an Ethernet device is using AF\_XDP driver.
 It is stored in a BPF map that is queried by the XDP program to find the matching face.
 
-`C.EthFlowPattern` is used during **RxFlow** setup.
+`C.EthFlowDef` is used during **RxFlow** setup.
 It describes the hardware filters for matching Ethernet frames intended for the face.
 
 `C.EthTxHdr` is used in send path to generate protocol headers.
