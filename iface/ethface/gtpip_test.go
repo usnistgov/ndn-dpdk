@@ -321,7 +321,7 @@ func testGtpip(prf *PortRemoteFixture) {
 	assert.InDelta(92, cntPassthru.TxData, 4)           // replies
 	assert.InDelta(24+nARP, cntPassthru.RxInterests, 6) // [18,30]; 24 non-UE pings minus loss plus kernel generated
 	assert.InDelta(24+nARP, cntPassthru.TxInterests, 6) // replies
-	assert.InDelta(30, nARP, 10)                        // [25,35]; 6x N3 peers + 24x non-UE peers, with tolerance
+	assert.InDelta(30, nARP, 10)                        // [20,40]; 6x N3 peers + 24x non-UE peers, with tolerance
 	assert.Greater(int(cntPassthru.RxOctets), 0)
 	assert.Greater(int(cntPassthru.TxOctets), 0)
 }

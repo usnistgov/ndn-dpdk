@@ -5,15 +5,15 @@
 
 N_LOG_INIT(EthFace);
 
-typedef __attribute__((nonnull)) bool (*AcceptFunc)(EthRxFlow*, struct rte_mbuf*);
-
 /**
  * @brief EthRxFlow RX burst function template.
  * @param acceptPkt Packet match function.
  * @param mayHaveUnmatched If true, @c PdumpEthPortUnmatchedCtx is used to trace unmatched packets.
  */
 __attribute__((nonnull)) static __rte_always_inline void
-EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx, AcceptFunc acceptPkt, bool mayHaveUnmatched) {
+EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx,
+                  __attribute__((nonnull)) bool acceptPkt(EthRxFlow*, struct rte_mbuf*),
+                  bool mayHaveUnmatched) {
   EthRxFlow* rxf = container_of(rxg, EthRxFlow, base);
   ctx->nRx = rte_eth_rx_burst(rxf->port, rxf->queue, ctx->pkts, RTE_DIM(ctx->pkts));
   uint64_t now = rte_get_tsc_cycles();
@@ -75,7 +75,7 @@ __attribute__((nonnull)) static __rte_always_inline bool
 AcceptFull(EthRxFlow* rxf, struct rte_mbuf* m) {
   EthFacePriv* priv =
     RTE_PTR_SUB(rxf, offsetof(EthFacePriv, rxf) + sizeof(*rxf) * rxf->base.rxThread);
-  return EthRxMatch_Match(&priv->rxMatch, m);
+  return EthRxMatch_Match(&priv->rxMatch, m) & EthRxMatchResultHit;
 }
 
 /** @brief RX burst function that performs full checks. */

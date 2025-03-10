@@ -14,8 +14,14 @@ typedef enum EthRxMatchAct {
   EthRxMatchActGtp,
 } __rte_packed EthRxMatchAct;
 
+/** @brief Bit flags in @c EthRxMatch_Match return value. */
+typedef enum EthRxMatchResult {
+  EthRxMatchResultHit = RTE_BIT32(1), ///< fully matched
+  EthRxMatchResultGtp = RTE_BIT32(2), ///< GTP tunnel matched
+} __rte_packed EthRxMatchResult;
+
 typedef struct EthRxMatch EthRxMatch;
-typedef bool (*EthRxMatch_MatchFunc)(const EthRxMatch* match, const struct rte_mbuf* m);
+typedef EthRxMatchResult (*EthRxMatch_MatchFunc)(const EthRxMatch* match, const struct rte_mbuf* m);
 extern const EthRxMatch_MatchFunc EthRxMatch_MatchJmp[];
 
 /** @brief EthFace RX matcher. */
@@ -37,16 +43,12 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc);
  * @brief Determine whether a received frame matches the locator.
  * @param match EthRxMatch prepared by @c EthRxMatch_Prepare .
  */
-__attribute__((nonnull)) static inline bool
+__attribute__((nonnull)) static inline EthRxMatchResult
 EthRxMatch_Match(const EthRxMatch* match, const struct rte_mbuf* m) {
-  return m->data_len >= match->len && EthRxMatch_MatchJmp[match->act](match, m);
+  if (m->data_len < match->len) {
+    return 0;
+  }
+  return EthRxMatch_MatchJmp[match->act](match, m);
 }
-
-/**
- * @brief Determine whether a received frame matches GTP-U tunnel.
- * @param match EthRxMatch prepared by @c EthRxMatch_Prepare , which must represent a GTP-U tunnel.
- */
-__attribute__((nonnull)) bool
-EthRxMatch_MatchGtpip(const EthRxMatch* match, const struct rte_mbuf* m);
 
 #endif // NDNDPDK_ETHFACE_RXMATCH_H

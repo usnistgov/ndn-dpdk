@@ -66,7 +66,7 @@ func (match RxMatch) copyToC(c *C.EthRxMatch) {
 
 // Match determines whether an incoming packet matches the locator.
 func (match RxMatch) Match(pkt *pktmbuf.Packet) bool {
-	return bool(C.EthRxMatch_Match((*C.EthRxMatch)(&match), (*C.struct_rte_mbuf)(pkt.Ptr())))
+	return C.EthRxMatch_Match((*C.EthRxMatch)(&match), (*C.struct_rte_mbuf)(pkt.Ptr()))&C.EthRxMatchResultHit != 0
 }
 
 // HdrLen returns header length.

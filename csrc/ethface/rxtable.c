@@ -22,6 +22,19 @@ EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m) {
     Face* face = Face_Get(id);
     if (likely(face->impl != NULL)) {
       priv = Face_GetPriv(face);
+
+      if (priv->rxMatch.act == EthRxMatchActGtp) {
+        EthRxMatchResult match = EthRxMatch_Match(&priv->rxMatch, m);
+        if (!(match & EthRxMatchResultHit) && (match & EthRxMatchResultGtp)) {
+          struct cds_list_head* passthruPos = rcu_dereference(rxt->head.prev);
+          EthFacePriv* passthruPriv = NULL;
+          if (passthruPos != NULL &&
+              (passthruPriv = container_of(passthruPos, EthFacePriv, rxtNode))->rxMatch.len == 0) {
+            priv = passthruPriv;
+          }
+        }
+      }
+
       goto ACCEPT;
     }
   }
@@ -39,7 +52,8 @@ EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m) {
   struct cds_list_head* pos;
   cds_list_for_each_rcu (pos, &rxt->head) {
     priv = container_of(pos, EthFacePriv, rxtNode);
-    if (EthRxMatch_Match(&priv->rxMatch, m)) {
+    EthRxMatchResult match = EthRxMatch_Match(&priv->rxMatch, m);
+    if (match & EthRxMatchResultHit) {
       goto ACCEPT;
     }
   }

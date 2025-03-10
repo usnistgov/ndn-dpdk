@@ -120,7 +120,7 @@ UlExtractKey(const struct rte_mbuf* pkt) {
 
 __attribute__((nonnull)) static __rte_always_inline bool
 UlUpdatePkt(struct rte_mbuf* pkt, const void* key, EthFacePriv* priv) {
-  if (unlikely(!EthRxMatch_MatchGtpip(&priv->rxMatch, pkt))) {
+  if (unlikely(!(EthRxMatch_Match(&priv->rxMatch, pkt) & EthRxMatchResultGtp))) {
     return false;
   }
 

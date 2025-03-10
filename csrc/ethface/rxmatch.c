@@ -1,47 +1,53 @@
 #include "rxmatch.h"
 #include "hdr-impl.h"
 
-__attribute__((nonnull)) static inline bool
-MatchAlways(const EthRxMatch* match, const struct rte_mbuf* m) {
-  return true;
+static __rte_always_inline EthRxMatchResult
+ToMatchResult(bool isHit) {
+  return isHit ? EthRxMatchResultHit : 0;
 }
 
-__attribute__((nonnull)) static __rte_always_inline bool
+__attribute__((nonnull)) static inline EthRxMatchResult
+MatchAlways(const EthRxMatch* match, const struct rte_mbuf* m) {
+  return EthRxMatchResultHit;
+}
+
+__attribute__((nonnull)) static __rte_always_inline EthRxMatchResult
 MatchVlan(const EthRxMatch* match, const struct rte_mbuf* m) {
   const struct rte_vlan_hdr* vlanM =
     rte_pktmbuf_mtod_offset(m, const struct rte_vlan_hdr*, RTE_ETHER_HDR_LEN);
   const struct rte_vlan_hdr* vlanT = RTE_PTR_ADD(match->buf, RTE_ETHER_HDR_LEN);
-  return match->l2len != RTE_ETHER_HDR_LEN + RTE_VLAN_HLEN ||
-         (vlanM->eth_proto == vlanT->eth_proto &&
-          (vlanM->vlan_tci & rte_cpu_to_be_16(0x0FFF)) == vlanT->vlan_tci);
+  return ToMatchResult(match->l2len != RTE_ETHER_HDR_LEN + RTE_VLAN_HLEN ||
+                       (vlanM->eth_proto == vlanT->eth_proto &&
+                        (vlanM->vlan_tci & rte_cpu_to_be_16(0x0FFF)) == vlanT->vlan_tci));
 }
 
-__attribute__((nonnull)) static inline bool
+__attribute__((nonnull)) static inline EthRxMatchResult
 MatchEtherUnicast(const EthRxMatch* match, const struct rte_mbuf* m) {
   // exact match on Ethernet and VLAN headers
-  return memcmp(rte_pktmbuf_mtod(m, const uint8_t*), match->buf, RTE_ETHER_HDR_LEN) == 0 &&
-         MatchVlan(match, m);
+  return ToMatchResult(memcmp(rte_pktmbuf_mtod(m, const uint8_t*), match->buf, RTE_ETHER_HDR_LEN) ==
+                         0 &&
+                       MatchVlan(match, m));
 }
 
-__attribute__((nonnull)) static inline bool
+__attribute__((nonnull)) static inline EthRxMatchResult
 MatchEtherMulticast(const EthRxMatch* match, const struct rte_mbuf* m) {
   // Ethernet destination must be multicast, exact match on ether_type and VLAN header
   const struct rte_ether_hdr* ethM = rte_pktmbuf_mtod(m, const struct rte_ether_hdr*);
   const struct rte_ether_hdr* ethT = (const struct rte_ether_hdr*)match->buf;
-  return rte_is_multicast_ether_addr(&ethM->dst_addr) && ethM->ether_type == ethT->ether_type &&
-         MatchVlan(match, m);
+  return ToMatchResult(rte_is_multicast_ether_addr(&ethM->dst_addr) &&
+                       ethM->ether_type == ethT->ether_type && MatchVlan(match, m));
 }
 
-__attribute__((nonnull)) static inline bool
+__attribute__((nonnull)) static inline EthRxMatchResult
 MatchIpUdp(const EthRxMatch* match, const struct rte_mbuf* m) {
   // UDP or GTP: exact match on IP addresses and UDP port numbers
   // VXLAN: exact match on IP addresses only
-  return MatchEtherUnicast(match, m) &&
-         memcmp(rte_pktmbuf_mtod_offset(m, const uint8_t*, match->l3matchOff),
-                RTE_PTR_ADD(match->buf, match->l3matchOff), match->l3matchLen) == 0;
+  return ToMatchResult(MatchEtherUnicast(match, m) &&
+                       memcmp(rte_pktmbuf_mtod_offset(m, const uint8_t*, match->l3matchOff),
+                              RTE_PTR_ADD(match->buf, match->l3matchOff), match->l3matchLen) == 0);
 }
 
-__attribute__((nonnull)) static inline bool
+__attribute__((nonnull)) static inline EthRxMatchResult
 MatchVxlan(const EthRxMatch* match, const struct rte_mbuf* m) {
   // exact match on UDP destination port, VNI, and inner Ethernet header
   const struct rte_udp_hdr* udpM =
@@ -51,31 +57,33 @@ MatchVxlan(const EthRxMatch* match, const struct rte_mbuf* m) {
   const struct rte_udp_hdr* udpT = RTE_PTR_ADD(match->buf, match->udpOff);
   const struct rte_vxlan_hdr* vxlanT = RTE_PTR_ADD(udpT, sizeof(*udpT));
   const struct rte_ether_hdr* iethT = RTE_PTR_ADD(vxlanT, sizeof(*vxlanT));
-  return MatchIpUdp(match, m) && udpM->dst_port == udpT->dst_port &&
-         memcmp(vxlanM->vni, vxlanT->vni, 3) == 0 && memcmp(iethM, iethT, RTE_ETHER_HDR_LEN) == 0;
+  return ToMatchResult(MatchIpUdp(match, m) && udpM->dst_port == udpT->dst_port &&
+                       memcmp(vxlanM->vni, vxlanT->vni, 3) == 0 &&
+                       memcmp(iethM, iethT, RTE_ETHER_HDR_LEN) == 0);
 }
 
-__attribute__((nonnull)) static __rte_always_inline bool
-MatchGtpCommon(const EthRxMatch* match, const struct rte_mbuf* m, const EthGtpHdr** gtpM,
-               const EthGtpHdr** gtpT) {
-  // exact match on TEID and QFI; require psc.type=1 for uplink
-  *gtpM = rte_pktmbuf_mtod_offset(m, const EthGtpHdr*, match->udpOff + sizeof(struct rte_udp_hdr));
-  *gtpT = RTE_PTR_ADD(match->buf, match->udpOff + sizeof(struct rte_udp_hdr));
-  return MatchIpUdp(match, m) && EthGtpHdr_IsUplink(*gtpM) &&
-         (*gtpM)->hdr.teid == (*gtpT)->hdr.teid && (*gtpM)->psc.qfi == (*gtpT)->psc.qfi;
-}
-
-__attribute__((nonnull)) static inline bool
+__attribute__((nonnull)) static inline EthRxMatchResult
 MatchGtp(const EthRxMatch* match, const struct rte_mbuf* m) {
-  // exact match on inner IPv4 addresses and UDP port numbers
-  const EthGtpHdr* gtpM = NULL;
-  const EthGtpHdr* gtpT = NULL;
-  if (!MatchGtpCommon(match, m, &gtpM, &gtpT)) {
-    return false;
+  EthRxMatchResult res = 0;
+
+  // exact match on TEID and QFI; require psc.type=1 for uplink
+  const EthGtpHdr* gtpM =
+    rte_pktmbuf_mtod_offset(m, const EthGtpHdr*, match->udpOff + sizeof(struct rte_udp_hdr));
+  const EthGtpHdr* gtpT = RTE_PTR_ADD(match->buf, match->udpOff + sizeof(struct rte_udp_hdr));
+  if (!(MatchIpUdp(match, m) && EthGtpHdr_IsUplink(gtpM) && gtpM->hdr.teid == gtpT->hdr.teid &&
+        gtpM->psc.qfi == gtpT->psc.qfi)) {
+    return res;
   }
+  res |= EthRxMatchResultGtp;
+
+  // exact match on inner IPv4 addresses and UDP port numbers
   const struct rte_ipv4_hdr* iipM = RTE_PTR_ADD(gtpM, sizeof(*gtpM));
   const struct rte_ipv4_hdr* iipT = RTE_PTR_ADD(gtpT, sizeof(*gtpT));
-  return memcmp(&iipM->src_addr, &iipT->src_addr, 2 * sizeof(uint32_t) + 2 * sizeof(uint16_t)) == 0;
+  if (memcmp(&iipM->src_addr, &iipT->src_addr, 2 * sizeof(uint32_t) + 2 * sizeof(uint16_t)) == 0) {
+    res |= EthRxMatchResultHit;
+  }
+
+  return res;
 }
 
 const EthRxMatch_MatchFunc EthRxMatch_MatchJmp[] = {
@@ -133,11 +141,4 @@ EthRxMatch_Prepare(EthRxMatch* match, const EthLocator* loc) {
 
 #undef BUF_TAIL
   NDNDPDK_ASSERT(match->len <= sizeof(match->buf));
-}
-
-bool
-EthRxMatch_MatchGtpip(const EthRxMatch* match, const struct rte_mbuf* m) {
-  const EthGtpHdr* gtpM = NULL;
-  const EthGtpHdr* gtpT = NULL;
-  return MatchGtpCommon(match, m, &gtpM, &gtpT);
 }
