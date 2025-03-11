@@ -227,8 +227,8 @@ PrintDef(const EthFlowDef* flow, size_t specLen[]) {
                       (const void*)(uintptr_t)item->type, NULL) <= 0) {
       typeName = "-";
     }
-    N_LOGD("^ pattern index=%d type=%d type-name=%s spec=%s mask=%s", i, (int)item->type, typeName,
-           b16Spec, b16Mask);
+    N_LOGD("^ pattern index=%d type=%d~%s spec=%s mask=%s", i, (int)item->type, typeName, b16Spec,
+           b16Mask);
     switch (item->type) {
       case RTE_FLOW_ITEM_TYPE_END:
         i = -2; // break loop
@@ -255,7 +255,7 @@ PrintDef(const EthFlowDef* flow, size_t specLen[]) {
                       (const void*)(uintptr_t)action->type, NULL) <= 0) {
       typeName = "-";
     }
-    N_LOGD("^ action index=%d type=%d type-name=%s", i, (int)action->type, typeName);
+    N_LOGD("^ action index=%d type=%d~%s", i, (int)action->type, typeName);
     if (action->type == RTE_FLOW_ACTION_TYPE_END) {
       break;
     }

@@ -2,13 +2,11 @@ package ethport
 
 /*
 #include "../../csrc/ethface/face.h"
-
-static_assert(offsetof(EthFacePriv, rxf) == 0, "");
-static_assert(RTE_SIZEOF_FIELD(EthFacePriv, rxf) == 64*MaxFaceRxThreads, "");
 */
 import "C"
 import (
 	"errors"
+	"math"
 	"net"
 
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
@@ -129,6 +127,7 @@ func NewFace(port *Port, loc Locator) (iface.Face, error) {
 				faceID: C.FaceID(id),
 				port:   C.uint16_t(face.port.dev.ID()),
 			}
+			face.priv.passthru.tapPort = math.MaxUint16
 
 			cfg := face.loc.EthFaceConfig()
 			NewRxMatch(face.loc).copyToC(&face.priv.rxMatch)

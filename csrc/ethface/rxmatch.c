@@ -62,16 +62,16 @@ MatchVxlan(const EthRxMatch* match, const struct rte_mbuf* m) {
                        memcmp(iethM, iethT, RTE_ETHER_HDR_LEN) == 0);
 }
 
-__attribute__((nonnull)) static inline EthRxMatchResult
-MatchGtp(const EthRxMatch* match, const struct rte_mbuf* m) {
+__attribute__((nonnull)) static __rte_always_inline EthRxMatchResult
+MatchGtpCommon(const EthRxMatch* match, const struct rte_mbuf* m, bool checkOuter) {
   EthRxMatchResult res = 0;
 
   // exact match on TEID and QFI; require psc.type=1 for uplink
   const EthGtpHdr* gtpM =
     rte_pktmbuf_mtod_offset(m, const EthGtpHdr*, match->udpOff + sizeof(struct rte_udp_hdr));
   const EthGtpHdr* gtpT = RTE_PTR_ADD(match->buf, match->udpOff + sizeof(struct rte_udp_hdr));
-  if (!(MatchIpUdp(match, m) && EthGtpHdr_IsUplink(gtpM) && gtpM->hdr.teid == gtpT->hdr.teid &&
-        gtpM->psc.qfi == gtpT->psc.qfi)) {
+  if (checkOuter && !(MatchIpUdp(match, m) && EthGtpHdr_IsUplink(gtpM) &&
+                      gtpM->hdr.teid == gtpT->hdr.teid && gtpM->psc.qfi == gtpT->psc.qfi)) {
     return res;
   }
   res |= EthRxMatchResultGtp;
@@ -84,6 +84,18 @@ MatchGtp(const EthRxMatch* match, const struct rte_mbuf* m) {
   }
 
   return res;
+}
+
+__attribute__((nonnull)) static inline EthRxMatchResult
+MatchGtp(const EthRxMatch* match, const struct rte_mbuf* m) {
+  return MatchGtpCommon(match, m, true);
+}
+
+EthRxMatchResult
+EthRxMatch_MatchGtpInner(const EthRxMatch* match, const struct rte_mbuf* m) {
+  NDNDPDK_ASSERT(match->act == EthRxMatchActGtp);
+  NDNDPDK_ASSERT(m->data_len >= match->len);
+  return MatchGtpCommon(match, m, false);
 }
 
 const EthRxMatch_MatchFunc EthRxMatch_MatchJmp[] = {

@@ -8,6 +8,11 @@
 #include <rte_mbuf_dyn.h>
 #include <rte_ring.h>
 
+enum {
+  /** @brief @c mbuf.ol_flags bits to indicate MARK action was applied. */
+  Mbuf_HasMark = RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID,
+};
+
 extern int Mbuf_Timestamp_DynFieldOffset_;
 
 /** @brief Register mbuf dynfields. */
@@ -26,12 +31,28 @@ Mbuf_SetTimestamp(struct rte_mbuf* m, TscTime timestamp) {
   *RTE_MBUF_DYNFIELD(m, Mbuf_Timestamp_DynFieldOffset_, TscTime*) = timestamp;
 }
 
+/** @brief Retrieve mbuf MARK action value. */
+__attribute__((nonnull)) static inline uint32_t
+Mbuf_GetMark(const struct rte_mbuf* m) {
+  if ((m->ol_flags & Mbuf_HasMark) != Mbuf_HasMark) {
+    return 0;
+  }
+  return m->hash.fdir.hi;
+}
+
+/** @brief Assign mbuf MARK action value. */
+__attribute__((nonnull)) static inline void
+Mbuf_SetMark(struct rte_mbuf* m, uint32_t value) {
+  m->ol_flags |= Mbuf_HasMark;
+  m->hash.fdir.hi = value;
+}
+
 /**
  * @brief Copy @c m[off:off+len] into @p dst .
  * @param dst must have @p len room.
  */
 __attribute__((nonnull)) static inline void
-Mbuf_ReadTo(struct rte_mbuf* m, uint32_t off, uint32_t len, void* dst) {
+Mbuf_ReadTo(const struct rte_mbuf* m, uint32_t off, uint32_t len, void* dst) {
   const uint8_t* readTo = rte_pktmbuf_read(m, off, len, dst);
   if (readTo != dst) {
     rte_memcpy(dst, readTo, len);

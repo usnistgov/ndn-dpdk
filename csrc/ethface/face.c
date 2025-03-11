@@ -56,7 +56,7 @@ EthRxFlow_RxBurst_CheckBypass(RxGroup* rxg, RxGroupBurstCtx* ctx) {
 
 __attribute__((nonnull)) static __rte_always_inline bool
 AcceptOffload(EthRxFlow* rxf, struct rte_mbuf* m) {
-  return EthFace_RxMbufFaceID(m) == rxf->faceID;
+  return (FaceID)Mbuf_GetMark(m) == rxf->faceID;
 }
 
 /** @brief RX burst function that checks FaceID from MARK action. */

@@ -17,7 +17,7 @@ typedef enum EthRxMatchAct {
 /** @brief Bit flags in @c EthRxMatch_Match return value. */
 typedef enum EthRxMatchResult {
   EthRxMatchResultHit = RTE_BIT32(1), ///< fully matched
-  EthRxMatchResultGtp = RTE_BIT32(2), ///< GTP tunnel matched
+  EthRxMatchResultGtp = RTE_BIT32(2), ///< GTP-U tunnel matched
 } __rte_packed EthRxMatchResult;
 
 typedef struct EthRxMatch EthRxMatch;
@@ -50,5 +50,13 @@ EthRxMatch_Match(const EthRxMatch* match, const struct rte_mbuf* m) {
   }
   return EthRxMatch_MatchJmp[match->act](match, m);
 }
+
+/**
+ * @brief Check GTP-U inner headers only.
+ * @param match EthRxMatch prepared from GTP-U locator.
+ * @param m mbuf with sufficient data_len.
+ */
+__attribute__((nonnull)) EthRxMatchResult
+EthRxMatch_MatchGtpInner(const EthRxMatch* match, const struct rte_mbuf* m);
 
 #endif // NDNDPDK_ETHFACE_RXMATCH_H

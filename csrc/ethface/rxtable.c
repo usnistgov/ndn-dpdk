@@ -15,26 +15,29 @@ EthRxTable_Init(EthRxTable* rxt, uint16_t port) {
 
 __attribute__((nonnull)) static inline bool
 EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m) {
+  EthRxMatchResult match = 0;
   EthFacePriv* priv = NULL;
+  const char* acceptMethod = NULL;
 
-  FaceID id = EthFace_RxMbufFaceID(m);
+#define CHECK_GTP_TUNNEL_MATCH(execMatch)                                                          \
+  (priv->rxMatch.act == EthRxMatchActGtp) && __extension__({                                       \
+    if (execMatch) {                                                                               \
+      match = EthRxMatch_MatchGtpInner(&priv->rxMatch, m);                                         \
+    }                                                                                              \
+    !(match & EthRxMatchResultHit) && (match & EthRxMatchResultGtp);                               \
+  })
+
+  FaceID id = (FaceID)Mbuf_GetMark(m);
   if (id != 0) {
     Face* face = Face_Get(id);
     if (likely(face->impl != NULL)) {
       priv = Face_GetPriv(face);
-
-      if (priv->rxMatch.act == EthRxMatchActGtp) {
-        EthRxMatchResult match = EthRxMatch_Match(&priv->rxMatch, m);
-        if (!(match & EthRxMatchResultHit) && (match & EthRxMatchResultGtp)) {
-          struct cds_list_head* passthruPos = rcu_dereference(rxt->head.prev);
-          EthFacePriv* passthruPriv = NULL;
-          if (passthruPos != NULL &&
-              (passthruPriv = container_of(passthruPos, EthFacePriv, rxtNode))->rxMatch.len == 0) {
-            priv = passthruPriv;
-          }
-        }
+      acceptMethod = "mark";
+      if (CHECK_GTP_TUNNEL_MATCH(true)) {
+        // rte_flow only matches GTPv1 header but does not check inner IPv4+UDP headers.
+        // If the inner headers mismatch, the packet belongs to the pass-through face.
+        goto GTP;
       }
-
       goto ACCEPT;
     }
   }
@@ -44,25 +47,56 @@ EthRxTable_Accept(EthRxTable* rxt, struct rte_mbuf* m) {
     Face* face = Face_Get((FaceID)(xh->fmv >> 16));
     if (likely(face->impl != NULL) &&
         likely((priv = Face_GetPriv(face))->rxMatch.len == xh->hdrLen)) {
+      acceptMethod = "xdphdr";
       goto ACCEPT;
     }
   }
 
+  acceptMethod = "iter";
   // RCU lock is inherited from RxLoop_Run
   struct cds_list_head* pos;
   cds_list_for_each_rcu (pos, &rxt->head) {
     priv = container_of(pos, EthFacePriv, rxtNode);
-    EthRxMatchResult match = EthRxMatch_Match(&priv->rxMatch, m);
+    match = EthRxMatch_Match(&priv->rxMatch, m);
     if (match & EthRxMatchResultHit) {
       goto ACCEPT;
+    }
+    if (CHECK_GTP_TUNNEL_MATCH(false)) {
+      // For a GTP-U face, if outer headers up to GTPv1 match but inner IPv4+UDP headers mismatch,
+      // the packet is dispatched to the pass-through face for potential GTP-IP uplink processing.
+      // As an optimization, the matched FaceID is saved in mbuf mark, so that GTP-IP handler can
+      // skip table lookup.
+      Mbuf_SetMark(m, priv->faceID);
+      goto GTP;
     }
   }
   return false;
 
 ACCEPT:
+  N_LOGD("accepting to face rxt=%p mbuf=%p method=%s face=%" PRI_FaceID, rxt, m, acceptMethod,
+         priv->faceID);
   m->port = priv->faceID;
   rte_pktmbuf_adj(m, priv->rxMatch.len);
   return true;
+
+GTP:
+  // RCU lock is inherited from RxLoop_Run
+  struct cds_list_head* passthruPos = rcu_dereference(rxt->head.prev);
+  if (unlikely(passthruPos == NULL)) {
+    return false;
+  }
+  EthFacePriv* passthruPriv = container_of(passthruPos, EthFacePriv, rxtNode);
+  if (passthruPriv->rxMatch.act != EthRxMatchActAlways || passthruPriv->rxMatch.len != 0) {
+    // not a passthru face
+    return false;
+  }
+  N_LOGD("accepting to passthru rxt=%p mbuf=%p method=%s gtp-face=%" PRI_FaceID
+         " passthru=%" PRI_FaceID,
+         rxt, m, acceptMethod, priv->faceID, passthruPriv->faceID);
+  m->port = passthruPriv->faceID;
+  return true;
+
+#undef CHECK_GTP_TUNNEL_MATCH
 }
 
 void

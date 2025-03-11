@@ -29,19 +29,6 @@ typedef struct EthFacePriv {
   EthRxMatch rxMatch;
 } EthFacePriv;
 
-__attribute__((nonnull)) static __rte_always_inline FaceID
-EthFace_RxMbufFaceID(struct rte_mbuf* m) {
-  enum {
-    MbufHasMark = RTE_MBUF_F_RX_FDIR | RTE_MBUF_F_RX_FDIR_ID,
-  };
-  if ((m->ol_flags & MbufHasMark) != MbufHasMark) {
-    return 0;
-  }
-  FaceID id = m->hash.fdir.hi;
-  __rte_assume(id != 0);
-  return id;
-}
-
 /** @brief Setup rte_flow on EthDev for hardware dispatching. */
 __attribute__((nonnull)) struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const EthLocator* loc,

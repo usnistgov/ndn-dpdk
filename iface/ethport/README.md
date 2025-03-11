@@ -8,6 +8,10 @@ See [package ethface](../ethface) and [package memifface](../memifface) for more
 **Port** type organizes faces on the same DPDK ethdev.
 It manages ethdev resources and prevents conflicts among the faces.
 
+**Gtpip** type is a GTP-IP handler.
+It contains a hashtable of active GTP-U faces, mapping from UE IP address to FaceID.
+It can be attached to a port for forwarding non-NDN traffic in GTP-U tunnels, which enables NDN-DPDK to behave as a 5G User Plane Function (UPF).
+
 ## Receive Path
 
 There are three receive path implementations:
@@ -30,7 +34,15 @@ Each receive path implementation is responsible for:
 
 RxFlow is a hardware-accelerated receive path.
 It uses one or more RX queues per face, and creates a *flow* via rte\_flow API to steer incoming frames to those queues (implemented in `C.EthFlowDef` struct).
-The hardware performs header matching; there is minimal checking on software side.
+
+As instructed by the flow, the hardware performs packet header matching.
+For each matched packet, the hardware sets FaceID as the *mark* value on the mbuf and passes the packet to an RX queue.
+The flow isolation mode, if available, is requested to block non-matching packets.
+
+Depending on hardware capability, the software performs minimal checking:
+
+* If the hardware has set the *mark*, the software only checks the mark.
+* If the hardware cannot set the *mark*, the software has to perform full header matching.
 
 ### RxTable
 
@@ -42,9 +54,12 @@ Matchings are attempted iteratively for each face that are arranged in an RCU-pr
 If the port has a pass-through face, it is arranged last and would always match.
 In case no match is found for an incoming frame, the Ethernet frame is sent to [packet dumper](../../app/pdump) if enabled, otherwise it is dropped.
 
+On a port using PCI driver, RxTable opportunistically creates a *flow* via rte\_flow API, which instructs the hardware to set FaceID as the *mark* value.
+Upon detecting the *mark*, RxTable bypasses the iterative search and only performs header matching on the indicated face.
+
 On a port using XDP driver, the BPF program can overwrite the Ethernet header of an incoming packet with `C.EthXdpHdr` struct that contains a magic number and the FaceID.
 The magic number is UINT64\_MAX, which cannot appear as the first 8 octets of a normal Ethernet header.
-Upon detecting this magic number, RxTable bypasses the iterative header matching procedure and only performs a minimal header length checking.
+Upon detecting this magic number, RxTable bypasses the iterative search and only performs minimal checks of the header length.
 
 ### RxMemif
 
@@ -79,9 +94,11 @@ It also indicates the header length that should be removed by the receive path i
 
 `C.EthXdpLocator` is used in receive path when an Ethernet device is using AF\_XDP driver.
 It is stored in a BPF map that is queried by the XDP program to find the matching face.
+Notably, it does not support pass-through face.
 
 `C.EthFlowDef` is used during **RxFlow** setup.
 It describes the hardware filters for matching Ethernet frames intended for the face.
+Notably, for a GTP-U face, it only checks outer headers up to the GTPv1 header, but ignores inner IPv4+UDP headers.
 
 `C.EthTxHdr` is used in send path to generate protocol headers.
 It has a semi-complete buffer of protocol headers that is prepended before each NDNLPv2 packet.
@@ -109,8 +126,8 @@ During face creation:
 
 4. As part of `iface.NewParams.Start`, `ethport.rxImpl.Start` is invoked.
 
-    * Handling of pass-through face is only implemented in `ethport.rxTable`.
-    * A pass-through face is appended at the tail of `C.EthRxTable.head` linked list, while faces with other schemes are prepended at the head of this linked list.
+    * In RxTable: a pass-through face is appended at the tail of `C.EthRxTable.head` linked list, while faces with other schemes are prepended at the head of this linked list.
+    * In RxFlow: a pass-through face is matched with a *flow* with lower priority.
 
 During face teardown:
 
@@ -120,14 +137,17 @@ During face teardown:
 
 Receive path from DPDK ethdev to TAP netif:
 
-1. `C.EthRxTable_RxBurst` receives a burst of Ethernet frames and calls `C.EthRxTable_Accept` on each packet to find which faces could accept it.
+1. The receive path identifies which Ethernet frames belong to the pass-through face.
 
-2. The pass-through face is at the tail of `C.EthRxTable.head` linked list and has a `C.EthRxMatch` that matches all packets, so that it will always accept the packet if no other face has accepted it.
+    * In RxFlow: the pass-through face has its own dedicated queue.
+    * In RxTable: the pass-through face, located at the tail of `C.EthRxTable.head` linked list, has a `C.EthRxMatch` that matches all packets, so that it will always accept the packet if no other face has accepted it.
+    * In RxTable: if the opportunistic *flow* identifies a GTP-U face but the inner IPv4+UDP header mismatches, the packet is dispatched to the pass-through face instead.
+      The *mark* value is saved in the mbuf, which could be reused by GTP-IP handler to avoid table lookup.
 
-3. The packet is passed to `C.EthPassthru_FaceRxInput`, which immediately transmits the packet on the TAP netif.
+2. The packet is passed to `C.EthPassthru_FaceRxInput`, which immediately transmits the packet on the TAP netif.
 
     * If GTP-IP handler is enabled, `C.EthGtpip_ProcessUplink` is invoked.
-      If the packet is recognized as GTP-U and matches an existing GTP-U tunnel face, the packet is modified with outer header removal.
+      If the packet is recognized as GTP-U and matches an existing GTP-U tunnel face, the packet is modified for outer header removal.
     * These operations occur in the RX thread.
       The packet does not go through the TX thread.
 
@@ -142,7 +162,7 @@ Send path from TAP netif to DPDK ethdev:
 
     * `C.EthPassthru_TxLoop` dequeues outgoing packets for the face.
     * If GTP-IP handler is enabled, `C.EthGtpip_ProcessDownlinkBulk` is invoked.
-      If the destination IP address matches an existing GTP-U tunnel face, the packet is modified with outer header creation.
+      If the destination IP address matches an existing GTP-U tunnel face, the packet is modified for outer header creation.
     * The packet is then passes to `C.TxLoop_TxFrames` without going through NDNLPv2 fragmentation.
     * These operations occur in the TX thread.
 

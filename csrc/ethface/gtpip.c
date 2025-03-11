@@ -4,75 +4,107 @@
 
 N_LOG_INIT(EthGtpip);
 
+typedef enum ExtractResult {
+  ExtractResultNone,
+  ExtractResultIPv4,
+  ExtractResultFaceID,
+} __rte_packed ExtractResult;
+
 __attribute__((nonnull)) static __rte_always_inline uint64_t
-ProcessBulk(EthGtpip* g, struct rte_mbuf* pkts[], uint32_t count,
-            __attribute__((nonnull)) const void* extractKey(const struct rte_mbuf* pkt),
-            __attribute__((nonnull)) bool updatePkt(struct rte_mbuf* pkt, const void* key,
-                                                    EthFacePriv* priv)) {
+ProcessBulk(EthGtpip* g, char dir, struct rte_mbuf* pkts[], uint32_t count,
+            __attribute__((nonnull))
+            ExtractResult extract(const struct rte_mbuf* pkt, uintptr_t* key),
+            __attribute__((nonnull)) bool updatePkt(struct rte_mbuf* pkt, EthFacePriv* priv)) {
   NDNDPDK_ASSERT(count <= RTE_MIN_T(MaxBurstSize, RTE_HASH_LOOKUP_BULK_MAX, uint32_t));
+  uintptr_t lookupKeys[RTE_HASH_LOOKUP_BULK_MAX];
+  uint64_t lookupMask = 0;
   uint32_t nLookups = 0;
-  uint64_t mask = 0;
-  const void* keys[RTE_HASH_LOOKUP_BULK_MAX] = {0};
+  FaceID faceIDs[RTE_HASH_LOOKUP_BULK_MAX];
+  uint64_t faceMask = 0;
+  uint32_t nFaces = 0;
   for (uint32_t i = 0; i < count; ++i) {
-    const void* key = extractKey(pkts[i]);
-    if (key == NULL) {
-      continue;
+    uintptr_t key = 0;
+    ExtractResult extracted = extract(pkts[i], &key);
+    switch (extracted) {
+      case ExtractResultNone:
+        continue;
+      case ExtractResultIPv4:
+        rte_bit_set(&lookupMask, i);
+        lookupKeys[nLookups++] = key;
+        break;
+      case ExtractResultFaceID:
+        rte_bit_set(&faceMask, i);
+        faceIDs[nFaces++] = key;
+        break;
     }
-    rte_bit_set(&mask, i);
-    keys[nLookups++] = key;
   }
-  if (nLookups == 0) {
+  if (nLookups + nFaces == 0) {
+    N_LOGD("bulk-%c none-extracted count=%" PRIu32, dir, count);
     return 0;
   }
 
-  uint64_t hMask = 0;
-  void* hData[RTE_HASH_LOOKUP_BULK_MAX];
-  int hHits = rte_hash_lookup_bulk_data(g->ipv4, keys, nLookups, &hMask, hData);
-  if (unlikely(hHits <= 0)) {
-    return 0;
+  uint64_t hitMask = 0;
+  uintptr_t hitData[RTE_HASH_LOOKUP_BULK_MAX];
+  if (nLookups > 0) {
+    int nHits = rte_hash_lookup_bulk_data(g->ipv4, (const void**)lookupKeys, nLookups, &hitMask,
+                                          (void**)hitData);
+    if (unlikely(nHits < 0)) {
+      N_LOGD("bulk-%c lookup-fail " N_LOG_ERROR_ERRNO, dir, nHits);
+      return 0;
+    }
   }
 
+  uint64_t processedMask = 0;
   nLookups = 0;
+  nFaces = 0;
   for (uint32_t i = 0; i < count; ++i) {
-    if (!rte_bit_test(&mask, i)) {
-      continue;
-    }
-    uint32_t hIndex = nLookups++;
-    if (unlikely(!rte_bit_test(&hMask, hIndex))) {
-      rte_bit_clear(&mask, i);
+    FaceID id = 0;
+    if (rte_bit_test(&lookupMask, i)) {
+      uint32_t hitIndex = nLookups++;
+      if (likely(rte_bit_test(&hitMask, hitIndex))) {
+        id = (FaceID)hitData[hitIndex];
+      } else {
+        continue;
+      }
+    } else if (rte_bit_test(&faceMask, i)) {
+      id = faceIDs[nFaces++];
+    } else {
       continue;
     }
 
-    FaceID id = (FaceID)(uintptr_t)(hData[hIndex]);
     EthFacePriv* priv = Face_GetPriv(Face_Get(id));
-    if (unlikely(!updatePkt(pkts[i], keys[hIndex], priv))) {
-      rte_bit_clear(&mask, i);
+    if (likely(updatePkt(pkts[i], priv))) {
+      rte_bit_set(&processedMask, i);
     }
   }
-  return mask;
+
+  N_LOGD("bulk-%c processed count=%" PRIu32 " lookups=%016" PRIx64 " faces=%016" PRIx64
+         " processed=%016" PRIx64,
+         dir, count, lookupMask, faceMask, processedMask);
+  return processedMask;
 }
 
-__attribute__((nonnull)) static __rte_always_inline const void*
-DlExtractKey(const struct rte_mbuf* pkt) {
+__attribute__((nonnull)) static __rte_always_inline ExtractResult
+DlExtractKey(const struct rte_mbuf* pkt, uintptr_t* key) {
   const struct rte_ether_hdr* eth = rte_pktmbuf_mtod(pkt, const struct rte_ether_hdr*);
   if (unlikely(pkt->data_len < RTE_ETHER_HDR_LEN + sizeof(struct rte_ipv4_hdr)) ||
       eth->ether_type != rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4)) {
-    return NULL;
+    return ExtractResultNone;
   }
   const struct rte_ipv4_hdr* ip = RTE_PTR_ADD(eth, RTE_ETHER_HDR_LEN);
-  return &ip->dst_addr;
+  *key = (uintptr_t)&ip->dst_addr;
+  return ExtractResultIPv4;
 }
 
 __attribute__((nonnull)) static __rte_always_inline bool
-DlUpdatePkt(struct rte_mbuf* pkt, const void* key, EthFacePriv* priv) {
-  RTE_SET_USED(key);
+DlUpdatePkt(struct rte_mbuf* pkt, EthFacePriv* priv) {
   EthTxHdr_Prepend(&priv->txHdr, pkt, EthTxHdrFlagsGtpip);
   return true;
 }
 
 uint64_t
 EthGtpip_ProcessDownlinkBulk(EthGtpip* g, struct rte_mbuf* pkts[], uint32_t count) {
-  return ProcessBulk(g, pkts, count, DlExtractKey, DlUpdatePkt);
+  return ProcessBulk(g, 'D', pkts, count, DlExtractKey, DlUpdatePkt);
 }
 
 // Uplink header lengths, from outer Ethernet to inner IPv4.
@@ -85,8 +117,14 @@ enum {
   UlHdrLenVlanIpv6 = UlHdrLenIpv6 + sizeof(struct rte_vlan_hdr),
 };
 
-__attribute__((nonnull)) static __rte_always_inline const void*
-UlExtractKey(const struct rte_mbuf* pkt) {
+__attribute__((nonnull)) static __rte_always_inline ExtractResult
+UlExtractKey(const struct rte_mbuf* pkt, uintptr_t* key) {
+  FaceID id = Mbuf_GetMark(pkt);
+  if (id != 0) {
+    *key = id;
+    return ExtractResultFaceID;
+  }
+
   const struct rte_ether_hdr* eth = rte_pktmbuf_mtod(pkt, const struct rte_ether_hdr*);
   const struct rte_vlan_hdr* vlan = RTE_PTR_ADD(eth, RTE_ETHER_HDR_LEN);
   uint16_t hdrLen = 0;
@@ -105,30 +143,30 @@ UlExtractKey(const struct rte_mbuf* pkt) {
              vlan->eth_proto == rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV6)) {
     hdrLen = UlHdrLenVlanIpv6;
   } else {
-    return NULL;
+    return ExtractResultNone;
   }
 
   const struct rte_ipv4_hdr* iip = RTE_PTR_ADD(eth, hdrLen - sizeof(*iip));
   const struct rte_udp_hdr* udp = RTE_PTR_SUB(iip, sizeof(*udp) + sizeof(EthGtpHdr));
   if (unlikely(udp->src_port != rte_cpu_to_be_16(RTE_GTPU_UDP_PORT)) ||
       unlikely(udp->dst_port != rte_cpu_to_be_16(RTE_GTPU_UDP_PORT))) {
-    return NULL;
+    return ExtractResultNone;
   }
 
-  return &iip->src_addr;
+  *key = (uintptr_t)&iip->src_addr;
+  return ExtractResultIPv4;
 }
 
 __attribute__((nonnull)) static __rte_always_inline bool
-UlUpdatePkt(struct rte_mbuf* pkt, const void* key, EthFacePriv* priv) {
+UlUpdatePkt(struct rte_mbuf* pkt, EthFacePriv* priv) {
   if (unlikely(!(EthRxMatch_Match(&priv->rxMatch, pkt) & EthRxMatchResultGtp))) {
     return false;
   }
 
   const struct rte_ether_hdr* eth = rte_pktmbuf_mtod(pkt, const struct rte_ether_hdr*);
-  const struct rte_ipv4_hdr* iip = RTE_PTR_SUB(key, offsetof(struct rte_ipv4_hdr, src_addr));
-
   struct rte_ether_hdr* eth1 =
-    (struct rte_ether_hdr*)rte_pktmbuf_adj(pkt, RTE_PTR_DIFF(iip, eth) - RTE_ETHER_HDR_LEN);
+    (struct rte_ether_hdr*)rte_pktmbuf_adj(pkt, priv->rxMatch.len - sizeof(struct rte_udp_hdr) -
+                                                  sizeof(struct rte_ipv4_hdr) - RTE_ETHER_HDR_LEN);
   eth1->dst_addr = eth->dst_addr; // TAP netif has same MAC address as physical EthDev
   eth1->src_addr = eth->src_addr;
   eth1->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4);
@@ -137,5 +175,5 @@ UlUpdatePkt(struct rte_mbuf* pkt, const void* key, EthFacePriv* priv) {
 
 uint64_t
 EthGtpip_ProcessUplinkBulk(EthGtpip* g, struct rte_mbuf* pkts[], uint32_t count) {
-  return ProcessBulk(g, pkts, count, UlExtractKey, UlUpdatePkt);
+  return ProcessBulk(g, 'U', pkts, count, UlExtractKey, UlUpdatePkt);
 }
