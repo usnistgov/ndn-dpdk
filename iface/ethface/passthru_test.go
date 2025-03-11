@@ -3,6 +3,7 @@ package ethface_test
 import (
 	"bytes"
 	"net/netip"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -85,7 +86,7 @@ func makePassthru(prf *PortRemoteFixture, loc ethface.PassthruLocator) (p Passth
 	return
 }
 
-func testPassthru(prf *PortRemoteFixture) {
+func testPassthru(prf *PortRemoteFixture, arpOnly bool) {
 	assert, _ := makeAR(prf.t)
 
 	var locUDP4 ethface.UDPLocator
@@ -199,9 +200,15 @@ func testPassthru(prf *PortRemoteFixture) {
 	assert.InDelta(48, txARP.Load(), 8)                       // replies
 	assert.InEpsilon(200, cntUDP4.RxInterests, prf.RxEpsilon) // from case 2,5,6,9
 	assert.InEpsilon(100, txUDP4.Load(), prf.TxEpsilon)       // from case 3,8
-	assert.InDelta(145, rxICMP.Load(), 5)                     // [140,150]; 150 from case 1,4,7 minus loss
-	assert.InDelta(145, txICMP.Load(), 5)                     // replies
-	assert.InDelta(220, cntPassthru.RxFrames, 20)             // [200,240]; 200 from case 0,1,4,7 plus kernel generated
+	if arpOnly {
+		assert.Zero(rxICMP.Load())                  // ICMP not supported, because passthru face can only receive ARP
+		assert.Zero(txICMP.Load())                  // ICMP not supported, because passthru face can only receive ARP
+		assert.InDelta(52, cntPassthru.RxFrames, 8) // [44,60]; 50 from case 0 minus loss plus kernel generated
+	} else {
+		assert.InDelta(145, rxICMP.Load(), 5)         // [140,150]; 150 from case 1,4,7 minus loss
+		assert.InDelta(145, txICMP.Load(), 5)         // replies
+		assert.InDelta(220, cntPassthru.RxFrames, 20) // [200,240]; 200 from case 0,1,4,7 plus kernel generated
+	}
 	assert.Less(int(txOther.Load()), 30)
 	assert.Greater(int(cntPassthru.RxOctets), 0)
 	assert.Greater(int(cntPassthru.TxOctets), 0)
@@ -209,24 +216,24 @@ func testPassthru(prf *PortRemoteFixture) {
 
 func TestPassthruTap(t *testing.T) {
 	prf := NewPortRemoteFixture(t, "", "", nil)
-	testPassthru(prf)
+	testPassthru(prf, false)
 }
 
 func TestPassthruAfPacket(t *testing.T) {
 	env := parseVfTestEnv(t)
 	prf := env.MakePrf(nil)
-	testPassthru(prf)
+	testPassthru(prf, false)
 }
 
 func TestPassthruRxTable(t *testing.T) {
 	env := parseVfTestEnv(t)
 	env.RxFlowQueues = 0
 	prf := env.MakePrf(env.ConfigPortPCI)
-	testPassthru(prf)
+	testPassthru(prf, false)
 }
 
 func TestPassthruRxFlow(t *testing.T) {
 	env := parseVfTestEnv(t)
 	prf := env.MakePrf(env.ConfigPortPCI)
-	testPassthru(prf)
+	testPassthru(prf, strings.Contains(env.Flags, "arp-only"))
 }

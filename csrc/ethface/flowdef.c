@@ -70,7 +70,7 @@ GeneratePattern(EthFlowDef* flow, size_t specLen[], const EthLocator* loc, EthLo
     MASK(flow->vlanMask.hdr.eth_proto);
     return;
   }
-  // several drivers do not support ETH+IP combination, so clear ETH spec
+  // i40e and several other drivers reject ETH+IP combination, so clear ETH spec
   flow->pattern[0].spec = NULL;
 
   if (c.v4) {
@@ -122,7 +122,7 @@ GeneratePattern(EthFlowDef* flow, size_t specLen[], const EthLocator* loc, EthLo
     case 'G': {
       EthGtpHdr spec = {0};
       PutGtpHdr((uint8_t*)&spec, true, loc->ulTEID, loc->ulQFI);
-      rte_memcpy(&flow->gtpSpec.hdr, &spec.hdr, sizeof(flow->gtpSpec.hdr));
+      flow->gtpSpec.hdr = spec.hdr;
       MASK(flow->gtpMask.hdr.teid);
 
       if (flowFlags & EthFlowFlagsGtp) {
@@ -138,6 +138,13 @@ GeneratePattern(EthFlowDef* flow, size_t specLen[], const EthLocator* loc, EthLo
 }
 
 __attribute__((nonnull)) static inline void
+MaskSpecOctets(uint8_t* spec, const uint8_t* mask, size_t len) {
+  for (size_t j = 0; j < len; ++j) {
+    spec[j] &= mask[j];
+  }
+}
+
+__attribute__((nonnull)) static inline void
 CleanPattern(EthFlowDef* flow, size_t specLen[]) {
   for (int i = 0;; ++i) {
     size_t itemLen = specLen[i];
@@ -145,9 +152,13 @@ CleanPattern(EthFlowDef* flow, size_t specLen[]) {
     switch (item->type) {
       case RTE_FLOW_ITEM_TYPE_END:
         return;
-      case RTE_FLOW_ITEM_TYPE_RAW:
+      case RTE_FLOW_ITEM_TYPE_RAW: {
         itemLen = offsetof(struct rte_flow_item_raw, pattern);
+        const struct rte_flow_item_raw* spec = item->spec;
+        const struct rte_flow_item_raw* mask = item->mask;
+        MaskSpecOctets((uint8_t*)spec->pattern, mask->pattern, spec->length);
         break;
+      }
       default:
         break;
     }
@@ -156,12 +167,7 @@ CleanPattern(EthFlowDef* flow, size_t specLen[]) {
       item->mask = NULL;
       continue;
     }
-
-    uint8_t* spec = (uint8_t*)item->spec;
-    const uint8_t* mask = (const uint8_t*)item->mask;
-    for (size_t j = 0; j < itemLen; ++j) {
-      spec[j] &= mask[j];
-    }
+    MaskSpecOctets((uint8_t*)item->spec, (const uint8_t*)item->mask, itemLen);
   }
 }
 
@@ -207,7 +213,7 @@ GenerateActions(EthFlowDef* flow, EthLocatorClass c, EthFlowFlags flowFlags, uin
 
 __attribute__((nonnull)) static inline void
 PrintDef(const EthFlowDef* flow, size_t specLen[]) {
-  for (int i = 0;; ++i) {
+  for (int i = 0; i >= 0; ++i) {
     const struct rte_flow_item* item = &flow->pattern[i];
     char b16Spec[Base16_BufferSize(64)] = {'-', 0};
     char b16Mask[Base16_BufferSize(64)] = {'-', 0};
@@ -223,8 +229,22 @@ PrintDef(const EthFlowDef* flow, size_t specLen[]) {
     }
     N_LOGD("^ pattern index=%d type=%d type-name=%s spec=%s mask=%s", i, (int)item->type, typeName,
            b16Spec, b16Mask);
-    if (item->type == RTE_FLOW_ITEM_TYPE_END) {
-      break;
+    switch (item->type) {
+      case RTE_FLOW_ITEM_TYPE_END:
+        i = -2; // break loop
+        break;
+      case RTE_FLOW_ITEM_TYPE_RAW: {
+        const struct rte_flow_item_raw* spec = item->spec;
+        const struct rte_flow_item_raw* mask = item->mask;
+        Base16_Encode(b16Spec, sizeof(b16Spec), spec->pattern, spec->length);
+        Base16_Encode(b16Mask, sizeof(b16Mask), mask->pattern, spec->length);
+        N_LOGD("^ pattern-raw index=%d relative=%" PRIu32 " offset=%" PRId32
+               " spec.pattern=%s mask.pattern=%s",
+               i, spec->relative, spec->offset, b16Spec, b16Mask);
+        break;
+      }
+      default:
+        break;
     }
   }
 

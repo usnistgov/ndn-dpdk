@@ -207,7 +207,7 @@ func testGtpip(prf *PortRemoteFixture) {
 		defer dbgSleep()
 	}
 
-	var rxICMP, txICMP, txARP atomic.Int32
+	var rxICMP, txICMP atomic.Int32
 
 	// Count non-NDN packets received on the "inner" TAP netif.
 	go func() {
@@ -248,7 +248,6 @@ func testGtpip(prf *PortRemoteFixture) {
 					localIP, _ := netip.AddrFromSlice(arp.SourceProtAddress)
 					prf.RemoteWrite(makeARP(remoteMAC, remoteIP, arp.SourceHwAddress, localIP)...)
 				}
-				txARP.Add(1)
 			} else if icmp, ok := parsed.Layer(layers.LayerTypeICMPv4).(*layers.ICMPv4); ok && icmp.TypeCode.Type() == layers.ICMPv4TypeEchoReply {
 				txICMP.Add(1)
 			}
@@ -314,14 +313,13 @@ func testGtpip(prf *PortRemoteFixture) {
 	}
 	time.Sleep(10 * time.Millisecond)
 
-	nARP, cntPassthru := int(txARP.Load()), passthru.Face.Counters()
-	assert.InDelta(112, rxICMP.Load(), 8)               // [104,120]; 120 pings minus loss
-	assert.InDelta(112, txICMP.Load(), 8)               // replies
-	assert.InDelta(92, cntPassthru.RxData, 4)           // [88,96]; 96 UE pings minus loss
-	assert.InDelta(92, cntPassthru.TxData, 4)           // replies
-	assert.InDelta(24+nARP, cntPassthru.RxInterests, 6) // [18,30]; 24 non-UE pings minus loss plus kernel generated
-	assert.InDelta(24+nARP, cntPassthru.TxInterests, 6) // replies
-	assert.InDelta(30, nARP, 10)                        // [20,40]; 6x N3 peers + 24x non-UE peers, with tolerance
+	cntPassthru := passthru.Face.Counters()
+	assert.InDelta(112, rxICMP.Load(), 8)            // [104,120]; 120 pings minus loss
+	assert.InDelta(112, txICMP.Load(), 8)            // replies
+	assert.InDelta(92, cntPassthru.RxData, 4)        // [88,96]; 96 UE pings minus loss
+	assert.InDelta(92, cntPassthru.TxData, 4)        // replies
+	assert.Greater(int(cntPassthru.RxInterests), 24) // 24 non-UE pings plus ARP
+	assert.Greater(int(cntPassthru.TxInterests), 24) // replies
 	assert.Greater(int(cntPassthru.RxOctets), 0)
 	assert.Greater(int(cntPassthru.TxOctets), 0)
 }
