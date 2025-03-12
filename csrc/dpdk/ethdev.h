@@ -29,12 +29,15 @@ typedef enum EthFlowFlags {
    */
   EthFlowFlagsVxRaw = RTE_BIT32(8),
 
-  /**
-   * @brief How to generate GTP-U flow item.
-   * 0 = prefer @c RTE_FLOW_ITEM_TYPE_GTPU .
-   * 1 = prefer @c RTE_FLOW_ITEM_TYPE_GTP .
-   */
-  EthFlowFlagsGtp = RTE_BIT32(12),
+  /** @brief Bitmask to indicate how to generate GTP-U flow items. */
+  EthFlowFlagsGtpMask = RTE_GENMASK32(13, 12),
+
+  /** @brief Generate GTP-U flow item as @c RTE_FLOW_ITEM_TYPE_GTPU . */
+  EthFlowFlagsGtpGtpu = RTE_SHIFT_VAL32(0, 12),
+  /** @brief Generate GTP-U flow item as @c RTE_FLOW_ITEM_TYPE_GTP . */
+  EthFlowFlagsGtpGtp = RTE_SHIFT_VAL32(1, 12),
+  /** @brief Generate GTP-U flow item as @c RTE_FLOW_ITEM_TYPE_RAW . */
+  EthFlowFlagsGtpRaw = RTE_SHIFT_VAL32(2, 12),
 
   /**
    * @brief How to generate actions when RSS is used.

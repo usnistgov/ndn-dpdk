@@ -19,8 +19,7 @@ import (
 )
 
 type rxTable struct {
-	rxt       *rxgTable
-	flowFlags C.EthFlowFlags
+	rxt *rxgTable
 }
 
 func (rxTable) String() string {
@@ -36,13 +35,12 @@ func (impl *rxTable) Init(port *Port) error {
 		return e
 	}
 	impl.rxt = newRxgTable(port)
-	impl.flowFlags = C.EthFlowFlags(port.devInfo.FlowFlags())
 	return nil
 }
 
 func (impl *rxTable) Start(face *Face) error {
-	if impl.flowFlags&C.EthFlowFlagsDisabled == 0 {
-		setupFlow(face, []uint16{0}, impl.flowFlags, zap.InfoLevel)
+	if flowFlags := face.port.flowFlags; flowFlags&C.EthFlowFlagsDisabled == 0 {
+		setupFlow(face, []uint16{0}, C.EthFlowFlags(flowFlags), zap.InfoLevel)
 	}
 
 	if face.loc.Scheme() == SchemePassthru {

@@ -79,6 +79,7 @@ type Port struct {
 	logger       *zap.Logger
 	dev          ethdev.EthDev
 	devInfo      ethdev.DevInfo
+	flowFlags    uint32
 	ddpRollback  func() error
 	faces        map[iface.ID]*Face
 	rxBouncePool *pktmbuf.Pool
@@ -157,7 +158,10 @@ func (port *Port) startDev(nRxQueues int, promisc bool) (e error) {
 
 	if port.devInfo.Driver() == ethdev.DriverI40e {
 		if dp, e := ethdev.OpenDdpProfile("gtp"); e == nil {
-			port.ddpRollback, _ = dp.Upload(port.dev)
+			port.ddpRollback, e = dp.Upload(port.dev)
+			if e == nil {
+				dp.UpdateFlowFlags(&port.flowFlags)
+			}
 		}
 	}
 
@@ -215,6 +219,7 @@ func New(cfg Config) (port *Port, e error) {
 		devInfo: cfg.EthDev.DevInfo(),
 		faces:   map[iface.ID]*Face{},
 	}
+	port.flowFlags = port.devInfo.FlowFlags()
 	switch port.devInfo.Driver() {
 	case ethdev.DriverXDP:
 		if port.rxBouncePool, e = pktmbuf.NewPool(pktmbuf.PoolConfig{

@@ -231,13 +231,20 @@ The VXLAN item in `pattern_vxlan_[12]` patterns are unusable because the parser 
 GTP-U tunnel face is supported through `pattern_fdir_ipv4_gtpu`.
 This pattern relies on [Dynamic Device Personalization (DDP)](https://www.intel.com/content/www/us/en/developer/articles/technical/dynamic-device-personalization-for-intel-ethernet-700-series.html) feature.
 You must manually download the [GTPv1 DDP profile](https://downloadcenter.intel.com/download/27587) and place it at `/lib/firmware/intel/i40e/ddp/gtp.pkg`.
+To use this in Docker, you also need to bind-mount the directory into the container with `--mount type=bind,source=/lib/firmware/intel/i40e/ddp,target=/lib/firmware/intel/i40e/ddp,readonly=true` flag.
 If the profile is found, you would see "upload DDP package success" log message during Ethernet port creation.
-Without the profile, GTP-U face creation on RxFlow fails with "GTP is not supported by default" error.
 During NDN-DPDK service shutdown, a profile rollback will be attempted.
 In case of an abnormal shutdown, you may need to power-cycle the server to cleanup the profile.
 
+GTP-U tunnel face is also supported through `pattern_fdir_ipv4_udp_raw_1`, where TEID and QFI are matched with a RAW item.
+This pattern is only used when the GTPv1 DDP profile is not found or cannot be loaded.
+
 Pass-through face is severely limited: it can only accept ARP packets.
 Full support requires the driver to support the priority attribute, which is unavailable in i40e.
+
+I40E can have only one *FDIR input set* for each packet type recognized by hardware.
+Due to this limitation, certain combinations of faces will not work at the same time.
+These combinations include UDP face without VLAN + UDP face with VLAN, UDP face + VXLAN tunnel face, UDP face + GTP-U tunnel face supported through `pattern_fdir_ipv4_udp_raw_1`.
 
 ## Broadcom/QLogic Ethernet Adapters
 

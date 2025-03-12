@@ -68,7 +68,6 @@ func destroyFlow(face *Face) error {
 }
 
 type rxFlow struct {
-	flowFlags   C.EthFlowFlags
 	availQueues []uint16
 }
 
@@ -101,10 +100,9 @@ func (impl *rxFlow) setIsolate(port *Port, enable bool) error {
 
 func (impl *rxFlow) Init(port *Port) error {
 	*impl = rxFlow{}
-	impl.flowFlags = C.EthFlowFlags(port.devInfo.FlowFlags())
 	needPromisc := false
 	if e := impl.setIsolate(port, true); e == nil {
-		impl.flowFlags |= C.EthFlowFlagsIsolated
+		port.flowFlags |= C.EthFlowFlagsIsolated
 	} else {
 		port.logger.Info("flow isolate mode unavailable", zap.Error(e))
 		needPromisc = true
@@ -136,7 +134,7 @@ func (impl *rxFlow) Start(face *Face) error {
 	}
 
 	queues := impl.availQueues[:nRxQueues]
-	if e := setupFlow(face, queues, impl.flowFlags, zap.WarnLevel); e != nil {
+	if e := setupFlow(face, queues, C.EthFlowFlags(face.port.flowFlags), zap.WarnLevel); e != nil {
 		return e
 	}
 

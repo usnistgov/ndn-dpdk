@@ -18,6 +18,21 @@ AppendItem(EthFlowDef* flow, size_t* i, enum rte_flow_item_type typ, const void*
 }
 
 __attribute__((nonnull)) static inline void
+PrepareRawItem(EthFlowDef* flow, int32_t offset, uint16_t length, const void* spec,
+               const void* mask) {
+  NDNDPDK_ASSERT(length <= sizeof(flow->rawSpecBuf));
+  memmove(flow->rawSpecBuf, spec, length);
+  memmove(flow->rawMaskBuf, mask, length);
+
+  flow->rawSpec.relative = 1;
+  flow->rawSpec.offset = offset;
+  flow->rawSpec.length = length;
+  flow->rawSpec.pattern = flow->rawSpecBuf;
+  flow->rawMask = rte_flow_item_raw_mask;
+  flow->rawMask.pattern = flow->rawMaskBuf;
+}
+
+__attribute__((nonnull)) static inline void
 PrepareVxlan(const EthLocator* loc, struct rte_vxlan_hdr* vxlanSpec,
              struct rte_vxlan_hdr* vxlanMask, struct rte_ether_hdr* innerEthSpec,
              struct rte_ether_hdr* innerEthMask) {
@@ -101,15 +116,7 @@ GeneratePattern(EthFlowDef* flow, size_t specLen[], const EthLocator* loc, EthLo
         } __rte_aligned(2) spec = {0}, mask = {0};
         PrepareVxlan(loc, &spec.vxlan, &mask.vxlan, &spec.eth, &mask.eth);
         static_assert(sizeof(spec) == 4 + 16 + 2, "");
-        rte_mov16(flow->rawSpecBuf, RTE_PTR_ADD(&spec, 4));
-        rte_mov16(flow->rawMaskBuf, RTE_PTR_ADD(&mask, 4));
-
-        flow->rawSpec.relative = 1;
-        flow->rawSpec.offset = 4;
-        flow->rawSpec.length = 16;
-        flow->rawSpec.pattern = flow->rawSpecBuf;
-        flow->rawMask = rte_flow_item_raw_mask;
-        flow->rawMask.pattern = flow->rawMaskBuf;
+        PrepareRawItem(flow, 4, 16, RTE_PTR_ADD(&spec, 4), RTE_PTR_ADD(&mask, 4));
         APPEND(RAW, raw);
       } else {
         PrepareVxlan(loc, &flow->vxlanSpec.hdr, &flow->vxlanMask.hdr, &flow->innerEthSpec.hdr,
@@ -120,15 +127,36 @@ GeneratePattern(EthFlowDef* flow, size_t specLen[], const EthLocator* loc, EthLo
       break;
     }
     case 'G': {
-      EthGtpHdr spec = {0};
+      EthGtpHdr spec = {0}, mask = {0};
       PutGtpHdr((uint8_t*)&spec, true, loc->ulTEID, loc->ulQFI);
-      flow->gtpSpec.hdr = spec.hdr;
-      MASK(flow->gtpMask.hdr.teid);
 
-      if (flowFlags & EthFlowFlagsGtp) {
-        APPEND(GTP, gtp);
-      } else {
-        APPEND(GTPU, gtp);
+      switch (flowFlags & EthFlowFlagsGtpMask) {
+        case EthFlowFlagsGtpGtpu: {
+          APPEND(GTPU, gtp);
+          goto FILL_GTP_ITEM;
+        }
+        case EthFlowFlagsGtpGtp: {
+          APPEND(GTP, gtp);
+        FILL_GTP_ITEM:
+          flow->gtpSpec.hdr = spec.hdr;
+          MASK(flow->gtpMask.hdr.teid);
+          break;
+        }
+        case EthFlowFlagsGtpRaw: {
+          // In i40e driver, RAW item can have up to I40E_FDIR_MAX_FLEX_LEN=16 uint16 words, of
+          // which up to I40E_FDIR_BITMASK_NUM_WORD=2 words may have a "bit mask" i.e. mask other
+          // than 0000 and FFFF, see i40e_flow_store_flex_mask(). We use bit masks on the first and
+          // eighth words. mask.hdr.ver is unmasked because masking it seems to cause packet loss.
+          mask.hdr.pt = 1;
+          mask.hdr.e = 1;
+          MASK(mask.hdr.msg_type);
+          MASK(mask.hdr.teid);
+          mask.psc.qfi = 0b111111;
+          static_assert(sizeof(spec) == 16);
+          PrepareRawItem(flow, 0, 16, &spec, &mask);
+          APPEND(RAW, raw);
+          break;
+        }
       }
       break;
     }
@@ -213,10 +241,14 @@ GenerateActions(EthFlowDef* flow, EthLocatorClass c, EthFlowFlags flowFlags, uin
 
 __attribute__((nonnull)) static inline void
 PrintDef(const EthFlowDef* flow, size_t specLen[]) {
-  for (int i = 0; i >= 0; ++i) {
+  for (int i = 0;; ++i) {
     const struct rte_flow_item* item = &flow->pattern[i];
-    char b16Spec[Base16_BufferSize(64)] = {'-', 0};
-    char b16Mask[Base16_BufferSize(64)] = {'-', 0};
+    enum {
+      b16BufOctets = 64,
+      b16BufSize = Base16_BufferSize(b16BufOctets),
+    };
+    char b16Spec[b16BufSize] = {'-', 0};
+    char b16Mask[b16BufSize] = {'-', 0};
     if (item->spec != NULL && item->mask != NULL) {
       NDNDPDK_ASSERT(specLen[i] <= 64);
       Base16_Encode(b16Spec, sizeof(b16Spec), item->spec, specLen[i]);
@@ -227,24 +259,23 @@ PrintDef(const EthFlowDef* flow, size_t specLen[]) {
                       (const void*)(uintptr_t)item->type, NULL) <= 0) {
       typeName = "-";
     }
+    if (item->type == RTE_FLOW_ITEM_TYPE_RAW) {
+      const struct rte_flow_item_raw* spec = item->spec;
+      const struct rte_flow_item_raw* mask = item->mask;
+      NDNDPDK_ASSERT(sizeof(*spec) + 1 + spec->length <= b16BufOctets);
+      int b16Offset = 2 * sizeof(*spec);
+      b16Spec[b16Offset] = '+';
+      b16Mask[b16Offset] = '+';
+      ++b16Offset;
+      Base16_Encode(RTE_PTR_ADD(b16Spec, b16Offset), sizeof(b16Spec) - b16Offset, spec->pattern,
+                    spec->length);
+      Base16_Encode(RTE_PTR_ADD(b16Mask, b16Offset), sizeof(b16Mask) - b16Offset, mask->pattern,
+                    spec->length);
+    }
     N_LOGD("^ pattern index=%d type=%d~%s spec=%s mask=%s", i, (int)item->type, typeName, b16Spec,
            b16Mask);
-    switch (item->type) {
-      case RTE_FLOW_ITEM_TYPE_END:
-        i = -2; // break loop
-        break;
-      case RTE_FLOW_ITEM_TYPE_RAW: {
-        const struct rte_flow_item_raw* spec = item->spec;
-        const struct rte_flow_item_raw* mask = item->mask;
-        Base16_Encode(b16Spec, sizeof(b16Spec), spec->pattern, spec->length);
-        Base16_Encode(b16Mask, sizeof(b16Mask), mask->pattern, spec->length);
-        N_LOGD("^ pattern-raw index=%d relative=%" PRIu32 " offset=%" PRId32
-               " spec.pattern=%s mask.pattern=%s",
-               i, spec->relative, spec->offset, b16Spec, b16Mask);
-        break;
-      }
-      default:
-        break;
+    if (item->type == RTE_FLOW_ITEM_TYPE_END) {
+      break;
     }
   }
 

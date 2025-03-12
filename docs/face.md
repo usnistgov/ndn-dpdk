@@ -68,7 +68,7 @@ Example commands:
 dpdk-devbind.py --status-dev net
 
 # change kernel driver binding (only needed for some NICs, see DPDK docs on what driver to use)
-sudo dpdk-devbind.py -b uio_pci_generic 04:00.0
+sudo dpdk-devbind.py -b vfio-pci 04:00.0
 
 # create an Ethernet port with PCI driver, enable RxFlow with 16 queues
 ndndpdk-ctrl create-eth-port --pci 04:00.0 --mtu 1500 --rx-flow 16
