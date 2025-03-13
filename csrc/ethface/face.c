@@ -22,6 +22,8 @@ EthRxFlow_RxBurst(RxGroup* rxg, RxGroupBurstCtx* ctx,
   if (mayHaveUnmatched) {
     // RCU lock is inherited from RxLoop_Run
     PdumpEthPortUnmatchedCtx_Init(&unmatch, rxf->port);
+  } else {
+    POISON(&unmatch);
   }
 
   for (uint16_t i = 0; i < ctx->nRx; ++i) {
@@ -86,19 +88,41 @@ EthRxFlow_RxBurst_CheckFull(RxGroup* rxg, RxGroupBurstCtx* ctx) {
 
 struct rte_flow*
 EthFace_SetupFlow(EthFacePriv* priv, const uint16_t queues[], int nQueues, const EthLocator* loc,
-                  EthFlowFlags flowFlags, struct rte_flow_error* error) {
-  EthFlowDef def;
-  EthFlowDef_Prepare(&def, loc, &flowFlags, priv->faceID, queues, nQueues);
+                  bool isolated, struct rte_flow_error* error) {
+  EthFlowDefResult dres = 0;
+  struct rte_flow* flow = NULL;
+  for (uint32_t variant = 0; variant < EthFlowDef_MaxVariant; ++variant) {
+    EthFlowDef def;
+    dres = EthFlowDef_Prepare(&def, loc, variant, priv->faceID, queues, nQueues);
+    if (!(dres & EthFlowDefResultValid)) {
+      return NULL;
+    }
 
-  struct rte_flow* flow = rte_flow_create(priv->port, &def.attr, def.pattern, def.actions, error);
-  if (flow == NULL) {
-    EthFlowDef_UpdateError(&def, error);
-    return NULL;
+    int vres = rte_flow_validate(priv->port, &def.attr, def.pattern, def.actions, error);
+    if (vres == -ENOSYS) {
+      return NULL;
+    }
+
+    char msg[128];
+    snprintf(msg, sizeof(msg), "SetupFlow variant=%" PRIu32 " flowdef-result=%d" N_LOG_ERROR_ERRNO,
+             variant, (int)dres, vres);
+    EthFlowDef_DebugPrint(&def, msg);
+    if (vres != 0) {
+      EthFlowDef_UpdateError(&def, error);
+      continue;
+    }
+
+    flow = rte_flow_create(priv->port, &def.attr, def.pattern, def.actions, error);
+    if (flow == NULL) {
+      EthFlowDef_UpdateError(&def, error);
+      return NULL;
+    }
+    break;
   }
 
   RxGroup_RxBurstFunc rxBurst = EthRxFlow_RxBurst_CheckFull;
-  if (flowFlags & EthFlowFlagsMarked) {
-    if (flowFlags & EthFlowFlagsIsolated) {
+  if (dres & EthFlowDefResultMarked) {
+    if (isolated) {
       rxBurst = EthRxFlow_RxBurst_Isolated_CheckOffload;
     } else {
       rxBurst = EthRxFlow_RxBurst_Unisolated_CheckOffload;

@@ -6,11 +6,17 @@
 #include "../iface/enum.h"
 #include "locator.h"
 
+enum {
+  EthFlowDef_MaxVariant = 8,
+  EthFlowDef_NPatterns = 7,
+};
+
 /** @brief EthFace rte_flow pattern. */
 typedef struct EthFlowDef {
   struct rte_flow_attr attr;
 
-  struct rte_flow_item pattern[7];
+  struct rte_flow_item pattern[EthFlowDef_NPatterns];
+  uint16_t patternSpecLen[EthFlowDef_NPatterns];
   struct rte_flow_item_eth ethSpec;
   struct rte_flow_item_eth ethMask;
   struct rte_flow_item_vlan vlanSpec;
@@ -53,17 +59,25 @@ typedef struct EthFlowDef {
   struct rte_flow_action_mark markAct;
 } EthFlowDef;
 
+typedef enum EthFlowDefResult {
+  EthFlowDefResultValid = RTE_BIT32(0),
+  EthFlowDefResultMarked = RTE_BIT32(1),
+} __rte_packed EthFlowDefResult;
+
 /**
  * @brief Prepare rte_flow definition from locator.
  * @param[out] flow Flow definition.
  * @param loc Locator.
- * @param[inout] flowFlags Flow preferences.
+ * @param variant Variant index within [0:EthFlowDef_MaxVariant).
  * @param mark FDIR mark ID.
  * @param queues Dispatched queues.
  */
-__attribute__((nonnull)) void
-EthFlowDef_Prepare(EthFlowDef* flow, const EthLocator* loc, EthFlowFlags* flowFlags, uint32_t mark,
+__attribute__((nonnull)) EthFlowDefResult
+EthFlowDef_Prepare(EthFlowDef* flow, const EthLocator* loc, int variant, uint32_t mark,
                    const uint16_t queues[], int nQueues);
+
+__attribute__((nonnull)) void
+EthFlowDef_DebugPrint(const EthFlowDef* flow, const char* msg);
 
 /** @brief Update @c error->cause to be an offset if it's within @p flow . */
 __attribute__((nonnull)) void

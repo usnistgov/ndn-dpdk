@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"slices"
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
@@ -104,30 +103,6 @@ func (info DevInfo) HasTxMultiSegOffload() bool {
 // HasTxChecksumOffload determines whether device can compute IPv4 and UDP checksum upon transmission.
 func (info DevInfo) HasTxChecksumOffload() bool {
 	return info.Tx_offload_capa&txOffloadChecksum == txOffloadChecksum
-}
-
-// FlowFlags returns C.EthFlowFlags bits to guide EthFlowDef generation.
-func (info DevInfo) FlowFlags() (flags uint32) {
-	switch info.Driver() {
-	case DriverAfPacket, DriverTAP, DriverXDP, DriverRing, DriverMemif:
-		flags |= C.EthFlowFlagsDisabled
-	case DriverMlx5:
-		flags |= C.EthFlowFlagsGtpGtp
-	case DriverI40e:
-		flags |= C.EthFlowFlagsPassthruArp | C.EthFlowFlagsVxRaw | C.EthFlowFlagsRssUnmarked | C.EthFlowFlagsEtherUnmarked
-		flags |= C.EthFlowFlagsGtpRaw // further updated by DdpProfile.UpdateFlowFlags
-	}
-	return
-}
-
-// UpdateFlowFlags adjust flow flags after loading a profile.
-func (dp *DdpProfile) UpdateFlowFlags(flags *uint32) {
-	// If the GTPv1 DDP package is loaded, flow must use GTPU item, RAW item will not match.
-	// If the GTPv1 DDP package is not loaded, GTPU item cannot be used, flow may use RAW item.
-	if slices.Contains(dp.protocols, "GTPU") {
-		*flags &= ^uint32(C.EthFlowFlagsGtpMask)
-		*flags |= C.EthFlowFlagsGtpGtpu
-	}
 }
 
 // MarshalJSON implements json.Marshaler interface.

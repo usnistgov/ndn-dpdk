@@ -14,7 +14,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/ndni"
-	"go.uber.org/zap"
 	"go4.org/must"
 )
 
@@ -39,9 +38,7 @@ func (impl *rxTable) Init(port *Port) error {
 }
 
 func (impl *rxTable) Start(face *Face) error {
-	if flowFlags := face.port.flowFlags; flowFlags&C.EthFlowFlagsDisabled == 0 {
-		setupFlow(face, []uint16{0}, C.EthFlowFlags(flowFlags), zap.InfoLevel)
-	}
+	setupFlow(face, []uint16{0}, false, true)
 
 	if face.loc.Scheme() == SchemePassthru {
 		C.cds_list_add_tail_rcu(&face.priv.rxtNode, &impl.rxt.head)

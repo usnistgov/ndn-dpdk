@@ -9,10 +9,11 @@ N_LOG_INIT(EthFlowDef);
 
 __attribute__((nonnull)) static inline void
 AppendItem(EthFlowDef* flow, size_t* i, enum rte_flow_item_type typ, const void* spec,
-           const void* mask, __rte_unused size_t size) {
+           const void* mask, size_t size) {
   flow->pattern[*i].type = typ;
   flow->pattern[*i].spec = spec;
   flow->pattern[*i].mask = mask;
+  flow->patternSpecLen[*i] = size;
   ++(*i);
   NDNDPDK_ASSERT(*i < RTE_DIM(flow->pattern));
 }
@@ -45,23 +46,25 @@ PrepareVxlan(const EthLocator* loc, struct rte_vxlan_hdr* vxlanSpec,
   PutEtherHdr((uint8_t*)innerEthSpec, loc->innerRemote, loc->innerLocal, 0, EtherTypeNDN);
 }
 
-__attribute__((nonnull)) static inline void
-GeneratePattern(EthFlowDef* flow, size_t specLen[], const EthLocator* loc, EthLocatorClass c,
-                EthFlowFlags flowFlags) {
+__attribute__((nonnull)) static inline EthFlowDefResult
+GeneratePattern(EthFlowDef* flow, const EthLocator* loc, EthLocatorClass c, int variant) {
   size_t i = 0;
 #define APPEND(typ, field)                                                                         \
   AppendItem(flow, &i, RTE_FLOW_ITEM_TYPE_##typ, &flow->field##Spec, &flow->field##Mask,           \
-             (specLen[i] = sizeof(flow->field##Spec)))
+             sizeof(flow->field##Spec))
 
   if (c.passthru) {
-    if (flowFlags & EthFlowFlagsPassthruArp) {
-      MASK(flow->ethMask.hdr.ether_type);
-      flow->ethSpec.hdr.ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP);
-      APPEND(ETH, eth);
-    } else {
-      flow->attr.priority = 1;
+    switch (variant) {
+      case 0:
+        flow->attr.priority = 1;
+        return EthFlowDefResultValid;
+      case 1:
+        MASK(flow->ethMask.hdr.ether_type);
+        flow->ethSpec.hdr.ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP);
+        APPEND(ETH, eth);
+        return EthFlowDefResultValid;
     }
-    return;
+    return 0;
   }
 
   MASK(flow->ethMask.hdr.dst_addr);
@@ -83,7 +86,7 @@ GeneratePattern(EthFlowDef* flow, size_t specLen[], const EthLocator* loc, EthLo
     // don't mask EtherType for IPv4/IPv6 - rejected by i40e driver
     MASK(flow->ethMask.hdr.ether_type);
     MASK(flow->vlanMask.hdr.eth_proto);
-    return;
+    return variant == 0 ? EthFlowDefResultValid : 0;
   }
   // i40e and several other drivers reject ETH+IP combination, so clear ETH spec
   flow->pattern[0].spec = NULL;
@@ -109,40 +112,43 @@ GeneratePattern(EthFlowDef* flow, size_t specLen[], const EthLocator* loc, EthLo
 
   switch (c.tunnel) {
     case 'V': {
-      if (flowFlags & EthFlowFlagsVxRaw) {
-        struct {
-          struct rte_vxlan_hdr vxlan;
-          struct rte_ether_hdr eth;
-        } __rte_aligned(2) spec = {0}, mask = {0};
-        PrepareVxlan(loc, &spec.vxlan, &mask.vxlan, &spec.eth, &mask.eth);
-        static_assert(sizeof(spec) == 4 + 16 + 2, "");
-        PrepareRawItem(flow, 4, 16, RTE_PTR_ADD(&spec, 4), RTE_PTR_ADD(&mask, 4));
-        APPEND(RAW, raw);
-      } else {
-        PrepareVxlan(loc, &flow->vxlanSpec.hdr, &flow->vxlanMask.hdr, &flow->innerEthSpec.hdr,
-                     &flow->innerEthMask.hdr);
-        APPEND(VXLAN, vxlan);
-        APPEND(ETH, innerEth);
+      switch (variant) {
+        case 0:
+          PrepareVxlan(loc, &flow->vxlanSpec.hdr, &flow->vxlanMask.hdr, &flow->innerEthSpec.hdr,
+                       &flow->innerEthMask.hdr);
+          APPEND(VXLAN, vxlan);
+          APPEND(ETH, innerEth);
+          return EthFlowDefResultValid;
+        case 1: {
+          struct {
+            struct rte_vxlan_hdr vxlan;
+            struct rte_ether_hdr eth;
+          } __rte_aligned(2) spec = {0}, mask = {0};
+          PrepareVxlan(loc, &spec.vxlan, &mask.vxlan, &spec.eth, &mask.eth);
+          static_assert(sizeof(spec) == 4 + 16 + 2, "");
+          PrepareRawItem(flow, 4, 16, RTE_PTR_ADD(&spec, 4), RTE_PTR_ADD(&mask, 4));
+          APPEND(RAW, raw);
+          return EthFlowDefResultValid;
+        }
+        default:
+          return 0;
       }
-      break;
     }
     case 'G': {
       EthGtpHdr spec = {0}, mask = {0};
       PutGtpHdr((uint8_t*)&spec, true, loc->ulTEID, loc->ulQFI);
 
-      switch (flowFlags & EthFlowFlagsGtpMask) {
-        case EthFlowFlagsGtpGtpu: {
+      switch (variant) {
+        case 0:
           APPEND(GTPU, gtp);
           goto FILL_GTP_ITEM;
-        }
-        case EthFlowFlagsGtpGtp: {
+        case 1:
           APPEND(GTP, gtp);
         FILL_GTP_ITEM:
           flow->gtpSpec.hdr = spec.hdr;
           MASK(flow->gtpMask.hdr.teid);
-          break;
-        }
-        case EthFlowFlagsGtpRaw: {
+          return EthFlowDefResultValid;
+        case 2:
           // In i40e driver, RAW item can have up to I40E_FDIR_MAX_FLEX_LEN=16 uint16 words, of
           // which up to I40E_FDIR_BITMASK_NUM_WORD=2 words may have a "bit mask" i.e. mask other
           // than 0000 and FFFF, see i40e_flow_store_flex_mask(). We use bit masks on the first and
@@ -155,11 +161,13 @@ GeneratePattern(EthFlowDef* flow, size_t specLen[], const EthLocator* loc, EthLo
           static_assert(sizeof(spec) == 16);
           PrepareRawItem(flow, 0, 16, &spec, &mask);
           APPEND(RAW, raw);
-          break;
-        }
+          return EthFlowDefResultValid;
+        default:
+          return 0;
       }
-      break;
     }
+    default:
+      return variant == 0 ? EthFlowDefResultValid : 0;
   }
 
 #undef APPEND
@@ -173,9 +181,9 @@ MaskSpecOctets(uint8_t* spec, const uint8_t* mask, size_t len) {
 }
 
 __attribute__((nonnull)) static inline void
-CleanPattern(EthFlowDef* flow, size_t specLen[]) {
+CleanPattern(EthFlowDef* flow) {
   for (int i = 0;; ++i) {
-    size_t itemLen = specLen[i];
+    size_t itemLen = flow->patternSpecLen[i];
     struct rte_flow_item* item = &flow->pattern[i];
     switch (item->type) {
       case RTE_FLOW_ITEM_TYPE_END:
@@ -207,11 +215,9 @@ AppendAction(EthFlowDef* flow, size_t* i, enum rte_flow_action_type typ, const v
   NDNDPDK_ASSERT(*i < RTE_DIM(flow->pattern));
 }
 
-__attribute__((nonnull)) static inline EthFlowFlags
-GenerateActions(EthFlowDef* flow, EthLocatorClass c, EthFlowFlags flowFlags, uint32_t mark,
+__attribute__((nonnull)) static inline EthFlowDefResult
+GenerateActions(EthFlowDef* flow, EthLocatorClass c, int variant, uint32_t mark,
                 const uint16_t queues[], int nQueues) {
-  EthFlowFlags addFlowFlags = 0;
-
   size_t i = 0;
 #define APPEND(typ, field) AppendAction(flow, &i, RTE_FLOW_ACTION_TYPE_##typ, &flow->field##Act)
 
@@ -228,19 +234,44 @@ GenerateActions(EthFlowDef* flow, EthLocatorClass c, EthFlowFlags flowFlags, uin
     APPEND(RSS, rss);
   }
 
-  if (!(((flowFlags & EthFlowFlagsRssUnmarked) && nQueues > 1) ||
-        ((flowFlags & EthFlowFlagsEtherUnmarked) && !c.udp))) {
-    flow->markAct.id = mark;
-    APPEND(MARK, mark);
-    addFlowFlags |= EthFlowFlagsMarked;
+  if (variant == 1) {
+    return 0;
   }
 
+  flow->markAct.id = mark;
+  APPEND(MARK, mark);
+  return EthFlowDefResultMarked;
 #undef APPEND
-  return addFlowFlags;
 }
 
-__attribute__((nonnull)) static inline void
-PrintDef(const EthFlowDef* flow, size_t specLen[]) {
+EthFlowDefResult
+EthFlowDef_Prepare(EthFlowDef* flow, const EthLocator* loc, int variant, uint32_t mark,
+                   const uint16_t queues[], int nQueues) {
+  NDNDPDK_ASSERT(variant < EthFlowDef_MaxVariant);
+  EthLocatorClass c = EthLocator_Classify(loc);
+  *flow = (const EthFlowDef){
+    .attr.ingress = 1,
+  };
+
+  EthFlowDefResult res = GeneratePattern(flow, loc, c, variant / 2);
+  if (!(res & EthFlowDefResultValid)) {
+    return 0;
+  }
+
+  CleanPattern(flow);
+  res |= GenerateActions(flow, c, variant % 2, mark, queues, nQueues);
+  return res;
+}
+
+__attribute__((nonnull)) void
+EthFlowDef_DebugPrint(const EthFlowDef* flow, const char* msg) {
+  if (!N_LOG_ENABLED(DEBUG)) {
+    return;
+  }
+
+  N_LOGD("%s", msg);
+  N_LOGD("^ attr group=%" PRIu32 " priority=%" PRIu32, flow->attr.group, flow->attr.priority);
+
   for (int i = 0;; ++i) {
     const struct rte_flow_item* item = &flow->pattern[i];
     enum {
@@ -250,9 +281,9 @@ PrintDef(const EthFlowDef* flow, size_t specLen[]) {
     char b16Spec[b16BufSize] = {'-', 0};
     char b16Mask[b16BufSize] = {'-', 0};
     if (item->spec != NULL && item->mask != NULL) {
-      NDNDPDK_ASSERT(specLen[i] <= 64);
-      Base16_Encode(b16Spec, sizeof(b16Spec), item->spec, specLen[i]);
-      Base16_Encode(b16Mask, sizeof(b16Mask), item->mask, specLen[i]);
+      NDNDPDK_ASSERT(flow->patternSpecLen[i] <= 64);
+      Base16_Encode(b16Spec, sizeof(b16Spec), item->spec, flow->patternSpecLen[i]);
+      Base16_Encode(b16Mask, sizeof(b16Mask), item->mask, flow->patternSpecLen[i]);
     }
     const char* typeName = NULL;
     if (rte_flow_conv(RTE_FLOW_CONV_OP_ITEM_NAME_PTR, &typeName, sizeof(&typeName),
@@ -290,25 +321,6 @@ PrintDef(const EthFlowDef* flow, size_t specLen[]) {
     if (action->type == RTE_FLOW_ACTION_TYPE_END) {
       break;
     }
-  }
-}
-
-void
-EthFlowDef_Prepare(EthFlowDef* flow, const EthLocator* loc, EthFlowFlags* flowFlags, uint32_t mark,
-                   const uint16_t queues[], int nQueues) {
-  EthLocatorClass c = EthLocator_Classify(loc);
-  *flow = (const EthFlowDef){0};
-  flow->attr.ingress = 1;
-
-  size_t specLen[RTE_DIM(flow->pattern)];
-  GeneratePattern(flow, specLen, loc, c, *flowFlags);
-  CleanPattern(flow, specLen);
-  *flowFlags |= GenerateActions(flow, c, *flowFlags, mark, queues, nQueues);
-
-  if (N_LOG_ENABLED(DEBUG)) {
-    N_LOGD("Prepare loc=%p flow-flags=%08" PRIx32, loc, *flowFlags);
-    N_LOGD("^ attr group=%" PRIu32 " priority=%" PRIu32, flow->attr.group, flow->attr.priority);
-    PrintDef(flow, specLen);
   }
 }
 

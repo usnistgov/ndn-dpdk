@@ -195,11 +195,13 @@ func processLogLine(line []byte) {
 		} else if em := reErrno.FindStringSubmatch(e); em != nil {
 			errno, _ := strconv.ParseUint(em[reErrnoErrno], 10, 64)
 			err := unix.Errno(errno)
-			fields = append(fields,
-				zap.Uint64("errno", errno),
-				zap.String("errname", unix.ErrnoName(err)),
-				zap.Error(err),
-			)
+			fields = append(fields, zap.Uint64("errno", errno))
+			if errno != 0 {
+				fields = append(fields,
+					zap.String("errname", unix.ErrnoName(err)),
+					zap.Error(err),
+				)
+			}
 		} else {
 			fields = append(fields, zap.String("error", e))
 		}

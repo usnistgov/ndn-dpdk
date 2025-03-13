@@ -34,8 +34,10 @@ Each receive path implementation is responsible for:
 
 RxFlow is a hardware-accelerated receive path.
 It uses one or more RX queues per face, and creates a *flow* via rte\_flow API to steer incoming frames to those queues (implemented in `C.EthFlowDef` struct).
+Some locator schemes have several *variants* implemented to adapt to varying hardware capabilities.
+The first flow definition that passes `rte_flow_validate` checks is used for flow creation.
 
-As instructed by the flow, the hardware performs packet header matching.
+As instructed by the flow definition, the hardware performs packet header matching.
 For each matched packet, the hardware sets FaceID as the *mark* value on the mbuf and passes the packet to an RX queue.
 The flow isolation mode, if available, is requested to block non-matching packets.
 

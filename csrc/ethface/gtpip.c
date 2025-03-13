@@ -120,7 +120,10 @@ enum {
 __attribute__((nonnull)) static __rte_always_inline ExtractResult
 UlExtractKey(const struct rte_mbuf* pkt, uintptr_t* key) {
   FaceID id = Mbuf_GetMark(pkt);
-  if (id != 0) {
+  if (id != 0 && id != pkt->port) {
+    // id==0: packet did not match a flow.
+    // id==pkt->port: packet matched the passthru flow; its MARK does not identify a GTP-U face.
+    // Otherwise: packet matched a GTP flow; its MARK identifies the GTP-U face.
     *key = id;
     return ExtractResultFaceID;
   }
