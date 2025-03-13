@@ -172,15 +172,16 @@ func configPortXDP(ifname string) ethport.Config {
 	}
 }
 
-func testPortRemote(prf *PortRemoteFixture, selections string) {
+// testPortRemote tests faces and locators between a remote and a local face.
+//
+//	selections:
+//	- If empty, all locators are enabled.
+//	- If first item is "-", specified locators are disabled.
+//	- If first item is not "-", specified locators are enabled.
+//	- if "+rss" exists, VXLAN faces have two queues.
+func testPortRemote(prf *PortRemoteFixture, selections []string) {
 	assert, _ := makeAR(prf.t)
 
-	var disabled, enabled []string
-	if strings.HasPrefix(selections, "-") {
-		disabled = strings.Split(selections[1:], ",")
-	} else if selections != "" {
-		enabled = strings.Split(selections, ",")
-	}
 	type portRemoteFaceRecord struct {
 		Title string
 		Face  iface.Face
@@ -188,11 +189,21 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 	}
 	faces := map[string]*portRemoteFaceRecord{}
 	addFaceIfEnabled := func(title string, loc ethport.Locator) {
-		if (len(disabled) > 0 && slices.Contains(disabled, title)) || (len(enabled) > 0 && !slices.Contains(enabled, title)) {
-			prf.t.Logf("skipping face locator %s", title)
+		switch {
+		case len(selections) == 0,
+			selections[0] == "-" && !slices.Contains(selections, title),
+			selections[0] != "-" && slices.Contains(selections, title):
+		default:
 			return
 		}
-		prf.t.Logf("creating face locator %s", title)
+
+		if loc.Scheme() == "vxlan" && slices.Contains(selections, "+rss") {
+			locVx := loc.(ethface.VxlanLocator)
+			locVx.NRxQueues = 2
+			loc = locVx
+		}
+
+		prf.t.Logf("creating face %s", title)
 		faces[title] = &portRemoteFaceRecord{
 			Face: prf.AddFace(loc),
 		}
@@ -472,12 +483,12 @@ func testPortRemote(prf *PortRemoteFixture, selections string) {
 
 func TestTapXDP(t *testing.T) {
 	prf := NewPortRemoteFixture(t, "", "", configPortXDP)
-	testPortRemote(prf, "")
+	testPortRemote(prf, nil)
 }
 
 func TestTapAfPacket(t *testing.T) {
 	prf := NewPortRemoteFixture(t, "", "", nil)
-	testPortRemote(prf, "")
+	testPortRemote(prf, nil)
 }
 
 type vfTestEnv struct {
@@ -485,11 +496,11 @@ type vfTestEnv struct {
 	RemoteIfname string
 	LocalIfname  string
 	LocalPCI     *pciaddr.PCIAddress
-	Flags        string
+	Flags        []string
 	RxEpsilon    float64
 	TxEpsilon    float64
 
-	RegSel       string   // locator selection in non-flow mode
+	RegSel       []string // locator selection in non-flow mode
 	FlowSel      []string // locator selection in flow mode
 	RxFlowQueues int
 }
@@ -552,7 +563,7 @@ func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
 	for len(tokens) < 3 {
 		tokens = append(tokens, "")
 	}
-	env.RemoteIfname, env.LocalIfname, env.Flags = tokens[0], tokens[1], tokens[2]
+	env.RemoteIfname, env.LocalIfname, env.Flags = tokens[0], tokens[1], strings.Split(tokens[2], "+")
 
 	if localIfTokens := strings.SplitN(env.LocalIfname, "=", 2); len(localIfTokens) == 2 {
 		env.LocalIfname = localIfTokens[0]
@@ -568,14 +579,14 @@ func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
 	}
 
 	exclusions := []string{}
-	if !strings.Contains(env.Flags, "vlan") {
+	if !slices.Contains(env.Flags, "vlan") {
 		exclusions = append(exclusions, "vlan", "vlan-udp4", "vlan-udp6")
 	}
-	if !strings.Contains(env.Flags, "mcast") {
+	if !slices.Contains(env.Flags, "mcast") {
 		exclusions = append(exclusions, "ether-mcast")
 	}
 	if len(exclusions) > 0 {
-		env.RegSel = "-" + strings.Join(exclusions, ",")
+		env.RegSel = append([]string{"-"}, exclusions...)
 	}
 
 	env.RxFlowQueues = 4
@@ -615,23 +626,25 @@ func TestVfRxTable(t *testing.T) {
 func TestVfRxFlow(t *testing.T) {
 	env := parseVfTestEnv(t)
 	if len(env.FlowSel) == 0 {
-		if !strings.Contains(env.Flags, "flow") {
+		if !slices.Contains(env.Flags, "flow") {
 			t.Skip("VfRxFlow tests disabled")
 		}
 
 		env.FlowSel = []string{"ether", "udp4", "udp4p1", "udp6", "vx4", "vx6"}
-		if strings.Contains(env.Flags, "gtp") {
+		if slices.Contains(env.Flags, "gtp") {
 			env.FlowSel = append(env.FlowSel, "gtp8", "gtp9")
 		}
 	}
 
 	i := 0
 	for group := range slices.Chunk(env.FlowSel, env.RxFlowQueues) {
-		sel := strings.Join(group, ",")
+		if slices.Contains(env.Flags, "rss") {
+			group = append(group, "+rss")
+		}
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			env.t = t
 			prf := env.MakePrf(env.ConfigPortPCI)
-			testPortRemote(prf, sel)
+			testPortRemote(prf, group)
 		})
 		i++
 	}

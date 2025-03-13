@@ -3,7 +3,7 @@ package ethface_test
 import (
 	"bytes"
 	"net/netip"
-	"strings"
+	"slices"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -235,5 +235,5 @@ func TestPassthruRxTable(t *testing.T) {
 func TestPassthruRxFlow(t *testing.T) {
 	env := parseVfTestEnv(t)
 	prf := env.MakePrf(env.ConfigPortPCI)
-	testPassthru(prf, strings.Contains(env.Flags, "arp-only"))
+	testPassthru(prf, slices.Contains(env.Flags, "arp-only"))
 }
