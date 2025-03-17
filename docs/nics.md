@@ -11,8 +11,8 @@ NVIDIA ConnectX-6 | 200 Gbps | mlx5 | yes | yes | yes | yes | yes
 Intel X710 | 10 Gbps | i40e | mcast-only | yes | yes | yes | ARP-only
 Intel X710 VF | 10 Gbps | iavf | no | no | no | no | no
 Intel XXV710 | 25 Gbps | i40e | untested | untested | untested | untested | untested
-Intel X520 | 10 Gbps | ixgbe | no | yes | no | untested | untested
-Intel I350 | 1 Gbps | igb | no | no | no | untested | untested
+Intel X520 | 10 Gbps | ixgbe | no | IPv4-only | no | no | ARP-only
+Intel I350 | 1 Gbps | igb | no | no | no | no | no
 Broadcom/QLogic 57810 | 10 Gbps | bnx2x | untested | untested | untested | untested | untested
 
 Some Ethernet adapters have more than one physical ports on the same PCI card.
@@ -118,12 +118,14 @@ Then, add these flags when you launch the NDN-DPDK service container:
 ```bash
 docker run \
   --device /dev/vfio \
+  --mount type=bind,source=/lib/firmware,target=/lib/firmware,readonly=true \
   [other arguments]
 ```
 
 * `--device /dev/vfio` flag enables access to VFIO devices.
 * Driver binding must be configured before starting the container.
   Otherwise, port creation fails and you would see `Failed to open VFIO group` error in container logs.
+* `--mount target=/lib/firmware` flag enables read-only access to firmware files, such as GTPv1 DDP profile (described below).
 
 ### Setup with UIO
 
@@ -158,11 +160,13 @@ To use Intel adapters with UIO in Docker container, add these flags when you lau
 ```bash
 docker run \
   --privileged \
+  --mount type=bind,source=/lib/firmware,target=/lib/firmware,readonly=true \
   [other arguments]
 ```
 
 * `--privileged` flag enables writing to PCI device config.
   See also [moby issue #22825](https://github.com/moby/moby/issues/22825).
+* `--mount target=/lib/firmware` flag enables read-only access to firmware files, such as GTPv1 DDP profile (described below).
 
 ### Virtual Function
 
@@ -231,7 +235,6 @@ The VXLAN item in `pattern_vxlan_[12]` patterns are unusable because the parser 
 GTP-U tunnel face is supported through `pattern_fdir_ipv4_gtpu`.
 This pattern relies on [Dynamic Device Personalization (DDP)](https://www.intel.com/content/www/us/en/developer/articles/technical/dynamic-device-personalization-for-intel-ethernet-700-series.html) feature.
 You must manually download the [GTPv1 DDP profile](https://downloadcenter.intel.com/download/27587) and place it at `/lib/firmware/intel/i40e/ddp/gtp.pkg`.
-To use this in Docker, you also need to bind-mount the directory into the container with `--mount type=bind,source=/lib/firmware/intel/i40e/ddp,target=/lib/firmware/intel/i40e/ddp,readonly=true` flag.
 If the profile is found, you would see "upload DDP package success" log message during Ethernet port creation.
 During NDN-DPDK service shutdown, a profile rollback will be attempted.
 In case of an abnormal shutdown, you may need to power-cycle the server to cleanup the profile.

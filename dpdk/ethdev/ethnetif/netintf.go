@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -196,6 +197,24 @@ func (n *NetIntf) UnloadXDP() {
 
 	logEntry.Debug("unloaded previous XDP program")
 	n.Refresh()
+}
+
+// SetIP assigns IP address.
+func (n *NetIntf) SetIP(prefix netip.Prefix) error {
+	addr, e := netlink.ParseAddr(prefix.String())
+	if e != nil {
+		return e
+	}
+
+	logEntry := n.logger.With(zap.Stringer("addr", addr))
+	if e = netlink.AddrReplace(n.Link, addr); e != nil {
+		logEntry.Error("netlink.AddReplace error", zap.Error(e))
+		return e
+	}
+
+	logEntry.Info("replaced IP")
+	n.Refresh()
+	return nil
 }
 
 // NetIntfByName creates netIntf by network interface name.

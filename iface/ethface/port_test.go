@@ -41,13 +41,14 @@ const dfltEpsilon = 0.02
 // The remote network interface is either a TAP file descriptor associated with the local port,
 // or another Ethernet adapter (often a PCI Virtual Function) connected with the local port.
 type PortRemoteFixture struct {
-	t          testing.TB
-	RemoteMAC  net.HardwareAddr
-	RemoteIntf io.ReadWriteCloser
-	LocalPort  *ethport.Port
-	DiagFaces  func() // invoked after face creation and before traffic generation
-	RxEpsilon  float64
-	TxEpsilon  float64
+	t             testing.TB
+	RemoteMAC     net.HardwareAddr
+	RemoteIntf    io.ReadWriteCloser
+	LocalPort     *ethport.Port
+	PassthruNetif *ethnetif.NetIntf
+	DiagFaces     func() // invoked after face creation and before traffic generation
+	RxEpsilon     float64
+	TxEpsilon     float64
 }
 
 // AddFace creates a face in the local port.
@@ -57,6 +58,21 @@ func (prf *PortRemoteFixture) AddFace(loc ethport.Locator) iface.Face {
 	require.NoError(e)
 	prf.t.Cleanup(func() { must.Close(face) })
 	return face
+}
+
+// SetupPassthruNetif locates PassthruNetif and assigns IP addresses.
+func (prf *PortRemoteFixture) SetupPassthruNetif(addrs ...netip.Prefix) {
+	_, require := makeAR(prf.t)
+
+	var e error
+	prf.PassthruNetif, e = ethnetif.NetIntfByName(ethport.MakePassthruTapName(prf.LocalPort.EthDev()))
+	require.NoError(e)
+
+	require.NoError(prf.PassthruNetif.EnsureLinkUp())
+
+	for _, addr := range addrs {
+		require.NoError(prf.PassthruNetif.SetIP(addr))
+	}
 }
 
 // OverrideMAC returns prf.RemoteMAC if non-empty, otherwise returns input MAC.
@@ -209,6 +225,10 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 		}
 	}
 
+	var locPassthru ethface.PassthruLocator
+	locPassthru.Local.HardwareAddr = prf.LocalPort.EthDev().HardwareAddr()
+	addFaceIfEnabled("passthru", locPassthru)
+
 	var locEther ethface.EtherLocator
 	locEther.Local.HardwareAddr = prf.LocalPort.EthDev().HardwareAddr()
 	locEther.Remote.HardwareAddr = prf.RemoteMAC
@@ -268,6 +288,11 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 	locGtp9.UlTEID, locGtp9.DlTEID = 0x10000009, 0x20000009
 	addFaceIfEnabled("gtp9", locGtp9)
 
+	if _, ok := faces["passthru"]; ok {
+		prf.SetupPassthruNetif(netip.PrefixFrom(locUDP4.LocalIP, 24))
+	}
+	passthruArpOnly := slices.Contains(selections, "+arp-only")
+
 	prf.DiagFaces()
 
 	// Observe packets transmitted by the local port by receiving them on the remote netif.
@@ -296,8 +321,12 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 					if l.Type == an.EtherTypeNDN {
 						classify = "vlan"
 					}
+				case *layers.ARP:
+					classify = "passthru"
 				case *layers.IPv4:
 					isV4 = true
+				case *layers.ICMPv4:
+					classify = "passthru"
 				case *layers.UDP:
 					switch {
 					case int(l.SrcPort) == locUDP4p1.LocalUDP:
@@ -344,6 +373,22 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 	// Transmit packets from a local face to be transmitted by the local port.
 	for i := range 500 {
 		time.Sleep(10 * time.Millisecond)
+
+		if loc, rec := locUDP4, faces["passthru"]; rec != nil {
+			if i%5 == 0 || passthruArpOnly {
+				prf.RemoteWrite(
+					makeARP(loc.Remote.HardwareAddr, loc.RemoteIP, nil, loc.LocalIP)...,
+				)
+				// kernel will send ARP reply
+			} else {
+				prf.RemoteWrite(
+					&layers.Ethernet{SrcMAC: loc.Remote.HardwareAddr, DstMAC: loc.Local.HardwareAddr, EthernetType: layers.EthernetTypeIPv4},
+					&layers.IPv4{Version: 4, TTL: 64, Protocol: layers.IPProtocolICMPv4, SrcIP: locUDP4.RemoteIP.AsSlice(), DstIP: locUDP4.LocalIP.AsSlice()},
+					&layers.ICMPv4{TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoRequest, 0), Id: 1, Seq: uint16(i)},
+				)
+				// kernel will send ICMPv4 reply
+			}
+		}
 
 		if loc, rec := locEther, faces["ether"]; rec != nil {
 			prf.RemoteWrite(
@@ -483,7 +528,7 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 
 func TestTapXDP(t *testing.T) {
 	prf := NewPortRemoteFixture(t, "", "", configPortXDP)
-	testPortRemote(prf, nil)
+	testPortRemote(prf, []string{"-", "passthru"})
 }
 
 func TestTapAfPacket(t *testing.T) {
@@ -551,6 +596,8 @@ func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
 		//   "vlan" enables VLAN locators.
 		//   "gtp" enables GTP-U locators.
 		//   "flow" enables RxFlow tests with default selections.
+		//   "rss" enables RSS action with 2 queues in VXLAN locators.
+		//   "arp-only" restricts pass-through tests to only use ARP traffic.
 		// rxEpsilon,txEpsilon: defaults to 0.02.
 		//
 		// Examples:
@@ -593,6 +640,7 @@ func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
 	if line, ok := os.LookupEnv("ETHFACETEST_VFFLOW"); ok {
 		// ETHFACETEST_VFFLOW syntax: number of queues, followed by comma-separated locator titles.
 		// If unset but flags contain "flow", 4 queues and default selections are used.
+		// This option may be required when "rss" flag is used.
 		// Example:
 		//   ETHFACETEST_VFFLOW=6,ether,vlan,udp4,udp6
 		env.FlowSel = strings.Split(line, ",")
@@ -606,6 +654,12 @@ func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
 
 func TestVfXDP(t *testing.T) {
 	env := parseVfTestEnv(t)
+	if len(env.RegSel) == 0 {
+		env.RegSel = []string{"-", "passthru"}
+	} else if env.RegSel[0] == "-" {
+		env.RegSel = append(env.RegSel, "passthru")
+	}
+
 	prf := env.MakePrf(configPortXDP)
 	testPortRemote(prf, env.RegSel)
 }
@@ -630,17 +684,23 @@ func TestVfRxFlow(t *testing.T) {
 			t.Skip("VfRxFlow tests disabled")
 		}
 
-		env.FlowSel = []string{"ether", "udp4", "udp4p1", "udp6", "vx4", "vx6"}
+		env.FlowSel = []string{"passthru", "ether", "udp4", "udp4p1", "vx4", "udp6", "vx6"}
 		if slices.Contains(env.Flags, "gtp") {
 			env.FlowSel = append(env.FlowSel, "gtp8", "gtp9")
 		}
 	}
 
+	modifiers := []string{}
+	if slices.Contains(env.Flags, "rss") {
+		modifiers = append(modifiers, "+rss")
+	}
+	if slices.Contains(env.Flags, "arp-only") {
+		modifiers = append(modifiers, "+arp-only")
+	}
+
 	i := 0
 	for group := range slices.Chunk(env.FlowSel, env.RxFlowQueues) {
-		if slices.Contains(env.Flags, "rss") {
-			group = append(group, "+rss")
-		}
+		group = append(group, modifiers...)
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			env.t = t
 			prf := env.MakePrf(env.ConfigPortPCI)

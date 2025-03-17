@@ -1,12 +1,14 @@
 package ethface_test
 
 import (
+	"bytes"
 	"net"
 	"net/netip"
 	"sync"
 	"testing"
 
 	"github.com/gopacket/gopacket"
+	"github.com/gopacket/gopacket/afpacket"
 	"github.com/gopacket/gopacket/layers"
 	"github.com/stretchr/testify/require"
 	"github.com/usnistgov/ndn-dpdk/bpf"
@@ -126,6 +128,32 @@ func pktmbufFromLayers(headroom mbuftestenv.Headroom, hdrs ...gopacket.Serializa
 	b, discard := packetFromLayers(hdrs...)
 	defer discard()
 	return makePacket(headroom, b)
+}
+
+func dumpPcap(netif *ethnetif.NetIntf) <-chan []byte {
+	tp, e := afpacket.NewTPacket(afpacket.OptInterface(netif.Name))
+	if e != nil {
+		panic(e)
+	}
+
+	ch := make(chan []byte)
+	go func() {
+		for {
+			wire, _, e := tp.ReadPacketData()
+			if e != nil {
+				close(ch)
+				tp.Close()
+				tp = nil
+				return
+			}
+			if len(wire) >= 14 && bytes.Equal(wire[6:12], netif.HardwareAddr) {
+				// discard loopback packets whose source address is self
+				continue
+			}
+			ch <- wire
+		}
+	}()
+	return ch
 }
 
 // makeARP constructs Ethernet and ARP layers.

@@ -175,21 +175,26 @@ func TestGtpipProcess(t *testing.T) {
 func testGtpip(prf *PortRemoteFixture) {
 	assert, require := makeAR(prf.t)
 	ethDev := prf.LocalPort.EthDev()
-	passthru := makePassthru(prf, ethface.PassthruLocator{
+	passthruFace := prf.AddFace(ethface.PassthruLocator{
+		FaceConfig: ethport.FaceConfig{
+			EthDev: ethDev,
+		},
 		Gtpip: &ethport.GtpipConfig{
 			IPv4Capacity: 8192,
 		},
 	})
-	passthru.AddIP(netip.MustParsePrefix("192.168.3.254/24"))
-	passthru.AddIP(netip.MustParsePrefix("192.168.6.254/24"))
+	prf.SetupPassthruNetif(
+		netip.MustParsePrefix("192.168.3.254/24"),
+		netip.MustParsePrefix("192.168.6.254/24"),
+	)
 	require.NoError(netlink.RouteAdd(&netlink.Route{
-		LinkIndex: passthru.Netif.Index,
+		LinkIndex: prf.PassthruNetif.Index,
 		Dst:       &net.IPNet{IP: net.IPv4(192, 168, 60, 0), Mask: net.CIDRMask(24, 32)},
 		Gw:        net.IPv4(192, 168, 3, 200),
 	}))
-	pcapRecv := passthru.EnablePcap()
+	pcapRecv := dumpPcap(prf.PassthruNetif)
 
-	g := ethport.GtpipFromPassthruFace(passthru.Face.ID())
+	g := ethport.GtpipFromPassthruFace(passthruFace.ID())
 	require.NotNil(g)
 
 	facesGTP := addGtpFaces(prf)
@@ -313,7 +318,7 @@ func testGtpip(prf *PortRemoteFixture) {
 	}
 	time.Sleep(10 * time.Millisecond)
 
-	cntPassthru := passthru.Face.Counters()
+	cntPassthru := passthruFace.Counters()
 	assert.InDelta(112, rxICMP.Load(), 8)            // [104,120]; 120 pings minus loss
 	assert.InDelta(112, txICMP.Load(), 8)            // replies
 	assert.InDelta(92, cntPassthru.RxData, 4)        // [88,96]; 96 UE pings minus loss
