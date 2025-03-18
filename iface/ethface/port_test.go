@@ -42,8 +42,9 @@ const dfltEpsilon = 0.02
 // or another Ethernet adapter (often a PCI Virtual Function) connected with the local port.
 type PortRemoteFixture struct {
 	t             testing.TB
+	RemoteNetif   *ethnetif.NetIntf // available if remote netif is a Virtual Function or similar
 	RemoteMAC     net.HardwareAddr
-	RemoteIntf    io.ReadWriteCloser
+	RemoteIntf    io.ReadWriteCloser // TAP or AF_PACKET file descriptor
 	LocalPort     *ethport.Port
 	PassthruNetif *ethnetif.NetIntf
 	DiagFaces     func() // invoked after face creation and before traffic generation
@@ -61,6 +62,7 @@ func (prf *PortRemoteFixture) AddFace(loc ethport.Locator) iface.Face {
 }
 
 // SetupPassthruNetif locates PassthruNetif and assigns IP addresses.
+// Panics if the local port does not have a pass-through face.
 func (prf *PortRemoteFixture) SetupPassthruNetif(addrs ...netip.Prefix) {
 	_, require := makeAR(prf.t)
 
@@ -153,7 +155,7 @@ func NewPortRemoteFixture(
 				t.Cleanup(func() { netlink.SetPromiscOff(link.Link) })
 			}
 		}
-		prf.RemoteMAC = link.HardwareAddr
+		prf.RemoteNetif, prf.RemoteMAC = link, link.HardwareAddr
 
 		tpacket, e := goafpacket.NewTPacket(goafpacket.OptInterface(remoteIfname), goafpacket.OptAddVLANHeader(true))
 		require.NoError(e)
@@ -298,15 +300,16 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 	// Observe packets transmitted by the local port by receiving them on the remote netif.
 	var txOther atomic.Int32
 	go func() {
-		buf := make([]byte, prf.LocalPort.EthDev().MTU())
+		buf := make([]byte, 9200)
 		for {
 			n, e := prf.RemoteIntf.Read(buf)
 			if e != nil {
 				break
 			}
 
+			pkt := buf[:n]
+			parsed := gopacket.NewPacket(pkt, layers.LayerTypeEthernet, gopacket.NoCopy)
 			classify, isV4, isVlan, gtp := "", false, false, 0
-			parsed := gopacket.NewPacket(buf[:n], layers.LayerTypeEthernet, gopacket.NoCopy)
 			for i, l := range parsed.Layers() {
 				switch l := l.(type) {
 				case *layers.Ethernet:
@@ -377,7 +380,7 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 		if loc, rec := locUDP4, faces["passthru"]; rec != nil {
 			if i%5 == 0 || passthruArpOnly {
 				prf.RemoteWrite(
-					makeARP(loc.Remote.HardwareAddr, loc.RemoteIP, nil, loc.LocalIP)...,
+					makeARP(loc.Remote.HardwareAddr, loc.RemoteIP.AsSlice(), nil, loc.LocalIP.AsSlice())...,
 				)
 				// kernel will send ARP reply
 			} else {
@@ -536,21 +539,17 @@ func TestTapAfPacket(t *testing.T) {
 	testPortRemote(prf, nil)
 }
 
-type vfTestEnv struct {
+type vfPairEnv struct {
 	t            testing.TB
 	RemoteIfname string
 	LocalIfname  string
 	LocalPCI     *pciaddr.PCIAddress
-	Flags        []string
+	RxFlowQueues int
 	RxEpsilon    float64
 	TxEpsilon    float64
-
-	RegSel       []string // locator selection in non-flow mode
-	FlowSel      []string // locator selection in flow mode
-	RxFlowQueues int
 }
 
-func (env *vfTestEnv) MakePrf(configPort func(ifname string) ethport.Config) *PortRemoteFixture {
+func (env *vfPairEnv) MakePrf(configPort func(ifname string) ethport.Config) *PortRemoteFixture {
 	prf := NewPortRemoteFixture(env.t, env.RemoteIfname, env.LocalIfname, configPort)
 	prf.DiagFaces = func() {
 		dump, e := ethdev.GetFlowDump(prf.LocalPort.EthDev())
@@ -564,7 +563,7 @@ func (env *vfTestEnv) MakePrf(configPort func(ifname string) ethport.Config) *Po
 //
 // parseVfTestEnv initializes env.RxFlowQueues to non-zero, which would create the port with RxFlow.
 // Set env.RxFlowQueues to zero, in order to create the port with RxTable.
-func (env *vfTestEnv) ConfigPortPCI(ifname string) ethport.Config {
+func (env *vfPairEnv) ConfigPortPCI(ifname string) ethport.Config {
 	netifConfig := ethnetif.Config{
 		Driver: ethnetif.DriverPCI,
 	}
@@ -582,9 +581,25 @@ func (env *vfTestEnv) ConfigPortPCI(ifname string) ethport.Config {
 	}
 }
 
-func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
+func parseVfPairEnv(t testing.TB, tokens []string) (env vfPairEnv) {
 	env.t = t
+	env.RemoteIfname, env.LocalIfname = tokens[0], tokens[1]
+	if localIfTokens := strings.SplitN(env.LocalIfname, "=", 2); len(localIfTokens) == 2 {
+		env.LocalIfname = localIfTokens[0]
+		pciAddr, _ := pciaddr.Parse(localIfTokens[1])
+		env.LocalPCI = &pciAddr
+	}
+	return
+}
 
+type vfTestEnv struct {
+	vfPairEnv
+	Flags   []string
+	RegSel  []string // locator selection in non-flow mode
+	FlowSel []string // locator selection in flow mode
+}
+
+func parseVfTestEnv(t testing.TB) (env vfTestEnv) {
 	line, ok := os.LookupEnv("ETHFACETEST_VF")
 	if !ok {
 		// ETHFACETEST_VF syntax: remoteIfname,localIfname=localPCI,vfFlags,rxEpsilon,txEpsilon
@@ -610,13 +625,7 @@ func parseVfTestEnv(t *testing.T) (env vfTestEnv) {
 	for len(tokens) < 3 {
 		tokens = append(tokens, "")
 	}
-	env.RemoteIfname, env.LocalIfname, env.Flags = tokens[0], tokens[1], strings.Split(tokens[2], "+")
-
-	if localIfTokens := strings.SplitN(env.LocalIfname, "=", 2); len(localIfTokens) == 2 {
-		env.LocalIfname = localIfTokens[0]
-		pciAddr, _ := pciaddr.Parse(localIfTokens[1])
-		env.LocalPCI = &pciAddr
-	}
+	env.vfPairEnv, env.Flags = parseVfPairEnv(t, tokens), strings.Split(tokens[2], "+")
 
 	if len(tokens) > 4 {
 		env.RxEpsilon, _ = strconv.ParseFloat(tokens[3], 64)

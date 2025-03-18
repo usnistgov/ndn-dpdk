@@ -22,6 +22,7 @@ enum {
 typedef struct EthPassthru {
   RxGroup base;
   uint16_t tapPort;
+  FaceID n3Face;
   EthGtpip* gtpip;
 } EthPassthru;
 
@@ -33,7 +34,6 @@ typedef struct EthPassthru {
  */
 __attribute__((nonnull)) void
 EthPassthru_FaceRxInput(Face* face, int rxThread, FaceRxInputCtx* ctx);
-;
 
 /**
  * @brief Receive Ethernet frames on a TAP ethdev associated with a pass-through face.

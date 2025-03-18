@@ -17,6 +17,7 @@ import (
 	"unsafe"
 
 	"github.com/usnistgov/ndn-dpdk/core/cptr"
+	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
@@ -25,6 +26,10 @@ import (
 
 // GtpipConfig contains GTP-IP handler configuration.
 type GtpipConfig struct {
+	N6Face   iface.Face   `json:"-"` // TODO accept GraphQL FaceID
+	N6Local  macaddr.Flag `json:"n6Local,omitempty"`
+	N6Remote macaddr.Flag `json:"n6Remote,omitempty"`
+
 	// UE IPv4 address hashtable capacity, between 256 and 65536.
 	IPv4Capacity int `json:"ipv4capacity,omitempty"`
 }
@@ -97,6 +102,11 @@ func (g *Gtpip) Close() error {
 // NewGtpip creates a GTP-IP handler.
 func NewGtpip(cfg GtpipConfig, socket eal.NumaSocket) (g *Gtpip, e error) {
 	g = (*Gtpip)(eal.Zmalloc[C.EthGtpip]("EthGtpip", C.sizeof_EthGtpip, socket))
+
+	if cfg.N6Face != nil {
+		g.n6Face = C.FaceID(cfg.N6Face.ID())
+		copy(cptr.AsByteSlice(g.n6Mac[:]), slices.Concat(cfg.N6Remote.HardwareAddr, cfg.N6Local.HardwareAddr))
+	}
 
 	ht4ID := C.CString(eal.AllocObjectID("ethport.Gtpip.ipv4"))
 	defer C.free(unsafe.Pointer(ht4ID))

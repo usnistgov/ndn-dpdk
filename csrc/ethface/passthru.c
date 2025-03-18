@@ -3,6 +3,37 @@
 #include "face.h"
 #include "gtpip.h"
 
+__attribute__((nonnull)) static inline void
+EthPassthru_FaceRxInput_Gtpip(FaceRxThread* rxt, EthGtpip* g, FaceRxInputCtx* ctx, uint16_t* nPkts,
+                              uint16_t* nTx) {
+  uint64_t gtpipMask = EthGtpip_ProcessUplinkBulk(g, ctx->pkts, ctx->count);
+  if (gtpipMask == 0) {
+    // no GTP-IP packets
+    return;
+  }
+
+  uint16_t nGtpip = rte_popcount64(gtpipMask);
+  rxt->nFrames[EthPassthru_cntNGtpip] += nGtpip;
+  *nPkts -= nGtpip;
+  if (g->n6Face == 0) {
+    // GTP-IP packets are interleaved with other packets and will be sent via TAP netif
+    return;
+  }
+
+  // GTP-IP packets must be separated from other packets and will be sent via N6 face
+  for (uint16_t i = 0, jPkt = 0, jGtpip = 0; i < ctx->count; ++i) {
+    struct rte_mbuf* pkt = ctx->pkts[i];
+    if (rte_bit_test(&gtpipMask, i)) {
+      rte_memcpy(rte_pktmbuf_mtod(pkt, uint8_t*), g->n6Mac, sizeof(g->n6Mac));
+      ctx->npkts[jGtpip++] = (Packet*)pkt;
+    } else {
+      ctx->pkts[jPkt++] = pkt;
+    }
+  }
+  Face_TxBurst(g->n6Face, ctx->npkts, nGtpip);
+  *nTx = *nPkts;
+}
+
 void
 EthPassthru_FaceRxInput(Face* face, int rxThread, FaceRxInputCtx* ctx) {
   FaceRxThread* rxt = &face->impl->rx[rxThread];
@@ -13,18 +44,23 @@ EthPassthru_FaceRxInput(Face* face, int rxThread, FaceRxInputCtx* ctx) {
     struct rte_mbuf* pkt = ctx->pkts[i];
     rxt->nFrames[FaceRxThread_cntNOctets] += pkt->pkt_len;
   }
-  if (pt->gtpip == NULL) {
-    rxt->nFrames[EthPassthru_cntNPkts] += ctx->count;
-  } else {
-    uint64_t nGtpip = rte_popcount64(EthGtpip_ProcessUplinkBulk(pt->gtpip, ctx->pkts, ctx->count));
-    rxt->nFrames[EthPassthru_cntNGtpip] += nGtpip;
-    rxt->nFrames[EthPassthru_cntNPkts] += ctx->count - nGtpip;
+
+  uint16_t nPkts = ctx->count; // how many packets to be counted in the nPkts counter
+  uint16_t nTx = ctx->count;   // how many packets to be transmitted via TAP netif
+  if (pt->gtpip != NULL) {
+    EthPassthru_FaceRxInput_Gtpip(rxt, pt->gtpip, ctx, &nPkts, &nTx);
+  }
+  rxt->nFrames[EthPassthru_cntNPkts] += nPkts;
+
+  if (pt->n3Face != 0) {
+    Face_TxBurst(pt->n3Face, (Packet**)ctx->pkts, nTx);
+    return;
   }
 
   uint16_t nSent = 0;
   uint16_t tapPort = pt->tapPort;
-  if (likely(tapPort != UINT16_MAX)) {
-    nSent = rte_eth_tx_burst(pt->tapPort, 0, ctx->pkts, ctx->count);
+  if (likely(tapPort != UINT16_MAX) && nTx > 0) {
+    nSent = rte_eth_tx_burst(pt->tapPort, 0, ctx->pkts, nTx);
   }
   ctx->nFree = ctx->count - nSent;
   if (unlikely(ctx->nFree > 0)) {

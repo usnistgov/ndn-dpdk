@@ -6,11 +6,11 @@ package afpacket
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"net"
 
 	"github.com/gopacket/gopacket/afpacket"
+	"github.com/gopacket/gopacket/htons"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
 	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
@@ -79,10 +79,8 @@ func (tr *transport) prepare(loc packettransport.Locator) error {
 	fd := tr.h.FD()
 	ifindex := tr.intf.Index
 
-	var ethtype [2]byte
-	binary.BigEndian.PutUint16(ethtype[:], packettransport.EthernetTypeNDN)
 	sockaddr := unix.SockaddrLinklayer{
-		Protocol: binary.LittleEndian.Uint16(ethtype[:]),
+		Protocol: htons.Htons(packettransport.EthernetTypeNDN),
 		Ifindex:  ifindex,
 	}
 	if e := unix.Bind(fd, &sockaddr); e != nil {

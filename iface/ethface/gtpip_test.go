@@ -1,22 +1,27 @@
 package ethface_test
 
 import (
+	"bytes"
 	"encoding/hex"
+	"io"
 	"net"
 	"net/netip"
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/gopacket/gopacket"
+	goafpacket "github.com/gopacket/gopacket/afpacket"
 	"github.com/gopacket/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
+	"github.com/usnistgov/ndn-dpdk/ndn/packettransport/afpacket"
 	"github.com/vishvananda/netlink"
 )
 
@@ -73,8 +78,7 @@ func TestGtpipProcess(t *testing.T) {
 			switch i {
 			case 99:
 				vec[i] = pktmbufFromLayers(pktmbuf.DefaultHeadroom,
-					makeARP(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 0xFE}, netip.AddrFrom4([4]byte{192, 168, 6, 254}),
-						nil, netip.AddrFrom4([4]byte{192, 168, 6, 200}))...,
+					makeARP(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 0xFE}, net.IPv4(192, 168, 6, 254), nil, net.IPv4(192, 168, 6, 200))...,
 				)
 			default:
 				vec[i] = pktmbufFromLayers(pktmbuf.DefaultHeadroom,
@@ -172,40 +176,211 @@ func TestGtpipProcess(t *testing.T) {
 	})
 }
 
-func testGtpip(prf *PortRemoteFixture) {
-	assert, require := makeAR(prf.t)
-	ethDev := prf.LocalPort.EthDev()
-	passthruFace := prf.AddFace(ethface.PassthruLocator{
+type GtpipFixture struct {
+	DebugLevel int
+
+	*PortRemoteFixture
+	PassthruFace iface.Face
+	Gtpip        *ethport.Gtpip
+
+	N6     *PortRemoteFixture // if specified, create and use N6 face
+	N6Face iface.Face
+
+	GtpFaces []iface.Face
+}
+
+func (gf *GtpipFixture) Setup() {
+	assert, require := makeAR(gf.t)
+	gf.DebugLevel, _ = strconv.Atoi(os.Getenv("ETHFACETEST_GTPIPDBG"))
+
+	if gf.N6 != nil {
+		gf.N6Face = gf.N6.AddFace(ethface.PassthruLocator{
+			FaceConfig: ethport.FaceConfig{
+				EthDev: gf.N6.LocalPort.EthDev(),
+			},
+		})
+	}
+
+	ptLoc := ethface.PassthruLocator{
 		FaceConfig: ethport.FaceConfig{
-			EthDev: ethDev,
+			EthDev: gf.LocalPort.EthDev(),
 		},
 		Gtpip: &ethport.GtpipConfig{
 			IPv4Capacity: 8192,
 		},
-	})
-	prf.SetupPassthruNetif(
-		netip.MustParsePrefix("192.168.3.254/24"),
-		netip.MustParsePrefix("192.168.6.254/24"),
+	}
+	if gf.N6Face != nil {
+		ptLoc.Gtpip.N6Face = gf.N6Face
+		ptLoc.Gtpip.N6Local.HardwareAddr = gf.N6.LocalPort.EthDev().HardwareAddr()
+		ptLoc.Gtpip.N6Remote.HardwareAddr = gf.N6.RemoteMAC
+	}
+	gf.PassthruFace = gf.AddFace(ptLoc)
+	gf.Gtpip = ethport.GtpipFromPassthruFace(gf.PassthruFace.ID())
+	require.NotNil(gf.Gtpip)
+
+	if gf.N6 == nil {
+		gf.SetupPassthruNetif(
+			netip.MustParsePrefix("192.168.3.254/24"),
+			netip.MustParsePrefix("192.168.6.254/24"),
+		)
+		require.NoError(netlink.RouteReplace(&netlink.Route{
+			LinkIndex: gf.PassthruNetif.Index,
+			Dst:       &net.IPNet{IP: net.IPv4(192, 168, 60, 0), Mask: net.CIDRMask(24, 32)},
+			Gw:        net.IPv4(192, 168, 3, 200),
+		}))
+	} else {
+		gf.SetupPassthruNetif(netip.MustParsePrefix("192.168.3.254/24"))
+		gf.N6.SetupPassthruNetif()
+		require.NoError(gf.N6.RemoteNetif.SetIP(
+			netip.MustParsePrefix("192.168.6.254/24"),
+		))
+		_, ueNet, _ := net.ParseCIDR("192.168.60.0/24")
+		require.NoError(netlink.RouteReplace(&netlink.Route{
+			LinkIndex: gf.N6.RemoteNetif.Index,
+			Dst:       ueNet,
+			Gw:        net.IPv4(192, 168, 6, 200),
+		}))
+	}
+
+	gf.GtpFaces = addGtpFaces(gf.PortRemoteFixture)
+	assert.Equal(len(gf.GtpFaces), gf.Gtpip.Len())
+}
+
+// N3Ping causes GTP-IP to receive an ICMPv4 packet from N3 peer.
+// If i<len(GtpFaces), the packet comes from an UE whose IP address is derived from i.
+// Otherwise, the packet comes from a non-UE peer whose IP address is derived from i.
+func (gf *GtpipFixture) N3Ping(i int) {
+	if i >= len(gf.GtpFaces) {
+		gf.n3PingPlain(i)
+	} else {
+		gf.n3PingGtp(i)
+	}
+}
+
+func (gf *GtpipFixture) n3PingPlain(i int) {
+	gf.RemoteWrite(
+		&layers.Ethernet{
+			SrcMAC:       gf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i)}),
+			DstMAC:       gf.LocalPort.EthDev().HardwareAddr(),
+			EthernetType: layers.EthernetTypeIPv4,
+		},
+		&layers.IPv4{
+			Version:  4,
+			TTL:      64,
+			Protocol: layers.IPProtocolICMPv4,
+			SrcIP:    net.IPv4(192, 168, 3, 2+byte(i)),
+			DstIP:    net.IPv4(192, 168, 3, 254),
+		},
+		&layers.ICMPv4{
+			TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoRequest, 0),
+			Id:       uint16(i),
+			Seq:      1,
+		},
 	)
-	require.NoError(netlink.RouteAdd(&netlink.Route{
-		LinkIndex: prf.PassthruNetif.Index,
-		Dst:       &net.IPNet{IP: net.IPv4(192, 168, 60, 0), Mask: net.CIDRMask(24, 32)},
-		Gw:        net.IPv4(192, 168, 3, 200),
-	}))
-	pcapRecv := dumpPcap(prf.PassthruNetif)
+}
 
-	g := ethport.GtpipFromPassthruFace(passthruFace.ID())
-	require.NotNil(g)
+func (gf *GtpipFixture) n3PingGtp(i int) {
+	gf.RemoteWrite(
+		&layers.Ethernet{
+			SrcMAC:       gf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i>>4)}),
+			DstMAC:       gf.LocalPort.EthDev().HardwareAddr(),
+			EthernetType: layers.EthernetTypeIPv4,
+		},
+		&layers.IPv4{
+			Version:  4,
+			TTL:      64,
+			Protocol: layers.IPProtocolUDP,
+			SrcIP:    net.IPv4(192, 168, 3, 2+byte(i>>4)),
+			DstIP:    net.IPv4(192, 168, 3, 254),
+		},
+		&layers.UDP{
+			SrcPort: ethport.UDPPortGTP,
+			DstPort: ethport.UDPPortGTP,
+		},
+		makeGTPv1U(0x10000000+uint32(i), 1, 2),
+		&layers.IPv4{
+			Version:  4,
+			TTL:      64,
+			Protocol: layers.IPProtocolICMPv4,
+			SrcIP:    net.IPv4(192, 168, 60, 2+byte(i)),
+			DstIP:    net.IPv4(192, 168, 6, 254),
+		},
+		&layers.ICMPv4{
+			TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoRequest, 0),
+			Id:       uint16(i),
+			Seq:      1,
+		},
+	)
+}
 
-	facesGTP := addGtpFaces(prf)
-	assert.Equal(len(facesGTP), g.Len())
+// CountRX counts ICMP echo requests.
+func (gf *GtpipFixture) CountRX(intf io.Reader, selfMAC net.HardwareAddr, rxICMP *atomic.Int32) {
+	buf := make([]byte, 9200)
+	for {
+		n, e := intf.Read(buf)
+		if e != nil {
+			break
+		}
+		if n < 14 || bytes.Equal(buf[6:12], selfMAC) {
+			continue
+		}
+		pkt := buf[:n]
 
-	prf.DiagFaces()
+		if gf.DebugLevel >= 2 {
+			gf.t.Logf("RX %s", hex.EncodeToString(pkt))
+		}
 
-	dbg, _ := strconv.Atoi(os.Getenv("ETHFACETEST_GTPIPDBG"))
-	if dbg >= 1 {
+		parsed := gopacket.NewPacket(pkt, layers.LayerTypeEthernet, gopacket.NoCopy)
+		if icmp, ok := parsed.Layer(layers.LayerTypeICMPv4).(*layers.ICMPv4); ok && icmp.TypeCode.Type() == layers.ICMPv4TypeEchoRequest {
+			rxICMP.Add(1)
+			// kernel will send ICMP echo replies
+		}
+	}
+}
+
+// CountTX counts ICMP echo replies and responds to ARP requests.
+func (gf *GtpipFixture) CountTX(
+	intf io.ReadWriter, selfMAC net.HardwareAddr, txICMP *atomic.Int32,
+	replyARP func(ip net.IP) bool,
+) {
+	buf := make([]byte, 9200)
+	for {
+		n, e := gf.RemoteIntf.Read(buf)
+		if e != nil {
+			break
+		}
+		if n < 14 || bytes.Equal(buf[6:12], selfMAC) {
+			continue
+		}
+		pkt := buf[:n]
+
+		if gf.DebugLevel >= 2 {
+			gf.t.Logf("TX %s", hex.EncodeToString(pkt))
+		}
+
+		parsed := gopacket.NewPacket(pkt, layers.LayerTypeEthernet, gopacket.NoCopy)
+		if arp, ok := parsed.Layer(layers.LayerTypeARP).(*layers.ARP); ok && arp.Operation == layers.ARPRequest {
+			if replyARP(arp.DstProtAddress) {
+				remoteMAC := append(net.HardwareAddr{0x02, 0x00}, arp.DstProtAddress...)
+				gf.RemoteWrite(
+					makeARP(gf.OverrideMAC(remoteMAC), arp.DstProtAddress, arp.SourceHwAddress, arp.SourceProtAddress)...,
+				)
+			}
+		} else if icmp, ok := parsed.Layer(layers.LayerTypeICMPv4).(*layers.ICMPv4); ok && icmp.TypeCode.Type() == layers.ICMPv4TypeEchoReply {
+			txICMP.Add(1)
+		}
+	}
+}
+
+func testGtpip(gf *GtpipFixture) {
+	assert, require := makeAR(gf.t)
+	gf.Setup()
+
+	gf.DiagFaces()
+
+	if gf.DebugLevel >= 1 {
 		dbgSleep := func() {
-			prf.t.Log("sleep 30 seconds for ETHFACETEST_GTPIPDBG=1")
+			gf.t.Log("sleep 30 seconds for ETHFACETEST_GTPIPDBG=1")
 			time.Sleep(30 * time.Second)
 		}
 		dbgSleep()
@@ -215,135 +390,93 @@ func testGtpip(prf *PortRemoteFixture) {
 	var rxICMP, txICMP atomic.Int32
 
 	// Count non-NDN packets received on the "inner" TAP netif.
-	go func() {
-		for pkt := range pcapRecv {
-			if dbg >= 2 {
-				prf.t.Logf("RX %s", hex.EncodeToString(pkt))
-			}
-
-			parsed := gopacket.NewPacket(pkt, layers.LayerTypeEthernet, gopacket.NoCopy)
-			if icmp, ok := parsed.Layer(layers.LayerTypeICMPv4).(*layers.ICMPv4); ok && icmp.TypeCode.Type() == layers.ICMPv4TypeEchoRequest {
-				rxICMP.Add(1)
-				// kernel will send ICMP echo replies
-			}
-		}
-	}()
+	{
+		tpacket, e := goafpacket.NewTPacket(goafpacket.OptInterface(gf.PassthruNetif.Name), goafpacket.OptAddVLANHeader(true))
+		require.NoError(e)
+		passthruIntf := afpacket.NewTPacketHandle(tpacket)
+		// TPacketHandle closes itself when the TAP netif goes away.
+		go gf.CountRX(passthruIntf, gf.PassthruNetif.HardwareAddr, &rxICMP)
+	}
 
 	// Count packets sent via the "hardware" ethdev.
 	// Respond to ARP requests.
-	go func() {
-		buf := make([]byte, prf.LocalPort.EthDev().MTU())
-		_, n3net, _ := net.ParseCIDR("192.168.3.0/24")
-		for {
-			n, e := prf.RemoteIntf.Read(buf)
-			if e != nil {
-				break
-			}
-			pkt := buf[:n]
+	_, n3net, _ := net.ParseCIDR("192.168.3.0/24")
+	go gf.CountTX(gf.RemoteIntf, gf.RemoteMAC, &txICMP, func(ip net.IP) bool {
+		return n3net.Contains(ip) && ip[3] < 0xF0
+	})
 
-			if dbg >= 2 {
-				prf.t.Logf("TX %s", hex.EncodeToString(pkt))
-			}
+	if gf.N6 != nil {
+		go gf.CountRX(gf.N6.RemoteIntf, gf.N6.RemoteMAC, &rxICMP)
 
-			parsed := gopacket.NewPacket(pkt, layers.LayerTypeEthernet, gopacket.NoCopy)
-			if arp, ok := parsed.Layer(layers.LayerTypeARP).(*layers.ARP); ok && arp.Operation == layers.ARPRequest {
-				if n3net.Contains(arp.DstProtAddress) && arp.DstProtAddress[3] < 0xF0 {
-					remoteIP, _ := netip.AddrFromSlice(arp.DstProtAddress)
-					remoteMAC := prf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, remoteIP.As4()[3]})
-					localIP, _ := netip.AddrFromSlice(arp.SourceProtAddress)
-					prf.RemoteWrite(makeARP(remoteMAC, remoteIP, arp.SourceHwAddress, localIP)...)
-				}
-			} else if icmp, ok := parsed.Layer(layers.LayerTypeICMPv4).(*layers.ICMPv4); ok && icmp.TypeCode.Type() == layers.ICMPv4TypeEchoReply {
-				txICMP.Add(1)
-			}
-		}
-	}()
+		tpacket, e := goafpacket.NewTPacket(goafpacket.OptInterface(gf.N6.PassthruNetif.Name), goafpacket.OptAddVLANHeader(true))
+		require.NoError(e)
+		passthruIntf := afpacket.NewTPacketHandle(tpacket)
+		// TPacketHandle closes itself when the TAP netif goes away.
+		go gf.CountTX(passthruIntf, gf.N6.PassthruNetif.HardwareAddr, &txICMP, func(ip net.IP) bool {
+			return ip.Equal(net.IPv4(192, 168, 6, 200))
+		})
+	}
 
 	// Transmit 96 UE pings (one from each UE) and 24 non-UE pings.
 	for i := range 120 {
 		time.Sleep(10 * time.Millisecond)
-		if i < len(facesGTP) {
-			prf.RemoteWrite(
-				&layers.Ethernet{
-					SrcMAC:       prf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i>>4)}),
-					DstMAC:       ethDev.HardwareAddr(),
-					EthernetType: layers.EthernetTypeIPv4,
-				},
-				&layers.IPv4{
-					Version:  4,
-					TTL:      64,
-					Protocol: layers.IPProtocolUDP,
-					SrcIP:    net.IPv4(192, 168, 3, 2+byte(i>>4)),
-					DstIP:    net.IPv4(192, 168, 3, 254),
-				},
-				&layers.UDP{
-					SrcPort: ethport.UDPPortGTP,
-					DstPort: ethport.UDPPortGTP,
-				},
-				makeGTPv1U(0x10000000+uint32(i), 1, 2),
-				&layers.IPv4{
-					Version:  4,
-					TTL:      64,
-					Protocol: layers.IPProtocolICMPv4,
-					SrcIP:    net.IPv4(192, 168, 60, 2+byte(i)),
-					DstIP:    net.IPv4(192, 168, 6, 254),
-				},
-				&layers.ICMPv4{
-					TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoRequest, 0),
-					Id:       uint16(i),
-					Seq:      1,
-				},
-			)
-		} else {
-			prf.RemoteWrite(
-				&layers.Ethernet{
-					SrcMAC:       prf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i)}),
-					DstMAC:       ethDev.HardwareAddr(),
-					EthernetType: layers.EthernetTypeIPv4,
-				},
-				&layers.IPv4{
-					Version:  4,
-					TTL:      64,
-					Protocol: layers.IPProtocolICMPv4,
-					SrcIP:    net.IPv4(192, 168, 3, 2+byte(i)),
-					DstIP:    net.IPv4(192, 168, 3, 254),
-				},
-				&layers.ICMPv4{
-					TypeCode: layers.CreateICMPv4TypeCode(layers.ICMPv4TypeEchoRequest, 0),
-					Id:       uint16(i),
-					Seq:      1,
-				},
-			)
-		}
+		gf.N3Ping(i)
 	}
 	time.Sleep(10 * time.Millisecond)
 
-	cntPassthru := passthruFace.Counters()
+	cntPassthru := gf.PassthruFace.Counters()
 	assert.InDelta(112, rxICMP.Load(), 8)            // [104,120]; 120 pings minus loss
 	assert.InDelta(112, txICMP.Load(), 8)            // replies
 	assert.InDelta(92, cntPassthru.RxData, 4)        // [88,96]; 96 UE pings minus loss
-	assert.InDelta(92, cntPassthru.TxData, 4)        // replies
 	assert.Greater(int(cntPassthru.RxInterests), 24) // 24 non-UE pings plus ARP
-	assert.Greater(int(cntPassthru.TxInterests), 24) // replies
+	if gf.N6 == nil {
+		assert.InDelta(92, cntPassthru.TxData, 4)        // replies to UE pings
+		assert.Greater(int(cntPassthru.TxInterests), 24) // replies to non-UE pings plus ARP
+	} else {
+		assert.Zero(cntPassthru.TxData)
+		assert.Greater(int(cntPassthru.TxInterests), 120) // replies to all pings
+	}
 	assert.Greater(int(cntPassthru.RxOctets), 0)
 	assert.Greater(int(cntPassthru.TxOctets), 0)
+
+	if gf.N6Face != nil {
+		cntN6 := gf.N6Face.Counters()
+		gf.t.Log("N6 counters", cntN6)
+	}
 }
 
 func TestGtpipTap(t *testing.T) {
 	prf := NewPortRemoteFixture(t, "", "", nil)
 	prf.RemoteMAC = nil // allow arbitrary remote MAC
-	testGtpip(prf)
+	testGtpip(&GtpipFixture{PortRemoteFixture: prf})
 }
 
 func TestGtpipAfPacket(t *testing.T) {
 	env := parseVfTestEnv(t)
-	prf := env.MakePrf(nil)
-	testGtpip(prf)
+	testGtpip(&GtpipFixture{PortRemoteFixture: env.MakePrf(nil)})
 }
 
 func TestGtpipRxTable(t *testing.T) {
 	env := parseVfTestEnv(t)
 	env.RxFlowQueues = 0
-	prf := env.MakePrf(env.ConfigPortPCI)
-	testGtpip(prf)
+	testGtpip(&GtpipFixture{PortRemoteFixture: env.MakePrf(env.ConfigPortPCI)})
+}
+
+func TestGtpipN6(t *testing.T) {
+	envN3 := parseVfTestEnv(t)
+	envN3.RxFlowQueues = 0
+
+	line, ok := os.LookupEnv("ETHFACETEST_VFN6")
+	if !ok {
+		// ETHFACETEST_VFN6 syntax: remoteIfname,localIfname=localPCI
+		t.Skip("GTPIP-N6 test disabled; rerun test suite and specify two netifs in ETHFACETEST_VFN6 environ.")
+	}
+	envN6 := parseVfPairEnv(t, strings.Split(line, ","))
+	envN6.RxFlowQueues = 0
+
+	gf := GtpipFixture{
+		PortRemoteFixture: envN3.MakePrf(envN3.ConfigPortPCI),
+		N6:                envN6.MakePrf(envN6.ConfigPortPCI),
+	}
+	testGtpip(&gf)
 }

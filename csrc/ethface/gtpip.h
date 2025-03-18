@@ -5,9 +5,19 @@
 
 #include "../dpdk/hashtable.h"
 #include "../dpdk/mbuf.h"
+#include "../iface/faceid.h"
+#include <rte_ether.h>
 
 /** @brief GTP-IP handler. */
 typedef struct EthGtpip {
+  /**
+   * @brief N6 face.
+   *
+   * When set, N6 traffic is sent/received on this port instead of @c EthPassthru.tapPort .
+   */
+  FaceID n6Face;
+  uint8_t n6Mac[2 * RTE_ETHER_ADDR_LEN];
+
   /**
    * @brief Mapping from UE IPv4 address to FaceID.
    *

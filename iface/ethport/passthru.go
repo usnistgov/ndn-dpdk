@@ -115,7 +115,6 @@ func (fport *passthruPort) stopTap() {
 
 func (fport *passthruPort) enableGtpip(cfg GtpipConfig) (e error) {
 	fport.gtpip, e = NewGtpip(cfg, fport.NumaSocket())
-
 	if e != nil {
 		return e
 	}
@@ -127,6 +126,11 @@ func (fport *passthruPort) enableGtpip(cfg GtpipConfig) (e error) {
 
 	ptC := &fport.face.priv.passthru
 	ptC.gtpip = (*C.EthGtpip)(fport.gtpip)
+
+	if cfg.N6Face != nil {
+		cfg.N6Face.(*Face).priv.passthru.n3Face = fport.face.priv.faceID
+	}
+
 	return nil
 }
 

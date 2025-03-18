@@ -1,14 +1,11 @@
 package ethface_test
 
 import (
-	"bytes"
 	"net"
-	"net/netip"
 	"sync"
 	"testing"
 
 	"github.com/gopacket/gopacket"
-	"github.com/gopacket/gopacket/afpacket"
 	"github.com/gopacket/gopacket/layers"
 	"github.com/stretchr/testify/require"
 	"github.com/usnistgov/ndn-dpdk/bpf"
@@ -130,36 +127,10 @@ func pktmbufFromLayers(headroom mbuftestenv.Headroom, hdrs ...gopacket.Serializa
 	return makePacket(headroom, b)
 }
 
-func dumpPcap(netif *ethnetif.NetIntf) <-chan []byte {
-	tp, e := afpacket.NewTPacket(afpacket.OptInterface(netif.Name))
-	if e != nil {
-		panic(e)
-	}
-
-	ch := make(chan []byte)
-	go func() {
-		for {
-			wire, _, e := tp.ReadPacketData()
-			if e != nil {
-				close(ch)
-				tp.Close()
-				tp = nil
-				return
-			}
-			if len(wire) >= 14 && bytes.Equal(wire[6:12], netif.HardwareAddr) {
-				// discard loopback packets whose source address is self
-				continue
-			}
-			ch <- wire
-		}
-	}()
-	return ch
-}
-
 // makeARP constructs Ethernet and ARP layers.
 //
 //	dstMAC: if nil, make ARP request; otherwise, make ARP reply.
-func makeARP(srcMAC net.HardwareAddr, srcIP netip.Addr, dstMAC net.HardwareAddr, dstIP netip.Addr) []gopacket.SerializableLayer {
+func makeARP(srcMAC net.HardwareAddr, srcIP net.IP, dstMAC net.HardwareAddr, dstIP net.IP) []gopacket.SerializableLayer {
 	op, ethDst := uint16(layers.ARPReply), dstMAC
 	if len(dstMAC) == 0 {
 		op = layers.ARPRequest
@@ -177,9 +148,9 @@ func makeARP(srcMAC net.HardwareAddr, srcIP netip.Addr, dstMAC net.HardwareAddr,
 			Protocol:          layers.EthernetTypeIPv4,
 			Operation:         op,
 			SourceHwAddress:   srcMAC,
-			SourceProtAddress: srcIP.AsSlice(),
+			SourceProtAddress: srcIP,
 			DstHwAddress:      dstMAC,
-			DstProtAddress:    dstIP.AsSlice(),
+			DstProtAddress:    dstIP,
 		},
 	}
 }
