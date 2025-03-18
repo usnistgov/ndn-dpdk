@@ -53,9 +53,13 @@ typedef struct EthFlowDef {
   };
 
   struct rte_flow_action actions[3];
-  struct rte_flow_action_queue queueAct;
-  struct rte_flow_action_rss rssAct;
-  uint16_t rssQueues[MaxFaceRxThreads];
+  union {
+    struct rte_flow_action_queue queueAct;
+    struct {
+      struct rte_flow_action_rss rssAct;
+      uint16_t rssQueues[MaxFaceRxThreads];
+    };
+  };
   struct rte_flow_action_mark markAct;
 } EthFlowDef;
 

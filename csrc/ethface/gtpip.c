@@ -117,13 +117,22 @@ enum {
   UlHdrLenVlanIpv6 = UlHdrLenIpv6 + sizeof(struct rte_vlan_hdr),
 };
 
+__attribute__((nonnull)) static __rte_always_inline FaceID
+UlGetMark(const struct rte_mbuf* pkt) {
+  FaceID id = Mbuf_GetMark(pkt);
+  // id==0: packet did not match a flow.
+  // id==pkt->port: packet matched the passthru flow; its MARK does not identify a GTP-U face.
+  // Otherwise: packet matched a GTP flow; its MARK identifies the GTP-U face.
+  if (id != 0 && id != pkt->port) {
+    return id;
+  }
+  return 0;
+}
+
 __attribute__((nonnull)) static __rte_always_inline ExtractResult
 UlExtractKey(const struct rte_mbuf* pkt, uintptr_t* key) {
-  FaceID id = Mbuf_GetMark(pkt);
-  if (id != 0 && id != pkt->port) {
-    // id==0: packet did not match a flow.
-    // id==pkt->port: packet matched the passthru flow; its MARK does not identify a GTP-U face.
-    // Otherwise: packet matched a GTP flow; its MARK identifies the GTP-U face.
+  FaceID id = UlGetMark(pkt);
+  if (id != 0) {
     *key = id;
     return ExtractResultFaceID;
   }
@@ -162,7 +171,9 @@ UlExtractKey(const struct rte_mbuf* pkt, uintptr_t* key) {
 
 __attribute__((nonnull)) static __rte_always_inline bool
 UlUpdatePkt(struct rte_mbuf* pkt, EthFacePriv* priv) {
-  if (unlikely(!(EthRxMatch_Match(&priv->rxMatch, pkt) & EthRxMatchResultGtp))) {
+  if (UlGetMark(pkt) == 0 &&
+      unlikely(!(EthRxMatch_Match(&priv->rxMatch, pkt) & EthRxMatchResultGtp))) {
+    // check headers only if they have not been checked by hardware
     return false;
   }
 
