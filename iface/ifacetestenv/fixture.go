@@ -20,6 +20,13 @@ import (
 
 var makeAR = testenv.MakeAR
 
+// ClearFacesLCores closes all faces and clears all LCore allocations.
+// This may be used in test case cleanups.
+func ClearFacesLCores() {
+	iface.CloseAll()
+	ealthread.AllocClear()
+}
+
 // Fixture runs a test that sends and receives packets between a pair of connected faces.
 //
 // The calling test case must create two faces that are connected together.
@@ -56,12 +63,11 @@ func (fixture *Fixture) preparePktQueue(demux *iface.InputDemux) *iface.PktQueue
 }
 
 func (fixture *Fixture) close() {
-	iface.CloseAll()
+	ClearFacesLCores()
 	for _, q := range []*iface.PktQueue{fixture.rxQueueI, fixture.rxQueueD, fixture.rxQueueN} {
 		q.Close()
 		eal.Free(q)
 	}
-	ealthread.AllocClear()
 }
 
 // RunTest runs the test.
@@ -134,9 +140,9 @@ func (fixture *Fixture) CheckCounters() {
 	assert, _ := makeAR(fixture.t)
 
 	txCnt := fixture.txFace.Counters()
-	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxInterests), fixture.TxLossTolerance)
-	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxData), fixture.TxLossTolerance)
-	assert.InEpsilon(fixture.TxIterations, int(txCnt.TxNacks), fixture.TxLossTolerance)
+	testenv.AtOrBelow(assert, fixture.TxIterations, txCnt.TxInterests, fixture.TxLossTolerance)
+	testenv.AtOrBelow(assert, fixture.TxIterations, txCnt.TxData, fixture.TxLossTolerance)
+	testenv.AtOrBelow(assert, fixture.TxIterations, txCnt.TxNacks, fixture.TxLossTolerance)
 	assert.InEpsilon(txCnt.TxInterests+uint64(fixture.DataFrames)*txCnt.TxData+txCnt.TxNacks, txCnt.TxFrames, 0.01)
 	if fixture.DataFrames > 1 {
 		assert.InEpsilon(txCnt.TxData, txCnt.TxFragGood, 0.01)
@@ -155,9 +161,9 @@ func (fixture *Fixture) CheckCounters() {
 		assert.Zero(rxCnt.RxReassPackets)
 	}
 
-	assert.InEpsilon(fixture.TxIterations, fixture.NRxInterests, fixture.RxLossTolerance)
-	assert.InEpsilon(fixture.TxIterations, fixture.NRxData, fixture.RxLossTolerance)
-	assert.InEpsilon(fixture.TxIterations, fixture.NRxNacks, fixture.RxLossTolerance)
+	testenv.AtOrBelow(assert, fixture.TxIterations, fixture.NRxInterests, fixture.RxLossTolerance)
+	testenv.AtOrBelow(assert, fixture.TxIterations, fixture.NRxData, fixture.RxLossTolerance)
+	testenv.AtOrBelow(assert, fixture.TxIterations, fixture.NRxNacks, fixture.RxLossTolerance)
 }
 
 // NewFixture creates a Fixture.

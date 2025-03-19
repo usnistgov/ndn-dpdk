@@ -54,7 +54,7 @@ var (
 // createVNet creates a VNet from config template, and schedules its cleanup.
 //
 // Faces and ports must be closed before closing VNet. One way to ensure this condition is
-// calling `defer iface.CloseAll()` or `ifacetestenv.NewFixture` after this function.
+// calling `t.Cleanup(ifacetestenv.ClearFacesLCores)` or `ifacetestenv.NewFixture` afterwards.
 func createVNet(t testing.TB, cfg ethringdev.VNetConfig) *ethringdev.VNet {
 	_, require := makeAR(t)
 	cfg.RxPool = ndni.PacketMempool.Get(eal.NumaSocket{})

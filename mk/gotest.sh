@@ -33,6 +33,7 @@ elif [[ $# -eq 1 ]]; then
     container/fib) COVERPKG=$COVERPKG,./container/fib/... ;;
     container/pit) COVERPKG=$COVERPKG,./container/pcct ;;
     iface/ethface) COVERPKG=$COVERPKG,./iface/ethport ;;
+    iface/memifface) COVERPKG=$COVERPKG,./iface/ethport ;;
   esac
 
   $SUDO rm -f /tmp/gotest.cover

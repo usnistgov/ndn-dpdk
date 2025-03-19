@@ -16,6 +16,7 @@ import (
 
 	"github.com/gopacket/gopacket"
 	"github.com/gopacket/gopacket/layers"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
@@ -25,10 +26,9 @@ import (
 
 // addGtpFaces creates 96 GTP-U faces.
 func addGtpFaces(prf *PortRemoteFixture) (faces []iface.Face) {
-	local := prf.LocalPort.EthDev().HardwareAddr()
 	for i := range 96 {
 		var loc ethface.GtpLocator
-		loc.Local.HardwareAddr = local
+		loc.Local.HardwareAddr = prf.LocalMAC
 		loc.Remote.HardwareAddr = prf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i>>4)})
 		loc.LocalIP = netip.AddrFrom4([4]byte{192, 168, 3, 254})
 		loc.RemoteIP = netip.AddrFrom4([4]byte{192, 168, 3, 2 + byte(i>>4)})
@@ -209,7 +209,7 @@ func (gf *GtpipFixture) Setup() {
 	}
 	if gf.N6Face != nil {
 		ptLoc.Gtpip.N6Face = gf.N6Face
-		ptLoc.Gtpip.N6Local.HardwareAddr = gf.N6.LocalPort.EthDev().HardwareAddr()
+		ptLoc.Gtpip.N6Local.HardwareAddr = gf.N6.LocalMAC
 		ptLoc.Gtpip.N6Remote.HardwareAddr = gf.N6.RemoteMAC
 	}
 	gf.PassthruFace = gf.AddFace(ptLoc)
@@ -259,7 +259,7 @@ func (gf *GtpipFixture) n3PingPlain(i int) {
 	gf.RemoteWrite(
 		&layers.Ethernet{
 			SrcMAC:       gf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i)}),
-			DstMAC:       gf.LocalPort.EthDev().HardwareAddr(),
+			DstMAC:       gf.LocalMAC,
 			EthernetType: layers.EthernetTypeIPv4,
 		},
 		&layers.IPv4{
@@ -281,7 +281,7 @@ func (gf *GtpipFixture) n3PingGtp(i int) {
 	gf.RemoteWrite(
 		&layers.Ethernet{
 			SrcMAC:       gf.OverrideMAC(net.HardwareAddr{0x02, 0x00, 0x00, 0x00, 0x00, 2 + byte(i>>4)}),
-			DstMAC:       gf.LocalPort.EthDev().HardwareAddr(),
+			DstMAC:       gf.LocalMAC,
 			EthernetType: layers.EthernetTypeIPv4,
 		},
 		&layers.IPv4{
@@ -414,13 +414,13 @@ func testGtpip(gf *GtpipFixture) {
 	time.Sleep(10 * time.Millisecond)
 
 	cntPassthru := gf.PassthruFace.Counters()
-	assert.InDelta(112, rxICMP.Load(), 8)            // [104,120]; 120 pings minus loss
-	assert.InDelta(112, txICMP.Load(), 8)            // replies
-	assert.InDelta(92, cntPassthru.RxData, 4)        // [88,96]; 96 UE pings minus loss
-	assert.Greater(int(cntPassthru.RxInterests), 24) // 24 non-UE pings plus ARP
+	testenv.Between(assert, 104, 120, rxICMP.Load())    // 120 pings minus loss
+	testenv.Between(assert, 104, 120, txICMP.Load())    // replies
+	testenv.Between(assert, 88, 96, cntPassthru.RxData) // 96 UE pings minus loss
+	assert.Greater(int(cntPassthru.RxInterests), 24)    // 24 non-UE pings plus ARP
 	if gf.N6 == nil {
-		assert.InDelta(92, cntPassthru.TxData, 4)        // replies to UE pings
-		assert.Greater(int(cntPassthru.TxInterests), 24) // replies to non-UE pings plus ARP
+		testenv.Between(assert, 88, 96, cntPassthru.TxData) // replies to UE pings
+		assert.Greater(int(cntPassthru.TxInterests), 24)    // replies to non-UE pings plus ARP
 	} else {
 		assert.Zero(cntPassthru.TxData)
 		assert.Greater(int(cntPassthru.TxInterests), 120) // replies to all pings

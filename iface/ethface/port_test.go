@@ -1,6 +1,7 @@
 package ethface_test
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net"
@@ -18,11 +19,13 @@ import (
 	"github.com/songgao/water"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/core/pciaddr"
+	"github.com/usnistgov/ndn-dpdk/core/testenv"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev/ethnetif"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
+	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
 	"github.com/usnistgov/ndn-dpdk/ndn/ethertransport"
@@ -39,15 +42,16 @@ const dfltEpsilon = 0.02
 // The remote network interface is either a TAP file descriptor associated with the local port,
 // or another Ethernet adapter (often a PCI Virtual Function) connected with the local port.
 type PortRemoteFixture struct {
-	t             testing.TB
-	RemoteNetif   *ethnetif.NetIntf // available if remote netif is a Virtual Function or similar
-	RemoteMAC     net.HardwareAddr
-	RemoteIntf    io.ReadWriteCloser // TAP or AF_PACKET file descriptor
-	LocalPort     *ethport.Port
-	PassthruNetif *ethnetif.NetIntf
-	DiagFaces     func() // invoked after face creation and before traffic generation
-	RxEpsilon     float64
-	TxEpsilon     float64
+	t               testing.TB
+	RemoteNetif     *ethnetif.NetIntf // available if remote netif is a Virtual Function or similar
+	RemoteMAC       net.HardwareAddr
+	RemoteIntf      io.ReadWriteCloser // TAP or AF_PACKET file descriptor
+	LocalPort       *ethport.Port
+	LocalMAC        net.HardwareAddr
+	PassthruNetif   *ethnetif.NetIntf
+	DiagFaces       func() // invoked after face creation and before traffic generation
+	RxLossTolerance float64
+	TxLossTolerance float64
 }
 
 // AddFace creates a face in the local port.
@@ -55,7 +59,6 @@ func (prf *PortRemoteFixture) AddFace(loc ethport.Locator) iface.Face {
 	_, require := makeAR(prf.t)
 	face, e := loc.CreateFace()
 	require.NoError(e)
-	prf.t.Cleanup(func() { must.Close(face) })
 	return face
 }
 
@@ -133,11 +136,12 @@ func NewPortRemoteFixture(
 	configPort func(ifname string) ethport.Config,
 ) *PortRemoteFixture {
 	_, require := makeAR(t)
+	t.Cleanup(ifacetestenv.ClearFacesLCores)
 	prf := &PortRemoteFixture{
-		t:         t,
-		DiagFaces: func() {},
-		RxEpsilon: dfltEpsilon,
-		TxEpsilon: dfltEpsilon,
+		t:               t,
+		DiagFaces:       func() {},
+		RxLossTolerance: dfltEpsilon,
+		TxLossTolerance: dfltEpsilon,
 	}
 
 	if remoteIfname == "" {
@@ -189,7 +193,7 @@ func NewPortRemoteFixture(
 	port, e := ethport.New(configPort(localIfname))
 	require.NoError(e)
 	prf.LocalPort = port
-	t.Cleanup(func() { must.Close(prf.LocalPort) })
+	prf.LocalMAC = port.EthDev().HardwareAddr()
 
 	return prf
 }
@@ -241,11 +245,11 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 	}
 
 	var locPassthru ethface.PassthruLocator
-	locPassthru.Local.HardwareAddr = prf.LocalPort.EthDev().HardwareAddr()
+	locPassthru.Local.HardwareAddr = prf.LocalMAC
 	addFaceIfEnabled("passthru", locPassthru)
 
 	var locEther ethface.EtherLocator
-	locEther.Local.HardwareAddr = prf.LocalPort.EthDev().HardwareAddr()
+	locEther.Local.HardwareAddr = prf.LocalMAC
 	locEther.Remote.HardwareAddr = prf.RemoteMAC
 	addFaceIfEnabled("ether", locEther)
 
@@ -314,6 +318,7 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 	var txOther atomic.Int32
 	go func() {
 		buf := make([]byte, 9200)
+	DROP:
 		for {
 			n, e := prf.RemoteIntf.Read(buf)
 			if e != nil {
@@ -326,7 +331,11 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 			for i, l := range parsed.Layers() {
 				switch l := l.(type) {
 				case *layers.Ethernet:
-					if i == 0 && l.EthernetType == an.EtherTypeNDN {
+					switch {
+					case i > 0:
+					case !bytes.Equal(prf.LocalMAC, l.SrcMAC):
+						continue DROP
+					case l.EthernetType == an.EtherTypeNDN:
 						classify = "ether"
 						if macaddr.IsMulticast(l.DstMAC) {
 							classify = "ether-mcast"
@@ -387,7 +396,8 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 
 	// Transmit packets from the remote netif to be received by the local port.
 	// Transmit packets from a local face to be transmitted by the local port.
-	for i := range 500 {
+	nRounds := 500
+	for i := range nRounds {
 		time.Sleep(10 * time.Millisecond)
 
 		if loc, rec := locUDP4, faces["passthru"]; rec != nil {
@@ -536,10 +546,14 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 	time.Sleep(10 * time.Millisecond)
 
 	for title, rec := range faces {
-		assert.InEpsilon(500, rec.Face.Counters().RxInterests, prf.RxEpsilon, title)
-		assert.InEpsilon(500, rec.TxCnt.Load(), prf.TxEpsilon, title)
+		uTolerance := 0.0
+		if title == "passthru" {
+			uTolerance = 0.02
+		}
+		testenv.AtOrAround(assert, nRounds, rec.Face.Counters().RxInterests, prf.RxLossTolerance, uTolerance, title)
+		testenv.AtOrAround(assert, nRounds, rec.TxCnt.Load(), prf.TxLossTolerance, uTolerance, title)
 	}
-	assert.Less(int(txOther.Load()), 50)
+	assert.Less(int(txOther.Load()), nRounds/10)
 }
 
 func TestTapXDP(t *testing.T) {
@@ -553,13 +567,13 @@ func TestTapAfPacket(t *testing.T) {
 }
 
 type vfPairEnv struct {
-	t            testing.TB
-	RemoteIfname string
-	LocalIfname  string
-	LocalPCI     *pciaddr.PCIAddress
-	RxFlowQueues int
-	RxEpsilon    float64
-	TxEpsilon    float64
+	t               testing.TB
+	RemoteIfname    string
+	LocalIfname     string
+	LocalPCI        *pciaddr.PCIAddress
+	RxFlowQueues    int
+	RxLossTolerance float64
+	TxLossTolerance float64
 }
 
 func (env *vfPairEnv) MakePrf(configPort func(ifname string) ethport.Config) *PortRemoteFixture {
@@ -568,7 +582,7 @@ func (env *vfPairEnv) MakePrf(configPort func(ifname string) ethport.Config) *Po
 		dump, e := ethdev.GetFlowDump(prf.LocalPort.EthDev())
 		env.t.Logf("FlowDump: err=%v\n%s", e, dump)
 	}
-	prf.RxEpsilon, prf.TxEpsilon = env.RxEpsilon, env.TxEpsilon
+	prf.RxLossTolerance, prf.TxLossTolerance = env.RxLossTolerance, env.TxLossTolerance
 	return prf
 }
 
@@ -641,10 +655,10 @@ func parseVfTestEnv(t testing.TB) (env vfTestEnv) {
 	env.vfPairEnv, env.Flags = parseVfPairEnv(t, tokens), strings.Split(tokens[2], "+")
 
 	if len(tokens) > 4 {
-		env.RxEpsilon, _ = strconv.ParseFloat(tokens[3], 64)
-		env.TxEpsilon, _ = strconv.ParseFloat(tokens[4], 64)
+		env.RxLossTolerance, _ = strconv.ParseFloat(tokens[3], 64)
+		env.TxLossTolerance, _ = strconv.ParseFloat(tokens[4], 64)
 	} else {
-		env.RxEpsilon, env.TxEpsilon = dfltEpsilon, dfltEpsilon
+		env.RxLossTolerance, env.TxLossTolerance = dfltEpsilon, dfltEpsilon
 	}
 
 	exclusions := []string{}
