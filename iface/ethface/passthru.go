@@ -6,7 +6,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 )
 
 // PassthruLocator describes a pass-through face.
@@ -36,7 +35,7 @@ func (loc PassthruLocator) GtpipConfig() *ethport.GtpipConfig {
 // Validate checks Locator fields.
 func (loc PassthruLocator) Validate() error {
 	if !loc.Local.Empty() && !macaddr.IsUnicast(loc.Local.HardwareAddr) {
-		return packettransport.ErrUnicastMacAddr
+		return macaddr.ErrUnicast
 	}
 	if loc.Local.Empty() && loc.Port == "" && loc.EthDev == nil {
 		return errors.New("either local or port must be specified")

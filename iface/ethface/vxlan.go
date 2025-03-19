@@ -6,7 +6,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 )
 
 const (
@@ -56,7 +55,7 @@ func (loc VxlanLocator) Validate() error {
 	case loc.VXLAN < MinVXLAN, loc.VXLAN > MaxVXLAN:
 		return ErrVXLAN
 	case !macaddr.IsUnicast(loc.InnerLocal.HardwareAddr), !macaddr.IsUnicast(loc.InnerRemote.HardwareAddr):
-		return packettransport.ErrUnicastMacAddr
+		return macaddr.ErrUnicast
 	}
 
 	return nil

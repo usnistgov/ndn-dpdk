@@ -15,13 +15,11 @@ import (
 	"time"
 
 	"github.com/gopacket/gopacket"
-	goafpacket "github.com/gopacket/gopacket/afpacket"
 	"github.com/gopacket/gopacket/layers"
 	"github.com/usnistgov/ndn-dpdk/dpdk/pktmbuf"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport/afpacket"
 	"github.com/vishvananda/netlink"
 )
 
@@ -373,7 +371,7 @@ func (gf *GtpipFixture) CountTX(
 }
 
 func testGtpip(gf *GtpipFixture) {
-	assert, require := makeAR(gf.t)
+	assert, _ := makeAR(gf.t)
 	gf.Setup()
 
 	gf.DiagFaces()
@@ -391,11 +389,7 @@ func testGtpip(gf *GtpipFixture) {
 
 	// Count non-NDN packets received on the "inner" TAP netif.
 	{
-		tpacket, e := goafpacket.NewTPacket(goafpacket.OptInterface(gf.PassthruNetif.Name), goafpacket.OptAddVLANHeader(true))
-		require.NoError(e)
-		passthruIntf := afpacket.NewTPacketHandle(tpacket)
-		// TPacketHandle closes itself when the TAP netif goes away.
-		go gf.CountRX(passthruIntf, gf.PassthruNetif.HardwareAddr, &rxICMP)
+		go gf.CountRX(gf.CapturePassthru(), gf.PassthruNetif.HardwareAddr, &rxICMP)
 	}
 
 	// Count packets sent via the "hardware" ethdev.
@@ -407,12 +401,7 @@ func testGtpip(gf *GtpipFixture) {
 
 	if gf.N6 != nil {
 		go gf.CountRX(gf.N6.RemoteIntf, gf.N6.RemoteMAC, &rxICMP)
-
-		tpacket, e := goafpacket.NewTPacket(goafpacket.OptInterface(gf.N6.PassthruNetif.Name), goafpacket.OptAddVLANHeader(true))
-		require.NoError(e)
-		passthruIntf := afpacket.NewTPacketHandle(tpacket)
-		// TPacketHandle closes itself when the TAP netif goes away.
-		go gf.CountTX(passthruIntf, gf.N6.PassthruNetif.HardwareAddr, &txICMP, func(ip net.IP) bool {
+		go gf.CountTX(gf.N6.CapturePassthru(), gf.N6.PassthruNetif.HardwareAddr, &txICMP, func(ip net.IP) bool {
 			return ip.Equal(net.IPv4(192, 168, 6, 200))
 		})
 	}

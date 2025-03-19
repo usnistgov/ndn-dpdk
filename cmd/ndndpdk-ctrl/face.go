@@ -6,7 +6,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
+	"github.com/usnistgov/ndn-dpdk/ndn/ethertransport"
 )
 
 const gqlFaceCounters = "rxFrames rxInterests rxData rxNacks txFrames txInterests txData txNacks"
@@ -122,7 +122,7 @@ func init() {
 		InnerLocal  *macaddr.Flag `json:"innerLocal,omitempty"`
 		InnerRemote *macaddr.Flag `json:"innerRemote,omitempty"`
 	}
-	loc.Remote.HardwareAddr = packettransport.MulticastAddressNDN
+	loc.Remote.HardwareAddr = ethertransport.MulticastAddressNDN
 
 	define := func(name, usage, scheme string, remoteRequired bool, addlFlags ...cli.Flag) {
 		defineCommand(&cli.Command{

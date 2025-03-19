@@ -4,7 +4,7 @@ package ethface
 import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
+	"github.com/usnistgov/ndn-dpdk/ndn/ethertransport"
 )
 
 const schemeEther = "ether"
@@ -13,8 +13,8 @@ const schemeEther = "ether"
 type EtherLocator struct {
 	ethport.FaceConfig
 
-	// packettransport.Locator contains MAC addresses.
-	packettransport.Locator
+	// ethertransport.Locator contains MAC addresses.
+	ethertransport.Locator
 }
 
 // Scheme returns "ether".

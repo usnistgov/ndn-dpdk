@@ -7,12 +7,12 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/ndn-dpdk/ndn"
+	"github.com/usnistgov/ndn-dpdk/ndn/ethertransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/l3"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport/afpacket"
 )
 
 func init() {
-	var cfg afpacket.Config
+	var cfg ethertransport.Config
 	var netif string
 	var respond bool
 	defineCommand(&cli.Command{
@@ -42,7 +42,7 @@ func init() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			tr, e := afpacket.New(netif, cfg)
+			tr, e := ethertransport.New(netif, cfg)
 			if e != nil {
 				return e
 			}

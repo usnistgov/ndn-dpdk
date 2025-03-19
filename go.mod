@@ -21,6 +21,8 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/korylprince/go-graphql-ws v0.3.6
 	github.com/machinebox/graphql v0.2.2
+	github.com/mdlayher/packet v1.1.2
+	github.com/mdlayher/socket v0.4.1
 	github.com/onichandame/go-utils v0.0.8
 	github.com/onichandame/gql-ws v0.1.0
 	github.com/pascaldekloe/name v1.0.1
@@ -54,6 +56,7 @@ require (
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/josharian/native v1.1.0 // indirect
 	github.com/matryer/is v1.4.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -73,6 +76,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/term v0.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -30,7 +30,7 @@ Packet encoding and decoding
 Transports
 
 * Unix stream, UDP unicast, TCP (in [package sockettransport](sockettransport))
-* Ethernet via [GoPacket library](https://github.com/gopacket/gopacket) (in [package packettransport](packettransport))
+* Ethernet with AF\_PACKET socket (in [package ethertransport](ethertransport))
 * Shared memory with local NDN-DPDK forwarder via [memif](https://pkg.go.dev/go.fd.io/govpp/extras/gomemif/memif) (in [package memiftransport](memiftransport))
 * WebSocket for WebAssembly (in [package wasmtransport](wasmtransport))
 

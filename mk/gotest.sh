@@ -27,9 +27,16 @@ elif [[ $# -eq 1 ]]; then
   # run tests in one package
   PKG=${1%/}
   TESTPKG=$(getTestPkg "$PKG")
+  COVERPKG=./"$PKG"
+  case $PKG in
+    container/cs) COVERPKG=$COVERPKG,./container/pcct ;;
+    container/fib) COVERPKG=$COVERPKG,./container/fib/... ;;
+    container/pit) COVERPKG=$COVERPKG,./container/pcct ;;
+    iface/ethface) COVERPKG=$COVERPKG,./iface/ethport ;;
+  esac
 
   $SUDO rm -f /tmp/gotest.cover
-  $SUDO mk/go.sh test -cover -covermode count -coverpkg ./"$PKG" -coverprofile /tmp/gotest.cover ./"$TESTPKG" -v -count=$TESTCOUNT
+  $SUDO mk/go.sh test -cover -covermode count -coverpkg "$COVERPKG" -coverprofile /tmp/gotest.cover ./"$TESTPKG" -v -count=$TESTCOUNT
   $SUDO chown "$(id -u)" /tmp/gotest.cover
   mk/go.sh tool cover -html /tmp/gotest.cover -o /tmp/gotest.cover.html
 

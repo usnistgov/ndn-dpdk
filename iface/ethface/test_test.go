@@ -21,7 +21,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
+	"github.com/usnistgov/ndn-dpdk/ndn/ethertransport"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/usnistgov/ndn-dpdk/ndni/ndnitestenv"
 	"go4.org/must"
@@ -80,7 +80,7 @@ func ensurePorts(t testing.TB, devs []ethdev.EthDev, cfg ethport.Config) {
 
 func makeEtherLocator(dev ethdev.EthDev) (loc ethface.EtherLocator) {
 	loc.Local.HardwareAddr = dev.HardwareAddr()
-	loc.Remote.HardwareAddr = packettransport.MulticastAddressNDN
+	loc.Remote.HardwareAddr = ethertransport.MulticastAddressNDN
 	return
 }
 

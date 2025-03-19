@@ -16,7 +16,7 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/iface/ifacetestenv"
 	"github.com/usnistgov/ndn-dpdk/ndn"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
+	"github.com/usnistgov/ndn-dpdk/ndn/ethertransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/tlv"
 	"go4.org/must"
 )
@@ -54,8 +54,8 @@ func makeTopo3(t testing.TB, forceLinearize bool) (topo topo3) {
 
 	topo.faceAB = makeFace(vnet.Ports[0], nil, topo.macB)
 	topo.faceAC = makeFace(vnet.Ports[0], nil, topo.macC)
-	topo.faceAm = makeFace(vnet.Ports[0], nil, packettransport.MulticastAddressNDN)
-	topo.faceBm = makeFace(vnet.Ports[1], topo.macB, packettransport.MulticastAddressNDN)
+	topo.faceAm = makeFace(vnet.Ports[0], nil, ethertransport.MulticastAddressNDN)
+	topo.faceBm = makeFace(vnet.Ports[1], topo.macB, ethertransport.MulticastAddressNDN)
 	topo.faceBA = makeFace(vnet.Ports[1], topo.macB, topo.macA)
 	topo.faceCA = makeFace(vnet.Ports[2], topo.macC, topo.macA)
 
@@ -82,7 +82,7 @@ func TestTopoAm(t *testing.T) {
 	locAm := topo.faceAm.Locator().(ethface.EtherLocator)
 	assert.Equal("ether", locAm.Scheme())
 	assert.Equal(topo.macA, locAm.Local.HardwareAddr)
-	assert.Equal(packettransport.MulticastAddressNDN, locAm.Remote.HardwareAddr)
+	assert.Equal(ethertransport.MulticastAddressNDN, locAm.Remote.HardwareAddr)
 
 	topo.RunTest(topo.faceAm, topo.faceBm)
 	topo.CheckCounters()

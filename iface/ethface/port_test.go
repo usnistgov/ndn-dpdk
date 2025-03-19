@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/gopacket/gopacket"
-	goafpacket "github.com/gopacket/gopacket/afpacket"
 	"github.com/gopacket/gopacket/layers"
 	"github.com/songgao/water"
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
@@ -26,9 +25,8 @@ import (
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
 	"github.com/usnistgov/ndn-dpdk/ndn"
 	"github.com/usnistgov/ndn-dpdk/ndn/an"
+	"github.com/usnistgov/ndn-dpdk/ndn/ethertransport"
 	"github.com/usnistgov/ndn-dpdk/ndn/ndnlayer"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport/afpacket"
 	"github.com/usnistgov/ndn-dpdk/ndni"
 	"github.com/vishvananda/netlink"
 	"go4.org/must"
@@ -75,6 +73,20 @@ func (prf *PortRemoteFixture) SetupPassthruNetif(addrs ...netip.Prefix) {
 	for _, addr := range addrs {
 		require.NoError(prf.PassthruNetif.SetIP(addr))
 	}
+}
+
+// CapturePassthru opens AF_PACKET socket on the PassthruNetif.
+func (prf *PortRemoteFixture) CapturePassthru() *ethertransport.ConnHandle {
+	_, require := makeAR(prf.t)
+
+	netif, e := net.InterfaceByIndex(prf.PassthruNetif.Index)
+	require.NoError(e)
+
+	hdl, e := ethertransport.NewConnHandle(netif, 0)
+	require.NoError(e)
+	prf.t.Cleanup(func() { must.Close(hdl) })
+
+	return hdl
 }
 
 // OverrideMAC returns prf.RemoteMAC if non-empty, otherwise returns input MAC.
@@ -157,9 +169,10 @@ func NewPortRemoteFixture(
 		}
 		prf.RemoteNetif, prf.RemoteMAC = link, link.HardwareAddr
 
-		tpacket, e := goafpacket.NewTPacket(goafpacket.OptInterface(remoteIfname), goafpacket.OptAddVLANHeader(true))
+		netif, e := net.InterfaceByIndex(link.Index)
 		require.NoError(e)
-		prf.RemoteIntf = afpacket.NewTPacketHandle(tpacket)
+		prf.RemoteIntf, e = ethertransport.NewConnHandle(netif, 0)
+		require.NoError(e)
 		t.Cleanup(func() { must.Close(prf.RemoteIntf) })
 	}
 
@@ -237,7 +250,7 @@ func testPortRemote(prf *PortRemoteFixture, selections []string) {
 	addFaceIfEnabled("ether", locEther)
 
 	locEtherMcast := locEther
-	locEtherMcast.Remote.HardwareAddr = packettransport.MulticastAddressNDN
+	locEtherMcast.Remote.HardwareAddr = ethertransport.MulticastAddressNDN
 	addFaceIfEnabled("ether-mcast", locEtherMcast)
 
 	locVlan := locEther

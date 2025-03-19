@@ -8,7 +8,6 @@ import (
 	"github.com/usnistgov/ndn-dpdk/core/macaddr"
 	"github.com/usnistgov/ndn-dpdk/iface"
 	"github.com/usnistgov/ndn-dpdk/iface/ethport"
-	"github.com/usnistgov/ndn-dpdk/ndn/packettransport"
 )
 
 // Error conditions.
@@ -43,7 +42,7 @@ func (loc IPLocator) Validate() error {
 	local, remote := loc.LocalIP.Unmap(), loc.RemoteIP.Unmap()
 	switch {
 	case !macaddr.IsUnicast(loc.Remote.HardwareAddr):
-		return packettransport.ErrUnicastMacAddr
+		return macaddr.ErrUnicast
 	case local.BitLen() == 0, remote.BitLen() == 0:
 		return ErrIP
 	case local.BitLen() != remote.BitLen():
