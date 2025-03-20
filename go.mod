@@ -1,6 +1,6 @@
 module github.com/usnistgov/ndn-dpdk
 
-go 1.23.6
+go 1.24
 
 require (
 	github.com/EGT-Ukraine/go2gql v0.0.0-20190528134259-79533208556f
@@ -22,7 +22,7 @@ require (
 	github.com/korylprince/go-graphql-ws v0.3.6
 	github.com/machinebox/graphql v0.2.2
 	github.com/mdlayher/packet v1.1.2
-	github.com/mdlayher/socket v0.4.1
+	github.com/mdlayher/socket v0.5.1
 	github.com/onichandame/go-utils v0.0.8
 	github.com/onichandame/gql-ws v0.1.0
 	github.com/pascaldekloe/name v1.0.1
