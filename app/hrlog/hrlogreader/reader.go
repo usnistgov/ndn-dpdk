@@ -66,10 +66,10 @@ func Open(filename string) (r *Reader, e error) {
 		return nil, fmt.Errorf("read header %w", e)
 	}
 
-	switch {
-	case binary.BigEndian.Uint32(hdr[0:4]) == Magic:
+	switch uint32(Magic) {
+	case binary.BigEndian.Uint32(hdr[0:4]):
 		r.order = binary.BigEndian
-	case binary.LittleEndian.Uint32(hdr[0:4]) == Magic:
+	case binary.LittleEndian.Uint32(hdr[0:4]):
 		r.order = binary.LittleEndian
 	default:
 		return nil, fmt.Errorf("bad magic %X", hdr[0:4])

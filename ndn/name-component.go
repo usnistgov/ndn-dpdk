@@ -110,7 +110,7 @@ func MakeNameComponent(typ uint32, value []byte) (comp NameComponent) {
 //
 //	NameComponentFrom(an.VersionNameComponent, tlv.NNI(1))
 func NameComponentFrom(typ uint32, value tlv.Fielder) NameComponent {
-	v, e := value.Field().Encode(nil)
+	v, e := value.Field().AppendBinary(nil)
 	if e != nil {
 		return NameComponent{}
 	}

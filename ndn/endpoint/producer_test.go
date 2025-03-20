@@ -162,7 +162,7 @@ func TestProducerPreEncoded(t *testing.T) {
 	})
 	require.NoError(e)
 
-	cWire, e := cData.ToPacket().Field().Encode(nil)
+	cWire, e := cData.ToPacket().Field().AppendBinary(nil)
 	require.NoError(e)
 	bytesEqual(assert, pWire, cWire)
 }

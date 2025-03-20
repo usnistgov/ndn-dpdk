@@ -1,6 +1,7 @@
 package tlv
 
 import (
+	"encoding"
 	"math"
 
 	"slices"
@@ -21,7 +22,7 @@ func (eb *EncodingBuffer) Append(f Field) {
 	if eb.err != nil {
 		return
 	}
-	eb.b, eb.err = f.Encode(eb.b)
+	eb.b, eb.err = f.AppendBinary(eb.b)
 }
 
 // Output returns encoding output and first error.
@@ -49,9 +50,11 @@ type Field struct {
 	object  any
 }
 
-// Encode appends to the byte slice.
+var _ encoding.BinaryAppender = Field{}
+
+// AppendBinary appends to the byte slice.
 // Returns modified slice and error.
-func (f Field) Encode(b []byte) ([]byte, error) {
+func (f Field) AppendBinary(b []byte) ([]byte, error) {
 	switch f.typ {
 	case fieldTypeEmpty:
 		return b, nil
@@ -76,7 +79,7 @@ func (f Field) encodeTLVFields(b []byte) (o []byte, e error) {
 	subs := f.object.([]Field)
 	parts := make([][]byte, len(subs))
 	for i, sub := range subs {
-		if parts[i], e = sub.Encode(nil); e != nil {
+		if parts[i], e = sub.AppendBinary(nil); e != nil {
 			return nil, e
 		}
 	}
@@ -87,7 +90,7 @@ func (f Field) encodeTLVFielders(b []byte) (o []byte, e error) {
 	subs := f.object.([]Fielder)
 	parts := make([][]byte, len(subs))
 	for i, sub := range subs {
-		if parts[i], e = sub.Field().Encode(nil); e != nil {
+		if parts[i], e = sub.Field().AppendBinary(nil); e != nil {
 			return nil, e
 		}
 	}
@@ -213,7 +216,7 @@ func EncodeValueOnly(f Fielder) ([]byte, error) {
 		return nil, field.object.(error)
 	case fieldTypeTLVFields, fieldTypeTLVFielders:
 		field.integer = math.MaxUint64
-		return field.Encode(nil)
+		return field.AppendBinary(nil)
 	default:
 		return nil, ErrErrorField
 	}
