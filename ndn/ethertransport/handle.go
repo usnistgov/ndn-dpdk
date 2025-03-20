@@ -22,10 +22,10 @@ type ConnHandle struct {
 	netif *net.Interface
 }
 
-var (
-	_ io.ReadWriteCloser = (*ConnHandle)(nil)
-	_ syscall.Conn       = (*ConnHandle)(nil)
-)
+var _ interface {
+	io.ReadWriteCloser
+	syscall.Conn
+} = &ConnHandle{}
 
 // Read implements io.Reader interface.
 func (h *ConnHandle) Read(buf []byte) (n int, e error) {

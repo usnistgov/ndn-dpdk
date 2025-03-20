@@ -33,11 +33,11 @@ type testThread struct {
 	c *C.TestThread
 }
 
-var (
-	_ ealthread.ThreadWithRole     = (*testThread)(nil)
-	_ ealthread.ThreadWithLoadStat = (*testThread)(nil)
-	_ ealthread.ThreadWithCtrl     = (*testThread)(nil)
-)
+var _ interface {
+	ealthread.ThreadWithRole
+	ealthread.ThreadWithLoadStat
+	ealthread.ThreadWithCtrl
+} = &testThread{}
 
 func newTestThread() *testThread {
 	var th testThread

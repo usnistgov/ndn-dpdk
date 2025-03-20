@@ -187,10 +187,10 @@ type rxgFlow struct {
 	queue uint16
 }
 
-var (
-	_ iface.RxGroup           = (*rxgFlow)(nil)
-	_ iface.RxGroupSingleFace = (*rxgFlow)(nil)
-)
+var _ interface {
+	iface.RxGroup
+	iface.RxGroupSingleFace
+} = &rxgFlow{}
 
 func (rxf *rxgFlow) NumaSocket() eal.NumaSocket {
 	return rxf.face.NumaSocket()

@@ -20,7 +20,7 @@ type NumaSocket struct {
 
 var (
 	_ json.Marshaler   = NumaSocket{}
-	_ json.Unmarshaler = (*NumaSocket)(nil)
+	_ json.Unmarshaler = &NumaSocket{}
 )
 
 // ID returns NUMA socket ID.

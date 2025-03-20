@@ -12,9 +12,11 @@ type Flag struct {
 }
 
 var (
-	_ flag.Getter              = (*Flag)(nil)
-	_ encoding.TextMarshaler   = Flag{}
-	_ encoding.TextUnmarshaler = (*Flag)(nil)
+	_ interface {
+		flag.Getter
+		encoding.TextMarshaler
+	} = &Flag{}
+	_ encoding.TextMarshaler = Flag{}
 )
 
 // Empty returns true if the HardwareAddr is unset.

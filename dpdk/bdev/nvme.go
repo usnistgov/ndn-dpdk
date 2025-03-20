@@ -19,10 +19,10 @@ type NvmeNamespace struct {
 	nvme *Nvme
 }
 
-var (
-	_ Device        = (*NvmeNamespace)(nil)
-	_ withWriteMode = (*NvmeNamespace)(nil)
-)
+var _ interface {
+	Device
+	withWriteMode
+} = &NvmeNamespace{}
 
 // DevInfo implements Device interface.
 func (nn *NvmeNamespace) DevInfo() *Info {

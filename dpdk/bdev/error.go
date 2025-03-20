@@ -17,7 +17,7 @@ type ErrorInjection struct {
 	*Info
 }
 
-var _ DeviceCloser = (*ErrorInjection)(nil)
+var _ DeviceCloser = &ErrorInjection{}
 
 // Close destroys this block device.
 // The inner device is not closed.

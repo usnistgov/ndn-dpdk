@@ -24,7 +24,7 @@ type rxEpoll struct {
 	c      *C.SocketRxEpoll
 }
 
-var _ iface.RxGroup = (*rxEpoll)(nil)
+var _ iface.RxGroup = &rxEpoll{}
 
 func (rxe *rxEpoll) NumaSocket() eal.NumaSocket {
 	return rxe.socket

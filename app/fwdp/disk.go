@@ -66,11 +66,11 @@ type Disk struct {
 	allocs     map[int]*disk.Alloc
 }
 
-var (
-	_ ealthread.ThreadWithRole     = (*Disk)(nil)
-	_ ealthread.ThreadWithLoadStat = (*Disk)(nil)
-	_ DispatchThread               = (*Disk)(nil)
-)
+var _ interface {
+	ealthread.ThreadWithRole
+	ealthread.ThreadWithLoadStat
+	DispatchThread
+} = &Disk{}
 
 // DispatchThreadID implements DispatchThread interface.
 func (fwdisk *Disk) DispatchThreadID() int {

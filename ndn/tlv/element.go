@@ -13,7 +13,7 @@ type Element struct {
 
 var (
 	_ Fielder     = Element{}
-	_ Unmarshaler = (*Element)(nil)
+	_ Unmarshaler = &Element{}
 )
 
 // Size returns encoded size.

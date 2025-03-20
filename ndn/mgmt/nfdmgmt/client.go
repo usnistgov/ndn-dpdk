@@ -18,7 +18,7 @@ type Client struct {
 	Signer       ndn.Signer
 }
 
-var _ mgmt.Client = (*Client)(nil)
+var _ mgmt.Client = &Client{}
 
 // OpenFace creates a socket face toward NFD.
 //

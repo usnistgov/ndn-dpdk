@@ -38,11 +38,11 @@ type Crypto struct {
 	c  *C.FwCrypto
 }
 
-var (
-	_ ealthread.ThreadWithRole     = (*Crypto)(nil)
-	_ ealthread.ThreadWithLoadStat = (*Crypto)(nil)
-	_ DispatchThread               = (*Crypto)(nil)
-)
+var _ interface {
+	ealthread.ThreadWithRole
+	ealthread.ThreadWithLoadStat
+	DispatchThread
+} = &Crypto{}
 
 // DispatchThreadID implements DispatchThread interface.
 func (fwc *Crypto) DispatchThreadID() int {

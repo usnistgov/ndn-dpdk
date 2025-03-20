@@ -50,10 +50,10 @@ type passthruPort struct {
 	cancelEvents []func()
 }
 
-var (
-	_ iface.RxGroup           = (*passthruPort)(nil)
-	_ iface.RxGroupSingleFace = (*passthruPort)(nil)
-)
+var _ interface {
+	iface.RxGroup
+	iface.RxGroupSingleFace
+} = &passthruPort{}
 
 func (fport *passthruPort) NumaSocket() eal.NumaSocket {
 	return fport.tapDev.NumaSocket()

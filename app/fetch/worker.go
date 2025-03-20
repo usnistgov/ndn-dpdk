@@ -25,10 +25,10 @@ type worker struct {
 	nTasks int
 }
 
-var (
-	_ ealthread.ThreadWithRole     = (*worker)(nil)
-	_ ealthread.ThreadWithLoadStat = (*worker)(nil)
-)
+var _ interface {
+	ealthread.ThreadWithRole
+	ealthread.ThreadWithLoadStat
+} = &worker{}
 
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (worker) ThreadRole() string {

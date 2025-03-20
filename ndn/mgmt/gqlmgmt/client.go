@@ -13,7 +13,7 @@ type Client struct {
 	*gqlclient.Client
 }
 
-var _ mgmt.Client = (*Client)(nil)
+var _ mgmt.Client = &Client{}
 
 // CreateFace requests to create a face via GraphQL.
 func (c *Client) CreateFace(ctx context.Context, locator any) (id string, e error) {

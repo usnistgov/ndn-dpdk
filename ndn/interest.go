@@ -31,9 +31,11 @@ type Interest struct {
 }
 
 var (
-	_ tlv.Fielder                = Interest{}
-	_ encoding.BinaryUnmarshaler = (*Interest)(nil)
-	_ L3Packet                   = Interest{}
+	_ interface {
+		tlv.Fielder
+		L3Packet
+	} = Interest{}
+	_ encoding.BinaryUnmarshaler = &Interest{}
 )
 
 // MakeInterest creates an Interest from flexible arguments.
@@ -317,7 +319,7 @@ type ForwardingHint []Name
 
 var (
 	_ tlv.Fielder                = ForwardingHint{}
-	_ encoding.BinaryUnmarshaler = (*ForwardingHint)(nil)
+	_ encoding.BinaryUnmarshaler = &ForwardingHint{}
 )
 
 // Field implements tlv.Fielder interface.
@@ -354,7 +356,7 @@ type Nonce [4]byte
 
 var (
 	_ tlv.Fielder                = Nonce{}
-	_ encoding.BinaryUnmarshaler = (*Nonce)(nil)
+	_ encoding.BinaryUnmarshaler = &Nonce{}
 )
 
 // NewNonce generates a random Nonce.

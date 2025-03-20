@@ -39,7 +39,7 @@ type DeviceCloser interface {
 // Info provides information about a block device.
 type Info C.struct_spdk_bdev
 
-var _ zapcore.ObjectMarshaler = (*Info)(nil)
+var _ zapcore.ObjectMarshaler = &Info{}
 
 func (bdi *Info) ptr() *C.struct_spdk_bdev {
 	return (*C.struct_spdk_bdev)(bdi)

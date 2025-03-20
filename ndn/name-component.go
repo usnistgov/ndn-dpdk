@@ -26,7 +26,7 @@ type NameComponent struct {
 
 var (
 	_ tlv.Fielder     = NameComponent{}
-	_ tlv.Unmarshaler = (*NameComponent)(nil)
+	_ tlv.Unmarshaler = &NameComponent{}
 )
 
 // Valid checks whether this component has a valid TLV-TYPE.

@@ -19,7 +19,7 @@ type KeyLocator struct {
 
 var (
 	_ tlv.Fielder                = KeyLocator{}
-	_ encoding.BinaryUnmarshaler = (*KeyLocator)(nil)
+	_ encoding.BinaryUnmarshaler = &KeyLocator{}
 )
 
 // Empty returns true if KeyLocator has zero fields.
@@ -80,7 +80,7 @@ type SigInfo struct {
 	Extensions []tlv.Element
 }
 
-var _ encoding.BinaryUnmarshaler = (*SigInfo)(nil)
+var _ encoding.BinaryUnmarshaler = &SigInfo{}
 
 // EncodeAs creates a tlv.Fielder for either ISigInfo or DSigInfo TLV-TYPE.
 // If si is nil, the encoding result contains SigType=SigNull.

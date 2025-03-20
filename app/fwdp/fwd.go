@@ -35,10 +35,10 @@ type Fwd struct {
 	queueN *iface.PktQueue
 }
 
-var (
-	_ ealthread.ThreadWithRole     = (*Fwd)(nil)
-	_ ealthread.ThreadWithLoadStat = (*Fwd)(nil)
-)
+var _ interface {
+	ealthread.ThreadWithRole
+	ealthread.ThreadWithLoadStat
+} = &Fwd{}
 
 // Close stops and releases the thread.
 func (fwd *Fwd) Close() error {

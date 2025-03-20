@@ -18,7 +18,7 @@ type Input struct {
 	rxl iface.RxLoop
 }
 
-var _ DispatchThread = (*Input)(nil)
+var _ DispatchThread = &Input{}
 
 // DispatchThreadID implements DispatchThread interface.
 func (fwi *Input) DispatchThreadID() int {

@@ -25,9 +25,11 @@ type Data struct {
 }
 
 var (
-	_ tlv.Fielder                = Data{}
-	_ encoding.BinaryUnmarshaler = (*Data)(nil)
-	_ L3Packet                   = Data{}
+	_ interface {
+		tlv.Fielder
+		L3Packet
+	} = Data{}
+	_ encoding.BinaryUnmarshaler = &Data{}
 )
 
 // MakeData creates a Data from flexible arguments.

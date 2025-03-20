@@ -15,11 +15,15 @@ import (
 type Name []NameComponent
 
 var (
-	_ tlv.Fielder                = Name{}
-	_ encoding.BinaryMarshaler   = Name{}
-	_ encoding.BinaryUnmarshaler = (*Name)(nil)
-	_ encoding.TextMarshaler     = Name{}
-	_ encoding.TextUnmarshaler   = (*Name)(nil)
+	_ interface {
+		tlv.Fielder
+		encoding.BinaryMarshaler
+		encoding.TextMarshaler
+	} = Name{}
+	_ interface {
+		encoding.BinaryUnmarshaler
+		encoding.TextUnmarshaler
+	} = &Name{}
 )
 
 // Length returns TLV-LENGTH.

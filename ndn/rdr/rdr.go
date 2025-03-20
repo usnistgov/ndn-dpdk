@@ -58,7 +58,7 @@ type Metadata struct {
 
 var (
 	_ encoding.BinaryMarshaler   = Metadata{}
-	_ encoding.BinaryUnmarshaler = (*Metadata)(nil)
+	_ encoding.BinaryUnmarshaler = &Metadata{}
 )
 
 // MarshalBinary encodes to TLV-VALUE.

@@ -24,7 +24,7 @@ type rxConns struct {
 	c      *C.SocketRxConns
 }
 
-var _ iface.RxGroup = (*rxConns)(nil)
+var _ iface.RxGroup = &rxConns{}
 
 func (rxc *rxConns) NumaSocket() eal.NumaSocket {
 	return rxc.socket

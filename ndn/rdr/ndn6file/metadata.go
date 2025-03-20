@@ -46,7 +46,7 @@ type Metadata struct {
 
 var (
 	_ encoding.BinaryMarshaler   = Metadata{}
-	_ encoding.BinaryUnmarshaler = (*Metadata)(nil)
+	_ encoding.BinaryUnmarshaler = &Metadata{}
 )
 
 // IsFile determines whether Mode indicates a regular file.

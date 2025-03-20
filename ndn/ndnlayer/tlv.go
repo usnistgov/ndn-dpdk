@@ -26,10 +26,10 @@ type TLV struct {
 	wire    []byte
 }
 
-var (
-	_ gopacket.Layer         = (*TLV)(nil)
-	_ gopacket.DecodingLayer = (*TLV)(nil)
-)
+var _ interface {
+	gopacket.Layer
+	gopacket.DecodingLayer
+} = &TLV{}
 
 // LayerType returns LayerTypeTLV.
 func (TLV) LayerType() gopacket.LayerType {

@@ -20,11 +20,11 @@ type NDN struct {
 	wire   []byte
 }
 
-var (
-	_ gopacket.ApplicationLayer  = (*NDN)(nil)
-	_ gopacket.DecodingLayer     = (*NDN)(nil)
-	_ gopacket.SerializableLayer = (*NDN)(nil)
-)
+var _ interface {
+	gopacket.ApplicationLayer
+	gopacket.DecodingLayer
+	gopacket.SerializableLayer
+} = &NDN{}
 
 // LayerType returns LayerTypeNDN.
 func (NDN) LayerType() gopacket.LayerType {

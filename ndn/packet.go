@@ -40,11 +40,11 @@ type Packet struct {
 	Nack     *Nack
 }
 
-var (
-	_ tlv.Fielder     = (*Packet)(nil)
-	_ tlv.Unmarshaler = (*Packet)(nil)
-	_ L3Packet        = (*Packet)(nil)
-)
+var _ interface {
+	tlv.Fielder
+	tlv.Unmarshaler
+	L3Packet
+} = &Packet{}
 
 func (pkt *Packet) String() string {
 	suffix := ""

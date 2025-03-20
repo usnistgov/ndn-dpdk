@@ -40,11 +40,11 @@ type Thread struct {
 	RcuReadSide *urcu.ReadSide
 }
 
-var (
-	_ eal.PollThread               = (*Thread)(nil)
-	_ ealthread.ThreadWithRole     = (*Thread)(nil)
-	_ ealthread.ThreadWithLoadStat = (*Thread)(nil)
-)
+var _ interface {
+	eal.PollThread
+	ealthread.ThreadWithRole
+	ealthread.ThreadWithLoadStat
+} = &Thread{}
 
 // ThreadRole returns "SPDK" used in lcore allocator.
 func (th *Thread) ThreadRole() string {

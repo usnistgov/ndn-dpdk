@@ -74,10 +74,10 @@ type Writer struct {
 	hasSHB   bool
 }
 
-var (
-	_ ealthread.ThreadWithRole     = (*Writer)(nil)
-	_ ealthread.ThreadWithLoadStat = (*Writer)(nil)
-)
+var _ interface {
+	ealthread.ThreadWithRole
+	ealthread.ThreadWithLoadStat
+} = &Writer{}
 
 // startSource records a source starting.
 // The writer cannot be closed until all sources have stopped.

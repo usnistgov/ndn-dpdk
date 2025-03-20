@@ -20,7 +20,7 @@ type Delay struct {
 	*Info
 }
 
-var _ DeviceCloser = (*Delay)(nil)
+var _ DeviceCloser = &Delay{}
 
 // Close destroys this block device.
 // The inner device is not closed.

@@ -19,7 +19,7 @@ type DirectoryListing []fs.DirEntry
 
 var (
 	_ encoding.BinaryMarshaler   = DirectoryListing{}
-	_ encoding.BinaryUnmarshaler = (*DirectoryListing)(nil)
+	_ encoding.BinaryUnmarshaler = &DirectoryListing{}
 )
 
 func (ls DirectoryListing) format(delim byte) []byte {

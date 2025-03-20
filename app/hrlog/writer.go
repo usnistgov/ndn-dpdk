@@ -62,10 +62,10 @@ type Writer struct {
 	queue    *ringbuffer.Ring
 }
 
-var (
-	_ ealthread.ThreadWithRole     = (*Writer)(nil)
-	_ ealthread.ThreadWithLoadStat = (*Writer)(nil)
-)
+var _ interface {
+	ealthread.ThreadWithRole
+	ealthread.ThreadWithLoadStat
+} = &Writer{}
 
 // ThreadRole implements ealthread.ThreadWithRole interface.
 func (Writer) ThreadRole() string {

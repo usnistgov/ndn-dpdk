@@ -9,7 +9,7 @@ type Malloc struct {
 	*Info
 }
 
-var _ DeviceCloser = (*Malloc)(nil)
+var _ DeviceCloser = &Malloc{}
 
 // Close destroys this block device.
 func (device *Malloc) Close() error {

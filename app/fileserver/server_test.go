@@ -284,7 +284,7 @@ type fuseFS struct {
 	sizeZ    uint64
 }
 
-var _ fuseutil.FileSystem = (*fuseFS)(nil)
+var _ fuseutil.FileSystem = &fuseFS{}
 
 func (fs *fuseFS) LookUpInode(ctx context.Context, op *fuseops.LookUpInodeOp) error {
 	switch op.Parent {

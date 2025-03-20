@@ -26,7 +26,7 @@ type File struct {
 	filename string
 }
 
-var _ DeviceCloser = (*File)(nil)
+var _ DeviceCloser = &File{}
 
 // Filename returns the filename.
 func (device *File) Filename() string {

@@ -173,7 +173,7 @@ var MaxValidityPeriod = ValidityPeriod{time.Unix(540109800, 0), time.Unix(253402
 
 var (
 	_ tlv.Fielder                = ValidityPeriod{}
-	_ encoding.BinaryUnmarshaler = (*ValidityPeriod)(nil)
+	_ encoding.BinaryUnmarshaler = &ValidityPeriod{}
 )
 
 // Valid checks whether fields are valid.
