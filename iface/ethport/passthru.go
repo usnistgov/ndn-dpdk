@@ -76,10 +76,13 @@ func (fport *passthruPort) startTap() (e error) {
 		return e
 	}
 
-	var cfg ethdev.Config
-	cfg.MTU = dev.MTU()
-	cfg.AddRxQueues(1, ethdev.RxQueueConfig{RxPool: ndni.PacketMempool.Get(fport.face.NumaSocket())})
-	cfg.AddTxQueues(1, ethdev.TxQueueConfig{})
+	cfg := ethdev.Config{
+		RxQueues: []ethdev.RxQueueConfig{{
+			RxPool: ndni.PacketMempool.Get(fport.face.NumaSocket()),
+		}},
+		TxQueues: []ethdev.TxQueueConfig{{}},
+		MTU:      dev.MTU(),
+	}
 	if e := fport.tapDev.Start(cfg); e != nil {
 		fport.tapDev.Close()
 		return e

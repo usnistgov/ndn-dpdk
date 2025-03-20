@@ -4,6 +4,7 @@ package ethport
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 
 	"go.uber.org/zap"
@@ -162,18 +163,18 @@ func (port *Port) startDev(nRxQueues int, promisc bool) (e error) {
 	}
 
 	cfg := ethdev.Config{
+		RxQueues: slices.Repeat([]ethdev.RxQueueConfig{{
+			Capacity: port.cfg.RxQueueSize,
+			Socket:   socket,
+			RxPool:   rxPool,
+		}}, nRxQueues),
+		TxQueues: []ethdev.TxQueueConfig{{
+			Capacity: port.cfg.TxQueueSize,
+			Socket:   socket,
+		}},
 		MTU:     port.cfg.MTU,
 		Promisc: promisc,
 	}
-	cfg.AddRxQueues(nRxQueues, ethdev.RxQueueConfig{
-		Capacity: port.cfg.RxQueueSize,
-		Socket:   socket,
-		RxPool:   rxPool,
-	})
-	cfg.AddTxQueues(1, ethdev.TxQueueConfig{
-		Capacity: port.cfg.TxQueueSize,
-		Socket:   socket,
-	})
 	return port.dev.Start(cfg)
 }
 

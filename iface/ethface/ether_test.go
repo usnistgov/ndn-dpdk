@@ -137,8 +137,9 @@ func TestReassembly(t *testing.T) {
 	ensurePorts(t, vnet.Ports[1:], ethport.Config{})
 
 	portA := vnet.Ports[0]
-	cfgA := ethdev.Config{}
-	cfgA.AddTxQueues(1, ethdev.TxQueueConfig{})
+	cfgA := ethdev.Config{
+		TxQueues: []ethdev.TxQueueConfig{{}},
+	}
 	portA.Start(cfgA)
 	locA := makeEtherLocator(vnet.Ports[0])
 	txHdrA := ethport.NewTxHdr(locA, false)

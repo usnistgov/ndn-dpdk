@@ -15,20 +15,6 @@ type Config struct {
 	Promisc  bool // promiscuous mode
 }
 
-// AddRxQueues adds RxQueueConfig for several queues
-func (cfg *Config) AddRxQueues(count int, qcfg RxQueueConfig) {
-	for range count {
-		cfg.RxQueues = append(cfg.RxQueues, qcfg)
-	}
-}
-
-// AddTxQueues adds TxQueueConfig for several queues
-func (cfg *Config) AddTxQueues(count int, qcfg TxQueueConfig) {
-	for range count {
-		cfg.TxQueues = append(cfg.TxQueues, qcfg)
-	}
-}
-
 // RxQueueConfig contains EthDev RX queue configuration.
 type RxQueueConfig struct {
 	Capacity int            // ring capacity

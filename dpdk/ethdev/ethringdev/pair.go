@@ -3,6 +3,7 @@ package ethringdev
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"github.com/usnistgov/ndn-dpdk/dpdk/ethdev"
@@ -35,17 +36,18 @@ func (cfg *PairConfig) applyDefaults() {
 	}
 }
 
-func (cfg PairConfig) toEthDevConfig() (dcfg ethdev.Config) {
-	dcfg.AddRxQueues(cfg.NQueues, ethdev.RxQueueConfig{
-		Capacity: cfg.QueueCapacity,
-		Socket:   cfg.Socket,
-		RxPool:   cfg.RxPool,
-	})
-	dcfg.AddTxQueues(cfg.NQueues, ethdev.TxQueueConfig{
-		Capacity: cfg.QueueCapacity,
-		Socket:   cfg.Socket,
-	})
-	return dcfg
+func (cfg PairConfig) toEthDevConfig() ethdev.Config {
+	return ethdev.Config{
+		RxQueues: slices.Repeat([]ethdev.RxQueueConfig{{
+			Capacity: cfg.QueueCapacity,
+			Socket:   cfg.Socket,
+			RxPool:   cfg.RxPool,
+		}}, cfg.NQueues),
+		TxQueues: slices.Repeat([]ethdev.TxQueueConfig{{
+			Capacity: cfg.QueueCapacity,
+			Socket:   cfg.Socket,
+		}}, cfg.NQueues),
+	}
 }
 
 // Pair represents a pair of EthDevs connected via ring-based PMD.
