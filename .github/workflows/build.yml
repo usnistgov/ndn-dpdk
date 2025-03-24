@@ -10,6 +10,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    env:
+      NDNDPDK_MK_THREADSLEEP: 1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -22,17 +24,20 @@ jobs:
         name: Install dependencies
         run: |
           docs/ndndpdk-depends.sh -y --node=0 --go=0 --dpdk=0 --spdk=0
-          echo meson=$(meson --version) >>$GITHUB_OUTPUT
+          echo MESONVER=$(meson --version) >>$GITHUB_OUTPUT
+          awk -vFS='=' '
+            NF==2 && ($1=="DFLT_DPDKVER" || $1=="DFLT_SPDKVER") { print substr($1,6) "=" $2 }
+          ' docs/ndndpdk-depends.sh >>$GITHUB_OUTPUT
           sudo update-alternatives --install /usr/bin/go go $(command -v go) 1
       - name: Cache DPDK and SPDK
         uses: actions/cache@v4
         with:
           path: ~/setup-dpdk
-          key: ${{ steps.deps.outputs.meson }}_20250207
+          key: ${{ steps.deps.outputs.MESONVER }}_20250324
       - uses: yoursunny/setup-dpdk@main
         with:
-          dpdk-version: 84339a739845272045ce2a5e077def38c0a2170a
-          spdk-version: v25.01-rc1
+          dpdk-version: ${{ steps.deps.outputs.DPDKVER }}
+          spdk-version: ${{ steps.deps.outputs.SPDKVER }}
       - name: Build NDN-DPDK in debug mode
         run: |
           corepack pnpm install
@@ -44,8 +49,6 @@ jobs:
             popd
           done
           sudo make uninstall
-        env:
-          NDNDPDK_MK_THREADSLEEP: 1
       - name: Check code style
         run: |
           make lint
@@ -54,13 +57,9 @@ jobs:
         run: |
           echo 'bdev|disk|ethface|fetch|fileserver|fwdp|memifface|memiftransport|tgconsumer|tgproducer' >~/acceptable-failures.txt
           MK_GOTEST_FILTER="/$(cat ~/acceptable-failures.txt)/ d" make test
-        env:
-          NDNDPDK_MK_THREADSLEEP: 1
       - name: Run optional unit tests
         run: |
           MK_GOTEST_FILTER="/$(cat ~/acceptable-failures.txt)/! d" make test
-        env:
-          NDNDPDK_MK_THREADSLEEP: 1
         continue-on-error: true
       - name: Build docs
         run: make doxygen
@@ -88,16 +87,23 @@ jobs:
       - id: prepare
         name: Prepare build
         run: |
-          echo tag=ghcr.io/${{ github.repository_owner }}/ndn-dpdk >>$GITHUB_OUTPUT
+          echo TAG=ghcr.io/${{ github.repository_owner }}/ndn-dpdk >>$GITHUB_OUTPUT
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ github.event_name == 'push' }}
+      - name: Setup Docker pull through cache
+        run: |
+          [[ -f /etc/docker/daemon.json ]] || sudo sh -c '
+            mkdir -p /etc/docker
+            echo {} >/etc/docker/daemon.json
+          '
+          sudo yq -i '.registry-mirrors = ["https://mirror.gcr.io"]' /etc/docker/daemon.json
       - uses: docker/build-push-action@v6
         with:
-          tags: ${{ steps.prepare.outputs.tag }}
+          tags: ${{ steps.prepare.outputs.TAG }}
           build-args: | # cannot have bash escape patterns
             BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
             APT_PKGS=libibverbs-dev
@@ -105,9 +111,9 @@ jobs:
             MAKE_ENV=GOAMD64=v3 NDNDPDK_MK_RELEASE=1 NDNDPDK_MK_THREADSLEEP=1
           push: ${{ github.event_name == 'push' }}
       - name: Show image size
-        run: docker image inspect -f '{{.Size}}' ${{ steps.prepare.outputs.tag }}
+        run: docker image inspect -f '{{.Size}}' ${{ steps.prepare.outputs.TAG }}
       - name: List files in image
-        run: docker run --rm ${{ steps.prepare.outputs.tag }} find /usr/local
+        run: docker run --rm ${{ steps.prepare.outputs.TAG }} find /usr/local
   library:
     runs-on: ubuntu-22.04
     steps:
