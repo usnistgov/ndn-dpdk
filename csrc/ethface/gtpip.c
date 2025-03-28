@@ -122,6 +122,7 @@ UlGetMark(const struct rte_mbuf* pkt) {
   FaceID id = Mbuf_GetMark(pkt);
   // id==0: packet did not match a flow.
   // id==pkt->port: packet matched the passthru flow; its MARK does not identify a GTP-U face.
+  //   XXX The above condition cannot happen because RxTable does not create a passthru flow.
   // Otherwise: packet matched a GTP flow; its MARK identifies the GTP-U face.
   if (id != 0 && id != pkt->port) {
     return id;

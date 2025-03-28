@@ -103,9 +103,6 @@ GeneratePattern(EthFlowDef* flow, const EthLocator* loc, EthLocatorClass c, int 
     APPEND(IPV6, ip6);
   }
 
-  if (c.tunnel != 'V') { // VXLAN packet can have any UDP source port
-    MASK(flow->udpMask.hdr.src_port);
-  }
   MASK(flow->udpMask.hdr.dst_port);
   PutUdpHdr((uint8_t*)(&flow->udpSpec.hdr), loc->remoteUDP, loc->localUDP);
   APPEND(UDP, udp);
@@ -166,8 +163,11 @@ GeneratePattern(EthFlowDef* flow, const EthLocator* loc, EthLocatorClass c, int 
           return 0;
       }
     }
-    default:
+    default: {
+      // VXLAN and GTP-U packet can have any UDP source port
+      MASK(flow->udpMask.hdr.src_port);
       return variant == 0 ? EthFlowDefResultValid : 0;
+    }
   }
 
 #undef APPEND

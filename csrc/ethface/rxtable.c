@@ -81,11 +81,11 @@ ACCEPT:
 
 GTP:
   // RCU lock is inherited from RxLoop_Run
-  struct cds_list_head* passthruPos = rcu_dereference(rxt->head.prev);
-  if (unlikely(passthruPos == NULL)) {
+  pos = rcu_dereference(rxt->head.prev);
+  if (unlikely(pos == NULL)) {
     return false;
   }
-  EthFacePriv* passthruPriv = container_of(passthruPos, EthFacePriv, rxtNode);
+  EthFacePriv* passthruPriv = container_of(pos, EthFacePriv, rxtNode);
   if (passthruPriv->rxMatch.act != EthRxMatchActAlways || passthruPriv->rxMatch.len != 0) {
     // not a passthru face
     return false;

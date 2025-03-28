@@ -35,11 +35,9 @@ EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc) {
     rte_memcpy(xl->ip, loc->remoteIP.a, RTE_IPV6_ADDR_SIZE);
     rte_memcpy(RTE_PTR_ADD(xl->ip, RTE_IPV6_ADDR_SIZE), loc->localIP.a, RTE_IPV6_ADDR_SIZE);
   }
-  xl->udpSrc = rte_cpu_to_be_16(loc->remoteUDP);
   xl->udpDst = rte_cpu_to_be_16(loc->localUDP);
   switch (c.tunnel) {
     case 'V': {
-      xl->udpSrc = 0;
       PutVxlanVni(xl->vx.vni, loc->vxlan);
       rte_memcpy(xl->vx.inner, loc->innerLocal.addr_bytes, RTE_ETHER_ADDR_LEN);
       rte_memcpy(RTE_PTR_ADD(xl->vx.inner, RTE_ETHER_ADDR_LEN), loc->innerRemote.addr_bytes,
@@ -49,6 +47,10 @@ EthXdpLocator_Prepare(EthXdpLocator* xl, const EthLocator* loc) {
     case 'G': {
       xl->gtp.teid = rte_cpu_to_be_32(loc->ulTEID);
       xl->gtp.qfi = loc->ulQFI;
+      break;
+    }
+    default: {
+      xl->udpSrc = rte_cpu_to_be_16(loc->remoteUDP);
       break;
     }
   }

@@ -68,12 +68,9 @@ SEC("xdp") int xdp_prog(struct xdp_md* ctx) {
   }
   const struct udphdr* udp = PacketPtrAs((const struct udphdr*)pkt);
   pkt += sizeof(*udp);
-  loc.udpSrc = udp->source;
   loc.udpDst = udp->dest;
   switch (udp->dest) {
     case bpf_htons(UDPPortVXLAN): {
-      loc.udpSrc = 0;
-
       const VxlanInnerHdr* vih = PacketPtrAs((const VxlanInnerHdr*)pkt);
       pkt += sizeof(*vih);
       enum {
@@ -97,6 +94,10 @@ SEC("xdp") int xdp_prog(struct xdp_md* ctx) {
       }
       loc.gtp.teid = gih->gtp.hdr.teid;
       loc.gtp.qfi = gih->gtp.psc.qfi;
+      break;
+    }
+    default: {
+      loc.udpSrc = udp->source;
       break;
     }
   }

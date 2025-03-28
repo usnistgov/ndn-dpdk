@@ -26,12 +26,12 @@ extern const EthRxMatch_MatchFunc EthRxMatch_MatchJmp[];
 
 /** @brief EthFace RX matcher. */
 struct EthRxMatch {
-  EthRxMatchAct act;
-  uint8_t len;
-  uint8_t l2len;
-  uint8_t l3matchOff;
-  uint8_t l3matchLen;
-  uint8_t udpOff;
+  EthRxMatchAct act;  ///< EthRxMatch_MatchJmp index
+  uint8_t len;        ///< total header length
+  uint8_t l2len;      ///< outer Ethernet+VLAN length
+  uint8_t l3matchOff; ///< offset of outer IPv4/IPv6 src
+  uint8_t l3matchLen; ///< length of IP src+dst, plus UDP src+dst if checked
+  uint8_t udpOff;     ///< offset of outer UDP header
   uint8_t buf[EthLocator_MaxHdrLen];
 };
 

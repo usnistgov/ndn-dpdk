@@ -636,7 +636,7 @@ func parseVfTestEnv(t testing.TB) (env vfTestEnv) {
 		// vfFlags: "+" separated.
 		//   "mcast" enables Ethernet multicast locators.
 		//   "vlan" enables VLAN locators.
-		//   "gtp" enables GTP-U locators.
+		//   "gtp" enables GTP-U locators in RxFlow.
 		//   "flow" enables RxFlow tests with default selections.
 		//   "rss" enables RSS action with 2 queues in VXLAN locators.
 		//   "arp-only" restricts pass-through tests to only use ARP traffic.

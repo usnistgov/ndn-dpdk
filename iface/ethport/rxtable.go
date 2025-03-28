@@ -38,11 +38,13 @@ func (impl *rxTable) Init(port *Port) error {
 }
 
 func (impl *rxTable) Start(face *Face) error {
-	setupFlow(face, []uint16{0}, false, true)
-
 	if face.loc.Scheme() == SchemePassthru {
 		C.cds_list_add_tail_rcu(&face.priv.rxtNode, &impl.rxt.head)
 	} else {
+		// Opportunistic flow creation is attempted on non-passthru faces only. If the passthru face
+		// has a flow but some non-passthru faces do not, the latter traffic would be dispatched to
+		// the passthru face incorrectly.
+		setupFlow(face, []uint16{0}, false, true)
 		C.cds_list_add_rcu(&face.priv.rxtNode, &impl.rxt.head)
 	}
 	return nil

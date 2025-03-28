@@ -29,7 +29,7 @@ typedef struct EthXdpLocator {
     } gtp;
   };
   uint16_t vlan;        ///< VLAN identifier (big endian)
-  uint16_t udpSrc;      ///< outer UDP source port (big endian, 0 for VXLAN)
+  uint16_t udpSrc;      ///< outer UDP source port (big endian, 0 for VXLAN/GTP)
   uint16_t udpDst;      ///< outer UDP destination port (big endian)
   uint8_t ether[2 * 6]; ///< outer Ethernet destination and source
   uint8_t ip[2 * 16];   ///< outer IPv4/IPv6 source and destination
