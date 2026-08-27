@@ -31,12 +31,12 @@ typedef union PccSlot {
 } PccSlot;
 
 /** @brief Identify a PCC entry slot. */
-typedef enum PccSlotIndex {
+typedef enum __rte_packed_begin PccSlotIndex {
   PCC_SLOT_NONE = 0,
   PCC_SLOT1 = 1,
   PCC_SLOT2 = 2,
   PCC_SLOT3 = 3,
-} __rte_packed PccSlotIndex;
+} __rte_packed_end PccSlotIndex;
 
 /**
  * @brief PCC entry extension.
@@ -59,7 +59,7 @@ struct PccEntry {
 
   RTE_MARKER a_;
   union {
-    struct {
+    struct __rte_packed_begin {
       bool hasToken : 1;
       int : 1;
       PccSlotIndex pitEntry0Slot : 2;
@@ -67,24 +67,24 @@ struct PccEntry {
       PccSlotIndex csEntrySlot : 2;
       int : 8;
       uint64_t token : PccTokenBits;
-    } __rte_packed;
-    struct {
+    } __rte_packed_end;
+    struct __rte_packed_begin {
       int : 2;
       const int hasPitEntry0 : 2;
       const int hasPitEntry1 : 2;
       const int hasCsEntry : 2;
       uint64_t : 56;
-    } __rte_packed;
-    struct {
+    } __rte_packed_end;
+    struct __rte_packed_begin {
       int : 2;
       const int hasPitEntries : 4;
       uint64_t : 58;
-    } __rte_packed;
-    struct {
+    } __rte_packed_end;
+    struct __rte_packed_begin {
       int : 2;
       const int hasEntries : 6;
       uint64_t : 56;
-    } __rte_packed;
+    } __rte_packed_end;
     uint64_t tokenQword;
   };
   RTE_MARKER b_;

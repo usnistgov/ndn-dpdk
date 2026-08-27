@@ -3,6 +3,8 @@ package bdev
 /*
 #include "../../csrc/dpdk/bdev.h"
 #include <spdk/bdev_module.h>
+
+static uint32_t c_spdk_bdev_split_on_optimal_io_boundary(struct spdk_bdev* b) { return b->split_on_optimal_io_boundary; }
 */
 import "C"
 import (
@@ -77,7 +79,7 @@ func (bdi *Info) BufAlign() int {
 
 // OptimalIOBoundary returns optimal I/O boundary in logical blocks and whether it's mandatory.
 func (bdi *Info) OptimalIOBoundary() (boundary int, mandatory bool) {
-	return int(C.spdk_bdev_get_optimal_io_boundary(bdi.ptr())), bool(bdi.split_on_optimal_io_boundary)
+	return int(C.spdk_bdev_get_optimal_io_boundary(bdi.ptr())), C.c_spdk_bdev_split_on_optimal_io_boundary(bdi.ptr()) != 0
 }
 
 // HasWriteCache returns whether write cache is enabled.

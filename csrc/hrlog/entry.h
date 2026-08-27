@@ -9,11 +9,11 @@
 #include <urcu-pointer.h>
 
 /** @brief Action identifier in high resolution log. */
-typedef enum HrlogAction {
+typedef enum __rte_packed_begin HrlogAction {
   HRLOG_OI = 1, // Interest TX since RX
   HRLOG_OD = 2, // retrieved Data TX since RX
   HRLOG_OC = 4, // cached Data TX since Interest RX
-} __rte_packed HrlogAction;
+} __rte_packed_end HrlogAction;
 
 /** @brief A high resolution log entry. */
 typedef uint64_t HrlogEntry;

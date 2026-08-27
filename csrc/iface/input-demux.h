@@ -8,7 +8,7 @@
 #include "pktqueue.h"
 
 /** @brief Input demultiplexer dispatch method. */
-typedef enum InputDemuxAct {
+typedef enum __rte_packed_begin InputDemuxAct {
   InputDemuxActDrop,
   InputDemuxActRoundrobinDiv,
   InputDemuxActRoundrobinMask,
@@ -16,7 +16,7 @@ typedef enum InputDemuxAct {
   InputDemuxActGenericHashMask,
   InputDemuxActByNdt,
   InputDemuxActByToken,
-} __rte_packed InputDemuxAct;
+} __rte_packed_end InputDemuxAct;
 
 /** @brief Destination of input packet demultiplexer. */
 typedef struct InputDemuxDest {

@@ -16,28 +16,28 @@
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
 
-struct vlanhdr {
+struct __rte_packed_begin vlanhdr {
   uint16_t vlan_tci;
   uint16_t eth_proto;
-} __rte_packed;
+} __rte_packed_end;
 
-struct vxlanhdr {
+struct __rte_packed_begin vxlanhdr {
   uint8_t flags;
   uint8_t rsvd0[3];
   uint8_t vni[3];
   uint8_t rsvd1;
-} __rte_packed;
+} __rte_packed_end;
 
-typedef struct VxlanInnerHdr {
+typedef struct __rte_packed_begin VxlanInnerHdr {
   struct vxlanhdr vx;
   struct ethhdr eth;
-} __rte_packed VxlanInnerHdr;
+} __rte_packed_end VxlanInnerHdr;
 
-typedef struct GtpInnerHdr {
+typedef struct __rte_packed_begin GtpInnerHdr {
   EthGtpHdr gtp;
   struct iphdr ipv4;
   struct udphdr udp;
-} __rte_packed GtpInnerHdr;
+} __rte_packed_end GtpInnerHdr;
 
 enum {
   UDPPortVXLAN = 4789,

@@ -19,16 +19,16 @@ enum {
 };
 
 /** @brief PCAPNG interface description block header. */
-typedef struct PcapngIDB {
+typedef struct __rte_packed_begin PcapngIDB {
   rte_le32_t blockType;
   rte_le32_t totalLength;
   rte_le16_t linkType;
   rte_le16_t reserved;
   rte_le32_t snaplen;
-} __rte_packed PcapngIDB;
+} __rte_packed_end PcapngIDB;
 
 /** @brief PCAPNG enhanced packet block header. */
-typedef struct PcapngEPB {
+typedef struct __rte_packed_begin PcapngEPB {
   rte_le32_t blockType;
   rte_le32_t totalLength;
   rte_le32_t intf;
@@ -36,18 +36,18 @@ typedef struct PcapngEPB {
   rte_le32_t timeLo;
   rte_le32_t capLen;
   rte_le32_t origLen;
-} __rte_packed PcapngEPB;
+} __rte_packed_end PcapngEPB;
 
 /** @brief PCAPNG block trailer. */
-typedef struct PcapngTrailer {
+typedef struct __rte_packed_begin PcapngTrailer {
   rte_le32_t totalLength;
-} __rte_packed PcapngTrailer;
+} __rte_packed_end PcapngTrailer;
 
 /** @brief PCAPNG enhanced packet block header and tcpdump DLT_LINUX_SLL header. */
-typedef struct PcapngEPBSLL {
+typedef struct __rte_packed_begin PcapngEPBSLL {
   PcapngEPB epb;
   struct sll_header sll;
-} __rte_packed PcapngEPBSLL;
+} __rte_packed_end PcapngEPBSLL;
 static_assert(sizeof(PcapngEPBSLL) == sizeof(PcapngEPB) + SLL_HDR_LEN, "");
 
 #endif // NDNDPDK_PDUMP_FORMAT_H

@@ -16,7 +16,7 @@
  *
  * Unused fields must be zero.
  */
-typedef struct EthXdpLocator {
+typedef struct __rte_packed_begin EthXdpLocator {
   union {
     struct {
       uint8_t vni[3];       ///< VXLAN Network Identifier (big endian)
@@ -33,22 +33,22 @@ typedef struct EthXdpLocator {
   uint16_t udpDst;      ///< outer UDP destination port (big endian)
   uint8_t ether[2 * 6]; ///< outer Ethernet destination and source
   uint8_t ip[2 * 16];   ///< outer IPv4/IPv6 source and destination
-} __rte_packed EthXdpLocator;
+} __rte_packed_end EthXdpLocator;
 
 /** @brief Overwritten header after matching in XDP program. */
-typedef struct EthXdpHdr {
+typedef struct __rte_packed_begin EthXdpHdr {
   uint64_t magic;  ///< UINT64_MAX
   uint32_t fmv;    ///< face_map value
   uint16_t hdrLen; ///< header length
-} __rte_packed EthXdpHdr;
+} __rte_packed_end EthXdpHdr;
 
 /** @brief GTP-U header with PDU session container. */
-typedef struct EthGtpHdr {
+typedef struct __rte_packed_begin EthGtpHdr {
   struct rte_gtp_hdr hdr;
   struct rte_gtp_hdr_ext_word ext;
   struct rte_gtp_psc_generic_hdr psc;
   uint8_t next;
-} __rte_packed EthGtpHdr;
+} __rte_packed_end EthGtpHdr;
 
 enum {
   /** @brief Value of @c EthGtpHdr.ext.next_ext . */

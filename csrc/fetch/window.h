@@ -12,13 +12,13 @@ enum {
 static_assert(FetchSegTxTimeBits + 1 + 1 <= 64, "");
 
 /** @brief Per-segment state. */
-typedef struct FetchSeg {
+typedef struct __rte_packed_begin FetchSeg {
   uint64_t segNum; ///< segment number
   struct {
     uint64_t txTime : FetchSegTxTimeBits; ///< TscTime last Interest tx time
     bool hasRetx : 1;                     ///< whether Interest has been retransmitted at least once
     bool inRetxQ : 1;
-  } __rte_packed;
+  } __rte_packed_end;
   union {
     MinTmr rtoExpiry;              ///< RTO expiration timer, valid if inRetxQ==false
     struct cds_list_head retxNode; ///< retxQ node, valid if inRetxQ==true

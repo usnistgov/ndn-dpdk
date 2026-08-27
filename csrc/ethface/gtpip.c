@@ -4,11 +4,11 @@
 
 N_LOG_INIT(EthGtpip);
 
-typedef enum ExtractResult {
+typedef enum __rte_packed_begin ExtractResult {
   ExtractResultNone,
   ExtractResultIPv4,
   ExtractResultFaceID,
-} __rte_packed ExtractResult;
+} __rte_packed_end ExtractResult;
 
 __attribute__((nonnull)) static __rte_always_inline uint64_t
 ProcessBulk(EthGtpip* g, char dir, struct rte_mbuf* pkts[], uint32_t count,

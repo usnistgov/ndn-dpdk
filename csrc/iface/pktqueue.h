@@ -6,11 +6,11 @@
 #include "common.h"
 
 /** @brief Packet queue dequeue method. */
-typedef enum PktQueuePopAct {
+typedef enum __rte_packed_begin PktQueuePopAct {
   PktQueuePopActPlain,
   PktQueuePopActDelay,
   PktQueuePopActCoDel,
-} __rte_packed PktQueuePopAct;
+} __rte_packed_end PktQueuePopAct;
 
 /**
  * @brief Thread-safe packet queue.

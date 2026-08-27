@@ -14,13 +14,13 @@ typedef struct SgGlobal {
 } SgGlobal;
 
 /** @brief Indicate why the strategy program is invoked. */
-typedef enum SgEvent {
+typedef enum __rte_packed_begin SgEvent {
   SGEVT_NONE,
   SGEVT_INTEREST, ///< Interest arrives
   SGEVT_DATA,     ///< Data arrives
   SGEVT_NACK,     ///< Nack arrives
   SGEVT_TIMER,    ///< timer expires
-} __rte_packed SgEvent;
+} __rte_packed_end SgEvent;
 
 /** @brief Context of strategy invocation. */
 typedef struct SgCtx {
@@ -101,14 +101,14 @@ SgRandInt(SgCtx* ctx, uint32_t max);
 __attribute__((nonnull)) bool
 SgSetTimer(SgCtx* ctx, TscDuration after);
 
-typedef enum SgForwardInterestResult {
+typedef enum __rte_packed_begin SgForwardInterestResult {
   SGFWDI_OK,         ///< success
   SGFWDI_BADFACE,    ///< face is down or FaceID is invalid
   SGFWDI_ALLOCERR,   ///< allocation error
   SGFWDI_NONONCE,    ///< upstream has rejected all nonces
   SGFWDI_SUPPRESSED, ///< forwarding is suppressed
   SGFWDI_HOPZERO,    ///< HopLimit has become zero
-} __rte_packed SgForwardInterestResult;
+} __rte_packed_end SgForwardInterestResult;
 
 /**
  * @brief Forward an Interest to a nexthop.

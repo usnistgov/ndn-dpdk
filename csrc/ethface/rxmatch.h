@@ -5,20 +5,20 @@
 
 #include "locator.h"
 
-typedef enum EthRxMatchAct {
+typedef enum __rte_packed_begin EthRxMatchAct {
   EthRxMatchActAlways = 1,
   EthRxMatchActEtherUnicast,
   EthRxMatchActEtherMulticast,
   EthRxMatchActUdp,
   EthRxMatchActVxlan,
   EthRxMatchActGtp,
-} __rte_packed EthRxMatchAct;
+} __rte_packed_end EthRxMatchAct;
 
 /** @brief Bit flags in @c EthRxMatch_Match return value. */
-typedef enum EthRxMatchResult {
+typedef enum __rte_packed_begin EthRxMatchResult {
   EthRxMatchResultHit = RTE_BIT32(1), ///< fully matched
   EthRxMatchResultGtp = RTE_BIT32(2), ///< GTP-U tunnel matched
-} __rte_packed EthRxMatchResult;
+} __rte_packed_end EthRxMatchResult;
 
 typedef struct EthRxMatch EthRxMatch;
 typedef EthRxMatchResult (*EthRxMatch_MatchFunc)(const EthRxMatch* match, const struct rte_mbuf* m);

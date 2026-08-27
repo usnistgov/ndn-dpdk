@@ -6,11 +6,11 @@
 #include "pcc-entry.h"
 
 /** @brief Result kind of PIT insert. */
-typedef enum PitInsertResultKind {
+typedef enum __rte_packed_begin PitInsertResultKind {
   PIT_INSERT_FULL = 0, ///< PIT is full, cannot insert
   PIT_INSERT_PIT = 1,  ///< created or found PIT entry
   PIT_INSERT_CS = 2,   ///< found existing CS entry that matches the Interest
-} __rte_packed PitInsertResultKind;
+} __rte_packed_end PitInsertResultKind;
 
 /** @brief Result of PIT insert. */
 typedef struct PitInsertResult {
@@ -22,7 +22,7 @@ typedef struct PitInsertResult {
 } PitInsertResult;
 
 /** @brief Result flag of PIT find, bitwise OR. */
-typedef enum PitFindResultFlag {
+typedef enum __rte_packed_begin PitFindResultFlag {
   PIT_FIND_NONE = 0, ///< no PIT match
 
   PIT_FIND_PIT0 = RTE_BIT32(0), ///< matched PIT entry of MustBeFresh=0
@@ -31,7 +31,7 @@ typedef enum PitFindResultFlag {
   /// need Data digest to determine match, PccEntry is set on PitInsertResult,
   /// PIT_FIND_PIT0 and PIT_FIND_PIT1 indicate existence of PIT entries.
   PIT_FIND_NEED_DIGEST = RTE_BIT32(2),
-} __rte_packed PitFindResultFlag;
+} __rte_packed_end PitFindResultFlag;
 
 /** @brief Result of PIT find. */
 typedef struct PitFindResult {

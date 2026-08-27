@@ -6,7 +6,7 @@
 #include "name.h"
 
 /** @brief Parsed Interest packet. */
-typedef struct PInterest {
+typedef struct __rte_packed_begin PInterest {
   uint32_t nonce;    ///< Nonce
   uint32_t lifetime; ///< InterestLifetime in millis
 
@@ -19,7 +19,7 @@ typedef struct PInterest {
     bool mustBeFresh : 1;
     uint8_t nFwHints : 3;    ///< number of forwarding hints, up to PInterestMaxFwHints
     int8_t activeFwHint : 3; ///< index of active forwarding hint
-  } __rte_packed;
+  } __rte_packed_end;
 
   PName name;
   const uint8_t* fwHintV[PInterestMaxFwHints]; ///< TLV-VALUE of forwarding hints

@@ -136,7 +136,7 @@ LNamePrefixFilter_Find(LName name, int maxPrefix, const uint16_t* prefixL, const
 }
 
 /** @brief Parsed name. */
-typedef struct PName {
+typedef struct __rte_packed_begin PName {
   const uint8_t* value; ///< TLV-VALUE
   uint16_t length;      ///< TLV-LENGTH
   uint16_t nComps;      ///< number of components
@@ -145,7 +145,7 @@ typedef struct PName {
     bool hasDigestComp : 1;       ///< ends with digest component?
     bool hasHashes_ : 1;          ///< hash_ computed?
     uint32_t a_ : 2;
-  } __rte_packed;
+  } __rte_packed_end;
   uint16_t comp_[PNameCachedComponents]; ///< end offset of i-th component
   uint64_t hash_[PNameCachedComponents]; ///< hash of i+1-component prefix
 } PName;

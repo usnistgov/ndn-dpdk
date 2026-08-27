@@ -21,14 +21,11 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define ALLOW_EXPERIMENTAL_API
 #include <rte_config.h>
 
-#include <rte_bitops.h>
 #include <rte_branch_prediction.h>
 #include <rte_common.h>
 
@@ -36,9 +33,12 @@
 
 #include <float.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <urcu/list.h>
 
+#include <rte_bitops.h>
 #include <rte_byteorder.h>
 #include <rte_cycles.h>
 #include <rte_debug.h>

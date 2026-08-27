@@ -9,10 +9,10 @@ N_LOG_INIT(Tgc);
 __attribute__((nonnull)) static bool
 TgcRx_GetSeqNumFromName(TgcRx* cr, const TgcRxPattern* pattern, const PName* name,
                         uint64_t* seqNum) {
-  typedef struct SeqNumF {
+  typedef struct __rte_packed_begin SeqNumF {
     unaligned_uint16_t tl;
     unaligned_uint64_t value;
-  } __rte_packed SeqNumF;
+  } __rte_packed_end SeqNumF;
   static_assert(sizeof(SeqNumF) == TgcSeqNumSize, "");
 
   const SeqNumF* comp = RTE_PTR_ADD(name->value, pattern->prefixLen);

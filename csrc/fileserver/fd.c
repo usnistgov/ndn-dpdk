@@ -264,10 +264,10 @@ FileServerFd_PrepareMetadata_(FileServer* p, FileServerFd* entry) {
 
 #define APPEND_NNI(type, bits, val)                                                                \
   do {                                                                                             \
-    struct {                                                                                       \
+    struct __rte_packed_begin {                                                                    \
       unaligned_uint32_t tl;                                                                       \
       unaligned_uint##bits##_t v;                                                                  \
-    } __rte_packed* f = (void*)output;                                                             \
+    } __rte_packed_end* f = (void*)output;                                                         \
     f->tl = TlvEncoder_ConstTL3(TtFile##type, sizeof(f->v));                                       \
     f->v = rte_cpu_to_be_##bits((uint##bits##_t)(val));                                            \
     output += sizeof(*f);                                                                          \

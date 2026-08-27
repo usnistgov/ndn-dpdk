@@ -32,10 +32,10 @@ LpL2_GetSeqNum(const LpL2* l2) {
 }
 
 /** @brief NDNLPv2 PIT token value. */
-typedef struct LpPitToken {
+typedef struct __rte_packed_begin LpPitToken {
   uint8_t length;
   uint8_t value[32];
-} __rte_packed LpPitToken;
+} __rte_packed_end LpPitToken;
 
 /** @brief Assign PIT token. */
 __attribute__((nonnull)) static __rte_always_inline void

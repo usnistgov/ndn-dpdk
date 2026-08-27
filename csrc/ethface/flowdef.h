@@ -63,10 +63,10 @@ typedef struct EthFlowDef {
   struct rte_flow_action_mark markAct;
 } EthFlowDef;
 
-typedef enum EthFlowDefResult {
+typedef enum __rte_packed_begin EthFlowDefResult {
   EthFlowDefResultValid = RTE_BIT32(0),
   EthFlowDefResultMarked = RTE_BIT32(1),
-} __rte_packed EthFlowDefResult;
+} __rte_packed_end EthFlowDefResult;
 
 /**
  * @brief Prepare rte_flow definition from locator.

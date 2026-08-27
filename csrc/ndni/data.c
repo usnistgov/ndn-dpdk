@@ -6,12 +6,12 @@
 // helperScratch should be small enough not to increase PacketPriv size
 static_assert(sizeof(PData) <= sizeof(PInterest), "");
 
-static struct {
+static struct __rte_packed_begin {
   unaligned_uint16_t sigInfoTL;
   unaligned_uint16_t sigTypeTL;
   uint8_t sigTypeV;
   unaligned_uint16_t sigValueTL;
-} __rte_packed NullSig;
+} __rte_packed_end NullSig;
 
 RTE_INIT(InitNullSig) {
   NullSig.sigInfoTL =
@@ -182,31 +182,31 @@ DataEnc_PrepareMetaInfo(uint8_t* room, ContentType ct, uint32_t freshness, LName
   } while (false)
 
   if (unlikely(ct != ContentBlob)) {
-    struct ContentTypeF {
+    struct __rte_packed_begin ContentTypeF {
       unaligned_uint16_t contentTypeTL;
       uint8_t contentTypeV;
-    } __rte_packed* f = NULL;
+    } __rte_packed_end* f = NULL;
     APPEND(f, 0);
     f->contentTypeTL = TlvEncoder_ConstTL1(TtContentType, sizeof(f->contentTypeV));
     f->contentTypeV = ct;
   }
 
   if (freshness > 0) {
-    struct FreshnessF {
+    struct __rte_packed_begin FreshnessF {
       unaligned_uint16_t freshnessTL;
       unaligned_uint32_t freshnessV;
-    } __rte_packed* f = NULL;
+    } __rte_packed_end* f = NULL;
     APPEND(f, 0);
     f->freshnessTL = TlvEncoder_ConstTL1(TtFreshnessPeriod, sizeof(f->freshnessV));
     f->freshnessV = rte_cpu_to_be_32(freshness);
   }
 
   if (finalBlock.length > 0) {
-    struct FinalBlockF {
+    struct __rte_packed_begin FinalBlockF {
       uint8_t finalBlockT;
       uint8_t finalBlockL;
       uint8_t finalBlockV[];
-    } __rte_packed* f = NULL;
+    } __rte_packed_end* f = NULL;
     APPEND(f, finalBlock.length);
     f->finalBlockT = TtFinalBlock;
     f->finalBlockL = finalBlock.length;

@@ -24,13 +24,13 @@ enum {
 };
 
 /** @brief Indicate what components are present in Interest name. */
-typedef enum FileServerRequestKind {
+typedef enum __rte_packed_begin FileServerRequestKind {
   FileServerRequestNone = 0,
   FileServerRequestVersion = 1 << 0,
   FileServerRequestSegment = 1 << 1,
   FileServerRequestLs = 1 << 2,
   FileServerRequestMetadata = 1 << 3,
-} __rte_packed FileServerRequestKind;
+} __rte_packed_end FileServerRequestKind;
 
 /** @brief Parsed Interest name processed by file server. */
 typedef struct FileServerRequestName {

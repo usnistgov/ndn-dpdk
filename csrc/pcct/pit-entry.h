@@ -28,13 +28,13 @@ struct PitEntry {
   MinTmr timeout; ///< timeout timer
 
   uint64_t fibPrefixHash; ///< hash value of FIB prefix
-  struct {
+  struct __rte_packed_begin {
     uint32_t fibSeqNum;                         ///< FIB entry sequence number
     uint8_t nCanBePrefix;                       ///< how many DNs want CanBePrefix?
     uint16_t fibPrefixL : PitFibPrefixLenBits_; ///< TLV-LENGTH of FIB prefix
     bool mustBeFresh : 1;                       ///< entry for MustBeFresh 0 or 1?
     bool hasSgTimer : 1;                        ///< whether timeout is set by strategy or expiry
-  } __rte_packed;
+  } __rte_packed_end;
 
   PitEntryExt* ext;
   PitDn dns[PitMaxDns];

@@ -25,7 +25,7 @@ typedef uint32_t SgFibNexthopFilter;
 SUBROUTINE bool
 SgFibNexthopFilter_Rejected(SgFibNexthopFilter filter, uint8_t i) {
   static_assert(__builtin_types_compatible_p(typeof(filter), uint32_t), "");
-  return rte_bit_test(&filter, i);
+  return (((uint32_t)filter) & (1 << i)) != 0;
 }
 
 /**

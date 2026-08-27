@@ -150,7 +150,7 @@ func (stats Stats) MarshalJSON() ([]byte, error) {
 
 func (stats Stats) String() string {
 	return fmt.Sprintf("RX %d pkts, %d bytes, %d missed, %d errors, %d nombuf; TX %d pkts, %d bytes, %d errors",
-		stats.Ipackets, stats.Ibytes, stats.Imissed, stats.Ierrors, stats.Rx_nombuf, stats.Opackets, stats.Obytes, stats.Oerrors)
+		stats.Ipackets, stats.Ibytes, stats.Imissed, stats.Ierrors, stats.Nombuf, stats.Opackets, stats.Obytes, stats.Oerrors)
 }
 
 // GetFlowDump returns internal rte_flow representation.

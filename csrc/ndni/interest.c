@@ -138,7 +138,7 @@ PInterest_SelectFwHint(PInterest* interest, int i) {
   return ok;
 }
 
-typedef struct GuiderFields {
+typedef struct __rte_packed_begin GuiderFields {
   unaligned_uint16_t nonceTL;
   unaligned_uint32_t nonceV;
 
@@ -147,7 +147,7 @@ typedef struct GuiderFields {
 
   unaligned_uint16_t hopLimitTL;
   uint8_t hopLimitV;
-} __rte_packed GuiderFields;
+} __rte_packed_end GuiderFields;
 
 __attribute__((nonnull)) static void
 ModifyGuiders_Append(struct rte_mbuf* m, InterestGuiders g) {

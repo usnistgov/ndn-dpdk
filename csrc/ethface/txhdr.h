@@ -5,7 +5,7 @@
 
 #include "locator.h"
 
-typedef enum EthTxHdrAct {
+typedef enum __rte_packed_begin EthTxHdrAct {
   EthTxHdrActNoHdr = 1,
   EthTxHdrActEther,
 
@@ -13,15 +13,15 @@ typedef enum EthTxHdrAct {
   EthTxHdrActUdp4Offload = 0b1011,
   EthTxHdrActUdp6Checksum = 0b1000,
   EthTxHdrActUdp6Offload = 0b1001,
-} __rte_packed EthTxHdrAct;
+} __rte_packed_end EthTxHdrAct;
 
 /** @brief Bit flags for @c EthTxHdr_Prepend . */
-typedef enum EthTxHdrFlags {
+typedef enum __rte_packed_begin EthTxHdrFlags {
   /** @brief Whether mbuf is the first frame in a new burst. */
   EthTxHdrFlagsNewBurst = RTE_BIT32(0),
   /** @brief Whether mbuf contains Ethernet+IPv4 instead of NDN. */
   EthTxHdrFlagsGtpip = RTE_BIT32(1),
-} __rte_packed EthTxHdrFlags;
+} __rte_packed_end EthTxHdrFlags;
 
 typedef struct EthTxHdr EthTxHdr;
 typedef void (*EthTxHdr_PrependFunc)(const EthTxHdr* hdr, struct rte_mbuf* m, EthTxHdrFlags flags);
