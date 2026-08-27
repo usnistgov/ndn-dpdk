@@ -1,4 +1,4 @@
-FROM debian:bookworm AS build
+FROM debian:trixie AS build
 ARG APT_PKGS=
 ARG DEPENDS_ENV=
 ARG DEPENDS_ARGS=
@@ -48,7 +48,7 @@ RUN <<EOF
 EOF
 
 
-FROM debian:bookworm
+FROM debian:trixie
 SHELL ["/bin/bash", "-c"]
 
 RUN --mount=from=build,source=/pkgs.txt,target=/pkgs.txt <<EOF

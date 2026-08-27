@@ -12,8 +12,8 @@ typedef enum ExtractResult {
 
 __attribute__((nonnull)) static __rte_always_inline uint64_t
 ProcessBulk(EthGtpip* g, char dir, struct rte_mbuf* pkts[], uint32_t count,
-            __attribute__((nonnull))
-            ExtractResult extract(const struct rte_mbuf* pkt, uintptr_t* key),
+            __attribute__((nonnull)) ExtractResult extract(const struct rte_mbuf* pkt,
+                                                           uintptr_t* key),
             __attribute__((nonnull)) bool updatePkt(struct rte_mbuf* pkt, EthFacePriv* priv)) {
   NDNDPDK_ASSERT(count <= RTE_MIN_T(MaxBurstSize, RTE_HASH_LOOKUP_BULK_MAX, uint32_t));
   uintptr_t lookupKeys[RTE_HASH_LOOKUP_BULK_MAX];

@@ -19,25 +19,13 @@ jobs:
           go-version-file: go.mod
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 26
       - id: deps
         name: Install dependencies
         run: |
-          docs/ndndpdk-depends.sh -y --node=0 --go=0 --dpdk=0 --spdk=0
-          echo MESONVER=$(meson --version) >>$GITHUB_OUTPUT
-          awk -vFS='=' '
-            NF==2 && ($1=="DFLT_DPDKVER" || $1=="DFLT_SPDKVER") { print substr($1,6) "=" $2 }
-          ' docs/ndndpdk-depends.sh >>$GITHUB_OUTPUT
+          npm install -g corepack
+          docs/ndndpdk-depends.sh -y --node=0 --go=0
           sudo update-alternatives --install /usr/bin/go go $(command -v go) 1
-      - name: Cache DPDK and SPDK
-        uses: actions/cache@v6
-        with:
-          path: ~/setup-dpdk
-          key: ${{ steps.deps.outputs.MESONVER }}_20250714
-      - uses: yoursunny/setup-dpdk@main
-        with:
-          dpdk-version: ${{ steps.deps.outputs.DPDKVER }}
-          spdk-version: ${{ steps.deps.outputs.SPDKVER }}
       - name: Build NDN-DPDK in debug mode
         run: |
           corepack pnpm install

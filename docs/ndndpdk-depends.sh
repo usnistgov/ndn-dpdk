@@ -36,16 +36,16 @@ if [[ ${#MISSING_BINARIES[@]} -gt 0 ]]; then
 fi
 
 DFLT_CODEROOT=$HOME/code
-DFLT_NODEVER=22
+DFLT_NODEVER=26
 DFLT_GOVER=latest
 DFLT_UBPFVER=a3e69808888b0f48e3a7972dd94115e46dad1e74
-DFLT_LIBBPFVER=v1.5.1
-DFLT_XDPTOOLSVER=v1.5.5
-DFLT_URINGVER=liburing-2.11
-DFLT_DPDKVER=v24.11.2
+DFLT_LIBBPFVER=v1.7.0
+DFLT_XDPTOOLSVER=v1.6.3
+DFLT_URINGVER=liburing-2.15
+DFLT_DPDKVER=v25.11.3
 DFLT_DPDKPATCH=
 DFLT_DPDKOPTS={}
-DFLT_SPDKVER=v25.05
+DFLT_SPDKVER=v26.05
 DFLT_NJOBS=$(nproc)
 DFLT_TARGETARCH=native
 
@@ -191,7 +191,9 @@ curl_test() {
 curl_test NDNDPDK_DL_GITHUB /robots.txt
 curl_test NDNDPDK_DL_NODESOURCE_DEB
 curl_test NDNDPDK_DL_GODEV /VERSION
-curl_test NDNDPDK_DL_DPDK_PATCHES
+if [[ -n "$DPDKPATCH" ]]; then
+  curl_test NDNDPDK_DL_DPDK_PATCHES
+fi
 
 github_download() {
   local REPO=$1
@@ -209,13 +211,15 @@ set_alternative() {
 }
 
 APT_PKGS=(
-  clang-15
-  clang-format-15
+  autoconf
+  automake
+  clang-19
+  clang-format-19
   cmake
   doxygen
   file
-  g++-12
-  gcc-12
+  g++-14
+  gcc-14
   git
   lcov
   libaio-dev
@@ -224,40 +228,27 @@ APT_PKGS=(
   libnuma-dev
   libpcap-dev
   libssl-dev
+  libtool
   liburcu-dev
-  llvm-15
+  llvm-19
   m4
   make
+  meson
+  nasm
   ninja-build
   patchelf
   pkg-config
   python-is-python3
   python3-pip
   python3-pyelftools
+  python3-tabulate
   uuid-dev
+  yamllint
 )
-
-DISTRO=$(lsb_release -sc)
-case $DISTRO in
-  jammy) ;;
-  noble)
-    APT_PKGS+=(meson yamllint)
-    ;;
-  bookworm)
-    APT_PKGS+=(meson yamllint)
-    ;;
-  *)
-    echo "Distro ${DISTRO} is not supported by this script."
-    if [[ -z ${SKIPDISTROCHECK:-} ]]; then
-      echo 'To skip this check, set the environment variable SKIPDISTROCHECK=1'
-      exit 1
-    fi
-    ;;
-esac
 
 if [[ $(uname -r | awk -F. '{ print ($1*1000+$2>=5014) }') -ne 1 ]] &&
   [[ -z ${SKIPKERNELCHECK:-} ]]; then
-  echo 'Linux kernel 5.15 or newer is required'
+  echo 'Linux kernel 5.4 or newer is required'
   echo 'To skip this check, set the environment variable SKIPKERNELCHECK=1'
   exit 1
 fi
@@ -343,21 +334,16 @@ $SUDO apt-get -qq update
 $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -qq dist-upgrade
 
 $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -qq install "${APT_PKGS[@]}"
-set_alternative gcc /usr/bin/gcc-12
+set_alternative gcc /usr/bin/gcc-14
 set_alternative cc /usr/bin/gcc
-set_alternative g++ /usr/bin/g++-12
+set_alternative g++ /usr/bin/g++-14
 set_alternative c++ /usr/bin/g++
-set_alternative gcov /usr/bin/gcov-12
+set_alternative gcov /usr/bin/gcov-14
 if ! [[ -d /usr/include/asm ]]; then
   $SUDO ln -s /usr/include/x86_64-linux-gnu/asm /usr/include/asm
 fi
-if ! command -v meson >/dev/null; then
-  cd "$(github_download mesonbuild/meson 1.7.0)"
-  ./packaging/create_zipapp.py --outfile meson.pyz .
-  $SUDO install -m0755 meson.pyz /usr/local/bin/meson
-fi
-if ! command -v yamllint >/dev/null; then
-  $SUDO pip install --break-system-packages yamllint
+if ! command -v corepack >/dev/null; then
+  $SUDO npm install -g corepack
 fi
 
 if [[ $GOVER != 0 ]]; then
@@ -393,7 +379,7 @@ fi
 
 if [[ $XDPTOOLSVER != 0 ]]; then
   cd "$(github_download xdp-project/xdp-tools $XDPTOOLSVER)"
-  CLANG=clang-15 LLC=llc-15 ./configure
+  CLANG=clang-19 LLC=llc-19 ./configure
   sh -c "umask 0000 && make -j${NJOBS}"
   $SUDO find /usr/local/lib '(' -name 'libxdp.*' -or -name 'xdp*.o' ')' -delete
   $SUDO sh -c "umask 0000 && make install PREFIX=/usr/local LIBDIR=/usr/local/lib"
@@ -428,16 +414,24 @@ if [[ $DPDKVER != 0 ]]; then
 fi
 
 if [[ $SPDKVER != 0 ]]; then
-  cd "$(github_download spdk/spdk $SPDKVER)"
-  sed -i '/^\s*if .*isa-l\/autogen.sh/,/^\s*fi$/ s/.*/CONFIG[ISAL]=n/' configure
+  cd "$CODEROOT"
+  rm -rf spdk
+  mkdir -p spdk
+  cd spdk
+  git init
+  git remote add origin "${NDNDPDK_DL_GITHUB}/spdk/spdk.git"
+  git fetch --depth 1 origin $SPDKVER
+  git checkout FETCH_HEAD
+  git submodule update --init --recursive --depth 1
   ./configure --target-arch=${TARGETARCH} --with-shared \
     --disable-tests --disable-unit-tests --disable-examples --disable-apps \
     --with-dpdk --with-uring --without-uring-zns \
     --without-idxd --without-crypto --without-fio --without-xnvme --without-vhost \
     --without-virtio --without-vfio-user --without-rbd \
     --without-rdma --without-fc --without-daos --without-iscsi-initiator --without-vtune \
-    --without-ocf --without-fuse --without-nvme-cuse --without-raid5f --without-wpdk \
+    --without-ocf --without-nvme-cuse --without-raid5f --without-wpdk \
     --without-usdt --without-sma
+  echo -e '.DEFAULT:\n\t@:\n\nall: none' >python/Makefile
   make -j${NJOBS}
   $SUDO find /usr/local/lib -name 'libspdk_*' -delete
   $SUDO make install

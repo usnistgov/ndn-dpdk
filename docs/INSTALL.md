@@ -1,6 +1,6 @@
 # NDN-DPDK Installation Guide
 
-NDN-DPDK supports Ubuntu 22.04, Ubuntu 24.04, and Debian 12 operating systems.
+NDN-DPDK supports Ubuntu 26.04 and Debian 13 operating systems.
 It only works on x64\_64 (amd64) architecture.
 
 This page describes how to install and start NDN-DPDK on a supported operating system, which could be a physical server or a virtual machine with KVM acceleration.
@@ -9,15 +9,15 @@ You can also [build a Docker container](Docker.md), which would work on other op
 ## Dependencies
 
 * Linux kernel 5.14 or newer
-* Required APT packages: `clang-15 g++-12 git jq libc6-dev-i386 libelf-dev libpcap-dev libssl-dev liburcu-dev make meson ninja-build pkg-config`
-* Optional APT packages: `clang-format-15 doxygen lcov yamllint`
-* Go 1.24
-* Node.js 22.x
+* Required APT packages: `clang-19 g++-14 git jq libc6-dev-i386 libelf-dev libpcap-dev libssl-dev liburcu-dev make meson ninja-build pkg-config`
+* Optional APT packages: `clang-format-19 doxygen lcov yamllint`
+* Go 1.27
+* Node.js 26.x
 * [ubpf](https://github.com/iovisor/ubpf) a3e69808
-* [libbpf](https://github.com/libbpf/libbpf) 1.5.1 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.5.5 (optional)
-* [liburing](https://github.com/axboe/liburing) 2.11
-* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 24.11.2
-* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 25.05
+* [libbpf](https://github.com/libbpf/libbpf) 1.7.0 and [libxdp](https://github.com/xdp-project/xdp-tools) 1.6.3 (optional)
+* [liburing](https://github.com/axboe/liburing) 2.15
+* [Data Plane Development Kit (DPDK)](https://www.dpdk.org/) 25.11.3
+* [Storage Performance Development Kit (SPDK)](https://spdk.io/) 26.05
 * [godoc](https://pkg.go.dev/golang.org/x/tools/cmd/godoc), [staticcheck](https://pkg.go.dev/honnef.co/go/tools/cmd/staticcheck), [shfmt](https://github.com/mvdan/sh) commands (optional)
 
 You can run the [ndndpdk-depends.sh](ndndpdk-depends.sh) script to install these dependencies, or refer to the script for specific configuration options.
@@ -109,7 +109,7 @@ After running unit tests, you can generate coverage report with `make coverage` 
 The default is `gcc`.
 
 `BPFCC` environment variable specifies a compiler for eBPF programs.
-The default is `clang-15`.
+The default is `clang-19`.
 
 C code (including DPDK and SPDK, excluding eBPF) is compiled with `-march=native` flag by default.
 It selects the CPU instruction sets available on the local machine, and makes the compiled binaries incompatible with any other CPU model.

@@ -76,7 +76,7 @@ struct FwFwdCtx {
   union {
     Packet* npkt;
     struct rte_mbuf* pkt;
-  };                        // F,D,N
+  }; // F,D,N
   FibEntry* fibEntry;       // T,I,D,N
   FibEntryDyn* fibEntryDyn; // T,I,D,N
   PitEntry* pitEntry;       // T,I,D,N
