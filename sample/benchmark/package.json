@@ -17,6 +17,7 @@
     "@types/node": "^26.3.0",
     "@types/stdout-stream": "^1.4.2",
     "@types/yargs": "^17.0.35",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz",
     "delay": "^7.0.0",
     "dotenv": "^17.4.2",
@@ -30,7 +31,7 @@
     "ts-loader": "^9.6.2",
     "tslib": "^2.8.1",
     "tsx": "^4.23.12",
-    "typescript": "~7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "webpack": "^5.109.2",
     "webpack-dev-middleware": "^8.1.1",
     "yargs": "^18.1.0"

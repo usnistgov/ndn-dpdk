@@ -74,6 +74,7 @@ npm: build/share/ndn-dpdk/ndn-dpdk.npm.tgz
 
 build/share/ndn-dpdk/ndn-dpdk.npm.tgz:
 	$$(corepack pnpm bin)/tsc
+	touch build/.npmignore
 	mkdir -p $(@D)
 	mv $$(corepack pnpm pack --json . | jq -r .filename) $@
 
