@@ -12,11 +12,7 @@ EthLocator_Classify(const EthLocator* loc) {
   }
   c.multicast = rte_is_multicast_ether_addr(&loc->remote);
   c.udp = loc->remoteUDP != 0;
-  // as of DPDK 24.11, rte_ipv6_addr_is_v4mapped has a bug:
-  // it is passing depth=32 to rte_ipv6_addr_eq_prefix, should be depth=96
-  const struct rte_ipv6_addr v4mappedPrefix = RTE_IPV6_ADDR_PREFIX_V4MAPPED;
-  c.v4 =
-    rte_ipv6_addr_eq_prefix(&loc->remoteIP, &v4mappedPrefix, V4_IN_V6_PREFIX_OCTETS * CHAR_BIT);
+  c.v4 = rte_ipv6_addr_is_v4mapped(&loc->remoteIP);
   c.tunnel = 0;
   if (!rte_is_zero_ether_addr(&loc->innerRemote)) {
     c.tunnel = 'V';

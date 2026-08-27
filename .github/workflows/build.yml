@@ -41,6 +41,8 @@ jobs:
         run: |
           make lint
           git diff --exit-code
+      - name: Enable hugepages
+        run: sudo dpdk-hugepages.py --setup 2G
       - name: Run required unit tests
         run: |
           echo 'bdev|disk|ethface|fetch|fileserver|fwdp|memifface|memiftransport|tgconsumer|tgproducer' >~/acceptable-failures.txt
