@@ -5,18 +5,18 @@
     "start": "tsx",
     "typecheck": "tsc"
   },
-  "packageManager": "pnpm@10.13.1+sha512.37ebf1a5c7a30d5fabe0c5df44ee8da4c965ca0c5af3dbab28c3a1681b70a256218d05c81c9c0dcf767ef6b8551eb5b960042b9ed4300c59242336377e01cfad",
+  "packageManager": "pnpm@11.24.0+sha512.bd27e345e976dcb0be0b7a1228217b049a817e21b1f355c90dbe7dc46671895a8bc1e6d06c24554505ea93ea0b45f489a27ec1bfbc8de6a9659fca0f16fa0000",
   "dependencies": {
     "stdout-stream": "^2.0.0",
     "tslib": "^2.8.1",
-    "tsx": "^4.20.3",
-    "typescript": "~5.8.3"
+    "tsx": "^4.23.12",
+    "typescript": "~7.0.2"
   },
   "devDependencies": {
     "@types/stdout-stream": "^1.4.2",
     "@usnistgov/ndn-dpdk": "file:/usr/local/share/ndn-dpdk/ndn-dpdk.npm.tgz"
   },
   "engines": {
-    "node": "22.x"
+    "node": "26.x"
   }
 }

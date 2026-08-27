@@ -4,19 +4,19 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2023"],
+    "lib": ["ES2025"],
     "importHelpers": true,
     "jsx": "react",
     "jsxFactory": "h",
     "jsxFragmentFactory": "Fragment",
-    "module": "ES2022",
-    "moduleResolution": "Node",
+    "module": "es2022",
+    "moduleResolution": "bundler",
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "sourceMap": true,
     "strict": true,
-    "target": "ES2023"
+    "target": "es2025"
   },
   "include": [
     "**/*.ts",

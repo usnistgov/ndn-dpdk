@@ -6,14 +6,14 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "importHelpers": true,
-    "module": "ES2022",
-    "moduleResolution": "Node",
+    "module": "es2022",
+    "moduleResolution": "bundler",
     "noEmit": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "strict": true,
-    "target": "ES2023"
+    "target": "es2025"
   },
   "include": [
     "**/*.ts"

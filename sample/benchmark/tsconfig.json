@@ -8,14 +8,18 @@
     "jsx": "react",
     "jsxFactory": "h",
     "jsxFragmentFactory": "Fragment",
-    "module": "ES2022",
-    "moduleResolution": "Node",
+    "module": "es2022",
+    "moduleResolution": "bundler",
     "noImplicitAny": false,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
+    "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "target": "ES2023"
+    "target": "es2025",
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "**/*.ts",
