@@ -27,7 +27,6 @@ require (
 	github.com/onichandame/go-utils v0.0.8
 	github.com/onichandame/gql-ws v0.1.0
 	github.com/pascaldekloe/name v1.0.1
-	github.com/powerman/rpc-codec v1.2.2
 	github.com/rickb777/plural v1.4.11
 	github.com/safchain/ethtool v0.7.0
 	github.com/sethvargo/go-retry v0.4.0

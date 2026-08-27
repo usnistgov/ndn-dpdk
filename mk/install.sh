@@ -10,7 +10,6 @@ install -d -m0755 "$DESTBIN"
 install -m0755 build/bin/ndndpdk-ctrl "$DESTBIN/"
 install -m0755 build/bin/ndndpdk-godemo "$DESTBIN/"
 install -m0755 build/bin/ndndpdk-hrlog2histogram "$DESTBIN/"
-install -m0755 build/bin/ndndpdk-jrproxy "$DESTBIN/"
 install -m0755 build/bin/ndndpdk-svc "$DESTBIN/"
 install -m0755 build/bin/ndndpdk-upf "$DESTBIN/"
 
