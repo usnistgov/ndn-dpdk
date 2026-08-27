@@ -9,6 +9,7 @@ require (
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8
 	github.com/chaseisabelle/flagz v0.0.0-20211022193420-183f0ea66d78
 	github.com/coreos/go-systemd/v22 v22.7.0
+	github.com/creachadair/jrpc2 v1.3.5
 	github.com/dylandreimerink/gobpfld v0.6.0
 	github.com/functionalfoundry/graphqlws v0.0.0-20200611113535-7bc58903ce7b
 	github.com/gogf/greuse v1.1.0
@@ -52,6 +53,7 @@ require (
 	github.com/alecthomas/participle/v2 v2.0.0-alpha6 // indirect
 	github.com/bobg/go-generics/v4 v4.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
+	github.com/creachadair/mds v0.26.1 // indirect
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect

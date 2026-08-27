@@ -42,7 +42,7 @@ DFLT_UBPFVER=a3e69808888b0f48e3a7972dd94115e46dad1e74
 DFLT_LIBBPFVER=v1.7.0
 DFLT_XDPTOOLSVER=v1.6.3
 DFLT_URINGVER=liburing-2.15
-DFLT_DPDKVER=v25.11.3
+DFLT_DPDKVER=v25.11
 DFLT_DPDKPATCH=
 DFLT_DPDKOPTS={}
 DFLT_SPDKVER=v26.05
@@ -239,6 +239,7 @@ APT_PKGS=(
   patchelf
   pkg-config
   python-is-python3
+  python3-jinja2
   python3-pip
   python3-pyelftools
   python3-tabulate

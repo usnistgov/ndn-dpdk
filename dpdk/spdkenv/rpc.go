@@ -7,18 +7,21 @@ package spdkenv
 */
 import "C"
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path"
 	"unsafe"
 
-	"github.com/powerman/rpc-codec/jsonrpc2"
+	"github.com/creachadair/jrpc2"
+	"github.com/creachadair/jrpc2/channel"
 	"github.com/usnistgov/ndn-dpdk/dpdk/eal"
 	"go.uber.org/zap"
 )
 
-var rpcClient *jsonrpc2.Client
+var rpcClient *jrpc2.Client
 
 // Enable SPDK RPC server and internal RPC client.
 func initRPC() error {
@@ -38,17 +41,18 @@ func initRPC() error {
 	}
 	C.spdk_rpc_set_state(C.SPDK_RPC_RUNTIME)
 
-	rpcClient, e = jsonrpc2.Dial("unix", sockName)
+	conn, e := net.Dial("unix", sockName)
 	if e != nil {
-		return fmt.Errorf("jsonrpc2.Dial error: %w", e)
+		return fmt.Errorf("net.Dial error: %w", e)
 	}
+	rpcClient = jrpc2.NewClient(channel.Line(conn, conn), nil)
 
 	return nil
 }
 
 // RPC calls a method on SPDK RPC server.
 func RPC(method string, args, reply any) (e error) {
-	e = rpcClient.Call(method, args, reply)
+	e = rpcClient.CallResult(context.Background(), method, args, &reply)
 
 	if ce := logger.Check(zap.DebugLevel, "RPC"); ce != nil {
 		errField := zap.Skip()

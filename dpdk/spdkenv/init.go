@@ -51,10 +51,15 @@ func InitEnv() error {
 func loadLibspdk() error {
 	errs := []error{}
 
-	// As of SPDK 25.01-rc1, libspdk_scheduler_dpdk_governor.so depends on rte_power_freq_max symbol
-	// exported by librte_power.so but does not link with that library.
-	if _, e := dlopen.Load("librte_power.so"); e != nil {
-		errs = append(errs, fmt.Errorf("dlopen(librte_power.so): %w", e))
+	// As of SPDK 26.05, several SPDK libraries depend on external symbols but
+	// do not link with the libraries that export these symbols.
+	// libspdk_scheduler_dpdk_governor.so rte_power_freq_max
+	// libspdk_accel.so isal_aes_xts_enc_128
+	// libspdk_sock_uring.so io_uring_queue_init
+	for _, lib := range []string{"librte_power.so", "libisal_crypto.so", "liburing.so"} {
+		if _, e := dlopen.Load(lib); e != nil {
+			errs = append(errs, fmt.Errorf("dlopen(%s): %w", lib, e))
+		}
 	}
 
 	for _, libdir := range []string{"/usr/local/lib", "/usr/lib"} {

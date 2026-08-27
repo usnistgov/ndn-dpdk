@@ -3,7 +3,11 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"/..
 TESTCOUNT=${TESTCOUNT:-1}
 
-SUDO='sudo -E'
+if command -v sudo.ws >/dev/null; then
+  SUDO='sudo.ws -E'
+else
+  SUDO='sudo -E'
+fi
 if [[ $(id -u) -eq 0 ]]; then
   SUDO=
 fi
