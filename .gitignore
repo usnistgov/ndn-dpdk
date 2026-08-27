@@ -1,7 +1,9 @@
-*.out
+_cgo_*.o
+_obj
 .pnpm-debug.log
-/*ndn-dpdk-*.tgz
+*.out
 /.vscode
+/*ndn-dpdk-*.tgz
 /build*
 /csrc/*/*enum.h
 /csrc/*/an.h
@@ -9,7 +11,6 @@
 /mk/meson.build
 /node_modules
 /pnpm-lock.yaml
-_obj
 cgo_test.go
 cgoflags.go
 cgostruct.go

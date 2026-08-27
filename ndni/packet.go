@@ -19,6 +19,10 @@ import (
 
 var logger = logging.New("ndni")
 
+func (t PktType) String() string {
+	return C.GoString(C.PktType_ToString(C.PktType(t)))
+}
+
 // Packet represents a NDN network layer packet with parsed LP and Interest/Data headers.
 type Packet C.Packet
 

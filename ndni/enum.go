@@ -1,9 +1,5 @@
 package ndni
 
-/*
-#include "../csrc/ndni/packet.h"
-*/
-import "C"
 import (
 	"crypto/sha256"
 	"time"
@@ -117,10 +113,6 @@ const (
 
 	_ = "enumgen:PktType"
 )
-
-func (t PktType) String() string {
-	return C.GoString(C.PktType_ToString(C.PktType(t)))
-}
 
 // DataSatisfyResult indicates the result of Data.CanSatisfy function.
 type DataSatisfyResult int

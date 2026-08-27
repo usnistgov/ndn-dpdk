@@ -6,5 +6,5 @@ import (
 
 var (
 	makeAR    = testenv.MakeAR
-	randBytes = testenv.RandBytes
+	randBytes = testenv.RandBytes //lint:ignore U1000 used in test case
 )

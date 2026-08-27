@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"go/ast"
 	"go/format"
-	"go/parser"
 	"go/token"
+	"os"
 	"strconv"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 )
 
 type kv struct {
@@ -29,13 +31,23 @@ func (pc *pkgConsts) RecognizeFiles(path string) {
 	pc.fset = token.NewFileSet()
 	pc.Enums = map[string]*enumDecl{}
 
-	pkgs, e := parser.ParseDir(pc.fset, path, nil, 0)
+	pkgs, e := packages.Load(&packages.Config{
+		Env:  append(os.Environ(), "CGO_ENABLED=0"),
+		Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax,
+		Dir:  path,
+		Fset: pc.fset,
+	}, ".")
 	if e != nil {
 		panic(e)
 	}
+	if packages.PrintErrors(pkgs) > 0 {
+		panic("errors encountered while loading packages")
+	}
+
 	for _, pkg := range pkgs {
-		file := ast.MergePackageFiles(pkg, 0)
-		pc.recognizeFile(file)
+		for _, file := range pkg.Syntax {
+			pc.recognizeFile(file)
+		}
 	}
 }
 

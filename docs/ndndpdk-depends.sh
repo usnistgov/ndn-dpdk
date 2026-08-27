@@ -191,7 +191,7 @@ curl_test() {
 curl_test NDNDPDK_DL_GITHUB /robots.txt
 curl_test NDNDPDK_DL_NODESOURCE_DEB
 curl_test NDNDPDK_DL_GODEV /VERSION
-if [[ -n "$DPDKPATCH" ]]; then
+if [[ -n $DPDKPATCH ]]; then
   curl_test NDNDPDK_DL_DPDK_PATCHES
 fi
 

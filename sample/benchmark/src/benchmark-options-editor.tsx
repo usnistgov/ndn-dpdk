@@ -1,5 +1,5 @@
 import assert from "minimalistic-assert";
-import { Component, h, type JSX } from "preact";
+import { Component, h, type TargetedEvent } from "preact";
 
 import type { BenchmarkOptions } from "./benchmark";
 
@@ -163,7 +163,7 @@ export class BenchmarkOptionsEditor extends Component<Props> {
     F extends keyof BenchmarkOptions,
     E extends Element & { value: string },
   >(field: F, also?: (value: BenchmarkOptions[F], opts: Readonly<BenchmarkOptions>) => Partial<BenchmarkOptions>) {
-    return (evt: JSX.TargetedEvent<E>) => {
+    return (evt: TargetedEvent<E>) => {
       const { opts, onChange } = this.props;
       let value: any;
       switch (typeof opts[field]) {
