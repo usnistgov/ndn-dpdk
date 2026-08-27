@@ -1,0 +1,12 @@
+allowBuilds:
+  unrs-resolver: true
+
+publicHoistPattern:
+  - "@types/*"
+  - xo
+
+strictPeerDependencies: false
+
+update:
+  ignoreDeps:
+    - graphql-request

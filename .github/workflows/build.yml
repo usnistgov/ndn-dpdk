@@ -24,7 +24,7 @@ jobs:
         name: Install dependencies
         run: |
           npm install -g corepack
-          docs/ndndpdk-depends.sh -y --node=0 --go=0
+          docs/ndndpdk-depends.sh -y --node=0 --go=0 --dpdk-opts='{"disable_drivers":"common/cnxk,common/dpaax,net/bnxt"}'
           sudo update-alternatives --install /usr/bin/go go $(command -v go) 1
       - name: Build NDN-DPDK in debug mode
         run: |
