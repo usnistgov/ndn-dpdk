@@ -5,8 +5,8 @@ Included are a network forwarder, a traffic generator, and a file server.
 
 ![NDN-DPDK logo](docs/NDN-DPDK-logo.svg)
 
-This software is developed at the [Smart Connected Systems Division](https://www.nist.gov/ctl/smart-connected-systems-division) of the [National Institute of Standards and Technology](https://www.nist.gov/).
-It is completed and will see occasional maintenance updates.
+This software is developed at the [Communications Technology Laboratory](https://www.nist.gov/ctl) of the [National Institute of Standards and Technology](https://www.nist.gov/).
+It is completed and may see occasional maintenance updates.
 
 Acknowledgement: NDN-DPDK development and testing make use of public testbeds, including [FABRIC](https://whatisfabric.net), [Cloudlab](https://www.cloudlab.us), [Emulab](https://www.emulab.net), [Virtual Wall](https://doc.ilabt.imec.be/ilabt/virtualwall/index.html), [Grid'5000](https://www.grid5000.fr).
 

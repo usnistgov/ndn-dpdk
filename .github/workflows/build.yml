@@ -9,15 +9,15 @@ env:
   COREPACK_INTEGRITY_KEYS: 0
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     env:
       NDNDPDK_MK_THREADSLEEP: 1
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - id: deps
@@ -30,7 +30,7 @@ jobs:
           ' docs/ndndpdk-depends.sh >>$GITHUB_OUTPUT
           sudo update-alternatives --install /usr/bin/go go $(command -v go) 1
       - name: Cache DPDK and SPDK
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/setup-dpdk
           key: ${{ steps.deps.outputs.MESONVER }}_20250714
@@ -67,7 +67,7 @@ jobs:
         run: mk/netlify.sh
         if: ${{ github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
       - name: Deploy docs site
-        uses: nwtgck/actions-netlify@v3
+        uses: nwtgck/actions-netlify@v4
         with:
           publish-dir: ./build/netlify/
           production-deploy: true
@@ -82,13 +82,13 @@ jobs:
           NETLIFY_SITE_ID: a0fbfa66-eecb-46d0-9e0b-093ddd1d0fad
         if: ${{ github.repository == 'yoursunny/ndn-dpdk' && github.event_name == 'push' }}
   docker:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     steps:
       - id: prepare
         name: Prepare build
         run: |
           echo TAG=ghcr.io/${{ github.repository_owner }}/ndn-dpdk >>$GITHUB_OUTPUT
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -101,7 +101,7 @@ jobs:
             echo {} >/etc/docker/daemon.json
           '
           sudo yq -i '.registry-mirrors = ["https://mirror.gcr.io"]' /etc/docker/daemon.json
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           tags: ${{ steps.prepare.outputs.TAG }}
           build-args: | # cannot have bash escape patterns
@@ -115,10 +115,10 @@ jobs:
       - name: List files in image
         run: docker run --rm ${{ steps.prepare.outputs.TAG }} find /usr/local
   library:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Install TinyGo
